@@ -4,3 +4,5 @@ github.com/postgrip-io/postgrip-agent-sdks/protocol v0.3.2-0.20260822072326-8b9a
 github.com/postgrip-io/postgrip-agent-sdks/protocol v0.3.2-0.20260822072326-8b9a1f1f1e38/go.mod h1:3p01a0cFIg1g5/3zmq/JeNJiqmdzT7Tneu78CG8ty0Y=
 github.com/postgrip-io/postgrip-agent-sdks/protocol v0.3.2-0.20260822152313-7d2da2d6655b h1:x0qKc7D85Ia6t/7MJcEWmcop0+gIBKe83w5q5gsQiIY=
 github.com/postgrip-io/postgrip-agent-sdks/protocol v0.3.2-0.20260822152313-7d2da2d6655b/go.mod h1:3p01a0cFIg1g5/3zmq/JeNJiqmdzT7Tneu78CG8ty0Y=
+github.com/postgrip-io/postgrip-agent-sdks/protocol v0.3.2-0.20260823204830-f7fce7fa01ec h1:CWvHQpB4iVLz9lEdyVjqwcb+KOiL9foCj3/ih5Pzexc=
+github.com/postgrip-io/postgrip-agent-sdks/protocol v0.3.2-0.20260823204830-f7fce7fa01ec/go.mod h1:3p01a0cFIg1g5/3zmq/JeNJiqmdzT7Tneu78CG8ty0Y=
