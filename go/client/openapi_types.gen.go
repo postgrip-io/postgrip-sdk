@@ -42,6 +42,9 @@ type OpenAPIFailureInfo = protocol.FailureInfo
 type OpenAPIContinueAsNewResult = protocol.ContinueAsNewResult
 type OpenAPITaskEventInput = protocol.TaskEventInput
 type OpenAPITaskEvent = protocol.TaskEvent
+type OpenAPITaskEventBatchResponse struct {
+	EventsByTaskId map[string][]OpenAPITaskEvent `json:"eventsByTaskId"`
+}
 type OpenAPIRetryPolicy = protocol.RetryPolicy
 type OpenAPIScheduleCalendarSpec = protocol.ScheduleCalendarSpec
 type OpenAPIScheduleSpec = protocol.ScheduleSpec
@@ -142,6 +145,8 @@ type OpenAPIListSchedulesRequestBody = OpenAPINoBody
 type OpenAPIListSchedulesResponseBody = []OpenAPISchedule
 type OpenAPIListTaskEventsRequestBody = OpenAPINoBody
 type OpenAPIListTaskEventsResponseBody = []OpenAPITaskEvent
+type OpenAPIListTaskEventsBatchRequestBody = OpenAPINoBody
+type OpenAPIListTaskEventsBatchResponseBody = OpenAPITaskEventBatchResponse
 type OpenAPIListTasksRequestBody = OpenAPINoBody
 type OpenAPIListTasksResponseBody = []OpenAPITask
 type OpenAPIListWorkflowHistoryRequestBody = OpenAPINoBody
@@ -266,6 +271,7 @@ type FailureInfo = protocol.FailureInfo
 type ContinueAsNewResult = protocol.ContinueAsNewResult
 type TaskEventInput = protocol.TaskEventInput
 type TaskEvent = protocol.TaskEvent
+type TaskEventBatchResponse = OpenAPITaskEventBatchResponse
 type RetryPolicy = protocol.RetryPolicy
 type ScheduleCalendarSpec = protocol.ScheduleCalendarSpec
 type ScheduleSpec = protocol.ScheduleSpec
@@ -307,4 +313,4 @@ type CreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type SandboxWorkspace = protocol.SandboxWorkspace
 type SandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
 
-const openAPITypesSpecSHA256 = "06afe6c5fb3db593140020e300cfed910a4c34f1ab5218fa380bdc0a699a6871"
+const openAPITypesSpecSHA256 = "688828cb0e19b3c4a2350576b2b13eb9ae2b5aa0edb9cd47007689efa5969bd8"

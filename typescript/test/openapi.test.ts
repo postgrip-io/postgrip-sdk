@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   OPENAPI_CLIENT_OPERATION_COUNT,
   OPENAPI_OPERATION_COUNT,
+  encodeOpenAPIQuery,
   resolveOpenAPIOperation,
   OpenAPIClient,
   type OpenAPIPollTaskResponse,
@@ -39,8 +40,8 @@ describe('generated OpenAPI operations', () => {
   });
 
   it('generates request and response payload types', () => {
-    expect(OPENAPI_OPERATION_COUNT).toBe(45);
-    expect(OPENAPI_CLIENT_OPERATION_COUNT).toBe(43);
+    expect(OPENAPI_OPERATION_COUNT).toBe(46);
+    expect(OPENAPI_CLIENT_OPERATION_COUNT).toBe(44);
     expectTypeOf<OpenAPIRequestBody<'enqueueTask'>>().toMatchTypeOf<{ type: string }>();
     expectTypeOf<OpenAPIResponseBody<'enqueueTask'>>().toHaveProperty('lease_timeout_seconds');
     expectTypeOf<Parameters<OpenAPIClient['pollAgentTask']>[0]>().toMatchTypeOf<{
@@ -55,6 +56,8 @@ describe('generated OpenAPI operations', () => {
     expectTypeOf<OpenAPIQueryParameters<'pollAgentTask'>>().toHaveProperty('log_level');
     expectTypeOf<OpenAPIQueryParameters<'pollAgentTask'>['capabilities']>()
       .toEqualTypeOf<Array<string> | undefined>();
+    expectTypeOf<OpenAPIQueryParameters<'listTaskEventsBatch'>['task_id']>()
+      .toEqualTypeOf<Array<string>>();
     expectTypeOf<Parameters<OpenAPIClient['pauseSchedule']>[0]>().toMatchTypeOf<{
       readonly body: OpenAPIRequestBody<'pauseSchedule'>;
     }>();
@@ -65,6 +68,14 @@ describe('generated OpenAPI operations', () => {
     expectTypeOf<OpenAPISandbox['lastActivityAt']>().toEqualTypeOf<string | null | undefined>();
     expectTypeOf<OpenAPISandbox['stoppedAt']>().toEqualTypeOf<string | null | undefined>();
     expectTypeOf<OpenAPISandbox['deletedAt']>().toEqualTypeOf<string | null | undefined>();
+  });
+
+  it('repeats array query parameters for batch operations', () => {
+    const query = encodeOpenAPIQuery<'listTaskEventsBatch'>({
+      task_id: ['task-1', 'task-2'],
+      limit_per_task: 50,
+    });
+    expect(query?.toString()).toBe('task_id=task-1&task_id=task-2&limit_per_task=50');
   });
 
   it('exposes a generated typed client facade', async () => {

@@ -52,10 +52,10 @@ func TestResolveOpenAPIOperation(t *testing.T) {
 }
 
 func TestGeneratedOpenAPIPayloadTypesCompile(t *testing.T) {
-	if got, want := OpenAPIOperationCount, 45; got != want {
+	if got, want := OpenAPIOperationCount, 46; got != want {
 		t.Fatalf("generated operation count = %d, want %d", got, want)
 	}
-	if got, want := OpenAPIClientOperationCount, 43; got != want {
+	if got, want := OpenAPIClientOperationCount, 44; got != want {
 		t.Fatalf("generated client operation count = %d, want %d", got, want)
 	}
 	request := OpenAPIEnqueueTaskRequestBody{Type: "noop"}
@@ -117,6 +117,13 @@ func TestGeneratedOpenAPIListQueryParameters(t *testing.T) {
 		AgentId: &agentID,
 	}).values().Encode(), "agent_id=agent-1"; got != want {
 		t.Fatalf("workflow count query = %q, want %q", got, want)
+	}
+	limitPerTask := int64(50)
+	if got, want := (OpenAPIListTaskEventsBatchQuery{
+		TaskId:       []string{"task-1", "task-2"},
+		LimitPerTask: &limitPerTask,
+	}).values().Encode(), "limit_per_task=50&task_id=task-1&task_id=task-2"; got != want {
+		t.Fatalf("batch task-event query = %q, want %q", got, want)
 	}
 	if got, want := (OpenAPIPollAgentTaskQuery{
 		Queue:        "default",

@@ -45,8 +45,8 @@ class OpenAPIOperationTests(unittest.TestCase):
             resolve_openapi_operation(OperationId.GET_TASK)
 
     def test_generates_request_and_response_payload_types(self) -> None:
-        self.assertEqual(OPENAPI_OPERATION_COUNT, 45)
-        self.assertEqual(OPENAPI_CLIENT_OPERATION_COUNT, 43)
+        self.assertEqual(OPENAPI_OPERATION_COUNT, 46)
+        self.assertEqual(OPENAPI_CLIENT_OPERATION_COUNT, 44)
         request: EnqueueTaskRequestBody = {"type": "noop"}
         response: EnqueueTaskResponseBody = {
             "id": "task-1",
@@ -126,6 +126,16 @@ class OpenAPIOperationTests(unittest.TestCase):
                 "log_level": "info",
                 "capabilities": ["self_upgrade", "workflow_runtime"],
             }],
+        )
+
+    def test_repeats_array_query_parameters_for_batch_operations(self) -> None:
+        operation = resolve_openapi_operation(
+            OperationId.LIST_TASK_EVENTS_BATCH,
+            query={"task_id": ["task-1", "task-2"], "limit_per_task": 50},
+        )
+        self.assertEqual(
+            operation.path,
+            "/api/v1/task-events?task_id=task-1&task_id=task-2&limit_per_task=50",
         )
 
     def test_empty_object_request_bodies_are_required(self) -> None:

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256     = "06afe6c5fb3db593140020e300cfed910a4c34f1ab5218fa380bdc0a699a6871"
-	OpenAPIOperationCount = 45
+	OpenAPISpecSHA256     = "688828cb0e19b3c4a2350576b2b13eb9ae2b5aa0edb9cd47007689efa5969bd8"
+	OpenAPIOperationCount = 46
 )
 
 type openAPIOperationID string
@@ -44,6 +44,7 @@ const (
 	openAPIListSandboxes           openAPIOperationID = "listSandboxes"
 	openAPIListSchedules           openAPIOperationID = "listSchedules"
 	openAPIListTaskEvents          openAPIOperationID = "listTaskEvents"
+	openAPIListTaskEventsBatch     openAPIOperationID = "listTaskEventsBatch"
 	openAPIListTasks               openAPIOperationID = "listTasks"
 	openAPIListWorkflowHistory     openAPIOperationID = "listWorkflowHistory"
 	openAPIListWorkflows           openAPIOperationID = "listWorkflows"
@@ -112,6 +113,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIListSandboxes:           {Method: "GET", Path: "/api/v1/sandboxes", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "SandboxListResponse", PathParameters: []string{}},
 	openAPIListSchedules:           {Method: "GET", Path: "/api/v1/schedules", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{}},
 	openAPIListTaskEvents:          {Method: "GET", Path: "/api/v1/tasks/{taskId}/events", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{"taskId"}},
+	openAPIListTaskEventsBatch:     {Method: "GET", Path: "/api/v1/task-events", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "TaskEventBatchResponse", PathParameters: []string{}},
 	openAPIListTasks:               {Method: "GET", Path: "/api/v1/tasks", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{}},
 	openAPIListWorkflowHistory:     {Method: "GET", Path: "/api/v1/workflows/{workflowId}/history", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{"workflowId"}},
 	openAPIListWorkflows:           {Method: "GET", Path: "/api/v1/workflows", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{}},
