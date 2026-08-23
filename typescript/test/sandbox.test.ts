@@ -189,6 +189,17 @@ describe('sandbox client', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it('refuses port sessions through the terminal-specific transport', async () => {
+    const { client, fetchImpl } = await sandboxClient(() => jsonResponse({}));
+    await expect(
+      client.sandbox.openSession(
+        'sbx_1',
+        'port' as Parameters<typeof client.sandbox.openSession>[1],
+      ),
+    ).rejects.toThrow(/must be 'pty' or 'exec'/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('rejects oversized exec stdin before creating a remote session', async () => {
     const { client, fetchImpl } = await sandboxClient(() =>
       jsonResponse({ id: 'ses_1', ticket: 'pgss_t' }, 201),
