@@ -45,8 +45,8 @@ class OpenAPIOperationTests(unittest.TestCase):
             resolve_openapi_operation(OperationId.GET_TASK)
 
     def test_generates_request_and_response_payload_types(self) -> None:
-        self.assertEqual(OPENAPI_OPERATION_COUNT, 45)
-        self.assertEqual(OPENAPI_CLIENT_OPERATION_COUNT, 43)
+        self.assertEqual(OPENAPI_OPERATION_COUNT, 46)
+        self.assertEqual(OPENAPI_CLIENT_OPERATION_COUNT, 44)
         request: EnqueueTaskRequestBody = {"type": "noop"}
         response: EnqueueTaskResponseBody = {
             "id": "task-1",
@@ -91,6 +91,10 @@ class OpenAPIOperationTests(unittest.TestCase):
         connection.list_schedules(page_token="40")
         connection.list_workflows(agent_id="agent-1")
         connection.count_workflows(agent_id="agent-1")
+        connection.openapi.list_task_events_batch(
+            task_id=["task-1", "task-2"],
+            limit_per_task=25,
+        )
         self.assertEqual(
             calls,
             [
@@ -98,6 +102,10 @@ class OpenAPIOperationTests(unittest.TestCase):
                 (OperationId.LIST_SCHEDULES, {"page_token": "40"}),
                 (OperationId.LIST_WORKFLOWS, {"agent_id": "agent-1"}),
                 (OperationId.COUNT_WORKFLOWS, {"agent_id": "agent-1"}),
+                (
+                    OperationId.LIST_TASK_EVENTS_BATCH,
+                    {"task_id": ["task-1", "task-2"], "limit_per_task": 25},
+                ),
             ],
         )
 

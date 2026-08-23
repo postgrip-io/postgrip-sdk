@@ -91,7 +91,7 @@ longer-form documentation remain inside the package that owns them.
 ## OpenAPI contract
 
 [`openapi.json`](openapi.json) is synchronized from the canonical server
-contract in `postgrip-web/api/agent-openapi.json`. It generates closed public
+contract in `postgrip-web/postgrip-api/agent-openapi.json`. It generates closed public
 wire models, per-operation request and response types, transport metadata, and
 typed low-level clients for Go, TypeScript, and Python. Stable public facades
 delegate to those generated clients.
@@ -104,7 +104,7 @@ must be updated across the TypeScript and Python mirrors together.
 ```sh
 python3 scripts/generate_openapi.py
 python3 scripts/generate_openapi.py --check
-python3 scripts/generate_openapi.py --check-source ../postgrip-web/api/agent-openapi.json
+python3 scripts/generate_openapi.py --check-source ../postgrip-web/postgrip-api/agent-openapi.json
 ```
 
 Never edit generated operation metadata, clients, or wire-type files directly.

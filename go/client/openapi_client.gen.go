@@ -155,6 +155,22 @@ func (p OpenAPIListSchedulesQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIListTaskEventsBatchQuery struct {
+	TaskId       []string
+	LimitPerTask *int64
+}
+
+func (p OpenAPIListTaskEventsBatchQuery) values() url.Values {
+	values := url.Values{}
+	for _, value := range p.TaskId {
+		values.Add("task_id", fmt.Sprint(value))
+	}
+	if p.LimitPerTask != nil {
+		values.Set("limit_per_task", fmt.Sprint(*p.LimitPerTask))
+	}
+	return values
+}
+
 type OpenAPIListTasksQuery struct {
 	Namespace *string
 	Queue     *string
@@ -434,6 +450,11 @@ func (c *OpenAPIClient) ListTaskEvents(ctx context.Context, taskId string) (Open
 	err := c.connection.doOpenAPI(ctx, openAPIListTaskEvents, map[string]string{"taskId": taskId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ListTaskEventsBatch(ctx context.Context, query OpenAPIListTaskEventsBatchQuery) (OpenAPIListTaskEventsBatchResponseBody, error) {
+	var response OpenAPIListTaskEventsBatchResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListTaskEventsBatch, nil, query.values(), nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ListTasks(ctx context.Context, query OpenAPIListTasksQuery) (OpenAPIListTasksResponseBody, error) {
 	var response OpenAPIListTasksResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIListTasks, nil, query.values(), nil, &response)
@@ -517,6 +538,6 @@ func (c *OpenAPIClient) UpdateSchedule(ctx context.Context, scheduleId string, b
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 43
+const OpenAPIClientOperationCount = 44
 
-const openAPIClientSpecSHA256 = "06afe6c5fb3db593140020e300cfed910a4c34f1ab5218fa380bdc0a699a6871"
+const openAPIClientSpecSHA256 = "efe7a393b03b45644956cfd6d8a3cb87564326e64c156fa092fc6042c62b1b0e"
