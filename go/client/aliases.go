@@ -73,6 +73,7 @@ const (
 
 	SandboxSessionKindPTY  = protocol.SandboxSessionKindPTY
 	SandboxSessionKindExec = protocol.SandboxSessionKindExec
+	SandboxSessionKindPort = protocol.SandboxSessionKindPort
 
 	SandboxRelayMaxFrameBytes = protocol.SandboxRelayMaxFrameBytes
 

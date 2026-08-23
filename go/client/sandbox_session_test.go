@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -65,6 +66,56 @@ func TestOpenSandboxSessionValidatesKindAndCommand(t *testing.T) {
 	}
 	if _, err := c.Sandbox.OpenSandboxSession(ctx, "sbx_1", protocol.SandboxSessionKindExec, SandboxSessionOptions{}); err == nil {
 		t.Fatal("accepted an exec session with no command")
+	}
+}
+
+func TestOpenSandboxPortUsesSeparateBinaryProtocol(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			var request CreateSandboxSessionRequest
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				t.Error(err)
+			}
+			if request.Kind != protocol.SandboxSessionKindPort || request.Port != 3000 {
+				t.Errorf("port request = %+v", request)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_port","ticket":"pgss_port","byteStreamProtocols":["postgrip.sandbox.port.v1"]}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+			OriginPatterns: []string{"*"},
+			Subprotocols:   []string{protocol.SandboxPortStreamProtocolV1},
+		})
+		if err != nil {
+			return
+		}
+		defer conn.CloseNow()
+		kind, data, err := conn.Read(r.Context())
+		if err == nil {
+			_ = conn.Write(r.Context(), kind, data)
+		}
+	}))
+	defer server.Close()
+
+	connection, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream, err := New(connection).Sandbox.OpenSandboxPort(context.Background(), "sbx_1", 3000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	payload := []byte{0, 1, 2, 255}
+	go func() { _, _ = stream.Write(payload) }()
+	got := make([]byte, len(payload))
+	if _, err = io.ReadFull(stream, got); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, payload) {
+		t.Fatalf("echo = %v, want %v", got, payload)
 	}
 }
 

@@ -205,3 +205,50 @@ func TestCreateSandboxSessionResponseTerminalProtocols(t *testing.T) {
 		t.Fatalf("terminal protocols missing from response: %s", advertised)
 	}
 }
+
+func TestSandboxSessionProtocolEvolutionWireShapes(t *testing.T) {
+	request, err := json.Marshal(CreateSandboxSessionRequest{
+		Kind: SandboxSessionKindPort,
+		Port: 3000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(request); !strings.Contains(got, `"kind":"port"`) || !strings.Contains(got, `"port":3000`) {
+		t.Fatalf("port request = %s", got)
+	}
+
+	response, err := json.Marshal(CreateSandboxSessionResponse{
+		TerminalProtocols:   []string{SandboxTerminalProtocolV2, SandboxTerminalProtocolV1},
+		ByteStreamProtocols: []string{SandboxPortStreamProtocolV1},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fragment := range []string{
+		`"terminalProtocols":["postgrip.sandbox.terminal.v2","postgrip.sandbox.terminal.v1"]`,
+		`"byteStreamProtocols":["postgrip.sandbox.port.v1"]`,
+	} {
+		if !strings.Contains(string(response), fragment) {
+			t.Fatalf("response = %s, missing %s", response, fragment)
+		}
+	}
+
+	reconcile, err := json.Marshal(SandboxReconcileRequest{
+		Capabilities: []string{AgentCapabilitySandboxTerminalV2, AgentCapabilitySandboxPortStream},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(reconcile), `"capabilities":["sandbox_terminal_v2","sandbox_port_stream_v1"]`) {
+		t.Fatalf("reconcile request = %s", reconcile)
+	}
+
+	assignment, err := json.Marshal(SandboxSessionAssignment{Kind: SandboxSessionKindPort, HostPort: 49152})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(assignment); !strings.Contains(got, `"hostPort":49152`) {
+		t.Fatalf("port assignment = %s", got)
+	}
+}

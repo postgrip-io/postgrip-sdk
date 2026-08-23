@@ -8,7 +8,7 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'efe7a393b03b45644956cfd6d8a3cb87564326e64c156fa092fc6042c62b1b0e'
+OPENAPI_SPEC_SHA256 = 'ec53ad7fb89758df396157d0dbce4e9d068e66671a33cd886f2afdfa5348cdc5'
 OPENAPI_OPERATION_COUNT = 46
 OPENAPI_CLIENT_OPERATION_COUNT = 44
 CONNECT_SANDBOX_SESSION_PATH_SESSION_ID = 'sessionId'
@@ -99,7 +99,7 @@ _SchemaSandboxDesiredState: TypeAlias = Literal['running', 'stopped', 'deleted']
 
 _SchemaSandboxObservedState: TypeAlias = Literal['requested', 'scheduling', 'provisioning', 'setting_up', 'running', 'stopping', 'stopped', 'starting', 'deleting', 'deleted', 'failed']
 
-_SchemaSandboxSessionKind: TypeAlias = Literal['pty', 'exec']
+_SchemaSandboxSessionKind: TypeAlias = Literal['pty', 'exec', 'port']
 
 class _SchemaNamespaceOptional(TypedDict, total=False):
     tenantId: str
@@ -537,12 +537,14 @@ class _SchemaCreateSandboxSessionRequestOptional(TypedDict, total=False):
     columns: int
     kind: _SchemaSandboxSessionKind
     command: list[str]
+    port: int
 
 class _SchemaCreateSandboxSessionRequest(_SchemaCreateSandboxSessionRequestOptional):
     pass
 
 class _SchemaCreateSandboxSessionResponseOptional(TypedDict, total=False):
-    terminalProtocols: list[Literal['postgrip.sandbox.terminal.v1']]
+    terminalProtocols: list[Literal['postgrip.sandbox.terminal.v2', 'postgrip.sandbox.terminal.v1']]
+    byteStreamProtocols: list[Literal['postgrip.sandbox.port.v1']]
 
 class _SchemaCreateSandboxSessionResponse(_SchemaCreateSandboxSessionResponseOptional):
     id: str
