@@ -347,7 +347,11 @@ def go_query_struct(row: dict[str, Any]) -> tuple[str, str]:
             )
         else:
             field_type = go_schema_type(schema, optional=not required)
-            if required:
+            if required and field_type.startswith("[]"):
+                encoders.append(
+                    f'\tfor _, value := range p.{field_name} {{ values.Add({json.dumps(name)}, fmt.Sprint(value)) }}'
+                )
+            elif required:
                 encoders.append(f'\tvalues.Set({json.dumps(name)}, fmt.Sprint(p.{field_name}))')
             elif field_type.startswith("[]"):
                 encoders.append(
