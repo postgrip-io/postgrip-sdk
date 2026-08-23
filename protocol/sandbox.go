@@ -53,9 +53,31 @@ const (
 
 	// SandboxSessionKindPTY allocates a TTY sized by the session's rows and
 	// columns. SandboxSessionKindExec runs a command with stdin attached and
-	// no TTY; it requires Command to be set.
+	// no TTY; it requires Command to be set. SandboxSessionKindPort opens a
+	// raw TCP byte stream to a TCP port already published by the sandbox; it
+	// requires Port to identify the guest-side port mapping.
 	SandboxSessionKindPTY  = "pty"
 	SandboxSessionKindExec = "exec"
+	SandboxSessionKindPort = "port"
+
+	// SandboxTerminalProtocolV1 reserves text frames for strict client-to-agent
+	// control JSON. V2 reserves text frames for strict controls in both
+	// directions, while binary frames remain raw terminal bytes.
+	SandboxTerminalProtocolV1    = "postgrip.sandbox.terminal.v1"
+	SandboxTerminalProtocolV2    = "postgrip.sandbox.terminal.v2"
+	SandboxTerminalControlResize = "resize"
+	SandboxTerminalControlNotice = "notice"
+
+	// SandboxPortStreamProtocolV1 carries raw TCP bytes in binary WebSocket
+	// frames. It is deliberately separate from the terminal subprotocols:
+	// arbitrary application bytes are not terminal output.
+	SandboxPortStreamProtocolV1 = "postgrip.sandbox.port.v1"
+
+	// Agent capabilities gate assignment and advertisement across mixed-version
+	// fleets. An orchestrator must not offer or assign a feature until the
+	// target agent most recently advertised the corresponding capability.
+	AgentCapabilitySandboxTerminalV2 = "sandbox_terminal_v2"
+	AgentCapabilitySandboxPortStream = "sandbox_port_stream_v1"
 
 	// SandboxExecCloseStatusBase encodes a sandbox exec's process exit code
 	// in the WebSocket close status: status = base + exitCode, for exit codes
@@ -291,8 +313,11 @@ type SandboxWorkspaceListResponse struct {
 
 // CreateSandboxSessionRequest is the body of
 // POST /api/v1/sandboxes/{id}/sessions. Rows and Columns default to 24x80 and
-// are fixed for the life of the session — there is no resize channel. Kind
-// defaults to pty; exec requires Command.
+// set the initial terminal size; clients that negotiate a terminal subprotocol
+// may send later resize controls. Kind defaults to pty; exec requires Command
+// and port requires Port. Port is the guest-side TCP port and must match a TCP
+// mapping in the sandbox network policy; the agent assignment carries the
+// resolved host-side port separately.
 //
 // The sandbox must be observed running and assigned to an agent, otherwise the
 // server returns 400 "sandbox is not running", which is retryable.
@@ -301,17 +326,21 @@ type CreateSandboxSessionRequest struct {
 	Columns int      `json:"columns,omitempty"`
 	Kind    string   `json:"kind,omitempty"`
 	Command []string `json:"command,omitempty"`
+	Port    int      `json:"port,omitempty"`
 }
 
 // CreateSandboxSessionResponse carries a single-use relay ticket. The ticket
 // is returned exactly once and stored only as a hash, and it is short-lived —
 // connect promptly rather than holding it. TerminalProtocols is omitted by
 // legacy orchestrators, so clients must treat an absent list as legacy framing.
+// ByteStreamProtocols is populated only for port sessions and must never be
+// interpreted as terminal framing.
 type CreateSandboxSessionResponse struct {
-	ID                string    `json:"id"`
-	Ticket            string    `json:"ticket"`
-	ExpiresAt         time.Time `json:"expiresAt"`
-	TerminalProtocols []string  `json:"terminalProtocols,omitempty"`
+	ID                  string    `json:"id"`
+	Ticket              string    `json:"ticket"`
+	ExpiresAt           time.Time `json:"expiresAt"`
+	TerminalProtocols   []string  `json:"terminalProtocols,omitempty"`
+	ByteStreamProtocols []string  `json:"byteStreamProtocols,omitempty"`
 }
 
 // --- agent-plane sandbox shapes -------------------------------------------
@@ -339,7 +368,11 @@ type SandboxObservation struct {
 }
 
 type SandboxReconcileRequest struct {
-	Backends     []SandboxBackend      `json:"backends"`
+	Backends []SandboxBackend `json:"backends"`
+	// Capabilities advertises optional sandbox-session protocol features. The
+	// orchestrator treats an absent list as a legacy agent and must not assign
+	// sessions that require a newer transport.
+	Capabilities []string              `json:"capabilities,omitempty"`
 	Capacity     SandboxResourceLimits `json:"capacity,omitempty"`
 	Observations []SandboxObservation  `json:"observations,omitempty"`
 }
@@ -350,14 +383,18 @@ type SandboxReconcileResponse struct {
 }
 
 type SandboxSessionAssignment struct {
-	ID                string    `json:"id"`
-	SandboxID         string    `json:"sandboxId"`
-	RuntimeInstanceID string    `json:"runtimeInstanceId"`
-	Kind              string    `json:"kind"`
-	Rows              int       `json:"rows"`
-	Columns           int       `json:"columns"`
-	Command           []string  `json:"command,omitempty"`
-	ExpiresAt         time.Time `json:"expiresAt"`
+	ID                string   `json:"id"`
+	SandboxID         string   `json:"sandboxId"`
+	RuntimeInstanceID string   `json:"runtimeInstanceId"`
+	Kind              string   `json:"kind"`
+	Rows              int      `json:"rows"`
+	Columns           int      `json:"columns"`
+	Command           []string `json:"command,omitempty"`
+	// HostPort is the loopback-only published port the agent connects to for a
+	// port session. It is agent-plane data and is never returned to management
+	// clients, which request the corresponding guest port instead.
+	HostPort  int       `json:"hostPort,omitempty"`
+	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 // IsolationForSandboxBackend maps a backend onto the isolation tier vocabulary

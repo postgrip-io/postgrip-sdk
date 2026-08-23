@@ -751,8 +751,8 @@
       "parameters": [{ "$ref": "#/components/parameters/SandboxId" }],
       "post": {
         "operationId": "createSandboxSession",
-        "summary": "Mint a single-use ticket for an interactive session",
-        "description": "Creates a pending pty or exec session and returns its ticket exactly once -- only a hash of it is stored. The ticket is short-lived and is redeemed against the connect operation. The sandbox must already be running.",
+        "summary": "Mint a single-use ticket for a sandbox stream",
+        "description": "Creates a pending pty, exec, or port session and returns its ticket exactly once -- only a hash of it is stored. The ticket is short-lived and is redeemed against the connect operation. The sandbox must already be running. Port sessions require an advertised port-stream-capable agent and a TCP guest port that is already published by the sandbox. Pending and connected sessions are limited to 20 per tenant, 10 per agent, and 5 per sandbox; a limit breach returns 429.",
         "tags": ["Sandboxes"],
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "management",
@@ -837,7 +837,7 @@
       "get": {
         "operationId": "connectSandboxSession",
         "summary": "Attach to an interactive session over WebSocket",
-        "description": "Upgrades to a WebSocket carrying stdio in binary messages; stdout and stderr are interleaved on one stream. Clients that offer the postgrip.sandbox.terminal.v1 WebSocket subprotocol may send UTF-8 text control messages of the form {\"type\":\"resize\",\"rows\":24,\"columns\":80}; rows and columns must be integers from 1 through 65535. Binary client-to-agent messages carry raw stdin bytes, and a zero-length binary message signals stdin EOF without closing the output side. For backward compatibility, text messages are also treated as raw stdin when the subprotocol is not negotiated. The process exit code arrives as the WebSocket close status offset by 4000, not in the stream itself.",
+        "description": "Upgrades to the one-shot WebSocket stream authorized by the ticket. For pty and exec sessions, binary messages carry raw stdin/stdout bytes and stdout/stderr are interleaved. postgrip.sandbox.terminal.v1 reserves client-to-agent text frames for strict resize JSON of the form {\"type\":\"resize\",\"rows\":24,\"columns\":80}; postgrip.sandbox.terminal.v2 applies strict JSON control framing in both directions and additionally permits agent-to-client notice messages of the form {\"type\":\"notice\",\"code\":\"session_ready\",\"message\":\"Sandbox stream is ready\"}. Rows and columns must be integers from 1 through 65535. A zero-length client binary message signals terminal stdin EOF without closing output. Without a negotiated terminal protocol, text messages remain legacy raw stdin. Exec exit codes, and only exec exit codes, use WebSocket close status 4000 plus the process code. For port sessions, postgrip.sandbox.port.v1 carries raw TCP bytes in binary messages; text messages are invalid, and terminal controls and terminal close-code semantics do not apply. Ping/Pong liveness is enforced independently on every proxy hop, and any failed hop terminates both relay peers.",
         "tags": ["Sandboxes"],
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "management",
@@ -910,7 +910,7 @@
       "SandboxBackend": { "type": "string", "enum": ["auto", "docker", "podman", "firecracker"] },
       "SandboxDesiredState": { "type": "string", "enum": ["running", "stopped", "deleted"] },
       "SandboxObservedState": { "type": "string", "enum": ["requested", "scheduling", "provisioning", "setting_up", "running", "stopping", "stopped", "starting", "deleting", "deleted", "failed"] },
-      "SandboxSessionKind": { "type": "string", "enum": ["pty", "exec"] },
+      "SandboxSessionKind": { "type": "string", "enum": ["pty", "exec", "port"] },
       "Namespace": {
         "type": "object",
         "additionalProperties": false,
@@ -1342,7 +1342,8 @@
           "rows": { "type": "integer", "minimum": 1, "maximum": 65535, "example": 24 },
           "columns": { "type": "integer", "minimum": 1, "maximum": 65535, "example": 80 },
           "kind": { "$ref": "#/components/schemas/SandboxSessionKind" },
-          "command": { "type": "array", "items": { "type": "string" } }
+          "command": { "type": "array", "items": { "type": "string" } },
+          "port": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "Guest-side TCP port for kind=port; it must match a published sandbox network-policy mapping." }
         }
       },
       "CreateSandboxSessionResponse": {
@@ -1355,8 +1356,13 @@
           "expiresAt": { "type": "string", "format": "date-time" },
           "terminalProtocols": {
             "type": "array",
-            "description": "WebSocket subprotocols supported by this relay. Omitted by legacy orchestrators; clients must then connect without a subprotocol and keep the session's initial dimensions.",
-            "items": { "type": "string", "enum": ["postgrip.sandbox.terminal.v1"] }
+            "description": "Terminal WebSocket subprotocols supported by the target agent and relay, in preference order. Present only for pty and exec sessions. Omitted by legacy orchestrators; clients must then connect without a subprotocol and keep the session's initial dimensions.",
+            "items": { "type": "string", "enum": ["postgrip.sandbox.terminal.v2", "postgrip.sandbox.terminal.v1"] }
+          },
+          "byteStreamProtocols": {
+            "type": "array",
+            "description": "Raw byte-stream WebSocket subprotocols supported by this relay, in preference order. Present only for port sessions and never interpreted as terminal framing.",
+            "items": { "type": "string", "enum": ["postgrip.sandbox.port.v1"] }
           }
         }
       },

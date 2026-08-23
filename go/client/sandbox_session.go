@@ -51,6 +51,23 @@ type SandboxStream struct {
 	inputClosed bool
 }
 
+// SandboxPortStream is a raw TCP byte stream relayed through the authenticated
+// sandbox WebSocket endpoint. It intentionally has no terminal resize, stdin
+// EOF, or process-exit semantics.
+type SandboxPortStream struct {
+	conn *websocket.Conn
+	rw   net.Conn
+}
+
+func (s *SandboxPortStream) Read(p []byte) (int, error) { return s.rw.Read(p) }
+func (s *SandboxPortStream) Write(p []byte) (int, error) {
+	if len(p) > protocol.SandboxRelayMaxFrameBytes {
+		return 0, &failure.SDKError{Message: "sandbox port write exceeds the relay frame limit"}
+	}
+	return s.rw.Write(p)
+}
+func (s *SandboxPortStream) Close() error { return s.conn.CloseNow() }
+
 // Read implements io.Reader over the session's output.
 func (s *SandboxStream) Read(p []byte) (int, error) { return s.rw.Read(p) }
 
@@ -185,11 +202,62 @@ func (s *SandboxClient) OpenSandboxSession(ctx context.Context, sandboxID, kind 
 		return nil, err
 	}
 
-	address := opts.RelayAddress
+	var protocols []string
+	for _, candidate := range session.TerminalProtocols {
+		if candidate == protocol.SandboxTerminalProtocolV1 {
+			protocols = []string{protocol.SandboxTerminalProtocolV1}
+			break
+		}
+	}
+	conn, err := s.dialSandboxRelay(ctx, session.ID, session.Ticket, opts.RelayAddress, protocols)
+	if err != nil {
+		return nil, err
+	}
+	// Frames are opaque binary. NetConn lifts the peer read limit; the relay
+	// keeps its own bound, which Write enforces above.
+	return &SandboxStream{conn: conn, rw: websocket.NetConn(ctx, conn, websocket.MessageBinary), ctx: ctx}, nil
+}
+
+// OpenSandboxPort opens a raw TCP stream to an existing guest-side port
+// mapping. The target agent must advertise port-stream support.
+func (s *SandboxClient) OpenSandboxPort(ctx context.Context, sandboxID string, guestPort int, relayAddress string) (*SandboxPortStream, error) {
+	if guestPort < 1 || guestPort > 65535 {
+		return nil, &failure.SDKError{Message: "sandbox guest port must be between 1 and 65535"}
+	}
+	session, err := s.conn.CreateSandboxSession(ctx, sandboxID, CreateSandboxSessionRequest{
+		Kind: protocol.SandboxSessionKindPort,
+		Port: guestPort,
+	})
+	if err != nil {
+		return nil, err
+	}
+	offered := false
+	for _, candidate := range session.ByteStreamProtocols {
+		if candidate == protocol.SandboxPortStreamProtocolV1 {
+			offered = true
+			break
+		}
+	}
+	if !offered {
+		return nil, &failure.SDKError{Message: "server did not offer a compatible sandbox port-stream protocol"}
+	}
+	conn, err := s.dialSandboxRelay(ctx, session.ID, session.Ticket, relayAddress, []string{protocol.SandboxPortStreamProtocolV1})
+	if err != nil {
+		return nil, err
+	}
+	if conn.Subprotocol() != protocol.SandboxPortStreamProtocolV1 {
+		_ = conn.CloseNow()
+		return nil, &failure.SDKError{Message: "sandbox port-stream protocol was not negotiated"}
+	}
+	return &SandboxPortStream{conn: conn, rw: websocket.NetConn(ctx, conn, websocket.MessageBinary)}, nil
+}
+
+func (s *SandboxClient) dialSandboxRelay(ctx context.Context, sessionID, ticket, relayAddress string, protocols []string) (*websocket.Conn, error) {
+	address := relayAddress
 	if address == "" {
 		address = s.conn.Address()
 	}
-	relay, err := sandboxRelayURL(address, session.ID, session.Ticket)
+	relay, err := sandboxRelayURL(address, sessionID, ticket)
 	if err != nil {
 		return nil, err
 	}
@@ -207,13 +275,11 @@ func (s *SandboxClient) OpenSandboxSession(ctx context.Context, sandboxID, kind 
 	}
 	// The ticket authorizes the session; the management credential still
 	// authenticates the request. Both are required.
-	conn, _, err := websocket.Dial(ctx, relay, &websocket.DialOptions{HTTPHeader: header})
+	conn, _, err := websocket.Dial(ctx, relay, &websocket.DialOptions{HTTPHeader: header, Subprotocols: protocols})
 	if err != nil {
 		return nil, &failure.SDKError{Message: "dial sandbox session relay", Cause: err}
 	}
-	// Frames are opaque binary. NetConn lifts the peer read limit; the relay
-	// keeps its own bound, which Write enforces above.
-	return &SandboxStream{conn: conn, rw: websocket.NetConn(ctx, conn, websocket.MessageBinary), ctx: ctx}, nil
+	return conn, nil
 }
 
 type sandboxExecStdinOutcome struct {

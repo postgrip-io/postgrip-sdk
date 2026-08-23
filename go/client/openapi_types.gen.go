@@ -240,6 +240,7 @@ const (
 	OpenAPISandboxObservedStateFailed                    OpenAPISandboxObservedState      = "failed"
 	OpenAPISandboxSessionKindPty                         OpenAPISandboxSessionKind        = "pty"
 	OpenAPISandboxSessionKindExec                        OpenAPISandboxSessionKind        = "exec"
+	OpenAPISandboxSessionKindPort                        OpenAPISandboxSessionKind        = "port"
 )
 
 // Compatibility names preserve the existing SDK surface while making the
@@ -313,4 +314,4 @@ type CreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type SandboxWorkspace = protocol.SandboxWorkspace
 type SandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
 
-const openAPITypesSpecSHA256 = "efe7a393b03b45644956cfd6d8a3cb87564326e64c156fa092fc6042c62b1b0e"
+const openAPITypesSpecSHA256 = "ec53ad7fb89758df396157d0dbce4e9d068e66671a33cd886f2afdfa5348cdc5"

@@ -285,9 +285,12 @@ export class SandboxClient {
    */
   async openSession(
     sandboxId: string,
-    kind: SandboxSessionKind,
+    kind: Exclude<SandboxSessionKind, 'port'>,
     options: SandboxSessionOptions = {},
   ): Promise<SandboxSession> {
+    if (kind !== 'pty' && kind !== 'exec') {
+      throw new Error("postgrip-agent: sandbox session kind must be 'pty' or 'exec'");
+    }
     if (kind === 'exec' && (!options.command || options.command.length === 0)) {
       throw new Error('postgrip-agent: sandbox exec requires a command');
     }
