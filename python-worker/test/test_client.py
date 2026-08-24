@@ -4,10 +4,12 @@ import asyncio
 from io import BytesIO
 import json
 from email.message import Message
-from threading import Event
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Event, Thread
 import unittest
 from urllib.error import HTTPError
 from urllib.request import build_opener
+from unittest.mock import patch
 
 from postgrip_worker import AsyncWorkerClient, WorkerAPIError, WorkerClient
 
@@ -98,6 +100,17 @@ class WorkerClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.request_id, "req-fallback")
         self.assertEqual(len(opener.requests), 3)
 
+    def test_retry_after_only_controls_rate_limit_and_service_unavailable_backoff(self) -> None:
+        opener = FakeOpener([api_error(502, retry_after="30"), {"items": []}])
+        client = WorkerClient(base_url="https://workers.example.com", token="pgwm_test-token",
+                              opener=opener, enable_retries=True)  # type: ignore[arg-type]
+
+        with patch("postgrip_worker.client._jitter", return_value=0.125), \
+             patch("postgrip_worker.client.time.sleep") as sleep:
+            self.assertEqual(client.list(), {"items": []})
+
+        sleep.assert_called_once_with(0.125)
+
     def test_security_log_query_uses_wire_names(self) -> None:
         opener = FakeOpener([{"items": [], "nextCursor": "cursor"}])
         client = WorkerClient(base_url="https://workers.example.com", token="pgwm_test-token",
@@ -138,6 +151,60 @@ class WorkerClientTests(unittest.TestCase):
         cancel.set()
         with self.assertRaises(StopIteration):
             next(iterator)
+
+    def test_sync_follow_cancellation_aborts_in_flight_request(self) -> None:
+        request_started = Event()
+        client_disconnected = Event()
+
+        class BlockingHandler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                request_started.set()
+                self.connection.settimeout(2)
+                try:
+                    if self.connection.recv(1) == b"":
+                        client_disconnected.set()
+                except OSError:
+                    client_disconnected.set()
+
+            def log_message(self, _format: str, *_args: object) -> None:
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), BlockingHandler)
+        server_thread = Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        try:
+            client = WorkerClient(
+                base_url=f"http://127.0.0.1:{server.server_port}",
+                token="pgwm_test-token",
+                insecure_development=True,
+                timeout=10,
+            )
+            cancel = Event()
+            iterator = client.follow_operational_logs("worker", cancel=cancel)
+            stopped = Event()
+            errors: list[BaseException] = []
+
+            def consume() -> None:
+                try:
+                    next(iterator)
+                except StopIteration:
+                    stopped.set()
+                except BaseException as error:
+                    errors.append(error)
+
+            consumer = Thread(target=consume)
+            consumer.start()
+            self.assertTrue(request_started.wait(1), "log request did not reach the server")
+            cancel.set()
+
+            self.assertTrue(stopped.wait(1), "log follower did not stop after cancellation")
+            self.assertTrue(client_disconnected.wait(1), "in-flight HTTP connection remained open")
+            consumer.join(1)
+            self.assertEqual(errors, [])
+        finally:
+            server.shutdown()
+            server.server_close()
+            server_thread.join(1)
 
     def test_async_follow_is_cancellable(self) -> None:
         async def run() -> None:

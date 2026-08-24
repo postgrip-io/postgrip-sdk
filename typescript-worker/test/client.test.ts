@@ -86,6 +86,41 @@ describe('WorkerClient', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('ignores Retry-After outside rate-limit and service-unavailable responses', async () => {
+    vi.useFakeTimers();
+    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    let calls = 0;
+    const fetchMock = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) {
+        return Response.json(
+          { code: 'BAD_GATEWAY', message: 'retry', requestId: 'req' },
+          { status: 502, headers: { 'Retry-After': '30' } },
+        );
+      }
+      return Response.json({ items: [] });
+    });
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com',
+      token: 'pgwm_test-token',
+      fetch: fetchMock,
+      enableRetries: true,
+    });
+
+    try {
+      const pending = client.list();
+      await vi.runAllTimersAsync();
+      await expect(pending).resolves.toEqual({ items: [] });
+      expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 100);
+      expect(timeoutSpy).not.toHaveBeenCalledWith(expect.any(Function), 30_000);
+    } finally {
+      randomSpy.mockRestore();
+      timeoutSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('normalizes non-object error payloads and still retries', async () => {
     const fetchMock = vi.fn(async () => Response.json(null, {
       status: 503,

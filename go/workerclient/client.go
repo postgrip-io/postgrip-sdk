@@ -174,7 +174,7 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 		}
 		apiErr := decodeAPIError(response, responseBody)
 		if attempt < maxAttempts && retryableStatus(operation.Method, idempotencyKey, response.StatusCode) {
-			if err := waitRetry(ctx, retryDelay(attempt, apiErr.RetryAfter)); err != nil {
+			if err := waitRetry(ctx, retryDelay(attempt, retryAfterForStatus(response.StatusCode, apiErr.RetryAfter))); err != nil {
 				return err
 			}
 			continue
@@ -243,6 +243,13 @@ func retryableStatus(method, key string, status int) bool {
 		return false
 	}
 	return status == 408 || status == 429 || status == 502 || status == 503 || status == 504
+}
+
+func retryAfterForStatus(status int, retryAfter time.Duration) time.Duration {
+	if status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable {
+		return retryAfter
+	}
+	return 0
 }
 
 func retryDelay(attempt int, retryAfter time.Duration) time.Duration {

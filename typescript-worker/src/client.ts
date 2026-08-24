@@ -273,7 +273,10 @@ export class WorkerClient {
       if (response.ok) return await response.json() as OpenAPIResponseBody<I>;
       const apiError = await decodeError(response);
       if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
-        await abortableDelay(apiError.retryAfterMs ?? jitter(attempt), options.signal);
+        const retryAfterMs = response.status === 429 || response.status === 503
+          ? apiError.retryAfterMs
+          : undefined;
+        await abortableDelay(retryAfterMs ?? jitter(attempt), options.signal);
         continue;
       }
       throw apiError;
