@@ -62,6 +62,21 @@ jobs:
       - run: bun run build
       - run: bun run test
 
+  typescript-worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: typescript-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run build
+      - run: bun run test
+
   python:
     runs-on: ubuntu-latest
     strategy:
@@ -77,6 +92,24 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip wheel --no-deps . -w /tmp/wheel
       - run: python -m pip install /tmp/wheel/postgrip_agent-*.whl
+      - name: Test the installed wheel without source-tree shadowing
+        run: python -m unittest discover -s test
+
+  python-worker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    defaults:
+      run:
+        working-directory: python-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip wheel --no-deps . -w /tmp/worker-wheel
+      - run: python -m pip install /tmp/worker-wheel/postgrip_worker-*.whl
       - name: Test the installed wheel without source-tree shadowing
         run: python -m unittest discover -s test
 
@@ -96,8 +129,13 @@ jobs:
           cmp LICENSE go/LICENSE
           cmp LICENSE typescript/LICENSE
           cmp LICENSE python/LICENSE
+          cmp LICENSE typescript-worker/LICENSE
+          cmp LICENSE python-worker/LICENSE
           grep -Fq '"license": "Apache-2.0"' typescript/package.json
+          grep -Fq '"license": "Apache-2.0"' typescript-worker/package.json
           grep -Fxq 'license = "Apache-2.0"' python/pyproject.toml
+          grep -Fxq 'license = "Apache-2.0"' python-worker/pyproject.toml
       - run: python3 protocol/tools/check_drift.py --self-test
       - run: python3 protocol/tools/check_drift.py --monorepo
       - run: python3 scripts/generate_openapi.py --check
+      - run: python3 scripts/generate_openapi.py --plane worker --check
