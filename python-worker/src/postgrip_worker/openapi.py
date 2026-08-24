@@ -8,7 +8,7 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'b10e34a9cd8eaed793bfbc7710ef48ac75981d937782d81c2759416455c9e9ca'
+OPENAPI_SPEC_SHA256 = 'c253c5856f57fd048b9adf553914a4d4afd31b855f95e315b06f808dabe72308'
 OPENAPI_OPERATION_COUNT = 12
 OPENAPI_CLIENT_OPERATION_COUNT = 12
 
@@ -92,7 +92,7 @@ class _SchemaAssignmentListOptional(TypedDict, total=False):
 class _SchemaAssignmentList(_SchemaAssignmentListOptional):
     items: list[_SchemaAssignment]
 
-_SchemaJobState: TypeAlias = Literal['queued', 'leased', 'completed', 'failed', 'dead', 'cancelled']
+_SchemaJobState: TypeAlias = Literal['queued', 'running', 'completed', 'failed', 'cancelled']
 
 class _SchemaJobOptional(TypedDict, total=False):
     workerId: str

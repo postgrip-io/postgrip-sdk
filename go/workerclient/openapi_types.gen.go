@@ -172,10 +172,9 @@ type OpenAPIWorkerOrchestratorHealthResponseBody = OpenAPIHealthResponse
 // colliding with the ergonomic SDK's compatibility constants.
 const (
 	OpenAPIJobStateQueued    OpenAPIJobState = "queued"
-	OpenAPIJobStateLeased    OpenAPIJobState = "leased"
+	OpenAPIJobStateRunning   OpenAPIJobState = "running"
 	OpenAPIJobStateCompleted OpenAPIJobState = "completed"
 	OpenAPIJobStateFailed    OpenAPIJobState = "failed"
-	OpenAPIJobStateDead      OpenAPIJobState = "dead"
 	OpenAPIJobStateCancelled OpenAPIJobState = "cancelled"
 )
 
@@ -200,4 +199,4 @@ type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
 
-const openAPITypesSpecSHA256 = "b10e34a9cd8eaed793bfbc7710ef48ac75981d937782d81c2759416455c9e9ca"
+const openAPITypesSpecSHA256 = "c253c5856f57fd048b9adf553914a4d4afd31b855f95e315b06f808dabe72308"
