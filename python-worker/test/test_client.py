@@ -168,6 +168,22 @@ class WorkerClientTests(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_async_job_pages_follow_next_page_token(self) -> None:
+        async def run() -> None:
+            opener = FakeOpener([
+                {"items": [{"id": "job-1"}], "nextPageToken": "next"},
+                {"items": [{"id": "job-2"}]},
+            ])
+            client = AsyncWorkerClient(base_url="https://workers.example.com", token="pgwm_test-token",
+                                       opener=opener)  # type: ignore[arg-type]
+            pages = [page async for page in client.job_pages("worker", page_size=1)]
+
+            self.assertEqual([page["items"][0]["id"] for page in pages], ["job-1", "job-2"])
+            self.assertNotIn("pageToken", opener.requests[0].full_url)
+            self.assertIn("pageToken=next", opener.requests[1].full_url)
+
+        asyncio.run(run())
+
     def test_async_cancellation_stops_retry_backoff(self) -> None:
         async def run() -> None:
             opener = FakeOpener([api_error(503, retry_after="30"), {"items": []}])

@@ -185,11 +185,10 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 }
 
 func (c *Connection) send(ctx context.Context, operation openAPIOperation, body []byte, idempotencyKey string) (*http.Response, error) {
-	relative, err := url.Parse(operation.Path)
+	endpoint, err := url.Parse(strings.TrimRight(c.baseURL.String(), "/") + operation.Path)
 	if err != nil {
 		return nil, fmt.Errorf("postgrip-worker: resolve operation URL: %w", err)
 	}
-	endpoint := c.baseURL.ResolveReference(relative)
 	request, err := http.NewRequestWithContext(ctx, operation.Method, endpoint.String(), bytes.NewReader(body))
 	if err != nil {
 		return nil, err

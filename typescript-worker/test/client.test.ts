@@ -19,6 +19,21 @@ describe('WorkerClient', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('preserves a configured reverse-proxy base path', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      expect(String(input)).toBe('https://workers.example.com/postgrip/api/v1/workers');
+      return Response.json({ items: [] });
+    });
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com/postgrip/',
+      token: 'pgwm_test-token',
+      fetch: fetchMock,
+    });
+
+    await client.list();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('retries an idempotent mutation only when explicitly enabled', async () => {
     let calls = 0;
     const fetchMock = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {

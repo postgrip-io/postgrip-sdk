@@ -328,6 +328,15 @@ class AsyncWorkerClient:
     async def jobs(self, worker_id: str, **options: Any) -> ListWorkerJobsResponseBody:
         return await self._run(self._sync.jobs, worker_id, **options)
 
+    async def job_pages(self, worker_id: str, **options: Any) -> AsyncIterator[ListWorkerJobsResponseBody]:
+        page_token = options.pop("page_token", None)
+        while True:
+            page = await self.jobs(worker_id, page_token=page_token, **options)
+            yield page
+            page_token = page.get("nextPageToken")
+            if not page_token:
+                return
+
     async def job(self, worker_id: str, job_id: str) -> GetWorkerJobResponseBody:
         return await self._run(self._sync.job, worker_id, job_id)
 

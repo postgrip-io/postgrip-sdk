@@ -247,7 +247,7 @@ export class WorkerClient {
   private async request<I extends OpenAPIOperationId>(operationId: I, options: InternalRequestOptions): Promise<OpenAPIResponseBody<I>> {
     const query = encodeQuery(options.query);
     const operation = resolveOpenAPIOperation(operationId, options.path, query);
-    const endpoint = new URL(operation.path, this.baseUrl);
+    const endpoint = new URL(`${this.baseUrl.href.replace(/\/+$/, '')}${operation.path}`);
     const maxAttempts = this.retriesEnabled && (operation.method === 'GET' || options.idempotencyKey) ? 3 : 1;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       options.signal?.throwIfAborted();

@@ -39,6 +39,28 @@ func TestListInjectsBearerAndEncodesQuery(t *testing.T) {
 	}
 }
 
+func TestListPreservesConfiguredBasePath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/postgrip/api/v1/workers"; got != want {
+			t.Fatalf("path = %q, want %q", got, want)
+		}
+		_, _ = w.Write([]byte(`{"items":[]}`))
+	}))
+	defer server.Close()
+
+	client, err := New(Config{
+		BaseURL:             server.URL + "/postgrip/",
+		Token:               "pgwm_test-token",
+		InsecureDevelopment: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.List(context.Background(), ListWorkersOptions{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestOperationalLogQueryEncodesSinceAsRFC3339(t *testing.T) {
 	since := time.Date(2026, time.August, 24, 12, 34, 56, 789, time.FixedZone("offset", -7*60*60))
 	query := OpenAPIListWorkerOperationalLogsQuery{Since: &since}
