@@ -490,6 +490,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly backfillSchedule: {
     readonly requestBody: OpenAPIComponents["BackfillScheduleRequest"];
@@ -500,6 +501,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly blockAgentTask: {
     readonly requestBody: OpenAPIComponents["BlockTaskRequest"];
@@ -512,6 +514,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly cancelWorkflow: {
     readonly requestBody: OpenAPIComponents["CancelWorkflowRequest"];
@@ -522,6 +525,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly compact: {
     readonly requestBody: OpenAPIComponents["CompactRequest"];
@@ -530,6 +534,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly completeAgentTask: {
     readonly requestBody: OpenAPIComponents["CompleteTaskRequest"];
@@ -542,6 +547,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly connectSandboxSession: {
     readonly requestBody: undefined;
@@ -554,6 +560,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: true;
+    readonly headerRequired: false;
   };
   readonly countWorkflows: {
     readonly requestBody: undefined;
@@ -573,6 +580,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly createNamespace: {
     readonly requestBody: OpenAPIComponents["CreateNamespaceRequest"];
@@ -581,6 +589,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly createSandbox: {
     readonly requestBody: OpenAPIComponents["SandboxCreateRequest"];
@@ -589,6 +598,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly createSandboxSession: {
     readonly requestBody: OpenAPIComponents["CreateSandboxSessionRequest"];
@@ -599,6 +609,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly createSchedule: {
     readonly requestBody: OpenAPIComponents["CreateScheduleRequest"];
@@ -607,6 +618,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly deleteSandbox: {
     readonly requestBody: undefined;
@@ -617,6 +629,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly deleteSchedule: {
     readonly requestBody: undefined;
@@ -627,6 +640,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly deleteWorkspace: {
     readonly requestBody: undefined;
@@ -637,6 +651,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly enqueueTask: {
     readonly requestBody: OpenAPIComponents["EnqueueTaskRequest"];
@@ -645,6 +660,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly failAgentTask: {
     readonly requestBody: OpenAPIComponents["FailTaskRequest"];
@@ -657,6 +673,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly getSandbox: {
     readonly requestBody: undefined;
@@ -667,6 +684,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly getSchedule: {
     readonly requestBody: undefined;
@@ -677,6 +695,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly getTask: {
     readonly requestBody: undefined;
@@ -687,6 +706,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly getWorkflow: {
     readonly requestBody: undefined;
@@ -697,6 +717,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly getWorkspace: {
     readonly requestBody: undefined;
@@ -707,6 +728,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly health: {
     readonly requestBody: undefined;
@@ -715,6 +737,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly heartbeatAgentTask: {
     readonly requestBody: OpenAPIComponents["HeartbeatTaskRequest"];
@@ -727,6 +750,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listNamespaces: {
     readonly requestBody: undefined;
@@ -735,6 +759,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listSandboxes: {
     readonly requestBody: undefined;
@@ -743,6 +768,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listSchedules: {
     readonly requestBody: undefined;
@@ -757,6 +783,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listTaskEvents: {
     readonly requestBody: undefined;
@@ -767,6 +794,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listTaskEventsBatch: {
     readonly requestBody: undefined;
@@ -778,6 +806,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: true;
+    readonly headerRequired: false;
   };
   readonly listTasks: {
     readonly requestBody: undefined;
@@ -795,6 +824,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listWorkflowHistory: {
     readonly requestBody: undefined;
@@ -805,6 +835,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listWorkflows: {
     readonly requestBody: undefined;
@@ -829,6 +860,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly listWorkspaces: {
     readonly requestBody: undefined;
@@ -837,6 +869,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly pauseSchedule: {
     readonly requestBody: OpenAPIComponents["PauseScheduleRequest"];
@@ -847,6 +880,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly pollAgentTask: {
     readonly requestBody: undefined;
@@ -864,6 +898,7 @@ export interface OpenAPIOperationTypes {
     };
     readonly headerParameters: undefined;
     readonly queryRequired: true;
+    readonly headerRequired: false;
   };
   readonly ready: {
     readonly requestBody: undefined;
@@ -872,6 +907,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly refreshAgentSession: {
     readonly requestBody: OpenAPIComponents["RefreshAgentSessionRequest"];
@@ -880,6 +916,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly signalWithStartWorkflow: {
     readonly requestBody: OpenAPIComponents["SignalWithStartWorkflowRequest"];
@@ -890,6 +927,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly signalWorkflow: {
     readonly requestBody: OpenAPIComponents["SignalWorkflowRequest"];
@@ -900,6 +938,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly startSandbox: {
     readonly requestBody: undefined;
@@ -910,6 +949,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly stopSandbox: {
     readonly requestBody: undefined;
@@ -920,6 +960,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly terminateWorkflow: {
     readonly requestBody: OpenAPIComponents["TerminateWorkflowRequest"];
@@ -930,6 +971,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly triggerSchedule: {
     readonly requestBody: OpenAPIComponents["TriggerScheduleRequest"];
@@ -940,6 +982,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly unpauseSchedule: {
     readonly requestBody: OpenAPIComponents["UnpauseScheduleRequest"];
@@ -950,6 +993,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly updateSchedule: {
     readonly requestBody: OpenAPIComponents["UpdateScheduleRequest"];
@@ -960,6 +1004,7 @@ export interface OpenAPIOperationTypes {
     readonly queryParameters: undefined;
     readonly headerParameters: undefined;
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
   readonly uploadWorkspace: {
     readonly requestBody: Uint8Array;
@@ -971,6 +1016,7 @@ export interface OpenAPIOperationTypes {
       readonly "X-PostGrip-Revision"?: string;
     };
     readonly queryRequired: false;
+    readonly headerRequired: false;
   };
 }
 
@@ -1024,7 +1070,7 @@ const operationTable = {
 } as const;
 
 export type OpenAPIOperationId = keyof typeof operationTable;
-export type OpenAPIAuthLane = 'agent' | 'either' | 'global-admin' | 'management' | 'public';
+export type OpenAPIAuthLane = "agent" | "either" | "global-admin" | "management" | "public";
 export type OpenAPIRequestBody<I extends OpenAPIOperationId> = OpenAPIOperationTypes[I]['requestBody'];
 export type OpenAPIResponseBody<I extends OpenAPIOperationId> = OpenAPIOperationTypes[I]['responseBody'];
 export type OpenAPIPathParameters<I extends OpenAPIOperationId> = OpenAPIOperationTypes[I]['pathParameters'];
@@ -1133,8 +1179,11 @@ type OpenAPIPathOptions<I extends OpenAPIOperationId> = undefined extends OpenAP
 type OpenAPIQueryOptions<I extends OpenAPIOperationId> = OpenAPIOperationTypes[I]['queryRequired'] extends true
   ? { readonly query: URLSearchParams | Readonly<OpenAPIQueryParameters<I>> }
   : { readonly query?: URLSearchParams | Readonly<OpenAPIQueryParameters<I>> };
+type OpenAPIHeaderOptions<I extends OpenAPIOperationId> = OpenAPIOperationTypes[I]['headerRequired'] extends true
+  ? { readonly headers: Readonly<OpenAPIHeaderParameters<I>> }
+  : { readonly headers?: Readonly<OpenAPIHeaderParameters<I>> };
 
-export type OpenAPIRequestOptions<I extends OpenAPIOperationId> = OpenAPIBodyOptions<I> & OpenAPIPathOptions<I> & OpenAPIQueryOptions<I> & {
+export type OpenAPIRequestOptions<I extends OpenAPIOperationId> = OpenAPIBodyOptions<I> & OpenAPIPathOptions<I> & OpenAPIQueryOptions<I> & OpenAPIHeaderOptions<I> & {
   readonly signal?: AbortSignal;
 };
 

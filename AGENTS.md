@@ -2,7 +2,7 @@
 
 ## Project Structure
 
-This monorepo contains four independently released projects. `protocol/` is the Go wire-contract source of truth. `go/` contains the Go SDK, `typescript/` contains the Bun/TypeScript SDK, and `python/` contains the Python SDK. Tests remain inside each package using its native layout. Package-specific architecture notes live in each directory's `CLAUDE.md`.
+This monorepo contains the independently released Agent SDKs and Worker management SDKs. `protocol/` is the Go Agent runtime wire-contract source of truth. `go/`, `typescript/`, and `python/` contain Agent SDKs. The Go Worker client is `go/workerclient`; `typescript-worker/` and `python-worker/` are the separate `@postgrip/worker` and `postgrip-worker` artifacts. Tests remain inside each package using its native layout.
 
 ## Development Commands
 
@@ -11,6 +11,8 @@ This monorepo contains four independently released projects. `protocol/` is the 
 - `gofmt -w protocol go` formats Go sources.
 - `cd typescript && bun install --frozen-lockfile && bun run typecheck && bun run build && bun run test` validates TypeScript.
 - `cd python && python -m pip wheel --no-deps . -w /tmp/wheel && PYTHONPATH=src python -m unittest discover -s test` validates Python.
+- `cd typescript-worker && bun install --frozen-lockfile && bun run typecheck && bun run build && bun run test` validates the TypeScript Worker SDK.
+- `cd python-worker && python -m pip wheel --no-deps . -w /tmp/wheel && PYTHONPATH=src python -m unittest discover -s test` validates the Python Worker SDK.
 - `python3 protocol/tools/check_drift.py --self-test && python3 protocol/tools/check_drift.py --monorepo` verifies the cross-language contract.
 
 ## Style and Testing
@@ -19,9 +21,9 @@ Follow native conventions: `gofmt` and idiomatic exported comments for Go, two-s
 
 ## Wire Contract Changes
 
-Treat JSON names, optionality, timestamp formats, and signing bytes as public API. HTTP models are OpenAPI-owned: update the canonical server contract, synchronize `openapi.json`, and regenerate every SDK. Runtime-only models remain protocol-owned and must update the TypeScript/Python mirrors atomically. The Go SDK must alias protocol types rather than redeclare them. Do not alter the `agent-task-v1` signing format without adding a version.
+Treat JSON names, optionality, timestamp formats, and signing bytes as public API. Agent HTTP models are owned by `postgrip-api/agent-openapi.json` and mirrored as `openapi.json`. Worker HTTP models are owned by `postgrip-api/worker-openapi.json` and mirrored byte-for-byte as `worker-openapi.json`. Regenerate the affected plane in every language and link the coordinated server and SDK pull requests. Runtime-only models remain protocol-owned and must update the TypeScript/Python mirrors atomically. The Go Agent SDK must alias protocol types rather than redeclare them. Do not alter the `agent-task-v1` signing format without adding a version.
 
-After synchronizing the contract, run `python3 scripts/generate_openapi.py`; CI runs it with `--check`. Never hand-edit generated operation, client, or wire-type files. Keep schemas closed and complete. Authentication, signing, long polling, archive streaming, and WebSocket framing stay in transport adapters.
+After synchronizing a contract, run `python3 scripts/generate_openapi.py --plane agent` or `--plane worker`; CI runs both with `--check`. Never hand-edit generated operation, client, or wire-type files. Keep schemas closed and complete. Authentication, signing, retries, cursor following, long polling, archive streaming, and WebSocket framing stay in transport adapters.
 
 ## Commits and Pull Requests
 

@@ -871,6 +871,7 @@ class OpenAPITransport(Protocol):
         *,
         path_parameters: dict[str, str] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> Any: ...
 
 

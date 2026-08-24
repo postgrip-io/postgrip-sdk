@@ -7,10 +7,9 @@
 [![PyPI](https://img.shields.io/pypi/v/postgrip-agent.svg?logo=pypi)](https://pypi.org/project/postgrip-agent/)
 [![License](https://img.shields.io/github/license/postgrip-io/postgrip-agent-sdks.svg)](LICENSE)
 
-The official Go, TypeScript, and Python SDKs for submitting work to PostGrip
-agents and building managed, durable workflow runtimes. The repository also
-contains the shared Go wire-protocol module and the generated OpenAPI clients
-used by all three SDKs.
+The official Go, TypeScript, and Python SDKs for PostGrip Agent workflows and
+Worker fleet management. The two API planes use separate credentials,
+clients, and release artifacts while sharing contract generation machinery.
 
 > [!IMPORTANT]
 > These SDKs connect applications and managed workflow runtimes to an existing
@@ -23,6 +22,9 @@ used by all three SDKs.
 | Go | `github.com/postgrip-io/postgrip-agent-sdks/go` | [Guide](https://postgrip-io.github.io/postgrip-agent-sdks/go/) · [API](https://pkg.go.dev/github.com/postgrip-io/postgrip-agent-sdks/go) | [![Go release](https://img.shields.io/github/v/release/postgrip-io/postgrip-agent-sdks?filter=go%2Fv*&label=go)](https://github.com/postgrip-io/postgrip-agent-sdks/releases?q=go%2Fv) |
 | TypeScript | `@postgrip/agent` | [Guide](https://postgrip-io.github.io/postgrip-agent-sdks/typescript/) · [npm](https://www.npmjs.com/package/@postgrip/agent) | [![npm version](https://img.shields.io/npm/v/%40postgrip%2Fagent.svg)](https://www.npmjs.com/package/@postgrip/agent) |
 | Python | `postgrip-agent` | [Guide](https://postgrip-io.github.io/postgrip-agent-sdks/python/) · [PyPI](https://pypi.org/project/postgrip-agent/) | [![PyPI version](https://img.shields.io/pypi/v/postgrip-agent.svg)](https://pypi.org/project/postgrip-agent/) |
+| Go Worker | `github.com/postgrip-io/postgrip-agent-sdks/go/workerclient` | [Source](go/workerclient/) | Independent Go package |
+| TypeScript Worker | `@postgrip/worker` | [Source](typescript-worker/) | Independent npm package |
+| Python Worker | `postgrip-worker` | [Source](python-worker/) | Independent PyPI package |
 | Protocol | `github.com/postgrip-io/postgrip-agent-sdks/protocol` | [Source](protocol/) | [![Protocol release](https://img.shields.io/github/v/release/postgrip-io/postgrip-agent-sdks?filter=protocol%2Fv*&label=protocol)](https://github.com/postgrip-io/postgrip-agent-sdks/releases?q=protocol%2Fv) |
 
 Install the latest SDK for your language:
@@ -82,7 +84,11 @@ quick start.
 | [`go/`](go/) | Go client and managed workflow runtime SDK |
 | [`typescript/`](typescript/) | TypeScript client and managed workflow runtime SDK |
 | [`python/`](python/) | Python client and managed workflow runtime SDK |
+| [`go/workerclient/`](go/workerclient/) | Go Worker management client |
+| [`typescript-worker/`](typescript-worker/) | TypeScript Worker management SDK |
+| [`python-worker/`](python-worker/) | Python Worker management SDK |
 | [`openapi.json`](openapi.json) | Synchronized public HTTP contract used by every SDK generator |
+| [`worker-openapi.json`](worker-openapi.json) | Synchronized public Worker management contract |
 | [`scripts/`](scripts/) | OpenAPI synchronization and SDK generation tooling |
 
 Each project is an independently versioned and released package. Tests and
@@ -105,13 +111,15 @@ must be updated across the TypeScript and Python mirrors together.
 python3 scripts/generate_openapi.py
 python3 scripts/generate_openapi.py --check
 python3 scripts/generate_openapi.py --check-source ../postgrip-web/postgrip-api/agent-openapi.json
+python3 scripts/generate_openapi.py --plane worker --check-source ../postgrip-web/postgrip-api/worker-openapi.json
 ```
 
 Never edit generated operation metadata, clients, or wire-type files directly.
 This includes `go/client/openapi_*.gen.go`,
 `typescript/src/generated/openapi.ts`,
 `python/src/postgrip_agent/generated/`, and
-`python/src/postgrip_agent/openapi.py`. Update the canonical contract,
+`python/src/postgrip_agent/openapi.py`, plus the corresponding Worker generated
+directories. Update the canonical contract,
 synchronize `openapi.json`, and rerun the generator.
 
 ## Development
@@ -133,6 +141,7 @@ go vet ./protocol/... ./go/...
 python3 protocol/tools/check_drift.py --self-test
 python3 protocol/tools/check_drift.py --monorepo
 python3 scripts/generate_openapi.py --check
+python3 scripts/generate_openapi.py --plane worker --check
 ```
 
 The root `go.work` makes the Go SDK consume the local protocol module during
@@ -141,7 +150,7 @@ intended to match across languages.
 
 ## Releases
 
-The four projects release independently from package-prefixed tags:
+The packages release independently from package-prefixed tags:
 
 | Project | Tag format | Destination |
 | --- | --- | --- |
@@ -149,6 +158,8 @@ The four projects release independently from package-prefixed tags:
 | Go SDK | `go/vX.Y.Z` | Go module proxy and GitHub Releases |
 | TypeScript SDK | `typescript/vX.Y.Z` | npm and GitHub Releases |
 | Python SDK | `python/vX.Y.Z` | PyPI and GitHub Releases |
+| TypeScript Worker SDK | `typescript-worker/vX.Y.Z` | npm and GitHub Releases |
+| Python Worker SDK | `python-worker/vX.Y.Z` | PyPI and GitHub Releases |
 
 Tag pushes run the package-specific validation and publishing workflows. npm
 and PyPI publishing use trusted publishing from this repository; no long-lived
