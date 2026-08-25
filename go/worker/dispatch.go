@@ -10,6 +10,7 @@ import (
 	"github.com/postgrip-io/postgrip-agent-sdks/go/client"
 	"github.com/postgrip-io/postgrip-agent-sdks/go/failure"
 	"github.com/postgrip-io/postgrip-agent-sdks/go/internal/replay"
+	"github.com/postgrip-io/postgrip-agent-sdks/go/workflow"
 )
 
 func (w *Worker) runActivity(ctx context.Context, task *client.Task) (*client.TaskResult, error) {
@@ -105,6 +106,140 @@ func (w *Worker) runWorkflow(ctx context.Context, task *client.Task) (*client.Ta
 		return &client.TaskResult{}, err
 	}
 	return &client.TaskResult{Value: value}, nil
+}
+
+func (w *Worker) runWorkflowQuery(ctx context.Context, task *client.Task) (*client.TaskResult, error) {
+	var payload client.WorkflowQueryPayload
+	if err := json.Unmarshal(task.Payload, &payload); err != nil || payload.WorkflowID == "" || payload.WorkflowType == "" || payload.QueryName == "" {
+		return nil, failure.NewNonRetryable("invalid workflow query payload", "InvalidWorkflowQueryPayload")
+	}
+	wfctx, err := w.replayWorkflowForInteraction(ctx, task, payload.WorkflowID, payload.WorkflowRunID, payload.WorkflowType)
+	if err != nil {
+		return nil, err
+	}
+	handler := wfctx.queryHandlers[payload.QueryName]
+	if handler == nil {
+		return nil, failure.NewNonRetryable(
+			fmt.Sprintf("query %q is not registered", payload.QueryName),
+			"QueryNotRegistered",
+			payload.QueryName,
+		)
+	}
+	args, err := decodeInteractionArgs(payload.Args)
+	if err != nil {
+		return nil, failure.NewNonRetryable("invalid workflow query arguments", "InvalidWorkflowQueryPayload")
+	}
+	value, err := handler(args)
+	if err != nil {
+		return &client.TaskResult{}, err
+	}
+	return &client.TaskResult{Value: value, Message: "query completed"}, nil
+}
+
+func (w *Worker) runWorkflowUpdate(ctx context.Context, task *client.Task) (*client.TaskResult, error) {
+	var payload client.WorkflowUpdatePayload
+	if err := json.Unmarshal(task.Payload, &payload); err != nil || payload.WorkflowID == "" || payload.WorkflowType == "" || payload.UpdateName == "" {
+		return nil, failure.NewNonRetryable("invalid workflow update payload", "InvalidWorkflowUpdatePayload")
+	}
+	wfctx, err := w.replayWorkflowForInteraction(ctx, task, payload.WorkflowID, payload.WorkflowRunID, payload.WorkflowType)
+	if err != nil {
+		return nil, err
+	}
+	handler := wfctx.updateHandlers[payload.UpdateName]
+	if handler == nil {
+		return nil, failure.NewNonRetryable(
+			fmt.Sprintf("update %q is not registered", payload.UpdateName),
+			"UpdateNotRegistered",
+			payload.UpdateName,
+		)
+	}
+	args, err := decodeInteractionArgs(payload.Args)
+	if err != nil {
+		return nil, failure.NewNonRetryable("invalid workflow update arguments", "InvalidWorkflowUpdatePayload")
+	}
+	// Parent replay stops at this update's accepted-event boundary. From this
+	// point commands belong to the update task, so their completion must wake
+	// this task rather than the source workflow task.
+	wfctx.replay.ConsumeUpdate(task.ID)
+	wfctx.replayOnly = false
+	wfctx.taskID = task.ID
+	value, err := handler(args)
+	if err != nil {
+		if workflow.IsSuspended(err) {
+			if _, blockErr := w.opts.Connection.BlockTask(ctx, task.ID, w.opts.AgentID, err.Error()); blockErr != nil {
+				w.logger.Warn("block workflow update task failed", "task_id", task.ID, "error", blockErr)
+				return &client.TaskResult{}, blockErr
+			}
+			return nil, errWorkflowAlreadyBlocked
+		}
+		return &client.TaskResult{}, err
+	}
+	return &client.TaskResult{Value: value, Message: "update completed"}, nil
+}
+
+// replayWorkflowForInteraction rebuilds the parent workflow from durable
+// history until it reaches its next unrecorded command. That establishes the
+// query/update handlers and their captured state without creating duplicate
+// activities, timers, children, milestones, or continue-as-new commands.
+func (w *Worker) replayWorkflowForInteraction(
+	ctx context.Context,
+	interactionTask *client.Task,
+	workflowID string,
+	workflowRunID string,
+	workflowType string,
+) (*workflowContext, error) {
+	fn, ok := w.opts.Workflows[workflowType]
+	if !ok {
+		return nil, failure.NewNonRetryable(
+			fmt.Sprintf("workflow %q is not registered", workflowType),
+			"WorkflowNotRegistered",
+			workflowType,
+		)
+	}
+	executionID := workflowRunID
+	if executionID == "" {
+		executionID = workflowID
+	}
+	execution, err := w.opts.Connection.GetWorkflowExecution(ctx, executionID)
+	if err != nil {
+		return nil, fmt.Errorf("load workflow execution for %s: %w", interactionTask.Type, err)
+	}
+	sourceTask, err := w.opts.Connection.GetTask(ctx, execution.TaskID)
+	if err != nil {
+		return nil, fmt.Errorf("load workflow task for %s: %w", interactionTask.Type, err)
+	}
+	if sourceTask.Type != client.TaskTypePrefixWorkflow+workflowType {
+		return nil, failure.NewNonRetryable("workflow interaction type does not match its source workflow", "InvalidWorkflowInteraction")
+	}
+	args, sourceWorkflowID, err := decodeWorkflowPayload(sourceTask)
+	if err != nil {
+		return nil, failure.NewNonRetryable("invalid source workflow payload", "BadWorkflowPayload")
+	}
+	if sourceWorkflowID != workflowID {
+		return nil, failure.NewNonRetryable("workflow interaction does not match its source workflow id", "InvalidWorkflowInteraction")
+	}
+	history, err := w.opts.Connection.GetWorkflowHistory(ctx, executionID)
+	if err != nil {
+		return nil, fmt.Errorf("load workflow history for %s: %w", interactionTask.Type, err)
+	}
+	wfctx := newWorkflowContext(ctx, w, sourceTask, workflowID, workflowType, replay.New(history))
+	wfctx.replayOnly = true
+	_, runErr := fn(wfctx, args)
+	if runErr != nil && !workflow.IsSuspended(runErr) && !workflow.IsContinueAsNew(runErr) {
+		return nil, runErr
+	}
+	return wfctx, nil
+}
+
+func decodeInteractionArgs(raw json.RawMessage) ([]any, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+	var args []any
+	if err := json.Unmarshal(raw, &args); err != nil {
+		return nil, err
+	}
+	return args, nil
 }
 
 // decodeActivityArgs unpacks the wire-format activity payload into the

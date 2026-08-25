@@ -60,6 +60,19 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
 
+  go-worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go/workerclient
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/workerclient/go.mod
+      - run: go vet ./...
+      - run: go test ./...
+
   typescript:
     runs-on: ubuntu-latest
     defaults:

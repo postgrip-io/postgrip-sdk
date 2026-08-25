@@ -27,6 +27,9 @@ const (
 	EventTimerFired                  = "TimerFired"
 	EventChildWorkflowStarted        = "ChildWorkflowExecutionStarted"
 	EventWorkflowSignaled            = "WorkflowSignaled"
+	EventWorkflowUpdateAccepted      = "WorkflowUpdateAccepted"
+	EventWorkflowUpdateCompleted     = "WorkflowUpdateCompleted"
+	EventWorkflowUpdateFailed        = "WorkflowUpdateFailed"
 	EventWorkflowCancellationRequest = "WorkflowCancellationRequested"
 )
 
@@ -53,15 +56,35 @@ func (e *DeterminismError) Error() string { return e.Message }
 type Replay struct {
 	history []protocol.WorkflowHistoryEvent
 
-	activities []protocol.WorkflowHistoryEvent
-	timers     []protocol.WorkflowHistoryEvent
-	children   []protocol.WorkflowHistoryEvent
+	activities []indexedEvent
+	timers     []indexedEvent
+	children   []indexedEvent
+	updates    []Update
 
 	activityCursor int
 	timerCursor    int
 	childCursor    int
+	updateCursor   int
 
 	cancellationRequested bool
+}
+
+type indexedEvent struct {
+	event protocol.WorkflowHistoryEvent
+	index int
+}
+
+// Update is an accepted workflow update in its durable-history position.
+// Completed is true only when the same update task has a completion event.
+// Legacy histories that contain only a completion event are positioned at
+// that event so they remain replayable without moving them ahead of commands.
+type Update struct {
+	TaskID    string
+	Name      string
+	Args      []any
+	Completed bool
+	Failed    bool
+	index     int
 }
 
 // New builds a Replay from durable history. Worker.runWorkflow constructs
@@ -69,20 +92,60 @@ type Replay struct {
 // command results across replays.
 func New(history []protocol.WorkflowHistoryEvent) *Replay {
 	r := &Replay{history: history}
+	completed := make(map[string]bool)
+	failed := make(map[string]bool)
+	accepted := make(map[string]bool)
+	for i := range history {
+		ev := &history[i]
+		if ev.Type == EventWorkflowUpdateCompleted && ev.TaskID != "" {
+			completed[ev.TaskID] = true
+		}
+		if ev.Type == EventWorkflowUpdateFailed && ev.TaskID != "" {
+			failed[ev.TaskID] = true
+		}
+		if ev.Type == EventWorkflowUpdateAccepted && ev.TaskID != "" {
+			accepted[ev.TaskID] = true
+		}
+	}
 	for i := range history {
 		ev := &history[i]
 		switch ev.Type {
 		case EventActivityTaskScheduled:
-			r.activities = append(r.activities, *ev)
+			r.activities = append(r.activities, indexedEvent{event: *ev, index: i})
 		case EventTimerStarted:
-			r.timers = append(r.timers, *ev)
+			r.timers = append(r.timers, indexedEvent{event: *ev, index: i})
 		case EventChildWorkflowStarted:
-			r.children = append(r.children, *ev)
+			r.children = append(r.children, indexedEvent{event: *ev, index: i})
+		case EventWorkflowUpdateAccepted:
+			update := updateFromEvent(*ev, i, completed[ev.TaskID])
+			update.Failed = failed[ev.TaskID]
+			r.updates = append(r.updates, update)
+		case EventWorkflowUpdateCompleted:
+			// Older runtimes did not always persist the accepted event. Keep
+			// those histories replayable, but use the completion position.
+			if ev.TaskID == "" || !accepted[ev.TaskID] {
+				r.updates = append(r.updates, updateFromEvent(*ev, i, true))
+			}
+		case EventWorkflowUpdateFailed:
+			if ev.TaskID == "" || !accepted[ev.TaskID] {
+				update := updateFromEvent(*ev, i, false)
+				update.Failed = true
+				r.updates = append(r.updates, update)
+			}
 		case EventWorkflowCancellationRequest:
 			r.cancellationRequested = true
 		}
 	}
 	return r
+}
+
+func updateFromEvent(ev protocol.WorkflowHistoryEvent, index int, completed bool) Update {
+	name, _ := ev.Attributes["update_name"].(string)
+	if name == "" {
+		name, _ = ev.Attributes["name"].(string)
+	}
+	args, _ := ev.Attributes["args"].([]any)
+	return Update{TaskID: ev.TaskID, Name: name, Args: args, Completed: completed, index: index}
 }
 
 // NextActivity returns the next ActivityTaskScheduled event whose recorded
@@ -92,8 +155,12 @@ func (r *Replay) NextActivity(name string) (*protocol.WorkflowHistoryEvent, erro
 	if r.activityCursor >= len(r.activities) {
 		return nil, nil
 	}
-	ev := &r.activities[r.activityCursor]
+	indexed := &r.activities[r.activityCursor]
 	r.activityCursor++
+	if err := r.checkCommandOrder(indexed.index, EventActivityTaskScheduled); err != nil {
+		return nil, err
+	}
+	ev := &indexed.event
 	recorded, _ := ev.Attributes["activity_type"].(string)
 	if recorded != "" && recorded != name {
 		return nil, &DeterminismError{Message: fmt.Sprintf("activity command changed at index %d: history=%q replay=%q", r.activityCursor-1, recorded, name)}
@@ -108,8 +175,12 @@ func (r *Replay) NextTimer(durationMs int64) (*protocol.WorkflowHistoryEvent, er
 	if r.timerCursor >= len(r.timers) {
 		return nil, nil
 	}
-	ev := &r.timers[r.timerCursor]
+	indexed := &r.timers[r.timerCursor]
 	r.timerCursor++
+	if err := r.checkCommandOrder(indexed.index, EventTimerStarted); err != nil {
+		return nil, err
+	}
+	ev := &indexed.event
 	if recorded, ok := ev.Attributes["duration_ms"]; ok {
 		recordedMs, ok := numberAsInt64(recorded)
 		if ok && recordedMs != durationMs {
@@ -124,13 +195,73 @@ func (r *Replay) NextChild(workflowType string) (*protocol.WorkflowHistoryEvent,
 	if r.childCursor >= len(r.children) {
 		return nil, nil
 	}
-	ev := &r.children[r.childCursor]
+	indexed := &r.children[r.childCursor]
 	r.childCursor++
+	if err := r.checkCommandOrder(indexed.index, EventChildWorkflowStarted); err != nil {
+		return nil, err
+	}
+	ev := &indexed.event
 	recorded, _ := ev.Attributes["workflow_type"].(string)
 	if recorded != "" && recorded != workflowType {
 		return nil, &DeterminismError{Message: fmt.Sprintf("child workflow command changed at index %d: history=%q replay=%q", r.childCursor-1, recorded, workflowType)}
 	}
 	return ev, nil
+}
+
+func (r *Replay) checkCommandOrder(index int, commandType string) error {
+	nextIndex, nextType, ok := r.nextCommand()
+	if !ok || index <= nextIndex {
+		return nil
+	}
+	return &DeterminismError{Message: fmt.Sprintf("command changed at history index %d: history=%q replay=%q", nextIndex, nextType, commandType)}
+}
+
+func (r *Replay) nextCommand() (int, string, bool) {
+	index := len(r.history)
+	typeName := ""
+	if r.activityCursor < len(r.activities) && r.activities[r.activityCursor].index < index {
+		index = r.activities[r.activityCursor].index
+		typeName = EventActivityTaskScheduled
+	}
+	if r.timerCursor < len(r.timers) && r.timers[r.timerCursor].index < index {
+		index = r.timers[r.timerCursor].index
+		typeName = EventTimerStarted
+	}
+	if r.childCursor < len(r.children) && r.children[r.childCursor].index < index {
+		index = r.children[r.childCursor].index
+		typeName = EventChildWorkflowStarted
+	}
+	return index, typeName, typeName != ""
+}
+
+// NextUpdateBeforeCommand returns the next accepted update when it precedes
+// the next unconsumed durable command. The caller must call ConsumeUpdate
+// before invoking its handler. This lets handler commands consume the command
+// events immediately following that update instead of letting the workflow
+// body consume them out of order.
+func (r *Replay) NextUpdateBeforeCommand() (*Update, bool) {
+	if r == nil || r.updateCursor >= len(r.updates) {
+		return nil, false
+	}
+	update := &r.updates[r.updateCursor]
+	commandIndex, _, hasCommand := r.nextCommand()
+	if hasCommand && update.index > commandIndex {
+		return nil, false
+	}
+	return update, true
+}
+
+// ConsumeUpdate advances the ordered update cursor. It returns false when
+// taskID is non-empty and does not identify the next update boundary.
+func (r *Replay) ConsumeUpdate(taskID string) bool {
+	if r == nil || r.updateCursor >= len(r.updates) {
+		return false
+	}
+	if taskID != "" && r.updates[r.updateCursor].TaskID != taskID {
+		return false
+	}
+	r.updateCursor++
+	return true
 }
 
 // IsTimerFired reports whether a TimerFired event keyed on the same task_id
@@ -204,7 +335,10 @@ func (r *Replay) SignalsByName(name string) [][]any {
 		if ev.Type != EventWorkflowSignaled {
 			continue
 		}
-		recordedName, _ := ev.Attributes["name"].(string)
+		recordedName, _ := ev.Attributes["signal_name"].(string)
+		if recordedName == "" {
+			recordedName, _ = ev.Attributes["name"].(string)
+		}
 		if recordedName != name {
 			continue
 		}

@@ -135,9 +135,9 @@ ctx.SetQueryHandler("status", func(args []any) (any, error) {
 
 Queries don't trigger any commands — they read in-memory state during replay. The runtime service routes a `query:<name>` task to the worker, which replays the workflow up to the registration point and invokes the handler.
 
-{: .warning }
-> Query / update task dispatch isn't yet wired through `Worker` in this SDK version. The handlers register fine but executing them requires a workflow runtime that keeps state across queries — that's on the roadmap. For now, query/update task types surface as unsupported in `Worker.dispatch`.
-
 ## Updates
 
-Updates are like signals but synchronous from the client's perspective. The client blocks until the update handler returns; the handler may schedule commands. Like queries, registration works in this SDK but dispatch is gated behind the same future Worker capability.
+Updates are like signals but synchronous from the client's perspective. The
+worker replays completed update events before invoking the current handler, so
+captured workflow state is reconstructed consistently before the caller receives
+the result.
