@@ -264,4 +264,60 @@ describe('ServiceClient', () => {
     for (const invoke of calls) await invoke();
     expect(index).toBe(expected.length);
   });
+
+  it('groups all 55 administration operations and sends concurrency fences', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
+      expect(init?.method).toBe('POST');
+      const headers = new Headers(init?.headers);
+      expect(headers.get('Idempotency-Key')).toBe('attach-1');
+      expect(headers.get('If-Match')).toBe('"service-catalog:4"');
+      return Response.json({});
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+    const methodCount = Object.values(api.administration)
+      .reduce((count, group) => count + Object.keys(group).length, 0);
+    expect(methodCount).toBe(55);
+    await api.administration.targets.attach({
+      workerId: '11111111-1111-4111-8111-111111111111',
+      name: 'database',
+      slug: 'database',
+      host: 'database.internal',
+      port: 5432,
+      databaseName: 'app',
+      metadata: {},
+    }, { idempotencyKey: 'attach-1', ifMatch: '"service-catalog:4"' });
+  });
+
+  it('uses per-environment fences instead of If-Match for bulk variable apply', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new URL(String(input)).pathname).toBe('/api/v1/services/project/project-id/variables/apply');
+      expect(init?.method).toBe('POST');
+      const headers = new Headers(init?.headers);
+      expect(headers.get('Idempotency-Key')).toBe('apply-1');
+      expect(headers.get('If-Match')).toBeNull();
+      return Response.json({ results: [], receipt: {} });
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+
+    await api.administration.variables.apply('project-id', {
+      changes: [{
+        environmentId: 'environment-id',
+        name: 'DATABASE_URL',
+        isSecret: true,
+        value: 'postgres://example',
+        expectedCollectionVersion: 7,
+      }],
+    }, { idempotencyKey: 'apply-1' });
+  });
+
+  it('rejects malformed administration fences before fetching', async () => {
+    const fetchImpl = vi.fn() as unknown as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+    expect(() => api.administration.configurationOperations.retry(
+      'operation-id',
+      { idempotencyKey: 'retry-1', ifMatch: 'bad\r\netag' },
+    )).toThrow(/If-Match/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
 });

@@ -15,11 +15,33 @@ import re
 import socket
 from threading import Event, Thread
 import time
-from typing import Any, Literal, cast
+from typing import Any, Callable, Literal, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
 from urllib.request import HTTPHandler, HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
 
+from .administration_types import (
+    AsyncConfigurationOperationsAdministration,
+    AsyncDomainsAdministration,
+    AsyncEnvironmentsAdministration,
+    AsyncManagedVolumesAdministration,
+    AsyncProjectsAdministration,
+    AsyncPromotionsAdministration,
+    AsyncRepositoriesAdministration,
+    AsyncRetentionAdministration,
+    AsyncTargetServicesAdministration,
+    AsyncVariablesAdministration,
+    ConfigurationOperationsAdministration,
+    DomainsAdministration,
+    EnvironmentsAdministration,
+    ManagedVolumesAdministration,
+    ProjectsAdministration,
+    PromotionsAdministration,
+    RepositoriesAdministration,
+    RetentionAdministration,
+    TargetServicesAdministration,
+    VariablesAdministration,
+)
 from .openapi import (
     CancelServiceDeploymentResponseBody,
     CheckServiceResponseBody,
@@ -31,6 +53,7 @@ from .openapi import (
     ListServiceEnvironmentsResponseBody,
     ListServiceLogsResponseBody,
     ListServicesResponseBody,
+    OpenAPIClient,
     OperationId,
     PreviewServiceDeployResponseBody,
     RedeployServiceResponseBody,
@@ -49,6 +72,51 @@ _MAXIMUM_RETRY_ATTEMPTS = 3
 _MAXIMUM_RETRY_DELAY = 2.0
 _MAXIMUM_RETRY_AFTER_DELAY = 30.0
 _REQUEST_CANCEL_EVENT: ContextVar[Event | None] = ContextVar("postgrip_service_request_cancel", default=None)
+
+_ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
+    "target_services": (
+        "attach_target_service", "update_target_service", "get_target_service_removal_impact",
+        "detach_target_service", "put_target_service_connection", "clear_target_service_connection",
+    ),
+    "projects": (
+        "create_service_project", "update_service_project", "get_service_project_removal_impact",
+        "delete_service_project",
+    ),
+    "environments": (
+        "get_service_environment", "create_service_environment", "update_service_environment",
+        "preview_service_environment_reassignment", "reassign_service_environment",
+        "get_service_environment_removal_impact", "delete_service_environment",
+    ),
+    "managed_volumes": (
+        "list_service_volumes", "create_service_volume", "get_service_volume",
+        "get_service_volume_removal_impact", "delete_service_volume", "bind_service_volume",
+        "update_service_volume_binding", "unbind_service_volume",
+    ),
+    "domains": (
+        "list_service_domains", "create_service_domain", "update_service_domain", "delete_service_domain",
+    ),
+    "variables": (
+        "list_service_variables", "create_service_variable", "update_service_variable",
+        "delete_service_variable", "put_service_variable_value", "clear_service_variable_value",
+        "apply_service_variables",
+    ),
+    "repositories": (
+        "get_service_repository", "update_service_repository", "put_service_repository_credential",
+        "clear_service_repository_credential", "refresh_service_repository_credential",
+    ),
+    "promotions": (
+        "list_service_promotions", "preview_service_promotion", "promote_service_deployment",
+    ),
+    "retention": (
+        "get_service_build_log_settings", "update_service_build_log_settings", "trim_service_build_logs",
+        "flush_service_build_logs", "get_service_runtime_log_settings",
+        "update_service_runtime_log_settings", "trim_service_runtime_logs", "flush_service_runtime_logs",
+    ),
+    "configuration_operations": (
+        "list_service_configuration_operations", "get_service_configuration_operation",
+        "retry_service_configuration_operation",
+    ),
+}
 
 
 class _RequestCancelled(Exception):
@@ -209,6 +277,94 @@ class ServiceReference:
         return {"source": self.source, "serviceId": self.id}
 
 
+class _AdministrationGroup:
+    """A bounded view over generated, fully annotated administration methods."""
+
+    def __init__(self, generated: OpenAPIClient, operations: tuple[str, ...]) -> None:
+        self._generated = generated
+        self._operations = frozenset(operations)
+
+    def __dir__(self) -> list[str]:
+        return sorted(self._operations)
+
+    def __getattr__(self, name: str) -> Callable[..., Any]:
+        if name not in self._operations:
+            raise AttributeError(name)
+        return cast(Callable[..., Any], getattr(self._generated, name))
+
+
+class ServiceAdministration:
+    """Grouped access to all 55 generated Service-administration operations."""
+
+    target_services: TargetServicesAdministration
+    projects: ProjectsAdministration
+    environments: EnvironmentsAdministration
+    managed_volumes: ManagedVolumesAdministration
+    domains: DomainsAdministration
+    variables: VariablesAdministration
+    repositories: RepositoriesAdministration
+    promotions: PromotionsAdministration
+    retention: RetentionAdministration
+    configuration_operations: ConfigurationOperationsAdministration
+
+    def __init__(self, transport: Callable[..., Any]) -> None:
+        generated = OpenAPIClient(transport)
+        self.target_services = cast(TargetServicesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["target_services"]))
+        self.projects = cast(ProjectsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["projects"]))
+        self.environments = cast(EnvironmentsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["environments"]))
+        self.managed_volumes = cast(ManagedVolumesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["managed_volumes"]))
+        self.domains = cast(DomainsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["domains"]))
+        self.variables = cast(VariablesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["variables"]))
+        self.repositories = cast(RepositoriesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["repositories"]))
+        self.promotions = cast(PromotionsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["promotions"]))
+        self.retention = cast(RetentionAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["retention"]))
+        self.configuration_operations = cast(ConfigurationOperationsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["configuration_operations"]))
+
+
+class AsyncServiceAdministration:
+    """Async grouped administration facade backed by the synchronous transport."""
+
+    target_services: AsyncTargetServicesAdministration
+    projects: AsyncProjectsAdministration
+    environments: AsyncEnvironmentsAdministration
+    managed_volumes: AsyncManagedVolumesAdministration
+    domains: AsyncDomainsAdministration
+    variables: AsyncVariablesAdministration
+    repositories: AsyncRepositoriesAdministration
+    promotions: AsyncPromotionsAdministration
+    retention: AsyncRetentionAdministration
+    configuration_operations: AsyncConfigurationOperationsAdministration
+
+    def __init__(self, client: AsyncServiceClient, sync: ServiceAdministration) -> None:
+        self.target_services = cast(AsyncTargetServicesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.target_services)))
+        self.projects = cast(AsyncProjectsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.projects)))
+        self.environments = cast(AsyncEnvironmentsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.environments)))
+        self.managed_volumes = cast(AsyncManagedVolumesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.managed_volumes)))
+        self.domains = cast(AsyncDomainsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.domains)))
+        self.variables = cast(AsyncVariablesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.variables)))
+        self.repositories = cast(AsyncRepositoriesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.repositories)))
+        self.promotions = cast(AsyncPromotionsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.promotions)))
+        self.retention = cast(AsyncRetentionAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.retention)))
+        self.configuration_operations = cast(AsyncConfigurationOperationsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.configuration_operations)))
+
+
+class _AsyncAdministrationGroup:
+    def __init__(self, client: AsyncServiceClient, sync: _AdministrationGroup) -> None:
+        self._client = client
+        self._sync = sync
+
+    def __dir__(self) -> list[str]:
+        return dir(self._sync)
+
+    def __getattr__(self, name: str) -> Callable[..., Any]:
+        sync_method = getattr(self._sync, name)
+
+        async def invoke(*args: Any, **kwargs: Any) -> Any:
+            return await self._client._run(sync_method, *args, **kwargs)
+
+        return invoke
+
+
 class ServiceClient:
     def __init__(
         self,
@@ -242,6 +398,7 @@ class ServiceClient:
         self._follow_interval = max(follow_interval, 0.001)
         self._timeout = timeout
         self._opener = _redirect_safe_opener(opener)
+        self.administration = ServiceAdministration(self._openapi_transport)
 
     @classmethod
     def from_env(
@@ -506,6 +663,7 @@ class ServiceClient:
         query: Mapping[str, Any] | None = None,
         body: Mapping[str, Any] | None = None,
         idempotency_key: str | None = None,
+        if_match: str | None = None,
     ) -> Any:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         clean_body = {key: value for key, value in (body or {}).items() if value is not None} if body is not None else None
@@ -522,6 +680,7 @@ class ServiceClient:
                 "Authorization": f"Bearer {self._token}",
                 **({"Content-Type": "application/json"} if encoded_body is not None else {}),
                 **({"Idempotency-Key": idempotency_key} if idempotency_key else {}),
+                **({"If-Match": if_match} if if_match else {}),
             })
             try:
                 with self._opener.open(request, timeout=self._timeout) as response:
@@ -558,6 +717,31 @@ class ServiceClient:
                 raise
         raise RuntimeError("PostGrip Service request attempts exhausted")
 
+    def _openapi_transport(
+        self,
+        operation_id: OperationId,
+        body: Any = None,
+        *,
+        path_parameters: dict[str, str] | None = None,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        request_headers = headers or {}
+        idempotency_key = request_headers.get("Idempotency-Key")
+        if idempotency_key is not None and re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
+            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        if_match = request_headers.get("If-Match")
+        if if_match is not None and (not if_match.strip() or "\r" in if_match or "\n" in if_match):
+            raise ValueError("if_match must be a non-empty HTTP ETag without line breaks")
+        return self._request(
+            operation_id,
+            path=path_parameters,
+            query=query,
+            body=cast(Mapping[str, Any] | None, body),
+            idempotency_key=idempotency_key,
+            if_match=if_match,
+        )
+
 
 class ScopedServiceClient:
     def __init__(self, client: ServiceClient, reference: ServiceReference) -> None:
@@ -589,6 +773,7 @@ class ScopedServiceClient:
 class AsyncServiceClient:
     def __init__(self, **options: Any) -> None:
         self._sync = ServiceClient(**options)
+        self.administration = AsyncServiceAdministration(self, self._sync.administration)
 
     @classmethod
     def from_env(

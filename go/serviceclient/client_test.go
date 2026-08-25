@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -122,6 +123,84 @@ func TestDeploySendsBodyAndIdempotencyKey(t *testing.T) {
 	}
 	if _, err := client.Deploy(context.Background(), "project-id", DeployServiceRequest{}, "contains space"); err == nil {
 		t.Fatal("invalid idempotency key succeeded")
+	}
+}
+
+func TestAdministrationFacadeSendsCatalogFence(t *testing.T) {
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/targets" {
+			t.Fatalf("request = %s %s", r.Method, r.URL.Path)
+		}
+		if r.Header.Get("Idempotency-Key") != "attach-1" || r.Header.Get("If-Match") != `"catalog:4"` {
+			t.Fatalf("headers = %#v", r.Header)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"target":{},"operation":{},"receipt":{"requestId":"request-id","auditRecorded":true,"replayed":false}}`))
+	}), nil)
+
+	host, port, databaseName := "db.internal", int64(5432), "app"
+	_, err := client.TargetServices().Attach(context.Background(), OpenAPIAttachTargetServiceRequestBody{
+		WorkerId: "11111111-1111-4111-8111-111111111111", Name: "db", Slug: "db",
+		Host: &host, Port: &port, DatabaseName: &databaseName, Metadata: OpenAPIServiceTargetMetadataRequest{},
+	}, WriteOptions{IdempotencyKey: "attach-1", IfMatch: `"catalog:4"`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.ServiceConfigurationOperations().Retry(context.Background(), "operation-id", WriteOptions{
+		IdempotencyKey: "retry-1", IfMatch: "bad\r\netag",
+	}); err == nil {
+		t.Fatal("malformed ETag succeeded")
+	}
+}
+
+func TestBulkVariableApplyUsesPerEnvironmentFencesWithoutIfMatch(t *testing.T) {
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/project/project-id/variables/apply" {
+			t.Fatalf("request = %s %s", r.Method, r.URL.Path)
+		}
+		if r.Header.Get("Idempotency-Key") != "apply-1" {
+			t.Fatalf("Idempotency-Key = %q", r.Header.Get("Idempotency-Key"))
+		}
+		if got := r.Header.Get("If-Match"); got != "" {
+			t.Fatalf("If-Match = %q, want empty", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"results":[],"receipt":{"requestId":"request-id","auditRecorded":true,"replayed":false}}`))
+	}), nil)
+
+	_, err := client.ServiceVariables().Apply(context.Background(), "project-id", OpenAPIApplyServiceVariablesRequestBody{
+		Changes: []OpenAPIServiceVariableApplyChange{{
+			EnvironmentId:             "environment-id",
+			Name:                      "DATABASE_URL",
+			IsSecret:                  true,
+			Value:                     func() *string { value := "postgres://example"; return &value }(),
+			ExpectedCollectionVersion: 7,
+		}},
+	}, MutationOptions{IdempotencyKey: "apply-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
+	types := []reflect.Type{
+		reflect.TypeOf(TargetServicesClient{}),
+		reflect.TypeOf(ProjectsClient{}),
+		reflect.TypeOf(ServiceEnvironmentsClient{}),
+		reflect.TypeOf(ManagedVolumesClient{}),
+		reflect.TypeOf(ServiceDomainsClient{}),
+		reflect.TypeOf(ServiceVariablesClient{}),
+		reflect.TypeOf(ServiceRepositoriesClient{}),
+		reflect.TypeOf(ServicePromotionsClient{}),
+		reflect.TypeOf(ServiceRetentionClient{}),
+		reflect.TypeOf(ServiceConfigurationOperationsClient{}),
+	}
+	operationCount := 0
+	for _, facadeType := range types {
+		operationCount += facadeType.NumMethod()
+	}
+	if operationCount != 55 {
+		t.Fatalf("administration facade operations = %d, want 55", operationCount)
 	}
 }
 
