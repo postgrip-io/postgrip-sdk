@@ -77,8 +77,10 @@ pip install postgrip-worker
 - Inventory, inspect, and operate Worker fleets through the separately scoped
   Worker clients.
 - Resolve Services exactly; inspect status, environments, deployments, and
-  logs; and perform fenced deploy/runtime operations through the separately
-  scoped Service clients.
+  logs; perform fenced deploy/runtime operations; and administer targets,
+  projects, environments, volumes, domains, variables, repositories,
+  promotions, retention, and durable configuration operations through the
+  separately scoped Service clients.
 - Share closed, typed request and response models generated from one OpenAPI
   contract per API plane across Go, TypeScript, and Python.
 

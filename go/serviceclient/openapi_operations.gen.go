@@ -9,31 +9,86 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256     = "59dcef987cebbbf0f4cea5486938153d94d1a7dfe520df4c1704c90d0925c7df"
-	OpenAPIOperationCount = 18
+	OpenAPISpecSHA256     = "141e587315aac297bc61c58c073b32d8571f46857cca99a719bddfe9fc7b7463"
+	OpenAPIOperationCount = 73
 )
 
 type openAPIOperationID string
 
 const (
-	openAPICancelServiceDeployment   openAPIOperationID = "cancelServiceDeployment"
-	openAPICheckService              openAPIOperationID = "checkService"
-	openAPIDeployService             openAPIOperationID = "deployService"
-	openAPIGetService                openAPIOperationID = "getService"
-	openAPIGetServiceDeployment      openAPIOperationID = "getServiceDeployment"
-	openAPIGetServiceStatus          openAPIOperationID = "getServiceStatus"
-	openAPIListServiceDeployments    openAPIOperationID = "listServiceDeployments"
-	openAPIListServiceEnvironments   openAPIOperationID = "listServiceEnvironments"
-	openAPIListServiceLogs           openAPIOperationID = "listServiceLogs"
-	openAPIListServices              openAPIOperationID = "listServices"
-	openAPIPreviewServiceDeploy      openAPIOperationID = "previewServiceDeploy"
-	openAPIRedeployService           openAPIOperationID = "redeployService"
-	openAPIResolveService            openAPIOperationID = "resolveService"
-	openAPIResolveServiceEnvironment openAPIOperationID = "resolveServiceEnvironment"
-	openAPIRestartServiceRuntime     openAPIOperationID = "restartServiceRuntime"
-	openAPIRollbackServiceDeployment openAPIOperationID = "rollbackServiceDeployment"
-	openAPIStartServiceRuntime       openAPIOperationID = "startServiceRuntime"
-	openAPIStopServiceRuntime        openAPIOperationID = "stopServiceRuntime"
+	openAPIApplyServiceVariables                 openAPIOperationID = "applyServiceVariables"
+	openAPIAttachTargetService                   openAPIOperationID = "attachTargetService"
+	openAPIBindServiceVolume                     openAPIOperationID = "bindServiceVolume"
+	openAPICancelServiceDeployment               openAPIOperationID = "cancelServiceDeployment"
+	openAPICheckService                          openAPIOperationID = "checkService"
+	openAPIClearServiceRepositoryCredential      openAPIOperationID = "clearServiceRepositoryCredential"
+	openAPIClearServiceVariableValue             openAPIOperationID = "clearServiceVariableValue"
+	openAPIClearTargetServiceConnection          openAPIOperationID = "clearTargetServiceConnection"
+	openAPICreateServiceDomain                   openAPIOperationID = "createServiceDomain"
+	openAPICreateServiceEnvironment              openAPIOperationID = "createServiceEnvironment"
+	openAPICreateServiceProject                  openAPIOperationID = "createServiceProject"
+	openAPICreateServiceVariable                 openAPIOperationID = "createServiceVariable"
+	openAPICreateServiceVolume                   openAPIOperationID = "createServiceVolume"
+	openAPIDeleteServiceDomain                   openAPIOperationID = "deleteServiceDomain"
+	openAPIDeleteServiceEnvironment              openAPIOperationID = "deleteServiceEnvironment"
+	openAPIDeleteServiceProject                  openAPIOperationID = "deleteServiceProject"
+	openAPIDeleteServiceVariable                 openAPIOperationID = "deleteServiceVariable"
+	openAPIDeleteServiceVolume                   openAPIOperationID = "deleteServiceVolume"
+	openAPIDeployService                         openAPIOperationID = "deployService"
+	openAPIDetachTargetService                   openAPIOperationID = "detachTargetService"
+	openAPIFlushServiceBuildLogs                 openAPIOperationID = "flushServiceBuildLogs"
+	openAPIFlushServiceRuntimeLogs               openAPIOperationID = "flushServiceRuntimeLogs"
+	openAPIGetService                            openAPIOperationID = "getService"
+	openAPIGetServiceBuildLogSettings            openAPIOperationID = "getServiceBuildLogSettings"
+	openAPIGetServiceConfigurationOperation      openAPIOperationID = "getServiceConfigurationOperation"
+	openAPIGetServiceDeployment                  openAPIOperationID = "getServiceDeployment"
+	openAPIGetServiceEnvironment                 openAPIOperationID = "getServiceEnvironment"
+	openAPIGetServiceEnvironmentRemovalImpact    openAPIOperationID = "getServiceEnvironmentRemovalImpact"
+	openAPIGetServiceProjectRemovalImpact        openAPIOperationID = "getServiceProjectRemovalImpact"
+	openAPIGetServiceRepository                  openAPIOperationID = "getServiceRepository"
+	openAPIGetServiceRuntimeLogSettings          openAPIOperationID = "getServiceRuntimeLogSettings"
+	openAPIGetServiceStatus                      openAPIOperationID = "getServiceStatus"
+	openAPIGetServiceVolume                      openAPIOperationID = "getServiceVolume"
+	openAPIGetServiceVolumeRemovalImpact         openAPIOperationID = "getServiceVolumeRemovalImpact"
+	openAPIGetTargetServiceRemovalImpact         openAPIOperationID = "getTargetServiceRemovalImpact"
+	openAPIListServiceConfigurationOperations    openAPIOperationID = "listServiceConfigurationOperations"
+	openAPIListServiceDeployments                openAPIOperationID = "listServiceDeployments"
+	openAPIListServiceDomains                    openAPIOperationID = "listServiceDomains"
+	openAPIListServiceEnvironments               openAPIOperationID = "listServiceEnvironments"
+	openAPIListServiceLogs                       openAPIOperationID = "listServiceLogs"
+	openAPIListServicePromotions                 openAPIOperationID = "listServicePromotions"
+	openAPIListServiceVariables                  openAPIOperationID = "listServiceVariables"
+	openAPIListServiceVolumes                    openAPIOperationID = "listServiceVolumes"
+	openAPIListServices                          openAPIOperationID = "listServices"
+	openAPIPreviewServiceDeploy                  openAPIOperationID = "previewServiceDeploy"
+	openAPIPreviewServiceEnvironmentReassignment openAPIOperationID = "previewServiceEnvironmentReassignment"
+	openAPIPreviewServicePromotion               openAPIOperationID = "previewServicePromotion"
+	openAPIPromoteServiceDeployment              openAPIOperationID = "promoteServiceDeployment"
+	openAPIPutServiceRepositoryCredential        openAPIOperationID = "putServiceRepositoryCredential"
+	openAPIPutServiceVariableValue               openAPIOperationID = "putServiceVariableValue"
+	openAPIPutTargetServiceConnection            openAPIOperationID = "putTargetServiceConnection"
+	openAPIReassignServiceEnvironment            openAPIOperationID = "reassignServiceEnvironment"
+	openAPIRedeployService                       openAPIOperationID = "redeployService"
+	openAPIRefreshServiceRepositoryCredential    openAPIOperationID = "refreshServiceRepositoryCredential"
+	openAPIResolveService                        openAPIOperationID = "resolveService"
+	openAPIResolveServiceEnvironment             openAPIOperationID = "resolveServiceEnvironment"
+	openAPIRestartServiceRuntime                 openAPIOperationID = "restartServiceRuntime"
+	openAPIRetryServiceConfigurationOperation    openAPIOperationID = "retryServiceConfigurationOperation"
+	openAPIRollbackServiceDeployment             openAPIOperationID = "rollbackServiceDeployment"
+	openAPIStartServiceRuntime                   openAPIOperationID = "startServiceRuntime"
+	openAPIStopServiceRuntime                    openAPIOperationID = "stopServiceRuntime"
+	openAPITrimServiceBuildLogs                  openAPIOperationID = "trimServiceBuildLogs"
+	openAPITrimServiceRuntimeLogs                openAPIOperationID = "trimServiceRuntimeLogs"
+	openAPIUnbindServiceVolume                   openAPIOperationID = "unbindServiceVolume"
+	openAPIUpdateServiceBuildLogSettings         openAPIOperationID = "updateServiceBuildLogSettings"
+	openAPIUpdateServiceDomain                   openAPIOperationID = "updateServiceDomain"
+	openAPIUpdateServiceEnvironment              openAPIOperationID = "updateServiceEnvironment"
+	openAPIUpdateServiceProject                  openAPIOperationID = "updateServiceProject"
+	openAPIUpdateServiceRepository               openAPIOperationID = "updateServiceRepository"
+	openAPIUpdateServiceRuntimeLogSettings       openAPIOperationID = "updateServiceRuntimeLogSettings"
+	openAPIUpdateServiceVariable                 openAPIOperationID = "updateServiceVariable"
+	openAPIUpdateServiceVolumeBinding            openAPIOperationID = "updateServiceVolumeBinding"
+	openAPIUpdateTargetService                   openAPIOperationID = "updateTargetService"
 )
 
 // Parameter names are generated for streaming and WebSocket custom transports.
@@ -52,24 +107,79 @@ type openAPIOperation struct {
 }
 
 var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
-	openAPICancelServiceDeployment:   {Method: "POST", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/cancel", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId", "deploymentId"}},
-	openAPICheckService:              {Method: "POST", Path: "/api/v1/services/{source}/{serviceId}/check", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CheckServiceRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"source", "serviceId"}},
-	openAPIDeployService:             {Method: "POST", Path: "/api/v1/services/project/{serviceId}/deploy", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "DeployServiceRequest", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId"}},
-	openAPIGetService:                {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Service", PathParameters: []string{"source", "serviceId"}},
-	openAPIGetServiceDeployment:      {Method: "GET", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Deployment", PathParameters: []string{"serviceId", "deploymentId"}},
-	openAPIGetServiceStatus:          {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/status", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceStatus", PathParameters: []string{"source", "serviceId"}},
-	openAPIListServiceDeployments:    {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/deployments", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentList", PathParameters: []string{"source", "serviceId"}},
-	openAPIListServiceEnvironments:   {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/environments", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "EnvironmentList", PathParameters: []string{"source", "serviceId"}},
-	openAPIListServiceLogs:           {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/logs", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "LogList", PathParameters: []string{"source", "serviceId"}},
-	openAPIListServices:              {Method: "GET", Path: "/api/v1/services", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceList", PathParameters: []string{}},
-	openAPIPreviewServiceDeploy:      {Method: "GET", Path: "/api/v1/services/project/{serviceId}/deploy/preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeployPreview", PathParameters: []string{"serviceId"}},
-	openAPIRedeployService:           {Method: "POST", Path: "/api/v1/services/project/{serviceId}/redeploy", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RedeployServiceRequest", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId"}},
-	openAPIResolveService:            {Method: "GET", Path: "/api/v1/services/resolve", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Service", PathParameters: []string{}},
-	openAPIResolveServiceEnvironment: {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/resolve", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Environment", PathParameters: []string{"serviceId"}},
-	openAPIRestartServiceRuntime:     {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/restart", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},
-	openAPIRollbackServiceDeployment: {Method: "POST", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId", "deploymentId"}},
-	openAPIStartServiceRuntime:       {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/start", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},
-	openAPIStopServiceRuntime:        {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/stop", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIApplyServiceVariables:                 {Method: "POST", Path: "/api/v1/services/project/{serviceId}/variables/apply", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ApplyServiceVariablesRequest", ResponseSchema: "ServiceVariablesApplyResponse", PathParameters: []string{"serviceId"}},
+	openAPIAttachTargetService:                   {Method: "POST", Path: "/api/v1/services/targets", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "AttachTargetServiceRequest", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{}},
+	openAPIBindServiceVolume:                     {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "BindServiceVolumeRequest", ResponseSchema: "ServiceVolumeBindingMutationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPICancelServiceDeployment:               {Method: "POST", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/cancel", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId", "deploymentId"}},
+	openAPICheckService:                          {Method: "POST", Path: "/api/v1/services/{source}/{serviceId}/check", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CheckServiceRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"source", "serviceId"}},
+	openAPIClearServiceRepositoryCredential:      {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRepositoryMutationResponse", PathParameters: []string{"serviceId", "credentialKind"}},
+	openAPIClearServiceVariableValue:             {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId", "variableId"}},
+	openAPIClearTargetServiceConnection:          {Method: "DELETE", Path: "/api/v1/services/target/{serviceId}/connection", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPICreateServiceDomain:                   {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceDomainRequest", ResponseSchema: "ServiceDomainMutationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPICreateServiceEnvironment:              {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceEnvironmentRequest", ResponseSchema: "ServiceEnvironmentMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPICreateServiceProject:                  {Method: "POST", Path: "/api/v1/services/projects", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceProjectRequest", ResponseSchema: "ServiceProjectMutationResponse", PathParameters: []string{}},
+	openAPICreateServiceVariable:                 {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceVariableRequest", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPICreateServiceVolume:                   {Method: "POST", Path: "/api/v1/services/project/{serviceId}/volumes", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceVolumeRequest", ResponseSchema: "ServiceVolumeMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIDeleteServiceDomain:                   {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceDomainMutationResponse", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
+	openAPIDeleteServiceEnvironment:              {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/delete", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ConfirmedDeletionRequest", ResponseSchema: "ServiceDeletionResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIDeleteServiceProject:                  {Method: "POST", Path: "/api/v1/services/project/{serviceId}/delete", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ConfirmedDeletionRequest", ResponseSchema: "ServiceDeletionResponse", PathParameters: []string{"serviceId"}},
+	openAPIDeleteServiceVariable:                 {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId", "variableId"}},
+	openAPIDeleteServiceVolume:                   {Method: "POST", Path: "/api/v1/services/project/{serviceId}/volumes/{volumeRef}/delete", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ConfirmedDeletionRequest", ResponseSchema: "ServiceDeletionResponse", PathParameters: []string{"serviceId", "volumeRef"}},
+	openAPIDeployService:                         {Method: "POST", Path: "/api/v1/services/project/{serviceId}/deploy", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "DeployServiceRequest", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId"}},
+	openAPIDetachTargetService:                   {Method: "POST", Path: "/api/v1/services/target/{serviceId}/delete", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ConfirmedDeletionRequest", ResponseSchema: "ServiceDeletionResponse", PathParameters: []string{"serviceId"}},
+	openAPIFlushServiceBuildLogs:                 {Method: "POST", Path: "/api/v1/services/project/{serviceId}/logs/build/flush", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceBuildLogMaintenanceResponse", PathParameters: []string{"serviceId"}},
+	openAPIFlushServiceRuntimeLogs:               {Method: "POST", Path: "/api/v1/services/project/{serviceId}/logs/runtime/flush", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRuntimeLogMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIGetService:                            {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Service", PathParameters: []string{"source", "serviceId"}},
+	openAPIGetServiceBuildLogSettings:            {Method: "GET", Path: "/api/v1/services/project/{serviceId}/logs/build/settings", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceBuildLogStatus", PathParameters: []string{"serviceId"}},
+	openAPIGetServiceConfigurationOperation:      {Method: "GET", Path: "/api/v1/services/configuration-operations/{operationId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperation", PathParameters: []string{"operationId"}},
+	openAPIGetServiceDeployment:                  {Method: "GET", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Deployment", PathParameters: []string{"serviceId", "deploymentId"}},
+	openAPIGetServiceEnvironment:                 {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceEnvironmentConfiguration", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIGetServiceEnvironmentRemovalImpact:    {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIGetServiceProjectRemovalImpact:        {Method: "GET", Path: "/api/v1/services/project/{serviceId}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId"}},
+	openAPIGetServiceRepository:                  {Method: "GET", Path: "/api/v1/services/project/{serviceId}/repository", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRepository", PathParameters: []string{"serviceId"}},
+	openAPIGetServiceRuntimeLogSettings:          {Method: "GET", Path: "/api/v1/services/project/{serviceId}/logs/runtime/settings", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRuntimeLogStatus", PathParameters: []string{"serviceId"}},
+	openAPIGetServiceStatus:                      {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/status", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceStatus", PathParameters: []string{"source", "serviceId"}},
+	openAPIGetServiceVolume:                      {Method: "GET", Path: "/api/v1/services/project/{serviceId}/volumes/{volumeRef}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVolume", PathParameters: []string{"serviceId", "volumeRef"}},
+	openAPIGetServiceVolumeRemovalImpact:         {Method: "GET", Path: "/api/v1/services/project/{serviceId}/volumes/{volumeRef}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId", "volumeRef"}},
+	openAPIGetTargetServiceRemovalImpact:         {Method: "GET", Path: "/api/v1/services/target/{serviceId}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId"}},
+	openAPIListServiceConfigurationOperations:    {Method: "GET", Path: "/api/v1/services/configuration-operations", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperationList", PathParameters: []string{}},
+	openAPIListServiceDeployments:                {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/deployments", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentList", PathParameters: []string{"source", "serviceId"}},
+	openAPIListServiceDomains:                    {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceDomainList", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIListServiceEnvironments:               {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/environments", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "EnvironmentList", PathParameters: []string{"source", "serviceId"}},
+	openAPIListServiceLogs:                       {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/logs", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "LogList", PathParameters: []string{"source", "serviceId"}},
+	openAPIListServicePromotions:                 {Method: "GET", Path: "/api/v1/services/project/{serviceId}/promotions", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentList", PathParameters: []string{"serviceId"}},
+	openAPIListServiceVariables:                  {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVariableList", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIListServiceVolumes:                    {Method: "GET", Path: "/api/v1/services/project/{serviceId}/volumes", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVolumeList", PathParameters: []string{"serviceId"}},
+	openAPIListServices:                          {Method: "GET", Path: "/api/v1/services", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceList", PathParameters: []string{}},
+	openAPIPreviewServiceDeploy:                  {Method: "GET", Path: "/api/v1/services/project/{serviceId}/deploy/preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeployPreview", PathParameters: []string{"serviceId"}},
+	openAPIPreviewServiceEnvironmentReassignment: {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/reassignment-preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceEnvironmentReassignmentPreviewRequest", ResponseSchema: "ServiceEnvironmentReassignmentPreview", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIPreviewServicePromotion:               {Method: "GET", Path: "/api/v1/services/project/{serviceId}/promotions/preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServicePromotionPreview", PathParameters: []string{"serviceId"}},
+	openAPIPromoteServiceDeployment:              {Method: "POST", Path: "/api/v1/services/project/{serviceId}/promotions", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "PromoteServiceDeploymentRequest", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId"}},
+	openAPIPutServiceRepositoryCredential:        {Method: "PUT", Path: "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceRepositoryCredentialRequest", ResponseSchema: "ServiceRepositoryMutationResponse", PathParameters: []string{"serviceId", "credentialKind"}},
+	openAPIPutServiceVariableValue:               {Method: "PUT", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceVariableValueRequest", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId", "variableId"}},
+	openAPIPutTargetServiceConnection:            {Method: "PUT", Path: "/api/v1/services/target/{serviceId}/connection", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "TargetServiceConnectionRequest", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIReassignServiceEnvironment:            {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/reassign", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceEnvironmentReassignmentRequest", ResponseSchema: "ServiceEnvironmentMutationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIRedeployService:                       {Method: "POST", Path: "/api/v1/services/project/{serviceId}/redeploy", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RedeployServiceRequest", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId"}},
+	openAPIRefreshServiceRepositoryCredential:    {Method: "POST", Path: "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}/refresh", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRepositoryMutationResponse", PathParameters: []string{"serviceId", "credentialKind"}},
+	openAPIResolveService:                        {Method: "GET", Path: "/api/v1/services/resolve", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Service", PathParameters: []string{}},
+	openAPIResolveServiceEnvironment:             {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/resolve", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Environment", PathParameters: []string{"serviceId"}},
+	openAPIRestartServiceRuntime:                 {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/restart", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIRetryServiceConfigurationOperation:    {Method: "POST", Path: "/api/v1/services/configuration-operations/{operationId}/retry", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperation", PathParameters: []string{"operationId"}},
+	openAPIRollbackServiceDeployment:             {Method: "POST", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId", "deploymentId"}},
+	openAPIStartServiceRuntime:                   {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/start", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIStopServiceRuntime:                    {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/stop", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPITrimServiceBuildLogs:                  {Method: "POST", Path: "/api/v1/services/project/{serviceId}/logs/build/trim", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceBuildLogMaintenanceResponse", PathParameters: []string{"serviceId"}},
+	openAPITrimServiceRuntimeLogs:                {Method: "POST", Path: "/api/v1/services/project/{serviceId}/logs/runtime/trim", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRuntimeLogMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIUnbindServiceVolume:                   {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVolumeBindingMutationResponse", PathParameters: []string{"serviceId", "environmentId", "volumeRef"}},
+	openAPIUpdateServiceBuildLogSettings:         {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/logs/build/settings", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceBuildLogSettingsRequest", ResponseSchema: "ServiceBuildLogSettingsMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIUpdateServiceDomain:                   {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceDomainRequest", ResponseSchema: "ServiceDomainMutationResponse", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
+	openAPIUpdateServiceEnvironment:              {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceEnvironmentRequest", ResponseSchema: "ServiceEnvironmentMutationResponse", PathParameters: []string{"serviceId", "environmentId"}},
+	openAPIUpdateServiceProject:                  {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceProjectRequest", ResponseSchema: "ServiceProjectMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIUpdateServiceRepository:               {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/repository", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceRepositoryRequest", ResponseSchema: "ServiceRepositoryMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIUpdateServiceRuntimeLogSettings:       {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/logs/runtime/settings", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceRuntimeLogSettingsRequest", ResponseSchema: "ServiceRuntimeLogMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIUpdateServiceVariable:                 {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceVariableRequest", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId", "variableId"}},
+	openAPIUpdateServiceVolumeBinding:            {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceVolumeBindingRequest", ResponseSchema: "ServiceVolumeBindingMutationResponse", PathParameters: []string{"serviceId", "environmentId", "volumeRef"}},
+	openAPIUpdateTargetService:                   {Method: "PATCH", Path: "/api/v1/services/target/{serviceId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateTargetServiceRequest", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{"serviceId"}},
 }
 
 func resolveOpenAPIOperation(id openAPIOperationID, pathParameters map[string]string, query url.Values) (openAPIOperation, error) {

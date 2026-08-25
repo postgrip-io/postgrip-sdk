@@ -11,6 +11,8 @@ import {
   type OpenAPILogEntry,
   type OpenAPILogList,
   type OpenAPIOperationId,
+  type OpenAPIQueryParameters,
+  type OpenAPIRequestBody,
   type OpenAPIRedeployServiceRequest,
   type OpenAPIResponseBody,
   type OpenAPIService,
@@ -99,6 +101,10 @@ export interface MutationOptions extends RequestOptions {
   readonly idempotencyKey: string;
 }
 
+export interface AdministrationWriteOptions extends MutationOptions {
+  readonly ifMatch: string;
+}
+
 export interface CheckServiceOptions extends MutationOptions {
   readonly environmentId?: string;
 }
@@ -135,6 +141,7 @@ interface InternalRequestOptions {
   readonly body?: unknown;
   readonly signal?: AbortSignal;
   readonly idempotencyKey?: string;
+  readonly ifMatch?: string;
 }
 
 interface RetryPolicy {
@@ -147,6 +154,124 @@ export class ServiceClient {
   readonly logs = {
     list: (service: ServiceReference, options: ServiceLogOptions = {}) => this.listLogs(service, options),
     follow: (service: ServiceReference, options: ServiceLogOptions = {}) => this.followLogs(service, options),
+  };
+
+  readonly administration = {
+    targets: {
+      attach: (body: OpenAPIRequestBody<'attachTargetService'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('attachTargetService', { body, ...administrationWrite(options) }, true),
+      update: (serviceId: string, body: OpenAPIRequestBody<'updateTargetService'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateTargetService', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      removalImpact: (serviceId: string, options: RequestOptions = {}) =>
+        this.request('getTargetServiceRemovalImpact', { path: { serviceId }, signal: options.signal }),
+      detach: (serviceId: string, body: OpenAPIRequestBody<'detachTargetService'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('detachTargetService', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      putConnection: (serviceId: string, body: OpenAPIRequestBody<'putTargetServiceConnection'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('putTargetServiceConnection', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      clearConnection: (serviceId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('clearTargetServiceConnection', { path: { serviceId }, ...administrationWrite(options) }, true),
+    },
+    projects: {
+      create: (body: OpenAPIRequestBody<'createServiceProject'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('createServiceProject', { body, ...administrationWrite(options) }, true),
+      update: (serviceId: string, body: OpenAPIRequestBody<'updateServiceProject'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceProject', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      removalImpact: (serviceId: string, options: RequestOptions = {}) =>
+        this.request('getServiceProjectRemovalImpact', { path: { serviceId }, signal: options.signal }),
+      delete: (serviceId: string, body: OpenAPIRequestBody<'deleteServiceProject'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('deleteServiceProject', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+    },
+    environments: {
+      get: (serviceId: string, environmentId: string, options: RequestOptions = {}) =>
+        this.request('getServiceEnvironment', { path: { serviceId, environmentId }, signal: options.signal }),
+      create: (serviceId: string, body: OpenAPIRequestBody<'createServiceEnvironment'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('createServiceEnvironment', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      update: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'updateServiceEnvironment'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceEnvironment', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+      previewReassignment: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'previewServiceEnvironmentReassignment'>, options: MutationOptions) =>
+        this.administrationMutation('previewServiceEnvironmentReassignment', { path: { serviceId, environmentId }, body, ...mutationRequest(options) }),
+      reassign: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'reassignServiceEnvironment'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('reassignServiceEnvironment', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+      removalImpact: (serviceId: string, environmentId: string, options: RequestOptions = {}) =>
+        this.request('getServiceEnvironmentRemovalImpact', { path: { serviceId, environmentId }, signal: options.signal }),
+      delete: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'deleteServiceEnvironment'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('deleteServiceEnvironment', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+    },
+    volumes: {
+      list: (serviceId: string, options: RequestOptions = {}) => this.request('listServiceVolumes', { path: { serviceId }, signal: options.signal }),
+      create: (serviceId: string, body: OpenAPIRequestBody<'createServiceVolume'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('createServiceVolume', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      get: (serviceId: string, volumeRef: string, options: RequestOptions = {}) => this.request('getServiceVolume', { path: { serviceId, volumeRef }, signal: options.signal }),
+      removalImpact: (serviceId: string, volumeRef: string, options: RequestOptions = {}) => this.request('getServiceVolumeRemovalImpact', { path: { serviceId, volumeRef }, signal: options.signal }),
+      delete: (serviceId: string, volumeRef: string, body: OpenAPIRequestBody<'deleteServiceVolume'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('deleteServiceVolume', { path: { serviceId, volumeRef }, body, ...administrationWrite(options) }, true),
+      bind: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'bindServiceVolume'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('bindServiceVolume', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+      updateBinding: (serviceId: string, environmentId: string, volumeRef: string, body: OpenAPIRequestBody<'updateServiceVolumeBinding'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceVolumeBinding', { path: { serviceId, environmentId, volumeRef }, body, ...administrationWrite(options) }, true),
+      unbind: (serviceId: string, environmentId: string, volumeRef: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('unbindServiceVolume', { path: { serviceId, environmentId, volumeRef }, ...administrationWrite(options) }, true),
+    },
+    domains: {
+      list: (serviceId: string, environmentId: string, options: RequestOptions = {}) => this.request('listServiceDomains', { path: { serviceId, environmentId }, signal: options.signal }),
+      create: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'createServiceDomain'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('createServiceDomain', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+      update: (serviceId: string, environmentId: string, domainId: string, body: OpenAPIRequestBody<'updateServiceDomain'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceDomain', { path: { serviceId, environmentId, domainId }, body, ...administrationWrite(options) }, true),
+      delete: (serviceId: string, environmentId: string, domainId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('deleteServiceDomain', { path: { serviceId, environmentId, domainId }, ...administrationWrite(options) }, true),
+    },
+    variables: {
+      list: (serviceId: string, environmentId: string, options: RequestOptions = {}) => this.request('listServiceVariables', { path: { serviceId, environmentId }, signal: options.signal }),
+      create: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'createServiceVariable'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('createServiceVariable', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+      update: (serviceId: string, environmentId: string, variableId: string, body: OpenAPIRequestBody<'updateServiceVariable'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceVariable', { path: { serviceId, environmentId, variableId }, body, ...administrationWrite(options) }, true),
+      delete: (serviceId: string, environmentId: string, variableId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('deleteServiceVariable', { path: { serviceId, environmentId, variableId }, ...administrationWrite(options) }, true),
+      putValue: (serviceId: string, environmentId: string, variableId: string, body: OpenAPIRequestBody<'putServiceVariableValue'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('putServiceVariableValue', { path: { serviceId, environmentId, variableId }, body, ...administrationWrite(options) }, true),
+      clearValue: (serviceId: string, environmentId: string, variableId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('clearServiceVariableValue', { path: { serviceId, environmentId, variableId }, ...administrationWrite(options) }, true),
+      apply: (serviceId: string, body: OpenAPIRequestBody<'applyServiceVariables'>, options: MutationOptions) =>
+        this.administrationMutation('applyServiceVariables', { path: { serviceId }, body, ...mutationRequest(options) }),
+    },
+    repositories: {
+      get: (serviceId: string, options: RequestOptions = {}) => this.request('getServiceRepository', { path: { serviceId }, signal: options.signal }),
+      update: (serviceId: string, body: OpenAPIRequestBody<'updateServiceRepository'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceRepository', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      putCredential: (serviceId: string, credentialKind: string, body: OpenAPIRequestBody<'putServiceRepositoryCredential'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('putServiceRepositoryCredential', { path: { serviceId, credentialKind }, body, ...administrationWrite(options) }, true),
+      clearCredential: (serviceId: string, credentialKind: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('clearServiceRepositoryCredential', { path: { serviceId, credentialKind }, ...administrationWrite(options) }, true),
+      refreshCredential: (serviceId: string, credentialKind: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('refreshServiceRepositoryCredential', { path: { serviceId, credentialKind }, ...administrationWrite(options) }, true),
+    },
+    promotions: {
+      list: (serviceId: string, query: OpenAPIQueryParameters<'listServicePromotions'> = {}, options: RequestOptions = {}) => this.request('listServicePromotions', { path: { serviceId }, query, signal: options.signal }),
+      preview: (serviceId: string, query: OpenAPIQueryParameters<'previewServicePromotion'>, options: RequestOptions = {}) => this.request('previewServicePromotion', { path: { serviceId }, query, signal: options.signal }),
+      create: (serviceId: string, body: OpenAPIRequestBody<'promoteServiceDeployment'>, options: MutationOptions) =>
+        this.administrationMutation('promoteServiceDeployment', { path: { serviceId }, body, ...mutationRequest(options) }),
+    },
+    retention: {
+      getBuild: (serviceId: string, options: RequestOptions = {}) => this.request('getServiceBuildLogSettings', { path: { serviceId }, signal: options.signal }),
+      updateBuild: (serviceId: string, body: OpenAPIRequestBody<'updateServiceBuildLogSettings'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceBuildLogSettings', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      trimBuild: (serviceId: string, options: AdministrationWriteOptions) => this.administrationMutation('trimServiceBuildLogs', { path: { serviceId }, ...administrationWrite(options) }, true),
+      flushBuild: (serviceId: string, options: AdministrationWriteOptions) => this.administrationMutation('flushServiceBuildLogs', { path: { serviceId }, ...administrationWrite(options) }, true),
+      getRuntime: (serviceId: string, query: OpenAPIQueryParameters<'getServiceRuntimeLogSettings'> = {}, options: RequestOptions = {}) => this.request('getServiceRuntimeLogSettings', { path: { serviceId }, query, signal: options.signal }),
+      updateRuntime: (serviceId: string, query: OpenAPIQueryParameters<'updateServiceRuntimeLogSettings'>, body: OpenAPIRequestBody<'updateServiceRuntimeLogSettings'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceRuntimeLogSettings', { path: { serviceId }, query, body, ...administrationWrite(options) }, true),
+      trimRuntime: (serviceId: string, query: OpenAPIQueryParameters<'trimServiceRuntimeLogs'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('trimServiceRuntimeLogs', { path: { serviceId }, query, ...administrationWrite(options) }, true),
+      flushRuntime: (serviceId: string, query: OpenAPIQueryParameters<'flushServiceRuntimeLogs'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('flushServiceRuntimeLogs', { path: { serviceId }, query, ...administrationWrite(options) }, true),
+    },
+    configurationOperations: {
+      list: (query: OpenAPIQueryParameters<'listServiceConfigurationOperations'> = {}, options: RequestOptions = {}) => this.request('listServiceConfigurationOperations', { query, signal: options.signal }),
+      get: (operationId: string, options: RequestOptions = {}) => this.request('getServiceConfigurationOperation', { path: { operationId }, signal: options.signal }),
+      retry: (operationId: string, options: AdministrationWriteOptions) => this.administrationMutation('retryServiceConfigurationOperation', { path: { operationId }, ...administrationWrite(options) }, true),
+    },
   };
 
   private readonly baseUrl: URL;
@@ -381,6 +506,16 @@ export class ServiceClient {
     return this.request(operation, options);
   }
 
+  private administrationMutation<I extends OpenAPIOperationId>(
+    operation: I,
+    options: InternalRequestOptions,
+    conditional = false,
+  ): Promise<OpenAPIResponseBody<I>> {
+    validateIdempotencyKey(options.idempotencyKey ?? '');
+    if (conditional) validateETag(options.ifMatch ?? '');
+    return this.request(operation, options);
+  }
+
   private async request<I extends OpenAPIOperationId>(operationId: I, options: InternalRequestOptions): Promise<OpenAPIResponseBody<I>> {
     const query = encodeQuery(options.query);
     const operation = resolveOpenAPIOperation(operationId, options.path, query);
@@ -400,6 +535,7 @@ export class ServiceClient {
             Authorization: `Bearer ${this.token}`,
             ...(encodedBody === undefined ? {} : { 'Content-Type': 'application/json' }),
             ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
+            ...(options.ifMatch ? { 'If-Match': options.ifMatch } : {}),
           },
           body: encodedBody,
           redirect: 'manual',
@@ -461,6 +597,10 @@ function mutationRequest(options: MutationOptions): Pick<InternalRequestOptions,
   return { signal: options.signal, idempotencyKey: options.idempotencyKey };
 }
 
+function administrationWrite(options: AdministrationWriteOptions): Pick<InternalRequestOptions, 'signal' | 'idempotencyKey' | 'ifMatch'> {
+  return { signal: options.signal, idempotencyKey: options.idempotencyKey, ifMatch: options.ifMatch };
+}
+
 function encodeQuery(query?: Readonly<Record<string, unknown>>): URLSearchParams | undefined {
   if (!query) return undefined;
   const result = new URLSearchParams();
@@ -474,6 +614,12 @@ function encodeQuery(query?: Readonly<Record<string, unknown>>): URLSearchParams
 function validateIdempotencyKey(key: string): void {
   if (!/^[!-~]{1,128}$/.test(key)) {
     throw new Error('idempotencyKey must contain 1 to 128 visible ASCII characters');
+  }
+}
+
+function validateETag(value: string): void {
+  if (!value.trim() || /[\r\n]/.test(value)) {
+    throw new Error('If-Match ETag must be non-empty and contain no line breaks');
   }
 }
 

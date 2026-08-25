@@ -5,6 +5,7 @@ from email.message import Message
 from io import BytesIO
 import json
 from threading import Event
+from typing import get_type_hints
 import unittest
 from urllib.error import HTTPError
 from urllib.parse import urlparse
@@ -12,7 +13,9 @@ from urllib.request import Request
 from unittest.mock import patch
 
 from postgrip_service import AsyncServiceClient, ServiceAPIError, ServiceClient, ServiceReference
+from postgrip_service.administration_types import ConfigurationOperationsAdministration, RepositoriesAdministration
 from postgrip_service.client import _NoRedirect
+from postgrip_service.openapi import OperationId
 
 
 SERVICE = {
@@ -45,6 +48,12 @@ class FakeResponse:
 
     def read(self, limit: int = -1) -> bytes:
         return self.body[:limit]
+
+
+class AdministrationTypeTests(unittest.TestCase):
+    def test_runtime_type_hints_resolve_closed_literals(self) -> None:
+        get_type_hints(RepositoriesAdministration.put_service_repository_credential)
+        get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
 
 
 class FakeOpener:
@@ -325,6 +334,97 @@ class ServiceClientTests(unittest.TestCase):
             invoke()
         actual = [(request.method, urlparse(request.full_url).path) for request in opener.requests]
         self.assertEqual(actual, expected)
+
+    def test_administration_facade_covers_every_additive_operation_and_fences_writes(self) -> None:
+        response = {
+            "target": {}, "operation": {},
+            "receipt": {"requestId": "request-id", "auditRecorded": True, "replayed": False},
+        }
+        opener = FakeOpener([response])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        groups = (
+            client.administration.target_services,
+            client.administration.projects,
+            client.administration.environments,
+            client.administration.managed_volumes,
+            client.administration.domains,
+            client.administration.variables,
+            client.administration.repositories,
+            client.administration.promotions,
+            client.administration.retention,
+            client.administration.configuration_operations,
+        )
+        exposed = {name for group in groups for name in dir(group)}
+        phase_seven = {
+            "list_services", "resolve_service", "get_service", "get_service_status",
+            "list_service_environments", "resolve_service_environment", "list_service_deployments",
+            "get_service_deployment", "list_service_logs", "check_service", "preview_service_deploy",
+            "deploy_service", "redeploy_service", "cancel_service_deployment",
+            "rollback_service_deployment", "start_service_runtime", "stop_service_runtime",
+            "restart_service_runtime",
+        }
+        canonical = {operation.name.lower() for operation in OperationId} - phase_seven
+        self.assertEqual(exposed, canonical)
+        self.assertEqual(len(exposed), 55)
+
+        client.administration.target_services.attach_target_service(
+            {
+                "workerId": "worker-id", "name": "database", "slug": "database",
+                "host": "database.internal", "port": 5432, "databaseName": "app",
+                "metadata": {},
+            },
+            idempotency_key="attach-1",
+            if_match='"service-catalog:4"',
+        )
+        request = opener.requests[0]
+        self.assertEqual(request.method, "POST")
+        self.assertEqual(urlparse(request.full_url).path, "/api/v1/services/targets")
+        self.assertEqual(request.get_header("Idempotency-key"), "attach-1")
+        self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
+
+    def test_bulk_variable_apply_uses_per_environment_fences_without_if_match(self) -> None:
+        opener = FakeOpener([{
+            "results": [],
+            "receipt": {"requestId": "request-id", "auditRecorded": True, "replayed": False},
+        }])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+
+        client.administration.variables.apply_service_variables(
+            "project-id",
+            {"changes": [{
+                "environmentId": "environment-id",
+                "name": "DATABASE_URL",
+                "isSecret": True,
+                "value": "postgres://example",
+                "expectedCollectionVersion": 7,
+            }]},
+            idempotency_key="apply-1",
+        )
+
+        request = opener.requests[0]
+        self.assertEqual(request.method, "POST")
+        self.assertEqual(urlparse(request.full_url).path, "/api/v1/services/project/project-id/variables/apply")
+        self.assertEqual(request.get_header("Idempotency-key"), "apply-1")
+        self.assertIsNone(request.get_header("If-match"))
+
+    def test_administration_rejects_invalid_fences_before_fetching(self) -> None:
+        opener = FakeOpener([])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        with self.assertRaises(ValueError):
+            client.administration.configuration_operations.retry_service_configuration_operation(
+                "operation-id", idempotency_key="contains space", if_match='"operation:1"',
+            )
+        with self.assertRaises(ValueError):
+            client.administration.configuration_operations.retry_service_configuration_operation(
+                "operation-id", idempotency_key="retry-1", if_match="bad\r\netag",
+            )
+        self.assertEqual(opener.requests, [])
 
     def test_async_pages(self) -> None:
         async def run() -> None:
