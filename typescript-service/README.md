@@ -16,6 +16,11 @@ const selected = client.forService(referenceFor(service));
 const status = await selected.status();
 ```
 
+`ServiceClient.fromEnv()` reads `POSTGRIP_WORKERORCHESTRATOR_URL` and
+`POSTGRIP_SERVICE_API_TOKEN` in Node environments. Retries are disabled by
+default; `enableRetries` plus `retry` can lower the three-attempt, 2-second
+backoff, and 30-second `Retry-After` caps but cannot make them unbounded.
+
 Mutations require an explicit `idempotencyKey`. Call `previewDeploy()` and show
 the immutable commit to the operator before calling `deploy()`.
 

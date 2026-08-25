@@ -47,6 +47,19 @@ jobs:
           GOWORK: "off"
         run: go test ./...
 
+  go-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go/serviceclient
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/serviceclient/go.mod
+      - run: go vet ./...
+      - run: go test ./...
+
   typescript:
     runs-on: ubuntu-latest
     defaults:

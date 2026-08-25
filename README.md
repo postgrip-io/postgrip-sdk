@@ -162,8 +162,8 @@ Run the relevant native toolchain from the repository root:
 
 ```sh
 # Go modules
-go test ./protocol/... ./go/...
-go vet ./protocol/... ./go/...
+go test ./protocol/... ./go/... ./go/serviceclient/...
+go vet ./protocol/... ./go/... ./go/serviceclient/...
 
 # TypeScript
 (cd typescript && bun install --frozen-lockfile && bun run typecheck && bun run build && bun run test)
@@ -191,6 +191,7 @@ The packages release independently from package-prefixed tags:
 | --- | --- | --- |
 | Protocol | `protocol/vX.Y.Z` | Go module proxy and GitHub Releases |
 | Go SDK | `go/vX.Y.Z` | Go module proxy and GitHub Releases |
+| Go Service SDK | `go/serviceclient/vX.Y.Z` | Go module proxy and GitHub Releases |
 | TypeScript SDK | `typescript/vX.Y.Z` | npm and GitHub Releases |
 | Python SDK | `python/vX.Y.Z` | PyPI and GitHub Releases |
 | TypeScript Worker SDK | `typescript-worker/vX.Y.Z` | npm and GitHub Releases |

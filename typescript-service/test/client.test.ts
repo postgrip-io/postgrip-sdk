@@ -31,7 +31,23 @@ describe('ServiceClient', () => {
   it('rejects unsafe configuration', () => {
     expect(() => new ServiceClient({ baseUrl: 'http://example.test', token: 'pgwm_token' })).toThrow(/HTTPS/);
     expect(() => new ServiceClient({ baseUrl: 'https://example.test?q=yes', token: 'pgwm_token' })).toThrow(/query/);
+    expect(() => new ServiceClient({ baseUrl: 'https://example.test?', token: 'pgwm_token' })).toThrow(/query/);
+    expect(() => new ServiceClient({ baseUrl: 'https://example.test#', token: 'pgwm_token' })).toThrow(/query/);
     expect(() => new ServiceClient({ baseUrl: 'https://example.test', token: 'bad' })).toThrow(/pgwm_/);
+    expect(() => new ServiceClient({
+      baseUrl: 'https://example.test', token: 'pgwm_token', retry: { maxAttempts: 4 },
+    })).toThrow(/maxAttempts/);
+  });
+
+  it('loads the documented Service environment variables', () => {
+    const api = ServiceClient.fromEnv({
+      environment: {
+        POSTGRIP_WORKERORCHESTRATOR_URL: 'https://services.example.test',
+        POSTGRIP_SERVICE_API_TOKEN: 'pgwm_environment-token',
+      },
+      fetch: vi.fn() as unknown as typeof globalThis.fetch,
+    });
+    expect(api).toBeInstanceOf(ServiceClient);
   });
 
   it('lists with terminal-equivalent filters and bearer auth', async () => {
@@ -137,5 +153,115 @@ describe('ServiceClient', () => {
     expect(error).toBeInstanceOf(ServiceAPIError);
     expect(error).toMatchObject({ code: 'HTTP_ERROR', requestId: 'request-header' });
     expect(String(error)).not.toContain('secret');
+  });
+
+  it('keeps retries disabled by default', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 503 })) as typeof globalThis.fetch;
+    await expect(client(fetchImpl).resolve('api')).rejects.toBeInstanceOf(ServiceAPIError);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it('caps configured attempts and Retry-After delays', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', {
+      status: 503, headers: { 'Retry-After': '30' },
+    })) as typeof globalThis.fetch;
+    const api = new ServiceClient({
+      baseUrl: 'https://services.example.test',
+      token: 'pgwm_test-token',
+      fetch: fetchImpl,
+      enableRetries: true,
+      retry: { maxAttempts: 2, retryAfterMaxDelayMs: 1 },
+    });
+    const error = await api.resolve('api').catch((cause: unknown) => cause);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(error).toMatchObject({ retryAfterMs: 1 });
+  });
+
+  it('cancels during retry backoff', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', {
+      status: 503, headers: { 'Retry-After': '30' },
+    })) as typeof globalThis.fetch;
+    const controller = new AbortController();
+    const api = new ServiceClient({
+      baseUrl: 'https://services.example.test', token: 'pgwm_test-token', fetch: fetchImpl, enableRetries: true,
+    });
+    const pending = api.resolve('api', { signal: controller.signal });
+    while (fetchImpl.mock.calls.length === 0) await new Promise((resolve) => setTimeout(resolve, 1));
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it('bounds success and error response bodies', async () => {
+    const oversized = 'x'.repeat((4 << 20) + 1);
+    const successFetch = vi.fn(async () => new Response(oversized)) as typeof globalThis.fetch;
+    await expect(client(successFetch).resolve('api')).rejects.toThrow(/too large/);
+
+    const errorFetch = vi.fn(async () => new Response(oversized, { status: 502 })) as typeof globalThis.fetch;
+    const error = await client(errorFetch).resolve('api').catch((cause: unknown) => cause);
+    expect(error).toMatchObject({ code: 'HTTP_ERROR' });
+    expect(String(error)).not.toContain(oversized.slice(0, 20));
+  });
+
+  it('does not follow redirects or forward the bearer', async () => {
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.redirect).toBe('manual');
+      return new Response('{}', { status: 307, headers: { Location: 'https://other.example.test/' } });
+    }) as typeof globalThis.fetch;
+    await expect(client(fetchImpl).resolve('api')).rejects.toMatchObject({ status: 307 });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it('maps every stable facade to its canonical operation', async () => {
+    const expected = [
+      ['GET', '/api/v1/services'],
+      ['GET', '/api/v1/services/resolve'],
+      ['GET', '/api/v1/services/project/service-id'],
+      ['GET', '/api/v1/services/project/service-id/status'],
+      ['GET', '/api/v1/services/project/service-id/environments'],
+      ['GET', '/api/v1/services/project/service-id/environments/resolve'],
+      ['GET', '/api/v1/services/project/service-id/deployments'],
+      ['GET', '/api/v1/services/project/service-id/deployments/deployment-id'],
+      ['GET', '/api/v1/services/project/service-id/logs'],
+      ['POST', '/api/v1/services/project/service-id/check'],
+      ['GET', '/api/v1/services/project/service-id/deploy/preview'],
+      ['POST', '/api/v1/services/project/service-id/deploy'],
+      ['POST', '/api/v1/services/project/service-id/redeploy'],
+      ['POST', '/api/v1/services/project/service-id/deployments/deployment-id/cancel'],
+      ['POST', '/api/v1/services/project/service-id/deployments/deployment-id/rollback'],
+      ['POST', '/api/v1/services/project/service-id/environments/environment-id/start'],
+      ['POST', '/api/v1/services/project/service-id/environments/environment-id/stop'],
+      ['POST', '/api/v1/services/project/service-id/environments/environment-id/restart'],
+    ] as const;
+    let index = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect([init?.method, new URL(String(input)).pathname]).toEqual(expected[index]);
+      index += 1;
+      return Response.json({});
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+    const ref = { source: 'project', id: 'service-id' } as const;
+    const calls: Array<() => Promise<unknown>> = [
+      () => api.list(),
+      () => api.resolve('api'),
+      () => api.get(ref),
+      () => api.status(ref),
+      () => api.environments(ref),
+      () => api.environment('service-id', 'production'),
+      () => api.deployments(ref),
+      () => api.deployment('service-id', 'deployment-id'),
+      () => api.logs.list(ref),
+      () => api.check(ref, { idempotencyKey: 'key' }),
+      () => api.previewDeploy('service-id'),
+      () => api.deploy('service-id', { expectedCommitSha: 'sha', idempotencyKey: 'key' }),
+      () => api.redeploy('service-id', { idempotencyKey: 'key' }),
+      () => api.cancel('service-id', 'deployment-id', { idempotencyKey: 'key' }),
+      () => api.rollback('service-id', 'deployment-id', { idempotencyKey: 'key' }),
+      () => api.start('service-id', 'environment-id', { expectedDeploymentId: 'deployment-id', idempotencyKey: 'key' }),
+      () => api.stop('service-id', 'environment-id', { expectedDeploymentId: 'deployment-id', idempotencyKey: 'key' }),
+      () => api.restart('service-id', 'environment-id', { expectedDeploymentId: 'deployment-id', idempotencyKey: 'key' }),
+    ];
+    for (const invoke of calls) await invoke();
+    expect(index).toBe(expected.length);
   });
 });

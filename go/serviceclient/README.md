@@ -17,6 +17,12 @@ selected, err := client.ForService(serviceclient.ReferenceFor(service))
 status, err := selected.Status(ctx, serviceclient.OpenAPIGetServiceStatusQuery{})
 ```
 
+`serviceclient.NewFromEnv(serviceclient.Config{})` reads
+`POSTGRIP_WORKERORCHESTRATOR_URL` and `POSTGRIP_SERVICE_API_TOKEN`. Explicit
+configuration remains authoritative. Retries are disabled by default; enabling
+them permits at most three attempts, with configurable caps that cannot exceed
+the contract's 2-second backoff and 30-second `Retry-After` limits.
+
 Mutations require an explicit idempotency key. Deployments should first call
 `PreviewDeploy`, present the immutable commit for confirmation, and pass the
 previewed commit to `Deploy`.

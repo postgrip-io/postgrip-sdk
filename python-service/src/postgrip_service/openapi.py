@@ -8,7 +8,7 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'f8c4cdab9f8ef15527cd70ccd465f51288b6d696c6f449e61797752f0b77b5cf'
+OPENAPI_SPEC_SHA256 = '59dcef987cebbbf0f4cea5486938153d94d1a7dfe520df4c1704c90d0925c7df'
 OPENAPI_OPERATION_COUNT = 18
 OPENAPI_CLIENT_OPERATION_COUNT = 18
 
@@ -491,7 +491,18 @@ def resolve_openapi_operation(
             )
         resolved_path = resolved_path.replace("{" + name + "}", quote(values[name], safe=""))
     if query:
-        resolved_path += "?" + urlencode(query, doseq=True)
+        query_items = query.items() if isinstance(query, Mapping) else query
+        normalized_query = [
+            (
+                name,
+                [str(item).lower() if isinstance(item, bool) else item for item in value]
+                if isinstance(value, (list, tuple))
+                else str(value).lower() if isinstance(value, bool)
+                else value,
+            )
+            for name, value in query_items
+        ]
+        resolved_path += "?" + urlencode(normalized_query, doseq=True)
     return ResolvedOpenAPIOperation(
         operation_id=operation_id,
         method=source.method,

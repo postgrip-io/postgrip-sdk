@@ -49,7 +49,7 @@
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:read"]],
         "security": [{ "serviceManagementToken": [] }],
-        "parameters": [{ "name": "value", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1 } }],
+        "parameters": [{ "name": "value", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 256 } }],
         "responses": {
           "200": { "description": "Resolved service", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Service" } } } },
           "default": { "$ref": "#/components/responses/Error" }
@@ -128,7 +128,7 @@
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:read"]],
         "security": [{ "serviceManagementToken": [] }],
-        "parameters": [{ "name": "value", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1 } }],
+        "parameters": [{ "name": "value", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 256 } }],
         "responses": {
           "200": { "description": "Resolved environment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Environment" } } } },
           "default": { "$ref": "#/components/responses/Error" }
@@ -149,7 +149,7 @@
         "x-postgrip-required-scopes": [["services:read"]],
         "security": [{ "serviceManagementToken": [] }],
         "parameters": [
-          { "name": "environment", "in": "query", "schema": { "type": "string" } },
+          { "name": "environment", "in": "query", "schema": { "type": "string", "format": "uuid" } },
           { "name": "status", "in": "query", "schema": { "type": "string" } },
           { "$ref": "#/components/parameters/Limit" },
           { "$ref": "#/components/parameters/Cursor" }
@@ -241,7 +241,7 @@
         "x-postgrip-required-scopes": [["services:operate"]],
         "security": [{ "serviceManagementToken": [] }],
         "parameters": [
-          { "name": "environment", "in": "query", "schema": { "type": "string" } },
+          { "name": "environment", "in": "query", "schema": { "type": "string", "format": "uuid" } },
           { "name": "branch", "in": "query", "schema": { "type": "string" } }
         ],
         "responses": {

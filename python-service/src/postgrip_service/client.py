@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from http.client import HTTPConnection, HTTPSConnection
 import json
+import os
 import random
 import re
 import socket
@@ -43,6 +44,9 @@ from .openapi import (
 
 _RETRYABLE_STATUS = {408, 429, 502, 503, 504}
 _MAX_RESPONSE_BYTES = 4 << 20
+_MAXIMUM_RETRY_ATTEMPTS = 3
+_MAXIMUM_RETRY_DELAY = 2.0
+_MAXIMUM_RETRY_AFTER_DELAY = 30.0
 _REQUEST_CANCEL_EVENT: ContextVar[Event | None] = ContextVar("postgrip_service_request_cancel", default=None)
 
 
@@ -212,6 +216,9 @@ class ServiceClient:
         token: str,
         insecure_development: bool = False,
         enable_retries: bool = False,
+        retry_max_attempts: int = 3,
+        retry_max_delay: float = 2.0,
+        retry_after_max_delay: float = 30.0,
         follow_interval: float = 2.0,
         timeout: float = 30.0,
         opener: OpenerDirector | None = None,
@@ -220,7 +227,7 @@ class ServiceClient:
         parsed = urlparse(base_url)
         if not parsed.netloc or (parsed.scheme != "https" and not (insecure_development and parsed.scheme == "http")):
             raise ValueError("base_url must use HTTPS unless insecure_development is enabled")
-        if parsed.query or parsed.fragment:
+        if "?" in base_url or "#" in base_url or parsed.query or parsed.fragment:
             raise ValueError("base_url must not contain a query or fragment")
         token = token.strip()
         if not token.startswith("pgwm_"):
@@ -228,9 +235,24 @@ class ServiceClient:
         self._base_url = base_url.rstrip("/") + "/"
         self._token = token
         self._enable_retries = enable_retries
+        self._retry_max_attempts, self._retry_max_delay, self._retry_after_max_delay = _configured_retry_limits(
+            retry_max_attempts, retry_max_delay, retry_after_max_delay,
+        )
         self._follow_interval = max(follow_interval, 0.001)
         self._timeout = timeout
         self._opener = _redirect_safe_opener(opener)
+
+    @classmethod
+    def from_env(
+        cls,
+        *,
+        environ: Mapping[str, str] | None = None,
+        **options: Any,
+    ) -> ServiceClient:
+        values = os.environ if environ is None else environ
+        options.setdefault("base_url", values.get("POSTGRIP_WORKERORCHESTRATOR_URL", ""))
+        options.setdefault("token", values.get("POSTGRIP_SERVICE_API_TOKEN", ""))
+        return cls(**options)
 
     def list(
         self,
@@ -487,7 +509,7 @@ class ServiceClient:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         clean_body = {key: value for key, value in (body or {}).items() if value is not None} if body is not None else None
         operation = resolve_openapi_operation(operation_id, path, clean_query)
-        attempts = 3 if self._enable_retries and (operation.method == "GET" or idempotency_key) else 1
+        attempts = self._retry_max_attempts if self._enable_retries and (operation.method == "GET" or idempotency_key) else 1
         endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
         encoded_body = json.dumps(clean_body).encode() if clean_body is not None else None
         cancel_event = _REQUEST_CANCEL_EVENT.get()
@@ -506,10 +528,10 @@ class ServiceClient:
             except HTTPError as error:
                 if cancel_event is not None and cancel_event.is_set():
                     raise _RequestCancelled from None
-                api_error = _decode_http_error(error)
+                api_error = _decode_http_error(error, self._retry_after_max_delay)
                 if attempt < attempts and error.code in _RETRYABLE_STATUS:
                     retry_after = api_error.retry_after if error.code in {429, 503} else None
-                    delay = retry_after if retry_after is not None else _jitter(attempt)
+                    delay = retry_after if retry_after is not None else _jitter(attempt, self._retry_max_delay)
                     if cancel_event is not None:
                         if cancel_event.wait(delay):
                             raise _RequestCancelled
@@ -521,7 +543,7 @@ class ServiceClient:
                 if cancel_event is not None and cancel_event.is_set():
                     raise _RequestCancelled from None
                 if attempt < attempts:
-                    delay = _jitter(attempt)
+                    delay = _jitter(attempt, self._retry_max_delay)
                     if cancel_event is not None:
                         if cancel_event.wait(delay):
                             raise _RequestCancelled
@@ -566,6 +588,18 @@ class ScopedServiceClient:
 class AsyncServiceClient:
     def __init__(self, **options: Any) -> None:
         self._sync = ServiceClient(**options)
+
+    @classmethod
+    def from_env(
+        cls,
+        *,
+        environ: Mapping[str, str] | None = None,
+        **options: Any,
+    ) -> AsyncServiceClient:
+        values = os.environ if environ is None else environ
+        options.setdefault("base_url", values.get("POSTGRIP_WORKERORCHESTRATOR_URL", ""))
+        options.setdefault("token", values.get("POSTGRIP_SERVICE_API_TOKEN", ""))
+        return cls(**options)
 
     async def _run(self, callback: Any, *args: Any, **kwargs: Any) -> Any:
         cancel_event = Event()
@@ -663,7 +697,7 @@ def _decode_success(response: Any) -> Any:
     return json.loads(body) if body.strip() else None
 
 
-def _decode_http_error(error: HTTPError) -> ServiceAPIError:
+def _decode_http_error(error: HTTPError, retry_after_max_delay: float) -> ServiceAPIError:
     body = error.read(_MAX_RESPONSE_BYTES + 1)
     try:
         value = json.loads(body) if len(body) <= _MAX_RESPONSE_BYTES else {}
@@ -677,24 +711,36 @@ def _decode_http_error(error: HTTPError) -> ServiceAPIError:
         message=value.get("message", error.reason or "request failed"),
         request_id=value.get("requestId", error.headers.get("X-Request-ID", "")),
         details=value.get("details") if isinstance(value.get("details"), dict) else None,
-        retry_after=_parse_retry_after(error.headers.get("Retry-After")),
+        retry_after=_parse_retry_after(error.headers.get("Retry-After"), retry_after_max_delay),
     )
 
 
-def _parse_retry_after(value: str | None) -> float | None:
+def _parse_retry_after(value: str | None, maximum: float) -> float | None:
     if not value:
         return None
     try:
-        return min(max(float(value), 0.0), 30.0)
+        return min(max(float(value), 0.0), maximum)
     except ValueError:
         try:
             when = parsedate_to_datetime(value)
             if when.tzinfo is None:
                 when = when.replace(tzinfo=timezone.utc)
-            return min(max((when - datetime.now(timezone.utc)).total_seconds(), 0.0), 30.0)
+            return min(max((when - datetime.now(timezone.utc)).total_seconds(), 0.0), maximum)
         except (TypeError, ValueError, OverflowError):
             return None
 
 
-def _jitter(attempt: int) -> float:
-    return random.random() * min(0.2 * (2 ** (attempt - 1)), 2.0)
+def _jitter(attempt: int, maximum: float) -> float:
+    return random.random() * min(0.2 * (2 ** (attempt - 1)), maximum)
+
+
+def _configured_retry_limits(max_attempts: int, max_delay: float, retry_after_max_delay: float) -> tuple[int, float, float]:
+    if isinstance(max_attempts, bool) or not isinstance(max_attempts, int) or not 1 <= max_attempts <= _MAXIMUM_RETRY_ATTEMPTS:
+        raise ValueError(f"retry_max_attempts must be an integer from 1 to {_MAXIMUM_RETRY_ATTEMPTS}")
+    if not 0.0 < max_delay <= _MAXIMUM_RETRY_DELAY:
+        raise ValueError(f"retry_max_delay must be greater than 0 and at most {_MAXIMUM_RETRY_DELAY}")
+    if not 0.0 < retry_after_max_delay <= _MAXIMUM_RETRY_AFTER_DELAY:
+        raise ValueError(
+            f"retry_after_max_delay must be greater than 0 and at most {_MAXIMUM_RETRY_AFTER_DELAY}"
+        )
+    return max_attempts, max_delay, retry_after_max_delay

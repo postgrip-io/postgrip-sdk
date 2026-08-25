@@ -16,6 +16,12 @@ selected = client.for_service(ServiceReference.from_service(service))
 status = selected.status()
 ```
 
+`ServiceClient.from_env()` and `AsyncServiceClient.from_env()` read
+`POSTGRIP_WORKERORCHESTRATOR_URL` and `POSTGRIP_SERVICE_API_TOKEN`. Retries are
+disabled by default; the `retry_*` options can lower the three-attempt,
+2-second backoff, and 30-second `Retry-After` caps but cannot make them
+unbounded.
+
 Mutations require an explicit `idempotency_key`. Call `preview_deploy()` and
 show the immutable commit to the operator before calling `deploy()`.
 

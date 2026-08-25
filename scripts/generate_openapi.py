@@ -1187,7 +1187,18 @@ def resolve_openapi_operation(
             )
         resolved_path = resolved_path.replace("{{" + name + "}}", quote(values[name], safe=""))
     if query:
-        resolved_path += "?" + urlencode(query, doseq=True)
+        query_items = query.items() if isinstance(query, Mapping) else query
+        normalized_query = [
+            (
+                name,
+                [str(item).lower() if isinstance(item, bool) else item for item in value]
+                if isinstance(value, (list, tuple))
+                else str(value).lower() if isinstance(value, bool)
+                else value,
+            )
+            for name, value in query_items
+        ]
+        resolved_path += "?" + urlencode(normalized_query, doseq=True)
     return ResolvedOpenAPIOperation(
         operation_id=operation_id,
         method=source.method,

@@ -3,6 +3,7 @@ package serviceclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,11 +31,28 @@ func TestNewRejectsUnsafeConfiguration(t *testing.T) {
 	for _, config := range []Config{
 		{BaseURL: "http://example.test", Token: "pgwm_token"},
 		{BaseURL: "https://example.test?query=yes", Token: "pgwm_token"},
+		{BaseURL: "https://example.test?", Token: "pgwm_token"},
+		{BaseURL: "https://example.test#", Token: "pgwm_token"},
 		{BaseURL: "https://example.test", Token: "not-a-token"},
+		{BaseURL: "https://example.test", Token: "pgwm_token", RetryMaxAttempts: 4},
+		{BaseURL: "https://example.test", Token: "pgwm_token", RetryMaxDelay: 3 * time.Second},
+		{BaseURL: "https://example.test", Token: "pgwm_token", RetryAfterMaxDelay: 31 * time.Second},
 	} {
 		if _, err := New(config); err == nil {
 			t.Fatalf("New(%+v) succeeded", config)
 		}
+	}
+}
+
+func TestNewFromEnvUsesServiceConfiguration(t *testing.T) {
+	t.Setenv("POSTGRIP_WORKERORCHESTRATOR_URL", "https://services.example.test")
+	t.Setenv("POSTGRIP_SERVICE_API_TOKEN", "pgwm_environment-token")
+	client, err := NewFromEnv(Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.connection.baseURL.String() != "https://services.example.test" || client.connection.token != "pgwm_environment-token" {
+		t.Fatalf("environment client = %+v", client.connection)
 	}
 }
 
@@ -189,5 +207,201 @@ func TestAPIErrorDoesNotExposeResponseBody(t *testing.T) {
 	}
 	if apiErr.Code != "HTTP_ERROR" || apiErr.RequestID != "request-header" || strings.Contains(apiErr.Error(), "secret") {
 		t.Fatalf("API error = %+v", apiErr)
+	}
+}
+
+func TestRetriesAreDisabledByDefault(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"code":"WORKER_UNAVAILABLE","message":"try later","requestId":"request-id"}`))
+	}), nil)
+
+	_, err := client.Resolve(context.Background(), "api")
+	if err == nil || calls.Load() != 1 {
+		t.Fatalf("err = %v, calls = %d", err, calls.Load())
+	}
+}
+
+func TestRetryConfigurationCapsAttemptsAndRetryAfter(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Retry-After", "30")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"code":"WORKER_UNAVAILABLE","message":"try later","requestId":"request-id"}`))
+	}), func(config *Config) {
+		config.EnableRetries = true
+		config.RetryMaxAttempts = 2
+		config.RetryAfterMaxDelay = time.Millisecond
+	})
+
+	_, err := client.Resolve(context.Background(), "api")
+	apiErr, ok := err.(*APIError)
+	if !ok || calls.Load() != 2 || apiErr.RetryAfter != time.Millisecond {
+		t.Fatalf("err = %#v, calls = %d", err, calls.Load())
+	}
+}
+
+func TestCancellationInterruptsRetryBackoff(t *testing.T) {
+	called := make(chan struct{}, 1)
+	var calls atomic.Int32
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		called <- struct{}{}
+		w.Header().Set("Retry-After", "30")
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}), func(config *Config) { config.EnableRetries = true })
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := client.Resolve(ctx, "api")
+		done <- err
+	}()
+	<-called
+	cancel()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) || calls.Load() != 1 {
+			t.Fatalf("err = %v, calls = %d", err, calls.Load())
+		}
+	case <-time.After(time.Second):
+		t.Fatal("retry backoff ignored cancellation")
+	}
+}
+
+func TestResponseBodyLimit(t *testing.T) {
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(strings.Repeat("x", maxResponseBytes+1)))
+	}), nil)
+	_, err := client.Resolve(context.Background(), "api")
+	if err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestCrossOriginRedirectDoesNotForwardBearer(t *testing.T) {
+	var destinationCalls atomic.Int32
+	destination := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		destinationCalls.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer destination.Close()
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", destination.URL+"/api/v1/services")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	}), nil)
+
+	_, err := client.Resolve(context.Background(), "api")
+	apiErr, ok := err.(*APIError)
+	if !ok || apiErr.StatusCode != http.StatusTemporaryRedirect || destinationCalls.Load() != 0 {
+		t.Fatalf("err = %#v, destination calls = %d", err, destinationCalls.Load())
+	}
+}
+
+func TestEveryServiceFacadeMapsToCanonicalOperation(t *testing.T) {
+	expected := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/services"},
+		{http.MethodGet, "/api/v1/services/resolve"},
+		{http.MethodGet, "/api/v1/services/project/service-id"},
+		{http.MethodGet, "/api/v1/services/project/service-id/status"},
+		{http.MethodGet, "/api/v1/services/project/service-id/environments"},
+		{http.MethodGet, "/api/v1/services/project/service-id/environments/resolve"},
+		{http.MethodGet, "/api/v1/services/project/service-id/deployments"},
+		{http.MethodGet, "/api/v1/services/project/service-id/deployments/deployment-id"},
+		{http.MethodGet, "/api/v1/services/project/service-id/logs"},
+		{http.MethodPost, "/api/v1/services/project/service-id/check"},
+		{http.MethodGet, "/api/v1/services/project/service-id/deploy/preview"},
+		{http.MethodPost, "/api/v1/services/project/service-id/deploy"},
+		{http.MethodPost, "/api/v1/services/project/service-id/redeploy"},
+		{http.MethodPost, "/api/v1/services/project/service-id/deployments/deployment-id/cancel"},
+		{http.MethodPost, "/api/v1/services/project/service-id/deployments/deployment-id/rollback"},
+		{http.MethodPost, "/api/v1/services/project/service-id/environments/environment-id/start"},
+		{http.MethodPost, "/api/v1/services/project/service-id/environments/environment-id/stop"},
+		{http.MethodPost, "/api/v1/services/project/service-id/environments/environment-id/restart"},
+	}
+	var index atomic.Int32
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		current := int(index.Add(1) - 1)
+		if current >= len(expected) || r.Method != expected[current].method || r.URL.Path != expected[current].path {
+			t.Fatalf("request %d = %s %s", current, r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}), nil)
+	ref := Reference{Source: OpenAPIServiceSourceProject, ID: "service-id"}
+	invocations := []func() error{
+		func() error { _, err := client.List(context.Background(), OpenAPIListServicesQuery{}); return err },
+		func() error { _, err := client.Resolve(context.Background(), "api"); return err },
+		func() error { _, err := client.Get(context.Background(), ref); return err },
+		func() error {
+			_, err := client.Status(context.Background(), ref, OpenAPIGetServiceStatusQuery{})
+			return err
+		},
+		func() error {
+			_, err := client.Environments(context.Background(), ref, OpenAPIListServiceEnvironmentsQuery{})
+			return err
+		},
+		func() error {
+			_, err := client.ResolveEnvironment(context.Background(), "service-id", "production")
+			return err
+		},
+		func() error {
+			_, err := client.Deployments(context.Background(), ref, OpenAPIListServiceDeploymentsQuery{})
+			return err
+		},
+		func() error {
+			_, err := client.Deployment(context.Background(), "service-id", "deployment-id")
+			return err
+		},
+		func() error {
+			_, err := client.Logs(context.Background(), ref, OpenAPIListServiceLogsQuery{})
+			return err
+		},
+		func() error { _, err := client.Check(context.Background(), ref, nil, "key"); return err },
+		func() error {
+			_, err := client.PreviewDeploy(context.Background(), "service-id", OpenAPIPreviewServiceDeployQuery{})
+			return err
+		},
+		func() error {
+			_, err := client.Deploy(context.Background(), "service-id", DeployServiceRequest{ExpectedCommitSha: "sha"}, "key")
+			return err
+		},
+		func() error {
+			_, err := client.Redeploy(context.Background(), "service-id", RedeployServiceRequest{}, "key")
+			return err
+		},
+		func() error {
+			_, err := client.Cancel(context.Background(), "service-id", "deployment-id", "key")
+			return err
+		},
+		func() error {
+			_, err := client.Rollback(context.Background(), "service-id", "deployment-id", "key")
+			return err
+		},
+		func() error {
+			_, err := client.Start(context.Background(), "service-id", "environment-id", "deployment-id", "key")
+			return err
+		},
+		func() error {
+			_, err := client.Stop(context.Background(), "service-id", "environment-id", "deployment-id", "key")
+			return err
+		},
+		func() error {
+			_, err := client.Restart(context.Background(), "service-id", "environment-id", "deployment-id", "key")
+			return err
+		},
+	}
+	for operation, invoke := range invocations {
+		if err := invoke(); err != nil {
+			t.Fatalf("operation %d: %v", operation, err)
+		}
+	}
+	if int(index.Load()) != len(expected) {
+		t.Fatalf("calls = %d, want %d", index.Load(), len(expected))
 	}
 }

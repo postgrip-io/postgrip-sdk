@@ -11,12 +11,21 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
-const maxResponseBytes = 4 << 20
+const (
+	maxResponseBytes          = 4 << 20
+	defaultRetryMaxAttempts   = 3
+	maximumRetryMaxAttempts   = 3
+	defaultRetryMaxDelay      = 2 * time.Second
+	maximumRetryMaxDelay      = 2 * time.Second
+	defaultRetryAfterMaxDelay = 30 * time.Second
+	maximumRetryAfterMaxDelay = 30 * time.Second
+)
 
 type Config struct {
 	BaseURL             string
@@ -24,6 +33,9 @@ type Config struct {
 	HTTPClient          *http.Client
 	InsecureDevelopment bool
 	EnableRetries       bool
+	RetryMaxAttempts    int
+	RetryMaxDelay       time.Duration
+	RetryAfterMaxDelay  time.Duration
 	FollowInterval      time.Duration
 }
 
@@ -36,7 +48,14 @@ type Connection struct {
 	token          string
 	httpClient     *http.Client
 	retriesEnabled bool
+	retryPolicy    serviceRetryLimits
 	followInterval time.Duration
+}
+
+type serviceRetryLimits struct {
+	maxAttempts   int
+	maxDelay      time.Duration
+	retryAfterMax time.Duration
 }
 
 type APIError struct {
@@ -59,11 +78,12 @@ func (e *APIError) Error() string {
 }
 
 func New(config Config) (*Client, error) {
-	baseURL, err := url.Parse(strings.TrimSpace(config.BaseURL))
+	rawBaseURL := strings.TrimSpace(config.BaseURL)
+	baseURL, err := url.Parse(rawBaseURL)
 	if err != nil || baseURL.Host == "" || (baseURL.Scheme != "https" && !(config.InsecureDevelopment && baseURL.Scheme == "http")) {
 		return nil, errors.New("postgrip-service: base URL must use HTTPS (or explicitly enable insecure development for HTTP)")
 	}
-	if baseURL.RawQuery != "" || baseURL.Fragment != "" {
+	if strings.ContainsAny(rawBaseURL, "?#") || baseURL.RawQuery != "" || baseURL.Fragment != "" {
 		return nil, errors.New("postgrip-service: base URL must not contain a query or fragment")
 	}
 	token := strings.TrimSpace(config.Token)
@@ -96,10 +116,53 @@ func New(config Config) (*Client, error) {
 	if interval <= 0 {
 		interval = 2 * time.Second
 	}
+	retries, err := configuredRetryPolicy(config)
+	if err != nil {
+		return nil, err
+	}
 	return &Client{connection: &Connection{
 		baseURL: baseURL, token: token, httpClient: &clientCopy,
-		retriesEnabled: config.EnableRetries, followInterval: interval,
+		retriesEnabled: config.EnableRetries, retryPolicy: retries, followInterval: interval,
 	}}, nil
+}
+
+// NewFromEnv fills empty BaseURL and Token values from the Service API
+// environment variables while preserving every explicit Config override.
+func NewFromEnv(config Config) (*Client, error) {
+	if strings.TrimSpace(config.BaseURL) == "" {
+		config.BaseURL = os.Getenv("POSTGRIP_WORKERORCHESTRATOR_URL")
+	}
+	if strings.TrimSpace(config.Token) == "" {
+		config.Token = os.Getenv("POSTGRIP_SERVICE_API_TOKEN")
+	}
+	return New(config)
+}
+
+func configuredRetryPolicy(config Config) (serviceRetryLimits, error) {
+	policy := serviceRetryLimits{
+		maxAttempts:   config.RetryMaxAttempts,
+		maxDelay:      config.RetryMaxDelay,
+		retryAfterMax: config.RetryAfterMaxDelay,
+	}
+	if policy.maxAttempts == 0 {
+		policy.maxAttempts = defaultRetryMaxAttempts
+	}
+	if policy.maxDelay == 0 {
+		policy.maxDelay = defaultRetryMaxDelay
+	}
+	if policy.retryAfterMax == 0 {
+		policy.retryAfterMax = defaultRetryAfterMaxDelay
+	}
+	if policy.maxAttempts < 1 || policy.maxAttempts > maximumRetryMaxAttempts {
+		return serviceRetryLimits{}, fmt.Errorf("postgrip-service: retry max attempts must be between 1 and %d", maximumRetryMaxAttempts)
+	}
+	if policy.maxDelay < 0 || policy.maxDelay > maximumRetryMaxDelay {
+		return serviceRetryLimits{}, fmt.Errorf("postgrip-service: retry max delay must be between 0 and %s", maximumRetryMaxDelay)
+	}
+	if policy.retryAfterMax < 0 || policy.retryAfterMax > maximumRetryAfterMaxDelay {
+		return serviceRetryLimits{}, fmt.Errorf("postgrip-service: Retry-After max delay must be between 0 and %s", maximumRetryAfterMaxDelay)
+	}
+	return policy, nil
 }
 
 func (c *Client) OpenAPI() *OpenAPIClient { return c.connection.OpenAPI() }
@@ -141,13 +204,13 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 	idempotencyKey := headers.Get("Idempotency-Key")
 	maxAttempts := 1
 	if c.retriesEnabled && (operation.Method == http.MethodGet || idempotencyKey != "") {
-		maxAttempts = 3
+		maxAttempts = c.retryPolicy.maxAttempts
 	}
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		response, requestErr := c.send(ctx, operation, bodyBytes, headers)
 		if requestErr != nil {
 			if attempt < maxAttempts && ctx.Err() == nil {
-				if err := waitRetry(ctx, retryDelay(attempt, 0)); err != nil {
+				if err := waitRetry(ctx, retryDelay(attempt, 0, c.retryPolicy)); err != nil {
 					return err
 				}
 				continue
@@ -168,9 +231,9 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 			}
 			return nil
 		}
-		apiErr := decodeAPIError(response, responseBody)
+		apiErr := decodeAPIError(response, responseBody, c.retryPolicy.retryAfterMax)
 		if attempt < maxAttempts && retryableStatus(operation.Method, idempotencyKey, response.StatusCode) {
-			if err := waitRetry(ctx, retryDelay(attempt, retryAfterForStatus(response.StatusCode, apiErr.RetryAfter))); err != nil {
+			if err := waitRetry(ctx, retryDelay(attempt, retryAfterForStatus(response.StatusCode, apiErr.RetryAfter), c.retryPolicy)); err != nil {
 				return err
 			}
 			continue
@@ -204,7 +267,7 @@ func (c *Connection) send(ctx context.Context, operation openAPIOperation, body 
 	return c.httpClient.Do(request)
 }
 
-func decodeAPIError(response *http.Response, body []byte) *APIError {
+func decodeAPIError(response *http.Response, body []byte, retryAfterMax time.Duration) *APIError {
 	payload := OpenAPIErrorResponse{}
 	if err := json.Unmarshal(body, &payload); err != nil {
 		payload = OpenAPIErrorResponse{}
@@ -222,16 +285,16 @@ func decodeAPIError(response *http.Response, body []byte) *APIError {
 		requestID = strings.TrimSpace(response.Header.Get("X-Request-ID"))
 	}
 	return &APIError{StatusCode: response.StatusCode, Code: code, Message: message,
-		RequestID: requestID, Details: payload.Details, RetryAfter: parseRetryAfter(response.Header.Get("Retry-After"))}
+		RequestID: requestID, Details: payload.Details, RetryAfter: parseRetryAfter(response.Header.Get("Retry-After"), retryAfterMax)}
 }
 
-func parseRetryAfter(value string) time.Duration {
+func parseRetryAfter(value string, maximum time.Duration) time.Duration {
 	value = strings.TrimSpace(value)
 	if seconds, err := strconv.Atoi(value); err == nil && seconds >= 0 {
-		return min(time.Duration(seconds)*time.Second, 30*time.Second)
+		return min(time.Duration(seconds)*time.Second, maximum)
 	}
 	if when, err := http.ParseTime(value); err == nil {
-		return min(max(time.Until(when), 0), 30*time.Second)
+		return min(max(time.Until(when), 0), maximum)
 	}
 	return 0
 }
@@ -250,11 +313,11 @@ func retryAfterForStatus(status int, retryAfter time.Duration) time.Duration {
 	return 0
 }
 
-func retryDelay(attempt int, retryAfter time.Duration) time.Duration {
+func retryDelay(attempt int, retryAfter time.Duration, policy serviceRetryLimits) time.Duration {
 	if retryAfter > 0 {
-		return min(retryAfter, 30*time.Second)
+		return min(retryAfter, policy.retryAfterMax)
 	}
-	capDelay := min(200*time.Millisecond*time.Duration(1<<(attempt-1)), 2*time.Second)
+	capDelay := min(200*time.Millisecond*time.Duration(1<<(attempt-1)), policy.maxDelay)
 	return time.Duration(rand.Int63n(max(int64(capDelay), 1)))
 }
 

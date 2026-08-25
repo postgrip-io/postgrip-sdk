@@ -24,6 +24,19 @@ import {
 } from './generated/openapi.js';
 
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
+const MAX_RESPONSE_BYTES = 4 << 20;
+const DEFAULT_RETRY_MAX_ATTEMPTS = 3;
+const MAXIMUM_RETRY_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_MAX_DELAY_MS = 2_000;
+const MAXIMUM_RETRY_MAX_DELAY_MS = 2_000;
+const DEFAULT_RETRY_AFTER_MAX_DELAY_MS = 30_000;
+const MAXIMUM_RETRY_AFTER_MAX_DELAY_MS = 30_000;
+
+export interface ServiceRetryConfig {
+  readonly maxAttempts?: number;
+  readonly maxDelayMs?: number;
+  readonly retryAfterMaxDelayMs?: number;
+}
 
 export interface ServiceClientConfig {
   readonly baseUrl: string;
@@ -31,7 +44,12 @@ export interface ServiceClientConfig {
   readonly fetch?: typeof globalThis.fetch;
   readonly insecureDevelopment?: boolean;
   readonly enableRetries?: boolean;
+  readonly retry?: ServiceRetryConfig;
   readonly followIntervalMs?: number;
+}
+
+export interface ServiceClientEnvironmentConfig extends Omit<ServiceClientConfig, 'baseUrl' | 'token'> {
+  readonly environment?: Readonly<Record<string, string | undefined>>;
 }
 
 export interface RequestOptions {
@@ -119,6 +137,12 @@ interface InternalRequestOptions {
   readonly idempotencyKey?: string;
 }
 
+interface RetryPolicy {
+  readonly maxAttempts: number;
+  readonly maxDelayMs: number;
+  readonly retryAfterMaxDelayMs: number;
+}
+
 export class ServiceClient {
   readonly logs = {
     list: (service: ServiceReference, options: ServiceLogOptions = {}) => this.listLogs(service, options),
@@ -129,14 +153,16 @@ export class ServiceClient {
   private readonly token: string;
   private readonly fetchImpl: typeof globalThis.fetch;
   private readonly retriesEnabled: boolean;
+  private readonly retryPolicy: RetryPolicy;
   private readonly followIntervalMs: number;
 
   constructor(config: ServiceClientConfig) {
-    const baseUrl = new URL(config.baseUrl);
+    const rawBaseUrl = config.baseUrl.trim();
+    const baseUrl = new URL(rawBaseUrl);
     if (baseUrl.protocol !== 'https:' && !(config.insecureDevelopment && baseUrl.protocol === 'http:')) {
       throw new Error('PostGrip Service baseUrl must use HTTPS unless insecureDevelopment is enabled');
     }
-    if (baseUrl.search || baseUrl.hash) {
+    if (/[?#]/.test(rawBaseUrl) || baseUrl.search || baseUrl.hash) {
       throw new Error('PostGrip Service baseUrl must not contain a query or fragment');
     }
     if (!config.token.trim().startsWith('pgwm_')) {
@@ -146,7 +172,17 @@ export class ServiceClient {
     this.token = config.token.trim();
     this.fetchImpl = config.fetch ?? globalThis.fetch;
     this.retriesEnabled = config.enableRetries ?? false;
+    this.retryPolicy = configuredRetryPolicy(config.retry);
     this.followIntervalMs = Math.max(1, config.followIntervalMs ?? 2_000);
+  }
+
+  static fromEnv(config: ServiceClientEnvironmentConfig = {}): ServiceClient {
+    const { environment = processEnvironment(), ...overrides } = config;
+    return new ServiceClient({
+      ...overrides,
+      baseUrl: environment.POSTGRIP_WORKERORCHESTRATOR_URL ?? '',
+      token: environment.POSTGRIP_SERVICE_API_TOKEN ?? '',
+    });
   }
 
   list(options: ListServicesOptions = {}): Promise<OpenAPIServiceList> {
@@ -350,7 +386,9 @@ export class ServiceClient {
     const operation = resolveOpenAPIOperation(operationId, options.path, query);
     const endpoint = new URL(`${this.baseUrl.href.replace(/\/+$/, '')}${operation.path}`);
     const encodedBody = options.body === undefined ? undefined : JSON.stringify(options.body);
-    const maxAttempts = this.retriesEnabled && (operation.method === 'GET' || options.idempotencyKey) ? 3 : 1;
+    const maxAttempts = this.retriesEnabled && (operation.method === 'GET' || options.idempotencyKey)
+      ? this.retryPolicy.maxAttempts
+      : 1;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       options.signal?.throwIfAborted();
       let response: Response;
@@ -369,18 +407,18 @@ export class ServiceClient {
         });
       } catch (error) {
         if (attempt < maxAttempts && !options.signal?.aborted) {
-          await abortableDelay(jitter(attempt), options.signal);
+          await abortableDelay(jitter(attempt, this.retryPolicy.maxDelayMs), options.signal);
           continue;
         }
         throw error;
       }
-      if (response.ok) return await response.json() as OpenAPIResponseBody<I>;
-      const apiError = await decodeError(response);
+      if (response.ok) return await decodeSuccess<I>(response);
+      const apiError = await decodeError(response, this.retryPolicy.retryAfterMaxDelayMs);
       if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
         const retryAfterMs = response.status === 429 || response.status === 503
           ? apiError.retryAfterMs
           : undefined;
-        await abortableDelay(retryAfterMs ?? jitter(attempt), options.signal);
+        await abortableDelay(retryAfterMs ?? jitter(attempt, this.retryPolicy.maxDelayMs), options.signal);
         continue;
       }
       throw apiError;
@@ -439,10 +477,15 @@ function validateIdempotencyKey(key: string): void {
   }
 }
 
-async function decodeError(response: Response): Promise<ServiceAPIError> {
+async function decodeSuccess<I extends OpenAPIOperationId>(response: Response): Promise<OpenAPIResponseBody<I>> {
+  const body = await readBoundedResponseBody(response);
+  return JSON.parse(body) as OpenAPIResponseBody<I>;
+}
+
+async function decodeError(response: Response, retryAfterMaxDelayMs: number): Promise<ServiceAPIError> {
   let value: Record<string, unknown> = {};
   try {
-    const decoded: unknown = await response.json();
+    const decoded: unknown = JSON.parse(await readBoundedResponseBody(response));
     if (typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)) {
       value = decoded as Record<string, unknown>;
     }
@@ -455,21 +498,65 @@ async function decodeError(response: Response): Promise<ServiceAPIError> {
     typeof value.message === 'string' ? value.message : response.statusText,
     typeof value.requestId === 'string' ? value.requestId : response.headers.get('x-request-id') ?? '',
     typeof value.details === 'object' && value.details !== null ? value.details as Record<string, unknown> : undefined,
-    parseRetryAfter(response.headers.get('retry-after')),
+    parseRetryAfter(response.headers.get('retry-after'), retryAfterMaxDelayMs),
   );
 }
 
-function parseRetryAfter(value: string | null): number | undefined {
-  if (!value) return undefined;
-  const seconds = Number(value);
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1_000, 30_000);
-  const timestamp = Date.parse(value);
-  if (Number.isNaN(timestamp)) return undefined;
-  return Math.min(Math.max(timestamp - Date.now(), 0), 30_000);
+async function readBoundedResponseBody(response: Response): Promise<string> {
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_RESPONSE_BYTES) {
+      await reader.cancel();
+      throw new Error('PostGrip Service response is invalid or too large');
+    }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
 }
 
-function jitter(attempt: number): number {
-  return Math.random() * Math.min(200 * 2 ** (attempt - 1), 2_000);
+function parseRetryAfter(value: string | null, maximumMs: number): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1_000, maximumMs);
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) return undefined;
+  return Math.min(Math.max(timestamp - Date.now(), 0), maximumMs);
+}
+
+function jitter(attempt: number, maximumMs: number): number {
+  return Math.random() * Math.min(200 * 2 ** (attempt - 1), maximumMs);
+}
+
+function configuredRetryPolicy(config: ServiceRetryConfig = {}): RetryPolicy {
+  const maxAttempts = config.maxAttempts ?? DEFAULT_RETRY_MAX_ATTEMPTS;
+  const maxDelayMs = config.maxDelayMs ?? DEFAULT_RETRY_MAX_DELAY_MS;
+  const retryAfterMaxDelayMs = config.retryAfterMaxDelayMs ?? DEFAULT_RETRY_AFTER_MAX_DELAY_MS;
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > MAXIMUM_RETRY_MAX_ATTEMPTS) {
+    throw new Error(`PostGrip Service retry maxAttempts must be an integer from 1 to ${MAXIMUM_RETRY_MAX_ATTEMPTS}`);
+  }
+  if (!Number.isFinite(maxDelayMs) || maxDelayMs <= 0 || maxDelayMs > MAXIMUM_RETRY_MAX_DELAY_MS) {
+    throw new Error(`PostGrip Service retry maxDelayMs must be greater than 0 and at most ${MAXIMUM_RETRY_MAX_DELAY_MS}`);
+  }
+  if (!Number.isFinite(retryAfterMaxDelayMs) || retryAfterMaxDelayMs <= 0 || retryAfterMaxDelayMs > MAXIMUM_RETRY_AFTER_MAX_DELAY_MS) {
+    throw new Error(`PostGrip Service retry retryAfterMaxDelayMs must be greater than 0 and at most ${MAXIMUM_RETRY_AFTER_MAX_DELAY_MS}`);
+  }
+  return { maxAttempts, maxDelayMs, retryAfterMaxDelayMs };
+}
+
+function processEnvironment(): Readonly<Record<string, string | undefined>> {
+  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
 }
 
 function abortableDelay(milliseconds: number, signal?: AbortSignal): Promise<void> {
