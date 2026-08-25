@@ -1040,4 +1040,4 @@ type ServiceBuildLogMaintenanceResponse = OpenAPIServiceBuildLogMaintenanceRespo
 type ServiceVariableApplyResult = OpenAPIServiceVariableApplyResult
 type ServiceVariablesApplyResponse = OpenAPIServiceVariablesApplyResponse
 
-const openAPITypesSpecSHA256 = "b6f9802d65f93b2cc8507099323c58756b3bbce08fde5536202e98848de1e804"
+const openAPITypesSpecSHA256 = "141e587315aac297bc61c58c073b32d8571f46857cca99a719bddfe9fc7b7463"

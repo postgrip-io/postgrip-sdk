@@ -8,7 +8,7 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'b6f9802d65f93b2cc8507099323c58756b3bbce08fde5536202e98848de1e804'
+OPENAPI_SPEC_SHA256 = '141e587315aac297bc61c58c073b32d8571f46857cca99a719bddfe9fc7b7463'
 OPENAPI_OPERATION_COUNT = 73
 OPENAPI_CLIENT_OPERATION_COUNT = 73
 
@@ -1512,9 +1512,10 @@ class OpenAPIClient:
         if follow is not None: _query['follow'] = follow
         return cast(ListServiceLogsResponseBody, self._transport(OperationId.LIST_SERVICE_LOGS, path_parameters={'source': source, 'serviceId': service_id}, query=_query))
 
-    def list_service_promotions(self, service_id: str, *, limit: int | None = None) -> ListServicePromotionsResponseBody:
+    def list_service_promotions(self, service_id: str, *, limit: int | None = None, cursor: str | None = None) -> ListServicePromotionsResponseBody:
         _query: dict[str, Any] = {}
         if limit is not None: _query['limit'] = limit
+        if cursor is not None: _query['cursor'] = cursor
         return cast(ListServicePromotionsResponseBody, self._transport(OperationId.LIST_SERVICE_PROMOTIONS, path_parameters={'serviceId': service_id}, query=_query))
 
     def list_service_variables(self, service_id: str, environment_id: str) -> ListServiceVariablesResponseBody:

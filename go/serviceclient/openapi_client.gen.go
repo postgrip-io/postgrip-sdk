@@ -153,13 +153,17 @@ func (p OpenAPIListServiceLogsQuery) values() url.Values {
 }
 
 type OpenAPIListServicePromotionsQuery struct {
-	Limit *int64
+	Limit  *int64
+	Cursor *string
 }
 
 func (p OpenAPIListServicePromotionsQuery) values() url.Values {
 	values := url.Values{}
 	if p.Limit != nil {
 		values.Set("limit", fmt.Sprint(*p.Limit))
+	}
+	if p.Cursor != nil {
+		values.Set("cursor", fmt.Sprint(*p.Cursor))
 	}
 	return values
 }
@@ -1180,4 +1184,4 @@ func (c *OpenAPIClient) UpdateTargetService(ctx context.Context, serviceId strin
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 73
 
-const openAPIClientSpecSHA256 = "b6f9802d65f93b2cc8507099323c58756b3bbce08fde5536202e98848de1e804"
+const openAPIClientSpecSHA256 = "141e587315aac297bc61c58c073b32d8571f46857cca99a719bddfe9fc7b7463"

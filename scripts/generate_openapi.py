@@ -841,7 +841,7 @@ def python_administration_types_source(rows: list[dict[str, Any]]) -> str:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from .openapi import *  # noqa: F401,F403
 

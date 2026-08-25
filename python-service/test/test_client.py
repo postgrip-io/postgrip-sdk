@@ -5,6 +5,7 @@ from email.message import Message
 from io import BytesIO
 import json
 from threading import Event
+from typing import get_type_hints
 import unittest
 from urllib.error import HTTPError
 from urllib.parse import urlparse
@@ -12,6 +13,7 @@ from urllib.request import Request
 from unittest.mock import patch
 
 from postgrip_service import AsyncServiceClient, ServiceAPIError, ServiceClient, ServiceReference
+from postgrip_service.administration_types import ConfigurationOperationsAdministration, RepositoriesAdministration
 from postgrip_service.client import _NoRedirect
 from postgrip_service.openapi import OperationId
 
@@ -46,6 +48,12 @@ class FakeResponse:
 
     def read(self, limit: int = -1) -> bytes:
         return self.body[:limit]
+
+
+class AdministrationTypeTests(unittest.TestCase):
+    def test_runtime_type_hints_resolve_closed_literals(self) -> None:
+        get_type_hints(RepositoriesAdministration.put_service_repository_credential)
+        get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
 
 
 class FakeOpener:
