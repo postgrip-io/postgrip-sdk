@@ -51,6 +51,8 @@ describe('WorkerClient', () => {
         lifecycleDirective: 'upgrade',
         expectedVersion: 2,
         workerImage: 'image',
+        expectedSignerVersion: 3,
+        signerImage: 'signer',
         receipt: { requestId: 'req', auditRecorded: true, replayed: false },
       });
     });
@@ -63,6 +65,8 @@ describe('WorkerClient', () => {
 
     const result = await client.upgrade('worker', { idempotencyKey: 'upgrade-1' });
     expect(result.expectedVersion).toBe(2);
+    expect(result.expectedSignerVersion).toBe(3);
+    expect(result.signerImage).toBe('signer');
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 

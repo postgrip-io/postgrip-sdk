@@ -8,7 +8,7 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'c253c5856f57fd048b9adf553914a4d4afd31b855f95e315b06f808dabe72308'
+OPENAPI_SPEC_SHA256 = 'c6cdf81157eec099cfde167e3adbebd84bd820b44070542fe407f182931e2101'
 OPENAPI_OPERATION_COUNT = 12
 OPENAPI_CLIENT_OPERATION_COUNT = 12
 
@@ -181,6 +181,8 @@ class _SchemaUpgradeWorkerResponse(TypedDict):
     lifecycleDirective: str
     expectedVersion: int
     workerImage: str
+    expectedSignerVersion: int
+    signerImage: str
     receipt: _SchemaOperationReceipt
 
 OpenAPIHealthResponse: TypeAlias = _SchemaHealthResponse
