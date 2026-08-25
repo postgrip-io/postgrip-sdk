@@ -72,11 +72,15 @@ class WorkerClientTests(unittest.TestCase):
         opener = FakeOpener([api_error(503), api_error(503), {
             "status": "queued", "worker": {}, "lifecycleDirective": "upgrade",
             "expectedVersion": 2, "workerImage": "image",
+            "expectedSignerVersion": 3, "signerImage": "signer",
             "receipt": {"requestId": "req", "auditRecorded": True, "replayed": False},
         }])
         client = WorkerClient(base_url="https://workers.example.com", token="pgwm_test-token",
                               opener=opener, enable_retries=True)  # type: ignore[arg-type]
-        self.assertEqual(client.upgrade("worker", idempotency_key="upgrade-1")["expectedVersion"], 2)
+        result = client.upgrade("worker", idempotency_key="upgrade-1")
+        self.assertEqual(result["expectedVersion"], 2)
+        self.assertEqual(result["expectedSignerVersion"], 3)
+        self.assertEqual(result["signerImage"], "signer")
         self.assertEqual(len(opener.requests), 3)
         self.assertTrue(all(request.get_header("Idempotency-key") == "upgrade-1" for request in opener.requests))
 

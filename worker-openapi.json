@@ -236,7 +236,7 @@
       "post": {
         "operationId": "upgradeWorker",
         "tags": ["Workers"],
-        "summary": "Queue a bounded worker upgrade",
+        "summary": "Queue a bounded worker-host upgrade",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [["workers:operate"]],
@@ -365,8 +365,8 @@
         "properties": { "worker": { "$ref": "#/components/schemas/Worker" }, "receipt": { "$ref": "#/components/schemas/OperationReceipt" } }
       },
       "UpgradeWorkerResponse": {
-        "type": "object", "additionalProperties": false, "required": ["status", "worker", "lifecycleDirective", "expectedVersion", "workerImage", "receipt"],
-        "properties": { "status": { "type": "string", "const": "queued" }, "worker": { "$ref": "#/components/schemas/Worker" }, "lifecycleDirective": { "type": "string", "const": "upgrade" }, "expectedVersion": { "type": "integer" }, "workerImage": { "type": "string" }, "receipt": { "$ref": "#/components/schemas/OperationReceipt" } }
+        "type": "object", "additionalProperties": false, "required": ["status", "worker", "lifecycleDirective", "expectedVersion", "workerImage", "expectedSignerVersion", "signerImage", "receipt"],
+        "properties": { "status": { "type": "string", "const": "queued" }, "worker": { "$ref": "#/components/schemas/Worker" }, "lifecycleDirective": { "type": "string", "const": "upgrade" }, "expectedVersion": { "type": "integer" }, "workerImage": { "type": "string" }, "expectedSignerVersion": { "type": "integer" }, "signerImage": { "type": "string" }, "receipt": { "$ref": "#/components/schemas/OperationReceipt" } }
       }
     }
   }

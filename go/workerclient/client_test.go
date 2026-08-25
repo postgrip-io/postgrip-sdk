@@ -80,12 +80,12 @@ func TestMutationSendsIdempotencyKeyAndRetriesOnlyWhenEnabled(t *testing.T) {
 			_, _ = w.Write([]byte(`{"code":"BUSY","message":"busy","requestId":"req"}`))
 			return
 		}
-		_, _ = w.Write([]byte(`{"status":"queued","worker":{"id":"w","name":"worker","status":"active","trustState":"trusted","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z","capabilities":[],"previewSubdomainEnabled":false,"autoShutdownOnRemoval":false},"lifecycleDirective":"upgrade","expectedVersion":2,"workerImage":"image","receipt":{"requestId":"req","auditRecorded":true,"replayed":false}}`))
+		_, _ = w.Write([]byte(`{"status":"queued","worker":{"id":"w","name":"worker","status":"active","trustState":"trusted","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z","capabilities":[],"previewSubdomainEnabled":false,"autoShutdownOnRemoval":false},"lifecycleDirective":"upgrade","expectedVersion":2,"workerImage":"image","expectedSignerVersion":3,"signerImage":"signer","receipt":{"requestId":"req","auditRecorded":true,"replayed":false}}`))
 	}))
 	defer server.Close()
 
 	response, err := newTestClient(t, server, true).Upgrade(context.Background(), "w", "upgrade-1")
-	if err != nil || response.ExpectedVersion != 2 || attempts.Load() != 3 {
+	if err != nil || response.ExpectedVersion != 2 || response.ExpectedSignerVersion != 3 || response.SignerImage != "signer" || attempts.Load() != 3 {
 		t.Fatalf("Upgrade() = %#v, %v; attempts=%d", response, err, attempts.Load())
 	}
 }

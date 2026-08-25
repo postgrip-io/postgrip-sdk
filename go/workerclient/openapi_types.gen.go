@@ -136,12 +136,14 @@ type OpenAPIWorkerOperationResponse struct {
 	Receipt OpenAPIOperationReceipt `json:"receipt"`
 }
 type OpenAPIUpgradeWorkerResponse struct {
-	Status             string                  `json:"status"`
-	Worker             OpenAPIWorker           `json:"worker"`
-	LifecycleDirective string                  `json:"lifecycleDirective"`
-	ExpectedVersion    int64                   `json:"expectedVersion"`
-	WorkerImage        string                  `json:"workerImage"`
-	Receipt            OpenAPIOperationReceipt `json:"receipt"`
+	Status                string                  `json:"status"`
+	Worker                OpenAPIWorker           `json:"worker"`
+	LifecycleDirective    string                  `json:"lifecycleDirective"`
+	ExpectedVersion       int64                   `json:"expectedVersion"`
+	WorkerImage           string                  `json:"workerImage"`
+	ExpectedSignerVersion int64                   `json:"expectedSignerVersion"`
+	SignerImage           string                  `json:"signerImage"`
+	Receipt               OpenAPIOperationReceipt `json:"receipt"`
 }
 type OpenAPICheckWorkerRequestBody = OpenAPINoBody
 type OpenAPICheckWorkerResponseBody = OpenAPICheckWorkerResponse
@@ -199,4 +201,4 @@ type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
 
-const openAPITypesSpecSHA256 = "c253c5856f57fd048b9adf553914a4d4afd31b855f95e315b06f808dabe72308"
+const openAPITypesSpecSHA256 = "c6cdf81157eec099cfde167e3adbebd84bd820b44070542fe407f182931e2101"
