@@ -1,8 +1,8 @@
 site_name: PostGrip Agent — Python SDK
 site_description: Python SDK for the PostGrip Agent runtime service. Tasks, workflows, schedules, and a polling agent.
-site_url: https://postgrip-io.github.io/postgrip-agent-sdks/python/
-repo_url: https://github.com/postgrip-io/postgrip-agent-sdks
-repo_name: postgrip-io/postgrip-agent-sdks
+site_url: https://postgrip-io.github.io/postgrip-sdks/python/
+repo_url: https://github.com/postgrip-io/postgrip-sdks
+repo_name: postgrip-io/postgrip-sdks
 edit_uri: edit/main/python/docs/
 
 theme:
@@ -35,7 +35,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/python
+      link: https://github.com/postgrip-io/postgrip-sdks/tree/main/python
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/postgrip-agent/
   generator: false

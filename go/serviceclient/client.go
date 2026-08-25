@@ -1,0 +1,436 @@
+// Package serviceclient provides the public PostGrip Service management client.
+package serviceclient
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+)
+
+const maxResponseBytes = 4 << 20
+
+type Config struct {
+	BaseURL             string
+	Token               string
+	HTTPClient          *http.Client
+	InsecureDevelopment bool
+	EnableRetries       bool
+	FollowInterval      time.Duration
+}
+
+type Client struct {
+	connection *Connection
+}
+
+type Connection struct {
+	baseURL        *url.URL
+	token          string
+	httpClient     *http.Client
+	retriesEnabled bool
+	followInterval time.Duration
+}
+
+type APIError struct {
+	StatusCode int
+	Code       string
+	Message    string
+	RequestID  string
+	Details    map[string]any
+	RetryAfter time.Duration
+}
+
+func (e *APIError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.Code == "" {
+		return fmt.Sprintf("postgrip-service: HTTP %d: %s", e.StatusCode, e.Message)
+	}
+	return fmt.Sprintf("postgrip-service: %s (HTTP %d): %s", e.Code, e.StatusCode, e.Message)
+}
+
+func New(config Config) (*Client, error) {
+	baseURL, err := url.Parse(strings.TrimSpace(config.BaseURL))
+	if err != nil || baseURL.Host == "" || (baseURL.Scheme != "https" && !(config.InsecureDevelopment && baseURL.Scheme == "http")) {
+		return nil, errors.New("postgrip-service: base URL must use HTTPS (or explicitly enable insecure development for HTTP)")
+	}
+	if baseURL.RawQuery != "" || baseURL.Fragment != "" {
+		return nil, errors.New("postgrip-service: base URL must not contain a query or fragment")
+	}
+	token := strings.TrimSpace(config.Token)
+	if !strings.HasPrefix(token, "pgwm_") {
+		return nil, errors.New("postgrip-service: token must be a pgwm_ management token")
+	}
+	httpClient := config.HTTPClient
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+	clientCopy := *httpClient
+	priorRedirect := clientCopy.CheckRedirect
+	clientCopy.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if len(via) == 0 {
+			return nil
+		}
+		origin := via[0].URL
+		if !strings.EqualFold(req.URL.Scheme, origin.Scheme) || !strings.EqualFold(req.URL.Host, origin.Host) {
+			return http.ErrUseLastResponse
+		}
+		if priorRedirect != nil {
+			return priorRedirect(req, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		return nil
+	}
+	interval := config.FollowInterval
+	if interval <= 0 {
+		interval = 2 * time.Second
+	}
+	return &Client{connection: &Connection{
+		baseURL: baseURL, token: token, httpClient: &clientCopy,
+		retriesEnabled: config.EnableRetries, followInterval: interval,
+	}}, nil
+}
+
+func (c *Client) OpenAPI() *OpenAPIClient { return c.connection.OpenAPI() }
+
+type openAPIHeadersContextKey struct{}
+
+func withOpenAPIHeaders(ctx context.Context, headers http.Header) context.Context {
+	return context.WithValue(ctx, openAPIHeadersContextKey{}, headers.Clone())
+}
+
+func validateIdempotencyKey(key string) error {
+	if len(key) == 0 || len(key) > 128 {
+		return errors.New("postgrip-service: idempotency key must contain 1 to 128 visible ASCII characters")
+	}
+	for _, value := range key {
+		if value < 0x21 || value > 0x7e {
+			return errors.New("postgrip-service: idempotency key must contain visible ASCII only")
+		}
+	}
+	return nil
+}
+
+func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error {
+	operation, err := resolveOpenAPIOperation(id, pathParameters, query)
+	if err != nil {
+		return err
+	}
+	var bodyBytes []byte
+	if body != nil {
+		bodyBytes, err = json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("postgrip-service: encode request: %w", err)
+		}
+	}
+	headers := http.Header{}
+	if configured, ok := ctx.Value(openAPIHeadersContextKey{}).(http.Header); ok {
+		headers = configured.Clone()
+	}
+	idempotencyKey := headers.Get("Idempotency-Key")
+	maxAttempts := 1
+	if c.retriesEnabled && (operation.Method == http.MethodGet || idempotencyKey != "") {
+		maxAttempts = 3
+	}
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		response, requestErr := c.send(ctx, operation, bodyBytes, headers)
+		if requestErr != nil {
+			if attempt < maxAttempts && ctx.Err() == nil {
+				if err := waitRetry(ctx, retryDelay(attempt, 0)); err != nil {
+					return err
+				}
+				continue
+			}
+			return requestErr
+		}
+		responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
+		_ = response.Body.Close()
+		if readErr != nil || len(responseBody) > maxResponseBytes {
+			return errors.New("postgrip-service: response is invalid or too large")
+		}
+		if response.StatusCode >= 200 && response.StatusCode < 300 {
+			if out == nil || len(bytes.TrimSpace(responseBody)) == 0 {
+				return nil
+			}
+			if err := json.Unmarshal(responseBody, out); err != nil {
+				return fmt.Errorf("postgrip-service: decode response: %w", err)
+			}
+			return nil
+		}
+		apiErr := decodeAPIError(response, responseBody)
+		if attempt < maxAttempts && retryableStatus(operation.Method, idempotencyKey, response.StatusCode) {
+			if err := waitRetry(ctx, retryDelay(attempt, retryAfterForStatus(response.StatusCode, apiErr.RetryAfter))); err != nil {
+				return err
+			}
+			continue
+		}
+		return apiErr
+	}
+	return errors.New("postgrip-service: request attempts exhausted")
+}
+
+func (c *Connection) send(ctx context.Context, operation openAPIOperation, body []byte, headers http.Header) (*http.Response, error) {
+	endpoint, err := url.Parse(strings.TrimRight(c.baseURL.String(), "/") + operation.Path)
+	if err != nil {
+		return nil, fmt.Errorf("postgrip-service: resolve operation URL: %w", err)
+	}
+	request, err := http.NewRequestWithContext(ctx, operation.Method, endpoint.String(), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Accept", "application/json")
+	if len(body) > 0 {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	for name, values := range headers {
+		for _, value := range values {
+			request.Header.Add(name, value)
+		}
+	}
+	if operation.AuthLane == "service-management" {
+		request.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	return c.httpClient.Do(request)
+}
+
+func decodeAPIError(response *http.Response, body []byte) *APIError {
+	payload := OpenAPIErrorResponse{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		payload = OpenAPIErrorResponse{}
+	}
+	code := strings.TrimSpace(payload.Code)
+	if code == "" {
+		code = "HTTP_ERROR"
+	}
+	message := strings.TrimSpace(payload.Message)
+	if message == "" {
+		message = http.StatusText(response.StatusCode)
+	}
+	requestID := strings.TrimSpace(payload.RequestId)
+	if requestID == "" {
+		requestID = strings.TrimSpace(response.Header.Get("X-Request-ID"))
+	}
+	return &APIError{StatusCode: response.StatusCode, Code: code, Message: message,
+		RequestID: requestID, Details: payload.Details, RetryAfter: parseRetryAfter(response.Header.Get("Retry-After"))}
+}
+
+func parseRetryAfter(value string) time.Duration {
+	value = strings.TrimSpace(value)
+	if seconds, err := strconv.Atoi(value); err == nil && seconds >= 0 {
+		return min(time.Duration(seconds)*time.Second, 30*time.Second)
+	}
+	if when, err := http.ParseTime(value); err == nil {
+		return min(max(time.Until(when), 0), 30*time.Second)
+	}
+	return 0
+}
+
+func retryableStatus(method, key string, status int) bool {
+	if method != http.MethodGet && key == "" {
+		return false
+	}
+	return status == 408 || status == 429 || status == 502 || status == 503 || status == 504
+}
+
+func retryAfterForStatus(status int, retryAfter time.Duration) time.Duration {
+	if status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable {
+		return retryAfter
+	}
+	return 0
+}
+
+func retryDelay(attempt int, retryAfter time.Duration) time.Duration {
+	if retryAfter > 0 {
+		return min(retryAfter, 30*time.Second)
+	}
+	capDelay := min(200*time.Millisecond*time.Duration(1<<(attempt-1)), 2*time.Second)
+	return time.Duration(rand.Int63n(max(int64(capDelay), 1)))
+}
+
+func waitRetry(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+type Reference struct {
+	Source ServiceSource
+	ID     string
+}
+
+func ReferenceFor(service Service) Reference {
+	return Reference{Source: service.Source, ID: service.Id}
+}
+
+func (r Reference) validate() error {
+	if r.Source != OpenAPIServiceSourceTarget && r.Source != OpenAPIServiceSourceProject {
+		return errors.New("postgrip-service: source must be target or project")
+	}
+	if strings.TrimSpace(r.ID) == "" {
+		return errors.New("postgrip-service: service ID is required")
+	}
+	return nil
+}
+
+func (c *Client) List(ctx context.Context, query OpenAPIListServicesQuery) (ServiceList, error) {
+	return c.OpenAPI().ListServices(ctx, query)
+}
+
+func (c *Client) Resolve(ctx context.Context, value string) (Service, error) {
+	return c.OpenAPI().ResolveService(ctx, OpenAPIResolveServiceQuery{Value: value})
+}
+
+func (c *Client) Get(ctx context.Context, ref Reference) (Service, error) {
+	if err := ref.validate(); err != nil {
+		return Service{}, err
+	}
+	return c.OpenAPI().GetService(ctx, string(ref.Source), ref.ID)
+}
+
+func (c *Client) Status(ctx context.Context, ref Reference, query OpenAPIGetServiceStatusQuery) (ServiceStatus, error) {
+	if err := ref.validate(); err != nil {
+		return ServiceStatus{}, err
+	}
+	return c.OpenAPI().GetServiceStatus(ctx, string(ref.Source), ref.ID, query)
+}
+
+func (c *Client) Environments(ctx context.Context, ref Reference, query OpenAPIListServiceEnvironmentsQuery) (EnvironmentList, error) {
+	if err := ref.validate(); err != nil {
+		return EnvironmentList{}, err
+	}
+	return c.OpenAPI().ListServiceEnvironments(ctx, string(ref.Source), ref.ID, query)
+}
+
+func (c *Client) ResolveEnvironment(ctx context.Context, projectID, value string) (Environment, error) {
+	return c.OpenAPI().ResolveServiceEnvironment(ctx, projectID, OpenAPIResolveServiceEnvironmentQuery{Value: value})
+}
+
+func (c *Client) Deployments(ctx context.Context, ref Reference, query OpenAPIListServiceDeploymentsQuery) (DeploymentList, error) {
+	if err := ref.validate(); err != nil {
+		return DeploymentList{}, err
+	}
+	return c.OpenAPI().ListServiceDeployments(ctx, string(ref.Source), ref.ID, query)
+}
+
+func (c *Client) Deployment(ctx context.Context, projectID, deploymentID string) (Deployment, error) {
+	return c.OpenAPI().GetServiceDeployment(ctx, projectID, deploymentID)
+}
+
+func (c *Client) Logs(ctx context.Context, ref Reference, query OpenAPIListServiceLogsQuery) (LogList, error) {
+	if err := ref.validate(); err != nil {
+		return LogList{}, err
+	}
+	return c.OpenAPI().ListServiceLogs(ctx, string(ref.Source), ref.ID, query)
+}
+
+func (c *Client) Check(ctx context.Context, ref Reference, environmentID *string, idempotencyKey string) (ServiceOperationResponse, error) {
+	if err := ref.validate(); err != nil {
+		return ServiceOperationResponse{}, err
+	}
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return ServiceOperationResponse{}, err
+	}
+	body := &OpenAPICheckServiceRequestBody{EnvironmentId: environmentID}
+	return c.OpenAPI().CheckService(ctx, string(ref.Source), ref.ID, OpenAPICheckServiceHeaders{IdempotencyKey: idempotencyKey}, body)
+}
+
+func (c *Client) PreviewDeploy(ctx context.Context, projectID string, query OpenAPIPreviewServiceDeployQuery) (DeployPreview, error) {
+	return c.OpenAPI().PreviewServiceDeploy(ctx, projectID, query)
+}
+
+func (c *Client) Deploy(ctx context.Context, projectID string, body DeployServiceRequest, idempotencyKey string) (DeploymentOperationResponse, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return DeploymentOperationResponse{}, err
+	}
+	return c.OpenAPI().DeployService(ctx, projectID, OpenAPIDeployServiceHeaders{IdempotencyKey: idempotencyKey}, body)
+}
+
+func (c *Client) Redeploy(ctx context.Context, projectID string, body RedeployServiceRequest, idempotencyKey string) (DeploymentOperationResponse, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return DeploymentOperationResponse{}, err
+	}
+	return c.OpenAPI().RedeployService(ctx, projectID, OpenAPIRedeployServiceHeaders{IdempotencyKey: idempotencyKey}, body)
+}
+
+func (c *Client) Cancel(ctx context.Context, projectID, deploymentID, idempotencyKey string) (DeploymentOperationResponse, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return DeploymentOperationResponse{}, err
+	}
+	return c.OpenAPI().CancelServiceDeployment(ctx, projectID, deploymentID, OpenAPICancelServiceDeploymentHeaders{IdempotencyKey: idempotencyKey})
+}
+
+func (c *Client) Rollback(ctx context.Context, projectID, deploymentID, idempotencyKey string) (DeploymentOperationResponse, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return DeploymentOperationResponse{}, err
+	}
+	return c.OpenAPI().RollbackServiceDeployment(ctx, projectID, deploymentID, OpenAPIRollbackServiceDeploymentHeaders{IdempotencyKey: idempotencyKey})
+}
+
+func (c *Client) Start(ctx context.Context, projectID, environmentID, expectedDeploymentID, idempotencyKey string) (ServiceOperationResponse, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return ServiceOperationResponse{}, err
+	}
+	return c.OpenAPI().StartServiceRuntime(ctx, projectID, environmentID, OpenAPIStartServiceRuntimeHeaders{IdempotencyKey: idempotencyKey}, RuntimeOperationRequest{ExpectedDeploymentId: expectedDeploymentID})
+}
+
+func (c *Client) Stop(ctx context.Context, projectID, environmentID, expectedDeploymentID, idempotencyKey string) (ServiceOperationResponse, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return ServiceOperationResponse{}, err
+	}
+	return c.OpenAPI().StopServiceRuntime(ctx, projectID, environmentID, OpenAPIStopServiceRuntimeHeaders{IdempotencyKey: idempotencyKey}, RuntimeOperationRequest{ExpectedDeploymentId: expectedDeploymentID})
+}
+
+func (c *Client) Restart(ctx context.Context, projectID, environmentID, expectedDeploymentID, idempotencyKey string) (ServiceOperationResponse, error) {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
+		return ServiceOperationResponse{}, err
+	}
+	return c.OpenAPI().RestartServiceRuntime(ctx, projectID, environmentID, OpenAPIRestartServiceRuntimeHeaders{IdempotencyKey: idempotencyKey}, RuntimeOperationRequest{ExpectedDeploymentId: expectedDeploymentID})
+}
+
+type ScopedClient struct {
+	client *Client
+	ref    Reference
+}
+
+func (c *Client) ForService(ref Reference) (*ScopedClient, error) {
+	if err := ref.validate(); err != nil {
+		return nil, err
+	}
+	return &ScopedClient{client: c, ref: ref}, nil
+}
+
+func (c *ScopedClient) Reference() Reference { return c.ref }
+func (c *ScopedClient) Get(ctx context.Context) (Service, error) {
+	return c.client.Get(ctx, c.ref)
+}
+func (c *ScopedClient) Status(ctx context.Context, query OpenAPIGetServiceStatusQuery) (ServiceStatus, error) {
+	return c.client.Status(ctx, c.ref, query)
+}
+func (c *ScopedClient) Environments(ctx context.Context, query OpenAPIListServiceEnvironmentsQuery) (EnvironmentList, error) {
+	return c.client.Environments(ctx, c.ref, query)
+}
+func (c *ScopedClient) Deployments(ctx context.Context, query OpenAPIListServiceDeploymentsQuery) (DeploymentList, error) {
+	return c.client.Deployments(ctx, c.ref, query)
+}
+func (c *ScopedClient) Logs(ctx context.Context, query OpenAPIListServiceLogsQuery) (LogList, error) {
+	return c.client.Logs(ctx, c.ref, query)
+}
+func (c *ScopedClient) Check(ctx context.Context, environmentID *string, idempotencyKey string) (ServiceOperationResponse, error) {
+	return c.client.Check(ctx, c.ref, environmentID, idempotencyKey)
+}

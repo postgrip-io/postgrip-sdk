@@ -1,0 +1,633 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PostGrip Service API",
+    "version": "1.0.0",
+    "description": "Tenant-scoped service inventory, status, deployments, logs, probes, deployments, and bounded runtime lifecycle operations."
+  },
+  "x-postgrip-source": "postgrip-workerorchestrator",
+  "servers": [
+    { "url": "https://workerorchestrator1.postgrip.io", "description": "PostGrip cell 1" }
+  ],
+  "tags": [
+    { "name": "Services" },
+    { "name": "Environments" },
+    { "name": "Deployments" },
+    { "name": "Logs" },
+    { "name": "Operations" }
+  ],
+  "paths": {
+    "/api/v1/services": {
+      "get": {
+        "operationId": "listServices",
+        "tags": ["Services"],
+        "summary": "List services",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [
+          { "name": "kind", "in": "query", "schema": { "$ref": "#/components/schemas/ServiceKind" } },
+          { "name": "mode", "in": "query", "schema": { "$ref": "#/components/schemas/ServiceMode" } },
+          { "name": "status", "in": "query", "schema": { "$ref": "#/components/schemas/ServiceStatusValue" } },
+          { "name": "worker", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": { "description": "Services", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ServiceList" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/resolve": {
+      "get": {
+        "operationId": "resolveService",
+        "tags": ["Services"],
+        "summary": "Resolve an exact service reference, ID, or name",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [{ "name": "value", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1 } }],
+        "responses": {
+          "200": { "description": "Resolved service", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Service" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/{source}/{serviceId}": {
+      "parameters": [
+        { "$ref": "#/components/parameters/Source" },
+        { "$ref": "#/components/parameters/ServiceId" }
+      ],
+      "get": {
+        "operationId": "getService",
+        "tags": ["Services"],
+        "summary": "Get a service and its capabilities",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "responses": {
+          "200": { "description": "Service", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Service" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/{source}/{serviceId}/status": {
+      "parameters": [
+        { "$ref": "#/components/parameters/Source" },
+        { "$ref": "#/components/parameters/ServiceId" }
+      ],
+      "get": {
+        "operationId": "getServiceStatus",
+        "tags": ["Services"],
+        "summary": "Get last-known service and environment status",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [{ "name": "environment", "in": "query", "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Service status", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ServiceStatus" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/{source}/{serviceId}/environments": {
+      "parameters": [
+        { "$ref": "#/components/parameters/Source" },
+        { "$ref": "#/components/parameters/ServiceId" }
+      ],
+      "get": {
+        "operationId": "listServiceEnvironments",
+        "tags": ["Environments"],
+        "summary": "List service environments",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": { "description": "Environments", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EnvironmentList" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/resolve": {
+      "parameters": [{ "$ref": "#/components/parameters/ServiceId" }],
+      "get": {
+        "operationId": "resolveServiceEnvironment",
+        "tags": ["Environments"],
+        "summary": "Resolve an exact service environment ID or name",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [{ "name": "value", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1 } }],
+        "responses": {
+          "200": { "description": "Resolved environment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Environment" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/{source}/{serviceId}/deployments": {
+      "parameters": [
+        { "$ref": "#/components/parameters/Source" },
+        { "$ref": "#/components/parameters/ServiceId" }
+      ],
+      "get": {
+        "operationId": "listServiceDeployments",
+        "tags": ["Deployments"],
+        "summary": "List service deployments",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [
+          { "name": "environment", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": { "description": "Deployments", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentList" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/deployments/{deploymentId}": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/DeploymentId" }
+      ],
+      "get": {
+        "operationId": "getServiceDeployment",
+        "tags": ["Deployments"],
+        "summary": "Get a service deployment",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "responses": {
+          "200": { "description": "Deployment", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Deployment" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/{source}/{serviceId}/logs": {
+      "parameters": [
+        { "$ref": "#/components/parameters/Source" },
+        { "$ref": "#/components/parameters/ServiceId" }
+      ],
+      "get": {
+        "operationId": "listServiceLogs",
+        "tags": ["Logs"],
+        "summary": "List build or runtime logs",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:logs:read"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [
+          { "name": "kind", "in": "query", "schema": { "type": "string", "enum": ["build", "runtime"], "default": "runtime" } },
+          { "name": "environment", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "deployment", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" },
+          { "name": "follow", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": { "description": "Logs", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogList" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/{source}/{serviceId}/check": {
+      "parameters": [
+        { "$ref": "#/components/parameters/Source" },
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "checkService",
+        "tags": ["Operations"],
+        "summary": "Probe a target or deployed service",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckServiceRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Check result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ServiceOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/deploy/preview": {
+      "parameters": [{ "$ref": "#/components/parameters/ServiceId" }],
+      "get": {
+        "operationId": "previewServiceDeploy",
+        "tags": ["Operations"],
+        "summary": "Resolve a deploy request to an immutable commit",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "parameters": [
+          { "name": "environment", "in": "query", "schema": { "type": "string" } },
+          { "name": "branch", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Deploy preview", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeployPreview" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/deploy": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "deployService",
+        "tags": ["Operations"],
+        "summary": "Queue a deployment for a confirmed commit",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeployServiceRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Deployment queued", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/redeploy": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "redeployService",
+        "tags": ["Operations"],
+        "summary": "Queue a deployment from an existing immutable revision",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RedeployServiceRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Deployment queued", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/cancel": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/DeploymentId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "cancelServiceDeployment",
+        "tags": ["Operations"],
+        "summary": "Cancel a queued service deployment",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "responses": {
+          "200": { "description": "Deployment cancelled", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/DeploymentId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "rollbackServiceDeployment",
+        "tags": ["Operations"],
+        "summary": "Queue rollback to a historical service deployment",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "responses": {
+          "201": { "description": "Rollback queued", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/start": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/EnvironmentId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "startServiceRuntime",
+        "tags": ["Operations"],
+        "summary": "Start the exact current service runtime",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RuntimeOperationRequest" } } } },
+        "responses": {
+          "200": { "description": "Runtime started", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ServiceOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/stop": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/EnvironmentId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "stopServiceRuntime",
+        "tags": ["Operations"],
+        "summary": "Stop the exact current service runtime",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RuntimeOperationRequest" } } } },
+        "responses": {
+          "200": { "description": "Runtime stopped", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ServiceOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/restart": {
+      "parameters": [
+        { "$ref": "#/components/parameters/ServiceId" },
+        { "$ref": "#/components/parameters/EnvironmentId" },
+        { "$ref": "#/components/parameters/IdempotencyKey" }
+      ],
+      "post": {
+        "operationId": "restartServiceRuntime",
+        "tags": ["Operations"],
+        "summary": "Restart the exact current service runtime",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:operate"]],
+        "security": [{ "serviceManagementToken": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RuntimeOperationRequest" } } } },
+        "responses": {
+          "200": { "description": "Runtime restarted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ServiceOperationResponse" } } } },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "serviceManagementToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "pgwm_...",
+        "description": "Tenant-scoped management token issued from organization settings with Service API scopes."
+      }
+    },
+    "parameters": {
+      "Source": { "name": "source", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ServiceSource" } },
+      "ServiceId": { "name": "serviceId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+      "EnvironmentId": { "name": "environmentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+      "DeploymentId": { "name": "deploymentId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+      "Limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 100 } },
+      "Cursor": { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+      "IdempotencyKey": { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[!-~]+$" } }
+    },
+    "responses": {
+      "Error": { "description": "Error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object", "additionalProperties": false, "required": ["code", "message", "requestId"],
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "requestId": { "type": "string" },
+          "details": { "type": "object", "additionalProperties": {} }
+        }
+      },
+      "OperationReceipt": {
+        "type": "object", "additionalProperties": false, "required": ["requestId", "auditRecorded", "replayed"],
+        "properties": {
+          "requestId": { "type": "string" },
+          "auditRecorded": { "type": "boolean" },
+          "auditEventId": { "type": "string", "format": "uuid" },
+          "replayed": { "type": "boolean" }
+        }
+      },
+      "ServiceSource": { "type": "string", "enum": ["target", "project"] },
+      "ServiceKind": { "type": "string", "enum": ["postgresql", "sqlite", "web", "backend", "zvec", "ladybugdb", "nodedb"] },
+      "ServiceMode": { "type": "string", "enum": ["connected", "managed", "deployed"] },
+      "ServiceStatusValue": { "type": "string", "enum": ["ready", "degraded", "unreachable", "deploying", "failed", "stopped", "unassigned", "mixed", "unknown"] },
+      "ServiceCapability": { "type": "string", "enum": ["check", "environments:read", "deployments:read", "logs:build:read", "logs:runtime:read", "logs:runtime:follow", "deploy", "redeploy", "cancel", "rollback", "runtime:start", "runtime:stop", "runtime:restart"] },
+      "ServiceWorker": {
+        "type": "object", "additionalProperties": false, "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" }
+        }
+      },
+      "ServiceFacet": {
+        "type": "object", "additionalProperties": false, "required": ["source", "id"],
+        "properties": {
+          "source": { "$ref": "#/components/schemas/ServiceSource" },
+          "id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "Service": {
+        "type": "object", "additionalProperties": false,
+        "required": ["ref", "id", "source", "facets", "name", "slug", "kind", "mode", "status", "workers", "environmentCount", "capabilities", "createdAt", "updatedAt"],
+        "properties": {
+          "ref": { "type": "string", "pattern": "^(target|project):[0-9a-fA-F-]{36}$" },
+          "id": { "type": "string", "format": "uuid" },
+          "source": { "$ref": "#/components/schemas/ServiceSource" },
+          "facets": { "type": "array", "items": { "$ref": "#/components/schemas/ServiceFacet" } },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "kind": { "$ref": "#/components/schemas/ServiceKind" },
+          "mode": { "$ref": "#/components/schemas/ServiceMode" },
+          "status": { "$ref": "#/components/schemas/ServiceStatusValue" },
+          "workers": { "type": "array", "items": { "$ref": "#/components/schemas/ServiceWorker" } },
+          "environmentCount": { "type": "integer", "minimum": 0 },
+          "capabilities": { "type": "array", "items": { "$ref": "#/components/schemas/ServiceCapability" }, "uniqueItems": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Environment": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "projectId", "name", "kind", "status", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "projectId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "kind": { "type": "string" },
+          "worker": { "$ref": "#/components/schemas/ServiceWorker" },
+          "currentDeploymentId": { "type": "string", "format": "uuid" },
+          "commitSha": { "type": "string" },
+          "branch": { "type": "string" },
+          "status": { "$ref": "#/components/schemas/ServiceStatusValue" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Deployment": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "projectId", "environmentId", "commitSha", "branch", "triggerKind", "status", "isCurrent", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "projectId": { "type": "string", "format": "uuid" },
+          "environmentId": { "type": "string", "format": "uuid" },
+          "workerId": { "type": "string", "format": "uuid" },
+          "commitSha": { "type": "string" },
+          "branch": { "type": "string" },
+          "triggerKind": { "type": "string" },
+          "status": { "type": "string" },
+          "errorCode": { "type": "string" },
+          "errorMessage": { "type": "string", "maxLength": 500 },
+          "isCurrent": { "type": "boolean" },
+          "liveAt": { "type": "string", "format": "date-time" },
+          "startedAt": { "type": "string", "format": "date-time" },
+          "finishedAt": { "type": "string", "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ServiceStatus": {
+        "type": "object", "additionalProperties": false, "required": ["service", "environments"],
+        "properties": {
+          "service": { "$ref": "#/components/schemas/Service" },
+          "environments": { "type": "array", "items": { "$ref": "#/components/schemas/Environment" } }
+        }
+      },
+      "ServiceList": {
+        "type": "object", "additionalProperties": false, "required": ["items", "nextCursor"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Service" } },
+          "nextCursor": { "type": "string" }
+        }
+      },
+      "EnvironmentList": {
+        "type": "object", "additionalProperties": false, "required": ["items", "nextCursor"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Environment" } },
+          "nextCursor": { "type": "string" }
+        }
+      },
+      "DeploymentList": {
+        "type": "object", "additionalProperties": false, "required": ["items", "nextCursor"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/Deployment" } },
+          "nextCursor": { "type": "string" }
+        }
+      },
+      "LogEntry": {
+        "type": "object", "additionalProperties": false, "required": ["kind", "message"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["build", "runtime"] },
+          "message": { "type": "string" },
+          "deploymentId": { "type": "string", "format": "uuid" },
+          "environmentId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string" },
+          "startedAt": { "type": "string", "format": "date-time" },
+          "finishedAt": { "type": "string", "format": "date-time" },
+          "loggedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "LogList": {
+        "type": "object", "additionalProperties": false, "required": ["items", "nextCursor", "pollAfterMs"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/LogEntry" } },
+          "nextCursor": { "type": "string" },
+          "pollAfterMs": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "CheckServiceRequest": {
+        "type": "object", "additionalProperties": false,
+        "properties": { "environmentId": { "type": "string", "format": "uuid" } }
+      },
+      "DeployPreview": {
+        "type": "object", "additionalProperties": false, "required": ["serviceRef", "environmentId", "environmentName", "commitSha", "branch"],
+        "properties": {
+          "serviceRef": { "type": "string" },
+          "environmentId": { "type": "string", "format": "uuid" },
+          "environmentName": { "type": "string" },
+          "commitSha": { "type": "string" },
+          "branch": { "type": "string" }
+        }
+      },
+      "DeployServiceRequest": {
+        "type": "object", "additionalProperties": false, "required": ["expectedCommitSha"],
+        "properties": {
+          "environmentId": { "type": "string", "format": "uuid" },
+          "branch": { "type": "string" },
+          "expectedCommitSha": { "type": "string", "minLength": 1 }
+        }
+      },
+      "RedeployServiceRequest": {
+        "type": "object", "additionalProperties": false,
+        "properties": {
+          "environmentId": { "type": "string", "format": "uuid" },
+          "deploymentId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "RuntimeOperationRequest": {
+        "type": "object", "additionalProperties": false, "required": ["expectedDeploymentId"],
+        "properties": { "expectedDeploymentId": { "type": "string", "format": "uuid" } }
+      },
+      "ServiceOperationResponse": {
+        "type": "object", "additionalProperties": false, "required": ["status", "serviceRef", "receipt"],
+        "properties": {
+          "status": { "type": "string" },
+          "serviceRef": { "type": "string" },
+          "latencyMs": { "type": "integer", "format": "int64" },
+          "engine": { "type": "string" },
+          "version": { "type": "string" },
+          "intentionallyStopped": { "type": "boolean" },
+          "environmentId": { "type": "string", "format": "uuid" },
+          "deploymentId": { "type": "string", "format": "uuid" },
+          "receipt": { "$ref": "#/components/schemas/OperationReceipt" }
+        }
+      },
+      "DeploymentOperationResponse": {
+        "type": "object", "additionalProperties": false,
+        "required": ["status", "serviceRef", "environmentId", "deploymentId", "deployment", "receipt"],
+        "properties": {
+          "status": { "type": "string" },
+          "serviceRef": { "type": "string" },
+          "environmentId": { "type": "string", "format": "uuid" },
+          "deploymentId": { "type": "string", "format": "uuid" },
+          "deployment": { "$ref": "#/components/schemas/Deployment" },
+          "commandId": { "type": "string", "format": "uuid" },
+          "jobRunId": { "type": "string", "format": "uuid" },
+          "receipt": { "$ref": "#/components/schemas/OperationReceipt" }
+        }
+      }
+    }
+  }
+}
