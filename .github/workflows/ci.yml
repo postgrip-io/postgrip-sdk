@@ -47,6 +47,19 @@ jobs:
           GOWORK: "off"
         run: go test ./...
 
+  go-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go/serviceclient
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/serviceclient/go.mod
+      - run: go vet ./...
+      - run: go test ./...
+
   typescript:
     runs-on: ubuntu-latest
     defaults:
@@ -67,6 +80,21 @@ jobs:
     defaults:
       run:
         working-directory: typescript-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run build
+      - run: bun run test
+
+  typescript-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: typescript-service
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -113,6 +141,24 @@ jobs:
       - name: Test the installed wheel without source-tree shadowing
         run: python -m unittest discover -s test
 
+  python-service:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    defaults:
+      run:
+        working-directory: python-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip wheel --no-deps . -w /tmp/service-wheel
+      - run: python -m pip install /tmp/service-wheel/postgrip_service-*.whl
+      - name: Test the installed wheel without source-tree shadowing
+        run: python -m unittest discover -s test
+
   drift:
     runs-on: ubuntu-latest
     steps:
@@ -131,11 +177,16 @@ jobs:
           cmp LICENSE python/LICENSE
           cmp LICENSE typescript-worker/LICENSE
           cmp LICENSE python-worker/LICENSE
+          cmp LICENSE typescript-service/LICENSE
+          cmp LICENSE python-service/LICENSE
           grep -Fq '"license": "Apache-2.0"' typescript/package.json
           grep -Fq '"license": "Apache-2.0"' typescript-worker/package.json
+          grep -Fq '"license": "Apache-2.0"' typescript-service/package.json
           grep -Fxq 'license = "Apache-2.0"' python/pyproject.toml
           grep -Fxq 'license = "Apache-2.0"' python-worker/pyproject.toml
+          grep -Fxq 'license = "Apache-2.0"' python-service/pyproject.toml
       - run: python3 protocol/tools/check_drift.py --self-test
       - run: python3 protocol/tools/check_drift.py --monorepo
       - run: python3 scripts/generate_openapi.py --check
       - run: python3 scripts/generate_openapi.py --plane worker --check
+      - run: python3 scripts/generate_openapi.py --plane service --check
