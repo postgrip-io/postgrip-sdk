@@ -1,4 +1,4 @@
-# PostGrip Agent SDKs
+# PostGrip SDKs
 
 [![CI](https://github.com/postgrip-io/postgrip-agent-sdks/actions/workflows/ci.yml/badge.svg)](https://github.com/postgrip-io/postgrip-agent-sdks/actions/workflows/ci.yml)
 [![Documentation](https://img.shields.io/badge/docs-online-2563EB?logo=github&logoColor=white)](https://postgrip-io.github.io/postgrip-agent-sdks/)
