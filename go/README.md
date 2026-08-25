@@ -304,11 +304,11 @@ func submitRuntime(ctx context.Context) error {
   - Signals delivered via `WorkflowSignaled` history events are seeded into
     `workflow.SignalChannel` buffers on each replay. `Receive` drains the
     buffer and suspends when empty.
+  - Query and update tasks reconstruct their parent execution from durable
+    history without scheduling duplicate commands, replay completed updates,
+    and invoke the registered handler.
   - `WorkflowCancellationRequested` short-circuits subsequent commands with
     `failure.Cancelled`.
-- Query / update task types (`query:*`, `update:*`) still surface as
-  unsupported — query/update handler invocation against a paused workflow
-  isn't yet wired through Worker.
 
 ## Layout
 

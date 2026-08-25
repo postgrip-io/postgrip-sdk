@@ -18,6 +18,7 @@ func TestNewSplitsByType(t *testing.T) {
 		{ID: "6", Type: EventWorkflowSignaled, Attributes: map[string]any{"name": "ping", "args": []any{1}}},
 		{ID: "7", Type: EventWorkflowSignaled, Attributes: map[string]any{"name": "ping", "args": []any{2}}},
 		{ID: "8", Type: EventWorkflowSignaled, Attributes: map[string]any{"name": "other", "args": []any{}}},
+		{ID: "9", Type: EventWorkflowUpdateCompleted, Attributes: map[string]any{"update_name": "rename", "args": []any{"Grace"}}},
 	})
 	if len(r.activities) != 1 || len(r.timers) != 1 || len(r.children) != 1 {
 		t.Fatalf("filtered slices wrong: %d activities, %d timers, %d children", len(r.activities), len(r.timers), len(r.children))
@@ -31,6 +32,22 @@ func TestNewSplitsByType(t *testing.T) {
 	}
 	if pings[0][0].(int) != 1 || pings[1][0].(int) != 2 {
 		t.Fatalf("signal args order wrong: %#v", pings)
+	}
+	updates := r.CompletedUpdatesByName("rename")
+	if len(updates) != 1 || updates[0][0] != "Grace" {
+		t.Fatalf("completed update args = %#v, want Grace", updates)
+	}
+}
+
+func TestSignalsByNameAcceptsCanonicalSignalName(t *testing.T) {
+	t.Parallel()
+	r := New([]protocol.WorkflowHistoryEvent{{
+		Type:       EventWorkflowSignaled,
+		Attributes: map[string]any{"signal_name": "ready", "args": []any{"Ada"}},
+	}})
+	got := r.SignalsByName("ready")
+	if len(got) != 1 || got[0][0] != "Ada" {
+		t.Fatalf("SignalsByName = %#v, want Ada", got)
 	}
 }
 

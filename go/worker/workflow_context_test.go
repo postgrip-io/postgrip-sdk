@@ -192,6 +192,46 @@ func TestContinueAsNewSentinelFromContext(t *testing.T) {
 	}
 }
 
+func TestReplayOnlyContextDoesNotScheduleNewCommands(t *testing.T) {
+	t.Parallel()
+	wfctx := newReplayCtx(t, nil)
+	wfctx.replayOnly = true
+	if err := wfctx.Sleep(time.Second); !workflow.IsSuspended(err) {
+		t.Fatalf("Sleep = %v, want replay suspension", err)
+	}
+	if err := wfctx.ExecuteActivity("Greet", nil, nil, nil); !workflow.IsSuspended(err) {
+		t.Fatalf("ExecuteActivity = %v, want replay suspension", err)
+	}
+	if err := wfctx.ExecuteChildWorkflow("Child", nil, nil, nil); !workflow.IsSuspended(err) {
+		t.Fatalf("ExecuteChildWorkflow = %v, want replay suspension", err)
+	}
+	if err := wfctx.Milestone("ignored", workflow.MilestoneOptions{}); err != nil {
+		t.Fatalf("Milestone = %v, want no-op", err)
+	}
+	if err := wfctx.ContinueAsNew(workflow.ContinueAsNewOptions{}); !workflow.IsSuspended(err) {
+		t.Fatalf("ContinueAsNew = %v, want replay suspension", err)
+	}
+}
+
+func TestSetUpdateHandlerReplaysCompletedUpdates(t *testing.T) {
+	t.Parallel()
+	wfctx := newReplayCtx(t, []client.WorkflowHistoryEvent{
+		{Type: replay.EventWorkflowUpdateCompleted, Attributes: map[string]any{"update_name": "rename", "args": []any{"Ada"}}},
+		{Type: replay.EventWorkflowUpdateCompleted, Attributes: map[string]any{"update_name": "rename", "args": []any{"Grace"}}},
+	})
+	var name string
+	err := wfctx.SetUpdateHandler("rename", func(args []any) (any, error) {
+		name = args[0].(string)
+		return name, nil
+	})
+	if err != nil {
+		t.Fatalf("SetUpdateHandler: %v", err)
+	}
+	if name != "Grace" {
+		t.Fatalf("replayed name = %q, want Grace", name)
+	}
+}
+
 func TestRunWorkflowBlocksWhenHistoryFetchFails(t *testing.T) {
 	t.Parallel()
 	var blockHits, historyHits int
@@ -233,6 +273,77 @@ func TestRunWorkflowBlocksWhenHistoryFetchFails(t *testing.T) {
 	}
 	if historyHits != 1 || blockHits != 1 {
 		t.Fatalf("history hits = %d, block hits = %d (want 1/1)", historyHits, blockHits)
+	}
+}
+
+func TestWorkflowQueryAndUpdateDispatchReplayRegisteredHandlers(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/workflows/run-1":
+			_, _ = w.Write([]byte(`{"id":"workflow-1","run_id":"run-1","namespace":"default","type":"Approval","queue":"default","task_id":"workflow-task-1","state":"running","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
+		case "/api/v1/tasks/workflow-task-1":
+			_, _ = w.Write([]byte(`{"id":"workflow-task-1","namespace":"default","queue":"default","type":"workflow:Approval","state":"blocked","attempt":1,"lease_timeout_seconds":30,"payload":{"workflowType":"Approval","workflowId":"workflow-1","runId":"run-1","args":[]},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
+		case "/api/v1/workflows/run-1/history":
+			_, _ = w.Write([]byte(`[{"id":"event-1","workflow_id":"workflow-1","type":"WorkflowUpdateCompleted","attributes":{"update_name":"rename","args":["Grace"]},"created_at":"2026-01-01T00:00:00Z"}]`))
+		default:
+			http.Error(w, "unexpected request "+r.URL.Path, http.StatusBadRequest)
+		}
+	}))
+	defer server.Close()
+
+	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL, AuthToken: "management-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := New(Options{
+		Connection: conn,
+		AgentID:    "agent-1",
+		Workflows: workflow.Registry{"Approval": func(ctx workflow.Context, _ []any) (any, error) {
+			name := ""
+			if err := ctx.SetUpdateHandler("rename", func(args []any) (any, error) {
+				name = args[0].(string)
+				return name, nil
+			}); err != nil {
+				return nil, err
+			}
+			if err := ctx.SetQueryHandler("approver", func(_ []any) (any, error) { return name, nil }); err != nil {
+				return nil, err
+			}
+			return nil, ctx.Sleep(time.Hour)
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	queryPayload, _ := json.Marshal(client.WorkflowQueryPayload{
+		WorkflowID: "workflow-1", WorkflowRunID: "run-1", WorkflowType: "Approval",
+		QueryName: "approver", Args: json.RawMessage(`[]`),
+	})
+	queryResult, err := w.runWorkflowQuery(context.Background(), &client.Task{
+		ID: "query-task-1", Type: "query:Approval", Namespace: "default", Queue: "default", Payload: queryPayload,
+	})
+	if err != nil {
+		t.Fatalf("runWorkflowQuery: %v", err)
+	}
+	if queryResult.Value != "Grace" || queryResult.Message != "query completed" {
+		t.Fatalf("query result = %#v, want Grace", queryResult)
+	}
+
+	updatePayload, _ := json.Marshal(client.WorkflowUpdatePayload{
+		WorkflowID: "workflow-1", WorkflowRunID: "run-1", WorkflowType: "Approval",
+		UpdateName: "rename", Args: json.RawMessage(`["Linus"]`),
+	})
+	updateResult, err := w.runWorkflowUpdate(context.Background(), &client.Task{
+		ID: "update-task-1", Type: "update:Approval", Namespace: "default", Queue: "default", Payload: updatePayload,
+	})
+	if err != nil {
+		t.Fatalf("runWorkflowUpdate: %v", err)
+	}
+	if updateResult.Value != "Linus" || updateResult.Message != "update completed" {
+		t.Fatalf("update result = %#v, want Linus", updateResult)
 	}
 }
 

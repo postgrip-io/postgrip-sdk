@@ -6,6 +6,7 @@ on:
       - "protocol/v*"
       - "go/v*"
       - "go/serviceclient/v*"
+      - "go/workerclient/v*"
 
 permissions:
   contents: write
@@ -25,6 +26,7 @@ jobs:
           case "$GITHUB_REF_NAME" in
             protocol/v*) echo "directory=protocol" >> "$GITHUB_OUTPUT" ;;
             go/serviceclient/v*) echo "directory=go/serviceclient" >> "$GITHUB_OUTPUT" ;;
+            go/workerclient/v*) echo "directory=go/workerclient" >> "$GITHUB_OUTPUT" ;;
             go/v*) echo "directory=go" >> "$GITHUB_OUTPUT" ;;
             *) echo "unsupported module tag: $GITHUB_REF_NAME" >&2; exit 1 ;;
           esac

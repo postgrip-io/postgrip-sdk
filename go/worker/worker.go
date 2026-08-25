@@ -273,16 +273,10 @@ func (w *Worker) dispatch(ctx context.Context, task *client.Task) (*client.TaskR
 		return w.runActivity(ctx, task)
 	case strings.HasPrefix(task.Type, client.TaskTypePrefixWorkflow):
 		return w.runWorkflow(ctx, task)
-	case strings.HasPrefix(task.Type, client.TaskTypePrefixQuery), strings.HasPrefix(task.Type, client.TaskTypePrefixUpdate):
-		// Query/update tasks attach to a parent workflow execution. The
-		// SDK Worker reuses the workflow runtime — but only if the
-		// workflow is currently in memory, which we don't model here.
-		// Fail with a clear non-retryable error so operators see why.
-		return nil, failure.NewNonRetryable(
-			"sdk worker does not yet handle "+task.Type+" tasks (workflow runtime is single-run only)",
-			"UnsupportedTaskType",
-			task.Type,
-		)
+	case strings.HasPrefix(task.Type, client.TaskTypePrefixQuery):
+		return w.runWorkflowQuery(ctx, task)
+	case strings.HasPrefix(task.Type, client.TaskTypePrefixUpdate):
+		return w.runWorkflowUpdate(ctx, task)
 	default:
 		return nil, failure.NewNonRetryable("unsupported task type "+task.Type, "UnsupportedTaskType", task.Type)
 	}

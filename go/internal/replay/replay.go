@@ -27,6 +27,7 @@ const (
 	EventTimerFired                  = "TimerFired"
 	EventChildWorkflowStarted        = "ChildWorkflowExecutionStarted"
 	EventWorkflowSignaled            = "WorkflowSignaled"
+	EventWorkflowUpdateCompleted     = "WorkflowUpdateCompleted"
 	EventWorkflowCancellationRequest = "WorkflowCancellationRequested"
 )
 
@@ -204,7 +205,34 @@ func (r *Replay) SignalsByName(name string) [][]any {
 		if ev.Type != EventWorkflowSignaled {
 			continue
 		}
-		recordedName, _ := ev.Attributes["name"].(string)
+		recordedName, _ := ev.Attributes["signal_name"].(string)
+		if recordedName == "" {
+			recordedName, _ = ev.Attributes["name"].(string)
+		}
+		if recordedName != name {
+			continue
+		}
+		args, _ := ev.Attributes["args"].([]any)
+		out = append(out, args)
+	}
+	return out
+}
+
+// CompletedUpdatesByName returns the ordered arguments for durable update
+// completions matching name. Workflow contexts replay these through a newly
+// registered update handler so query and update tasks observe the same state
+// as TypeScript and Python runtimes.
+func (r *Replay) CompletedUpdatesByName(name string) [][]any {
+	var out [][]any
+	for i := range r.history {
+		ev := &r.history[i]
+		if ev.Type != EventWorkflowUpdateCompleted {
+			continue
+		}
+		recordedName, _ := ev.Attributes["update_name"].(string)
+		if recordedName == "" {
+			recordedName, _ = ev.Attributes["name"].(string)
+		}
 		if recordedName != name {
 			continue
 		}

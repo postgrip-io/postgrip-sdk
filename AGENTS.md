@@ -11,8 +11,8 @@ directories while adding a new API plane.
 
 ## Development Commands
 
-- `go test ./protocol/... ./go/...` runs both Go modules through the root workspace.
-- `go vet ./protocol/... ./go/...` performs Go static analysis.
+- `go test ./protocol/... ./go/... ./go/workerclient/... ./go/serviceclient/...` runs all Go modules through the root workspace.
+- `go vet ./protocol/... ./go/... ./go/workerclient/... ./go/serviceclient/...` performs Go static analysis.
 - `gofmt -w protocol go` formats Go sources.
 - `cd typescript && bun install --frozen-lockfile && bun run typecheck && bun run build && bun run test` validates TypeScript.
 - `cd python && python -m pip wheel --no-deps . -w /tmp/wheel && PYTHONPATH=src python -m unittest discover -s test` validates Python.

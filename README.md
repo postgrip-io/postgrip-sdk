@@ -24,10 +24,10 @@ tenant-bound management token.
 | Go | `github.com/postgrip-io/postgrip-agent-sdks/go` | [Guide](https://postgrip-io.github.io/postgrip-sdks/go/) · [API](https://pkg.go.dev/github.com/postgrip-io/postgrip-agent-sdks/go) | [![Go release](https://img.shields.io/github/v/release/postgrip-io/postgrip-sdks?filter=go%2Fv*&label=go)](https://github.com/postgrip-io/postgrip-sdks/releases?q=go%2Fv) |
 | TypeScript | `@postgrip/agent` | [Guide](https://postgrip-io.github.io/postgrip-sdks/typescript/) · [npm](https://www.npmjs.com/package/@postgrip/agent) | [![npm version](https://img.shields.io/npm/v/%40postgrip%2Fagent.svg)](https://www.npmjs.com/package/@postgrip/agent) |
 | Python | `postgrip-agent` | [Guide](https://postgrip-io.github.io/postgrip-sdks/python/) · [PyPI](https://pypi.org/project/postgrip-agent/) | [![PyPI version](https://img.shields.io/pypi/v/postgrip-agent.svg)](https://pypi.org/project/postgrip-agent/) |
-| Go Worker | `github.com/postgrip-io/postgrip-agent-sdks/go/workerclient` | [Source](go/workerclient/) | Independent Go package |
+| Go Worker | `github.com/postgrip-io/postgrip-agent-sdks/go/workerclient` | [Source](go/workerclient/) | Independent Go module |
 | TypeScript Worker | `@postgrip/worker` | [Source](typescript-worker/) | Independent npm package |
 | Python Worker | `postgrip-worker` | [Source](python-worker/) | Independent PyPI package |
-| Go Service | `github.com/postgrip-io/postgrip-agent-sdks/go/serviceclient` | [Source](go/serviceclient/) | Independent Go package |
+| Go Service | `github.com/postgrip-io/postgrip-agent-sdks/go/serviceclient` | [Source](go/serviceclient/) | Independent Go module |
 | TypeScript Service | `@postgrip/service` | [Source](typescript-service/) | Independent npm package |
 | Python Service | `postgrip-service` | [Source](python-service/) | Independent PyPI package |
 | Protocol | `github.com/postgrip-io/postgrip-agent-sdks/protocol` | [Source](protocol/) | [![Protocol release](https://img.shields.io/github/v/release/postgrip-io/postgrip-sdks?filter=protocol%2Fv*&label=protocol)](https://github.com/postgrip-io/postgrip-sdks/releases?q=protocol%2Fv) |
@@ -68,9 +68,8 @@ pip install postgrip-worker
 - Submit shell, container, and managed `workflow.runtime` tasks to PostGrip
   agent queues.
 - Define durable workflows and activities with replay-safe timers, retries,
-  child workflows, cancellation, and signals. TypeScript and Python also
-  dispatch query and update handlers; Go handler dispatch remains on the
-  roadmap.
+  child workflows, cancellation, signals, and query/update handler dispatch
+  across Go, TypeScript, and Python.
 - Create schedules and inspect workflow execution history.
 - Upload workspaces and manage persistent sandboxes, including command and
   interactive session execution.
@@ -162,8 +161,8 @@ Run the relevant native toolchain from the repository root:
 
 ```sh
 # Go modules
-go test ./protocol/... ./go/... ./go/serviceclient/...
-go vet ./protocol/... ./go/... ./go/serviceclient/...
+go test ./protocol/... ./go/... ./go/workerclient/... ./go/serviceclient/...
+go vet ./protocol/... ./go/... ./go/workerclient/... ./go/serviceclient/...
 
 # TypeScript
 (cd typescript && bun install --frozen-lockfile && bun run typecheck && bun run build && bun run test)
@@ -191,6 +190,7 @@ The packages release independently from package-prefixed tags:
 | --- | --- | --- |
 | Protocol | `protocol/vX.Y.Z` | Go module proxy and GitHub Releases |
 | Go SDK | `go/vX.Y.Z` | Go module proxy and GitHub Releases |
+| Go Worker SDK | `go/workerclient/vX.Y.Z` | Go module proxy and GitHub Releases |
 | Go Service SDK | `go/serviceclient/vX.Y.Z` | Go module proxy and GitHub Releases |
 | TypeScript SDK | `typescript/vX.Y.Z` | npm and GitHub Releases |
 | Python SDK | `python/vX.Y.Z` | PyPI and GitHub Releases |

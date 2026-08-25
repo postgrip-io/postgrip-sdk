@@ -39,6 +39,10 @@ type workflowContext struct {
 	// "one-shot" mode. Workflow bodies must run in a single goroutine;
 	// signalChannels / queryHandlers / updateHandlers are not synchronized.
 	replay *replay.Replay
+	// replayOnly is set while rebuilding workflow state for a query or update
+	// task. Durable commands may consume recorded results, but history
+	// exhaustion must stop replay without scheduling new work.
+	replayOnly bool
 
 	signalChannels map[string]*workflow.SignalChannel
 	queryHandlers  map[string]func(args []any) (any, error)
@@ -70,6 +74,9 @@ func (w *workflowContext) Logger() *slog.Logger { return w.logger }
 // replay reports no cancellation.
 func (w *workflowContext) checkReplayCancellation() error {
 	if err := w.replay.CheckCancellation(); err != nil {
+		if w.replayOnly {
+			return workflow.NewSuspended("workflow cancellation state reached")
+		}
 		return &failure.Cancelled{Message: "workflow cancellation requested"}
 	}
 	return nil
@@ -117,6 +124,9 @@ func (w *workflowContext) Sleep(d time.Duration) error {
 			return workflow.NewSuspended("waiting for timer (duration=%dms)", durationMs)
 		}
 	}
+	if w.replayOnly {
+		return workflow.NewSuspended("query/update replay reached an unrecorded timer")
+	}
 
 	var idBytes [8]byte
 	if _, err := rand.Read(idBytes[:]); err != nil {
@@ -151,6 +161,9 @@ func (w *workflowContext) ExecuteActivity(activityType string, args []any, targe
 		if scheduled != nil {
 			return w.resolveScheduledActivity(activityType, args, target, opts, scheduled)
 		}
+	}
+	if w.replayOnly {
+		return workflow.NewSuspended("query/update replay reached an unrecorded activity %s", activityType)
 	}
 
 	taskQueue := w.queue
@@ -237,6 +250,9 @@ func (w *workflowContext) ExecuteChildWorkflow(workflowType string, args []any, 
 		if started != nil {
 			return w.resolveChildWorkflow(workflowType, target, started)
 		}
+	}
+	if w.replayOnly {
+		return workflow.NewSuspended("query/update replay reached an unrecorded child workflow %s", workflowType)
 	}
 
 	taskQueue := w.queue
@@ -347,10 +363,20 @@ func (w *workflowContext) SetUpdateHandler(name string, handler func(args []any)
 		return fmt.Errorf("postgrip-agent: update handler %q already registered", name)
 	}
 	w.updateHandlers[name] = handler
+	if w.replay != nil {
+		for _, args := range w.replay.CompletedUpdatesByName(name) {
+			if _, err := handler(args); err != nil {
+				return fmt.Errorf("postgrip-agent: replay update handler %q: %w", name, err)
+			}
+		}
+	}
 	return nil
 }
 
 func (w *workflowContext) Milestone(name string, opts workflow.MilestoneOptions) error {
+	if w.replayOnly {
+		return nil
+	}
 	details := map[string]any{}
 	for k, v := range opts.Details {
 		details[k] = v
@@ -370,6 +396,9 @@ func (w *workflowContext) Milestone(name string, opts workflow.MilestoneOptions)
 }
 
 func (w *workflowContext) ContinueAsNew(opts workflow.ContinueAsNewOptions) error {
+	if w.replayOnly {
+		return workflow.NewSuspended("query/update replay reached continue-as-new")
+	}
 	if opts.WorkflowType == "" {
 		opts.WorkflowType = w.workflowType
 	}
