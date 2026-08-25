@@ -232,6 +232,32 @@ func TestSetUpdateHandlerReplaysCompletedUpdates(t *testing.T) {
 	}
 }
 
+func TestCompletedUpdateReplaysAfterEarlierDurableCommand(t *testing.T) {
+	t.Parallel()
+	wfctx := newReplayCtx(t, []client.WorkflowHistoryEvent{
+		{Type: replay.EventTimerStarted, TaskID: "timer-1", Attributes: map[string]any{"duration_ms": float64(1000)}},
+		{Type: replay.EventTimerFired, TaskID: "timer-1"},
+		{Type: replay.EventWorkflowUpdateAccepted, TaskID: "update-1", Attributes: map[string]any{"update_name": "rename", "args": []any{"Grace"}}},
+		{Type: replay.EventWorkflowUpdateCompleted, TaskID: "update-1", Attributes: map[string]any{"update_name": "rename", "args": []any{"Grace"}}},
+	})
+	name := "Ada"
+	if err := wfctx.SetUpdateHandler("rename", func(args []any) (any, error) {
+		name = args[0].(string)
+		return name, nil
+	}); err != nil {
+		t.Fatalf("SetUpdateHandler: %v", err)
+	}
+	if name != "Ada" {
+		t.Fatalf("update replayed before earlier timer: name=%q", name)
+	}
+	if err := wfctx.Sleep(time.Second); err != nil {
+		t.Fatalf("Sleep: %v", err)
+	}
+	if name != "Grace" {
+		t.Fatalf("update not replayed after earlier timer: name=%q", name)
+	}
+}
+
 func TestRunWorkflowBlocksWhenHistoryFetchFails(t *testing.T) {
 	t.Parallel()
 	var blockHits, historyHits int
@@ -344,6 +370,78 @@ func TestWorkflowQueryAndUpdateDispatchReplayRegisteredHandlers(t *testing.T) {
 	}
 	if updateResult.Value != "Linus" || updateResult.Message != "update completed" {
 		t.Fatalf("update result = %#v, want Linus", updateResult)
+	}
+}
+
+func TestWorkflowUpdateCanScheduleDurableActivity(t *testing.T) {
+	t.Parallel()
+	var enqueuedPayload map[string]any
+	var blockHits int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/workflows/run-1":
+			_, _ = w.Write([]byte(`{"id":"workflow-1","run_id":"run-1","namespace":"default","type":"Approval","queue":"default","task_id":"workflow-task-1","state":"running","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/workflow-task-1":
+			_, _ = w.Write([]byte(`{"id":"workflow-task-1","namespace":"default","queue":"default","type":"workflow:Approval","state":"blocked","attempt":1,"lease_timeout_seconds":30,"payload":{"workflowType":"Approval","workflowId":"workflow-1","runId":"run-1","args":[]},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/workflows/run-1/history":
+			_, _ = w.Write([]byte(`[
+				{"id":"event-1","workflow_id":"workflow-1","task_id":"timer-parent","type":"TimerStarted","attributes":{"duration_ms":3600000},"created_at":"2026-01-01T00:00:00Z"},
+				{"id":"event-2","workflow_id":"workflow-1","task_id":"update-task-1","type":"WorkflowUpdateAccepted","attributes":{"update_name":"run","args":[]},"created_at":"2026-01-01T00:00:01Z"}
+			]`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks":
+			var req client.EnqueueTaskRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Errorf("decode enqueue: %v", err)
+			}
+			if err := json.Unmarshal(req.Payload, &enqueuedPayload); err != nil {
+				t.Errorf("decode activity payload: %v", err)
+			}
+			_, _ = w.Write([]byte(`{"id":"activity-1","namespace":"default","queue":"default","type":"activity:Validate","state":"queued","attempt":0,"lease_timeout_seconds":0,"created_at":"2026-01-01T00:00:02Z","updated_at":"2026-01-01T00:00:02Z"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/agent/tasks/update-task-1/block":
+			blockHits++
+			_, _ = w.Write([]byte(`{"id":"update-task-1","namespace":"default","queue":"default","type":"update:Approval","state":"blocked","attempt":1,"lease_timeout_seconds":30,"created_at":"2026-01-01T00:00:01Z","updated_at":"2026-01-01T00:00:02Z"}`))
+		default:
+			http.Error(w, "unexpected request "+r.Method+" "+r.URL.Path, http.StatusBadRequest)
+		}
+	}))
+	defer server.Close()
+
+	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL, AuthToken: "management-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SeedAgentSession("agent-1", "agent-token", time.Now().Add(time.Hour))
+	w, err := New(Options{
+		Connection: conn,
+		AgentID:    "agent-1",
+		Workflows: workflow.Registry{"Approval": func(ctx workflow.Context, _ []any) (any, error) {
+			if err := ctx.SetUpdateHandler("run", func(_ []any) (any, error) {
+				return nil, ctx.ExecuteActivity("Validate", nil, nil, nil)
+			}); err != nil {
+				return nil, err
+			}
+			return nil, ctx.Sleep(time.Hour)
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	updatePayload, _ := json.Marshal(client.WorkflowUpdatePayload{
+		WorkflowID: "workflow-1", WorkflowRunID: "run-1", WorkflowType: "Approval",
+		UpdateName: "run", Args: json.RawMessage(`[]`),
+	})
+	result, err := w.runWorkflowUpdate(context.Background(), &client.Task{
+		ID: "update-task-1", Type: "update:Approval", Namespace: "default", Queue: "default", Payload: updatePayload,
+	})
+	if !errors.Is(err, errWorkflowAlreadyBlocked) || result != nil {
+		t.Fatalf("runWorkflowUpdate = %#v, %v; want nil, errWorkflowAlreadyBlocked", result, err)
+	}
+	if got := enqueuedPayload["workflowTaskId"]; got != "update-task-1" {
+		t.Fatalf("activity workflowTaskId = %#v, want update-task-1", got)
+	}
+	if blockHits != 1 {
+		t.Fatalf("block hits = %d, want 1", blockHits)
 	}
 }
 

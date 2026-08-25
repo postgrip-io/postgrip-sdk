@@ -103,6 +103,72 @@ func isWorkflowSuspended(err error) bool {
 	return workflow.IsSuspended(err)
 }
 
+// applyDurableUpdates advances completed updates only when their accepted
+// event is the next item before a durable command. When deferBoundary is
+// true, an update whose handler is not registered yet (or which is still in
+// flight) is left for the workflow body to reach its registration point.
+func (w *workflowContext) applyDurableUpdates(deferBoundary bool) error {
+	if w.replay == nil {
+		return nil
+	}
+	for {
+		update, ok := w.replay.NextUpdateBeforeCommand()
+		if !ok {
+			return nil
+		}
+		handler := w.updateHandlers[update.Name]
+		if update.Failed {
+			if !w.replay.ConsumeUpdate(update.TaskID) {
+				return failure.NewNonRetryable("workflow update replay cursor changed", "WorkflowDeterminismViolation")
+			}
+			continue
+		}
+		if handler == nil {
+			if deferBoundary {
+				return nil
+			}
+			return failure.NewNonRetryable(
+				fmt.Sprintf("update %q was accepted before its handler was registered during replay", update.Name),
+				"WorkflowDeterminismViolation",
+				update.Name,
+			)
+		}
+		if !update.Completed {
+			if deferBoundary {
+				return nil
+			}
+			return workflow.NewSuspended("workflow replay reached pending update %s", update.Name)
+		}
+		if !w.replay.ConsumeUpdate(update.TaskID) {
+			return failure.NewNonRetryable("workflow update replay cursor changed", "WorkflowDeterminismViolation")
+		}
+
+		previousTaskID := w.taskID
+		if update.TaskID != "" {
+			w.taskID = update.TaskID
+		}
+		_, err := handler(update.Args)
+		w.taskID = previousTaskID
+		if err != nil {
+			return fmt.Errorf("postgrip-agent: replay update handler %q: %w", update.Name, err)
+		}
+	}
+}
+
+func (w *workflowContext) beforeDurableCommand() error {
+	if err := w.checkReplayCancellation(); err != nil {
+		return err
+	}
+	return w.applyDurableUpdates(false)
+}
+
+func (w *workflowContext) afterDurableCommand(commandErr error) error {
+	if err := w.applyDurableUpdates(true); err != nil {
+		return err
+	}
+	return commandErr
+}
+
 func (w *workflowContext) Sleep(d time.Duration) error {
 	if d <= 0 {
 		return nil
@@ -110,7 +176,7 @@ func (w *workflowContext) Sleep(d time.Duration) error {
 	durationMs := d.Milliseconds()
 
 	if w.replay != nil {
-		if err := w.checkReplayCancellation(); err != nil {
+		if err := w.beforeDurableCommand(); err != nil {
 			return err
 		}
 		started, err := w.replay.NextTimer(durationMs)
@@ -119,9 +185,9 @@ func (w *workflowContext) Sleep(d time.Duration) error {
 		}
 		if started != nil {
 			if w.replay.IsTimerFired(started) {
-				return nil
+				return w.afterDurableCommand(nil)
 			}
-			return workflow.NewSuspended("waiting for timer (duration=%dms)", durationMs)
+			return w.afterDurableCommand(workflow.NewSuspended("waiting for timer (duration=%dms)", durationMs))
 		}
 	}
 	if w.replayOnly {
@@ -151,7 +217,7 @@ func (w *workflowContext) Sleep(d time.Duration) error {
 
 func (w *workflowContext) ExecuteActivity(activityType string, args []any, target any, opts *workflow.ActivityOptions) error {
 	if w.replay != nil {
-		if err := w.checkReplayCancellation(); err != nil {
+		if err := w.beforeDurableCommand(); err != nil {
 			return err
 		}
 		scheduled, err := w.replay.NextActivity(activityType)
@@ -159,7 +225,7 @@ func (w *workflowContext) ExecuteActivity(activityType string, args []any, targe
 			return translateReplayError(err)
 		}
 		if scheduled != nil {
-			return w.resolveScheduledActivity(activityType, args, target, opts, scheduled)
+			return w.afterDurableCommand(w.resolveScheduledActivity(activityType, args, target, opts, scheduled))
 		}
 	}
 	if w.replayOnly {
@@ -240,7 +306,7 @@ func (w *workflowContext) resolveScheduledActivity(activityType string, args []a
 
 func (w *workflowContext) ExecuteChildWorkflow(workflowType string, args []any, target any, opts *workflow.ChildWorkflowOptions) error {
 	if w.replay != nil {
-		if err := w.checkReplayCancellation(); err != nil {
+		if err := w.beforeDurableCommand(); err != nil {
 			return err
 		}
 		started, err := w.replay.NextChild(workflowType)
@@ -248,7 +314,7 @@ func (w *workflowContext) ExecuteChildWorkflow(workflowType string, args []any, 
 			return translateReplayError(err)
 		}
 		if started != nil {
-			return w.resolveChildWorkflow(workflowType, target, started)
+			return w.afterDurableCommand(w.resolveChildWorkflow(workflowType, target, started))
 		}
 	}
 	if w.replayOnly {
@@ -272,13 +338,14 @@ func (w *workflowContext) ExecuteChildWorkflow(workflowType string, args []any, 
 		reusePolicy = opts.WorkflowIDReusePolicy
 	}
 	payload := map[string]any{
-		"workflowType":    workflowType,
-		"args":            args,
-		"parent_workflow": w.workflowID,
-		"workflow_id":     workflowID,
-		"task_queue":      taskQueue,
-		"run_timeout_ms":  runTimeoutMs,
-		"reuse_policy":    string(reusePolicy),
+		"workflowType":          workflowType,
+		"args":                  args,
+		"parentWorkflowId":      w.workflowID,
+		"parentWorkflowTaskId":  w.taskID,
+		"workflowId":            workflowID,
+		"taskQueue":             taskQueue,
+		"runTimeoutMs":          runTimeoutMs,
+		"workflowIdReusePolicy": string(reusePolicy),
 	}
 	if retry != nil {
 		payload["retry"] = retry
@@ -363,14 +430,7 @@ func (w *workflowContext) SetUpdateHandler(name string, handler func(args []any)
 		return fmt.Errorf("postgrip-agent: update handler %q already registered", name)
 	}
 	w.updateHandlers[name] = handler
-	if w.replay != nil {
-		for _, args := range w.replay.CompletedUpdatesByName(name) {
-			if _, err := handler(args); err != nil {
-				return fmt.Errorf("postgrip-agent: replay update handler %q: %w", name, err)
-			}
-		}
-	}
-	return nil
+	return w.applyDurableUpdates(true)
 }
 
 func (w *workflowContext) Milestone(name string, opts workflow.MilestoneOptions) error {

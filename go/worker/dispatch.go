@@ -157,8 +157,21 @@ func (w *Worker) runWorkflowUpdate(ctx context.Context, task *client.Task) (*cli
 	if err != nil {
 		return nil, failure.NewNonRetryable("invalid workflow update arguments", "InvalidWorkflowUpdatePayload")
 	}
+	// Parent replay stops at this update's accepted-event boundary. From this
+	// point commands belong to the update task, so their completion must wake
+	// this task rather than the source workflow task.
+	wfctx.replay.ConsumeUpdate(task.ID)
+	wfctx.replayOnly = false
+	wfctx.taskID = task.ID
 	value, err := handler(args)
 	if err != nil {
+		if workflow.IsSuspended(err) {
+			if _, blockErr := w.opts.Connection.BlockTask(ctx, task.ID, w.opts.AgentID, err.Error()); blockErr != nil {
+				w.logger.Warn("block workflow update task failed", "task_id", task.ID, "error", blockErr)
+				return &client.TaskResult{}, blockErr
+			}
+			return nil, errWorkflowAlreadyBlocked
+		}
 		return &client.TaskResult{}, err
 	}
 	return &client.TaskResult{Value: value, Message: "update completed"}, nil
