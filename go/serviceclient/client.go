@@ -210,7 +210,7 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 		response, requestErr := c.send(ctx, operation, bodyBytes, headers)
 		if requestErr != nil {
 			if attempt < maxAttempts && ctx.Err() == nil {
-				if err := waitRetry(ctx, retryDelay(attempt, 0, c.retryPolicy)); err != nil {
+				if err := waitRetry(ctx, retryDelay(attempt, 0, false, c.retryPolicy)); err != nil {
 					return err
 				}
 				continue
@@ -231,9 +231,10 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 			}
 			return nil
 		}
-		apiErr := decodeAPIError(response, responseBody, c.retryPolicy.retryAfterMax)
+		apiErr, retryAfterSet := decodeAPIError(response, responseBody, c.retryPolicy.retryAfterMax)
 		if attempt < maxAttempts && retryableStatus(operation.Method, idempotencyKey, response.StatusCode) {
-			if err := waitRetry(ctx, retryDelay(attempt, retryAfterForStatus(response.StatusCode, apiErr.RetryAfter), c.retryPolicy)); err != nil {
+			retryAfter, retryAfterSet := retryAfterForStatus(response.StatusCode, apiErr.RetryAfter, retryAfterSet)
+			if err := waitRetry(ctx, retryDelay(attempt, retryAfter, retryAfterSet, c.retryPolicy)); err != nil {
 				return err
 			}
 			continue
@@ -267,7 +268,7 @@ func (c *Connection) send(ctx context.Context, operation openAPIOperation, body 
 	return c.httpClient.Do(request)
 }
 
-func decodeAPIError(response *http.Response, body []byte, retryAfterMax time.Duration) *APIError {
+func decodeAPIError(response *http.Response, body []byte, retryAfterMax time.Duration) (*APIError, bool) {
 	payload := OpenAPIErrorResponse{}
 	if err := json.Unmarshal(body, &payload); err != nil {
 		payload = OpenAPIErrorResponse{}
@@ -284,19 +285,30 @@ func decodeAPIError(response *http.Response, body []byte, retryAfterMax time.Dur
 	if requestID == "" {
 		requestID = strings.TrimSpace(response.Header.Get("X-Request-ID"))
 	}
+	retryAfter, retryAfterSet := parseRetryAfter(response.Header.Get("Retry-After"), retryAfterMax)
 	return &APIError{StatusCode: response.StatusCode, Code: code, Message: message,
-		RequestID: requestID, Details: payload.Details, RetryAfter: parseRetryAfter(response.Header.Get("Retry-After"), retryAfterMax)}
+		RequestID: requestID, Details: payload.Details, RetryAfter: retryAfter}, retryAfterSet
 }
 
-func parseRetryAfter(value string, maximum time.Duration) time.Duration {
+func parseRetryAfter(value string, maximum time.Duration) (time.Duration, bool) {
 	value = strings.TrimSpace(value)
-	if seconds, err := strconv.Atoi(value); err == nil && seconds >= 0 {
-		return min(time.Duration(seconds)*time.Second, maximum)
+	if value == "" {
+		return 0, false
+	}
+	if seconds, err := strconv.ParseUint(value, 10, 64); err == nil {
+		if maximum <= 0 || seconds > uint64(maximum/time.Second) {
+			return maximum, true
+		}
+		return time.Duration(seconds) * time.Second, true
+	} else if errors.Is(err, strconv.ErrRange) && strings.IndexFunc(value, func(value rune) bool {
+		return value < '0' || value > '9'
+	}) == -1 {
+		return maximum, true
 	}
 	if when, err := http.ParseTime(value); err == nil {
-		return min(max(time.Until(when), 0), maximum)
+		return min(max(time.Until(when), 0), maximum), true
 	}
-	return 0
+	return 0, false
 }
 
 func retryableStatus(method, key string, status int) bool {
@@ -306,16 +318,16 @@ func retryableStatus(method, key string, status int) bool {
 	return status == 408 || status == 429 || status == 502 || status == 503 || status == 504
 }
 
-func retryAfterForStatus(status int, retryAfter time.Duration) time.Duration {
-	if status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable {
-		return retryAfter
+func retryAfterForStatus(status int, retryAfter time.Duration, retryAfterSet bool) (time.Duration, bool) {
+	if (status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable) && retryAfterSet {
+		return retryAfter, true
 	}
-	return 0
+	return 0, false
 }
 
-func retryDelay(attempt int, retryAfter time.Duration, policy serviceRetryLimits) time.Duration {
-	if retryAfter > 0 {
-		return min(retryAfter, policy.retryAfterMax)
+func retryDelay(attempt int, retryAfter time.Duration, retryAfterSet bool, policy serviceRetryLimits) time.Duration {
+	if retryAfterSet {
+		return min(max(retryAfter, 0), policy.retryAfterMax)
 	}
 	capDelay := min(200*time.Millisecond*time.Duration(1<<(attempt-1)), policy.maxDelay)
 	return time.Duration(rand.Int63n(max(int64(capDelay), 1)))

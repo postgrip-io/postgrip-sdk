@@ -244,6 +244,24 @@ func TestRetryConfigurationCapsAttemptsAndRetryAfter(t *testing.T) {
 	}
 }
 
+func TestRetryAfterPreservesZeroAndCapsOversizedValues(t *testing.T) {
+	policy := serviceRetryLimits{maxDelay: 2 * time.Second, retryAfterMax: 30 * time.Second}
+	response := &http.Response{StatusCode: http.StatusServiceUnavailable, Header: http.Header{"Retry-After": []string{"0"}}}
+	apiErr, retryAfterSet := decodeAPIError(response, nil, policy.retryAfterMax)
+	retryAfter, retryAfterSet := retryAfterForStatus(response.StatusCode, apiErr.RetryAfter, retryAfterSet)
+	if !retryAfterSet || retryAfter != 0 {
+		t.Fatalf("Retry-After zero = %s, present = %v", retryAfter, retryAfterSet)
+	}
+	if delay := retryDelay(1, retryAfter, retryAfterSet, policy); delay != 0 {
+		t.Fatalf("retry delay = %s, want zero", delay)
+	}
+
+	retryAfter, retryAfterSet = parseRetryAfter(strings.Repeat("9", 100), policy.retryAfterMax)
+	if !retryAfterSet || retryAfter != policy.retryAfterMax {
+		t.Fatalf("oversized Retry-After = %s, present = %v", retryAfter, retryAfterSet)
+	}
+}
+
 func TestCancellationInterruptsRetryBackoff(t *testing.T) {
 	called := make(chan struct{}, 1)
 	var calls atomic.Int32

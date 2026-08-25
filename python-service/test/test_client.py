@@ -229,6 +229,30 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.retry_after, 0.001)
         self.assertEqual(len(opener.requests), 2)
 
+    def test_non_finite_retry_after_uses_jitter(self) -> None:
+        opener = FakeOpener([api_error(503, retry_after="NaN"), SERVICE])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+            enable_retries=True,
+        )  # type: ignore[arg-type]
+        with patch("postgrip_service.client._jitter", return_value=0.125):
+            with patch("postgrip_service.client.time.sleep") as sleep:
+                self.assertEqual(client.resolve("api")["id"], SERVICE["id"])
+        sleep.assert_called_once_with(0.125)
+        self.assertEqual(len(opener.requests), 2)
+
+    def test_oversized_http_error_body_is_closed(self) -> None:
+        headers = Message()
+        body = BytesIO(b"x" * ((4 << 20) + 1))
+        error = HTTPError("https://services.example.test", 502, "failed", headers, body)
+        opener = FakeOpener([error])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        with self.assertRaises(ServiceAPIError):
+            client.resolve("api")
+        self.assertTrue(body.closed)
+
     def test_response_body_limit(self) -> None:
         opener = FakeOpener([b"x" * ((4 << 20) + 1)])
         client = ServiceClient(

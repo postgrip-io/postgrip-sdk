@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from http.client import HTTPConnection, HTTPSConnection
 import json
+import math
 import os
 import random
 import re
@@ -698,7 +699,10 @@ def _decode_success(response: Any) -> Any:
 
 
 def _decode_http_error(error: HTTPError, retry_after_max_delay: float) -> ServiceAPIError:
-    body = error.read(_MAX_RESPONSE_BYTES + 1)
+    try:
+        body = error.read(_MAX_RESPONSE_BYTES + 1)
+    finally:
+        error.close()
     try:
         value = json.loads(body) if len(body) <= _MAX_RESPONSE_BYTES else {}
     except (json.JSONDecodeError, UnicodeDecodeError):
@@ -719,7 +723,10 @@ def _parse_retry_after(value: str | None, maximum: float) -> float | None:
     if not value:
         return None
     try:
-        return min(max(float(value), 0.0), maximum)
+        seconds = float(value)
+        if not math.isfinite(seconds):
+            return None
+        return min(max(seconds, 0.0), maximum)
     except ValueError:
         try:
             when = parsedate_to_datetime(value)
