@@ -36,6 +36,8 @@ type OpenAPIWorker struct {
 	UpdatedAt               time.Time                 `json:"updatedAt"`
 	Capabilities            []string                  `json:"capabilities"`
 	Version                 *int64                    `json:"version,omitempty"`
+	SignerVersion           *int64                    `json:"signerVersion,omitempty"`
+	SignerRevision          *string                   `json:"signerRevision,omitempty"`
 	GoVersion               *string                   `json:"goVersion,omitempty"`
 	Platform                *string                   `json:"platform,omitempty"`
 	PreviewSubdomainEnabled bool                      `json:"previewSubdomainEnabled"`
@@ -201,4 +203,4 @@ type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
 
-const openAPITypesSpecSHA256 = "c6cdf81157eec099cfde167e3adbebd84bd820b44070542fe407f182931e2101"
+const openAPITypesSpecSHA256 = "274cbd5d7c9d38d617052d0c31030e03c659c292f9ad555fadb6e1372c3248a1"
