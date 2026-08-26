@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd",
+  "contractBundleDigest": "2b2b07aa61a7b55da13ae193ea427ffe2823e4ff614b99e1f183224b93e826bd",
   "operations": [
     {
       "curl": false,
@@ -910,6 +910,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "createPostGripConfigurationPlan",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "createServiceDomain",
       "plane": "service",
@@ -1149,6 +1166,40 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "getPostGripConfigurationPlan",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "getPostGripConfigurationStack",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "getService",
       "plane": "service",
       "protocolException": false,
@@ -1354,6 +1405,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "getTargetServiceRemovalImpact",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "listPostGripConfigurationPlanActions",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2016,6 +2084,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "validatePostGripConfiguration",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "checkWorker",
       "plane": "worker",
       "protocolException": false,
@@ -2220,10 +2305,10 @@
       "recordedTested": 45
     },
     "service": {
-      "curl": 73,
-      "operations": 73,
+      "curl": 78,
+      "operations": 78,
       "protocolExceptions": 0,
-      "recordedTested": 73
+      "recordedTested": 78
     },
     "worker": {
       "curl": 12,
@@ -2234,14 +2319,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 121,
-    "documented": 130,
-    "nightlyOwned": 104,
-    "operations": 130,
-    "preReleaseOwned": 24,
+    "curl": 126,
+    "documented": 135,
+    "nightlyOwned": 108,
+    "operations": 135,
+    "preReleaseOwned": 25,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 130,
-    "sdkGenerated": 130
+    "recordedTested": 135,
+    "sdkGenerated": 135
   }
 }

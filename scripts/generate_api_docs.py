@@ -121,6 +121,12 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
     if schema.get("format") == "date":
         return "2026-01-01"
     pattern = schema.get("pattern")
+    if pattern == "^[a-f0-9]{64}$":
+        return "a" * 64
+    if pattern == "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$":
+        return "recorded"
+    if pattern == "^[A-Za-z_][A-Za-z0-9_]*$":
+        return "RECORDED_VALUE"
     if pattern == "^(target|project):[0-9a-fA-F-]{36}$":
         return "project:11111111-1111-4111-8111-111111111111"
     if pattern in {"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$", "^[!-~]+$"}:

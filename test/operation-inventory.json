@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd",
+  "contractBundleDigest": "2b2b07aa61a7b55da13ae193ea427ffe2823e4ff614b99e1f183224b93e826bd",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "2dd219d428083e4416f141676dcfed63fe23f5d4d729aaadb3a574c2cb2b1ec5",
+    "service": "c5324eed6f1585aca7826db1f789e94b7f8a36cfdc448b112103aa050b23c1e2",
     "worker": "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
   },
   "operations": [
@@ -1660,6 +1660,39 @@
       "idempotency": "required",
       "method": "POST",
       "operationClass": "tenant-api",
+      "operationId": "createPostGripConfigurationPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/plans",
+      "pathParameters": [
+        "stackKey"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreatePostGripConfigurationPlanRequest",
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationPlan",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
       "operationId": "createServiceDomain",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains",
@@ -2120,6 +2153,69 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getPostGripConfigurationPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}",
+      "pathParameters": [
+        "stackKey",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationPlan",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getPostGripConfigurationStack",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}",
+      "pathParameters": [
+        "stackKey"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationStack",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getService",
       "pagination": "none",
       "path": "/api/v1/services/{source}/{serviceId}",
@@ -2518,6 +2614,38 @@
         "application/json"
       ],
       "responseSchema": "ServiceRemovalImpact",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listPostGripConfigurationPlanActions",
+      "pagination": "cursor",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions",
+      "pathParameters": [
+        "stackKey",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationPlanActionList",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -3758,6 +3886,37 @@
       "responseSchema": "ServiceTargetMutationResponse",
       "retry": "bounded",
       "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "validatePostGripConfiguration",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration/validate",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ValidatePostGripConfigurationRequest",
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationValidationResult",
+      "retry": "bounded",
+      "safety": "read-only",
       "signing": null
     },
     {

@@ -25,7 +25,7 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer pgt_test-token" {
 			t.Fatalf("authorization=%q", r.Header.Get("Authorization"))
 		}
-		if r.Method != http.MethodGet && r.Header.Get("Idempotency-Key") != "operation-1" {
+		if r.Method != http.MethodGet && r.URL.Path != "/api/v1/services/configuration/validate" && r.Header.Get("Idempotency-Key") != "operation-1" {
 			t.Fatalf("idempotency=%q for %s", r.Header.Get("Idempotency-Key"), r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -110,8 +110,15 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(operations.Get(ctx, "operation-1")))
 	mustServiceResult(t, serviceResultError(operations.Retry(ctx, "operation-1", write)))
 
-	if calls.Load() != 55 {
-		t.Fatalf("transport calls=%d, want 55", calls.Load())
+	configuration := client.DeclarativeConfiguration()
+	mustServiceResult(t, serviceResultError(configuration.Validate(ctx, OpenAPIValidatePostGripConfigurationRequestBody{})))
+	mustServiceResult(t, serviceResultError(configuration.GetStack(ctx, "stack-1")))
+	mustServiceResult(t, serviceResultError(configuration.CreatePlan(ctx, "stack-1", OpenAPICreatePostGripConfigurationPlanRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(configuration.GetPlan(ctx, "stack-1", "plan-1")))
+	mustServiceResult(t, serviceResultError(configuration.ListActions(ctx, "stack-1", "plan-1", OpenAPIListPostGripConfigurationPlanActionsQuery{})))
+
+	if calls.Load() != 60 {
+		t.Fatalf("transport calls=%d, want 60", calls.Load())
 	}
 }
 

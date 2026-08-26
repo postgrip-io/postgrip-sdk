@@ -196,6 +196,15 @@
       "plane": "agent",
       "protocolException": null
     },
+    "createPostGripConfigurationPlan": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createPostGripConfigurationPlan.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "createServiceDomain": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,
@@ -387,6 +396,24 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "agent",
+      "protocolException": null
+    },
+    "getPostGripConfigurationPlan": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getPostGripConfigurationPlan.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getPostGripConfigurationStack": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getPostGripConfigurationStack.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
       "protocolException": null
     },
     "getService": {
@@ -598,6 +625,15 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "agent",
+      "protocolException": null
+    },
+    "listPostGripConfigurationPlanActions": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listPostGripConfigurationPlanActions.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
       "protocolException": null
     },
     "listServiceConfigurationOperations": {
@@ -1170,6 +1206,15 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/updateTargetService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "validatePostGripConfiguration": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/validatePostGripConfiguration.json",
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",

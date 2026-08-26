@@ -1,0 +1,96 @@
+{
+  "operationId": "getPostGripConfigurationStack",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "stackKey": "recorded"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configuration": {
+        "apiVersion": "postgrip.io/v1alpha1",
+        "kind": "Configuration",
+        "metadata": {
+          "name": "recorded"
+        },
+        "spec": {
+          "projects": [
+            {
+              "deploymentMode": "docker",
+              "environments": [
+                {
+                  "assignedWorker": {
+                    "id": "11111111-1111-4111-8111-111111111111"
+                  },
+                  "containerPort": 1,
+                  "domains": [
+                    {
+                      "domain": "string",
+                      "isPrimary": true,
+                      "ref": "recorded"
+                    }
+                  ],
+                  "kind": "production",
+                  "name": "string",
+                  "ref": "recorded",
+                  "variables": [
+                    {
+                      "isSecret": false,
+                      "name": "RECORDED_VALUE",
+                      "value": "string"
+                    }
+                  ]
+                }
+              ],
+              "framework": "string",
+              "name": "string",
+              "projectType": "web",
+              "ref": "recorded",
+              "repository": {
+                "connection": "github-app",
+                "defaultBranch": "string",
+                "provider": "github",
+                "repoName": "string",
+                "repoOwner": "string"
+              },
+              "slug": "recorded"
+            }
+          ]
+        }
+      },
+      "createdAt": "2026-01-01T00:00:00Z",
+      "desiredStateDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "id": "11111111-1111-4111-8111-111111111111",
+      "key": "string",
+      "resources": [
+        {
+          "etag": "string",
+          "path": "string",
+          "resourceId": "11111111-1111-4111-8111-111111111111",
+          "resourceType": "string"
+        }
+      ],
+      "revision": 1,
+      "schemaVersion": "string",
+      "secretVersions": [
+        {
+          "inputName": "string",
+          "path": "string",
+          "secretVersion": "string"
+        }
+      ],
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getPostGripConfigurationStack"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

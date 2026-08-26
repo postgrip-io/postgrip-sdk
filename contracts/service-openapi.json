@@ -4555,6 +4555,286 @@
         "x-postgrip-idempotency": "required",
         "x-postgrip-retry": "bounded"
       }
+    },
+    "/api/v1/services/configuration/validate": {
+      "post": {
+        "operationId": "validatePostGripConfiguration",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Validate PostGrip Configuration",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePostGripConfigurationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostGripConfigurationValidationResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/configuration-stacks/{stackKey}": {
+      "get": {
+        "operationId": "getPostGripConfigurationStack",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get PostGrip Configuration Stack",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigurationStackKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostGripConfigurationStack"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/configuration-stacks/{stackKey}/plans": {
+      "post": {
+        "operationId": "createPostGripConfigurationPlan",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Create PostGrip Configuration Plan",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigurationStackKey"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePostGripConfigurationPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostGripConfigurationPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}": {
+      "get": {
+        "operationId": "getPostGripConfigurationPlan",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get PostGrip Configuration Plan",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigurationStackKey"
+          },
+          {
+            "$ref": "#/components/parameters/ConfigurationPlanId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostGripConfigurationPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions": {
+      "get": {
+        "operationId": "listPostGripConfigurationPlanActions",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "List PostGrip Configuration Plan Actions",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConfigurationStackKey"
+          },
+          {
+            "$ref": "#/components/parameters/ConfigurationPlanId"
+          },
+          {
+            "$ref": "#/components/parameters/ConfigurationActionLimit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostGripConfigurationPlanActionList"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "cursor",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
     }
   },
   "components": {
@@ -4741,6 +5021,36 @@
         "schema": {
           "type": "string",
           "format": "uuid"
+        }
+      },
+      "ConfigurationStackKey": {
+        "name": "stackKey",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$"
+        }
+      },
+      "ConfigurationPlanId": {
+        "name": "planId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "ConfigurationActionLimit": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50
         }
       }
     },
@@ -7999,6 +8309,1016 @@
           },
           "receipt": {
             "$ref": "#/components/schemas/OperationReceipt"
+          }
+        }
+      },
+      "PostGripConfigurationMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$"
+          }
+        }
+      },
+      "PostGripConfigurationWorkerSelector": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        ]
+      },
+      "PostGripConfigurationRepository": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "repoOwner",
+          "repoName",
+          "defaultBranch",
+          "connection"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "const": "github"
+          },
+          "repoOwner": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "repoName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "defaultBranch": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "projectPath": {
+            "type": "string",
+            "maxLength": 1024,
+            "default": "."
+          },
+          "dockerfilePath": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "connection": {
+            "type": "string",
+            "const": "github-app"
+          }
+        }
+      },
+      "PostGripConfigurationDomain": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "domain",
+          "isPrimary"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253
+          },
+          "isPrimary": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PostGripConfigurationSecretSource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "env"
+        ],
+        "properties": {
+          "env": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        }
+      },
+      "PostGripConfigurationPlainVariable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "isSecret",
+          "value"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "isSecret": {
+            "type": "boolean",
+            "const": false
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 65536
+          }
+        }
+      },
+      "PostGripConfigurationSecretVariable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "isSecret",
+          "valueFrom",
+          "secretVersion"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "isSecret": {
+            "type": "boolean",
+            "const": true
+          },
+          "valueFrom": {
+            "$ref": "#/components/schemas/PostGripConfigurationSecretSource"
+          },
+          "secretVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "allowEmpty": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "PostGripConfigurationVariable": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PostGripConfigurationPlainVariable"
+          },
+          {
+            "$ref": "#/components/schemas/PostGripConfigurationSecretVariable"
+          }
+        ]
+      },
+      "PostGripConfigurationEnvironment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "name",
+          "kind",
+          "assignedWorker",
+          "containerPort",
+          "domains",
+          "variables"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "production",
+              "preview",
+              "development"
+            ]
+          },
+          "branchPattern": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "assignedWorker": {
+            "$ref": "#/components/schemas/PostGripConfigurationWorkerSelector"
+          },
+          "buildCommand": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "containerPort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationDomain"
+            },
+            "maxItems": 100
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationVariable"
+            },
+            "maxItems": 500
+          }
+        }
+      },
+      "PostGripConfigurationProject": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "name",
+          "slug",
+          "framework",
+          "deploymentMode",
+          "projectType",
+          "repository",
+          "environments"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$"
+          },
+          "framework": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "deploymentMode": {
+            "type": "string",
+            "enum": [
+              "docker",
+              "nixpacks"
+            ]
+          },
+          "projectType": {
+            "type": "string",
+            "enum": [
+              "web",
+              "backend"
+            ]
+          },
+          "repository": {
+            "$ref": "#/components/schemas/PostGripConfigurationRepository"
+          },
+          "environments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationEnvironment"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          }
+        }
+      },
+      "PostGripConfigurationSpec": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projects"
+        ],
+        "properties": {
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationProject"
+            },
+            "maxItems": 100
+          }
+        }
+      },
+      "PostGripConfiguration": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "apiVersion",
+          "kind",
+          "metadata",
+          "spec"
+        ],
+        "properties": {
+          "apiVersion": {
+            "type": "string",
+            "const": "postgrip.io/v1alpha1"
+          },
+          "kind": {
+            "type": "string",
+            "const": "Configuration"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PostGripConfigurationMetadata"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/PostGripConfigurationSpec"
+          }
+        }
+      },
+      "PostGripConfigurationValidationIssue": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "PostGripConfigurationResolvedWorker": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "id",
+          "name",
+          "version"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "ValidatePostGripConfigurationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "configuration",
+          "desiredStateDigest"
+        ],
+        "properties": {
+          "configuration": {
+            "$ref": "#/components/schemas/PostGripConfiguration"
+          },
+          "desiredStateDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "PostGripConfigurationValidationResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "valid",
+          "schemaVersion",
+          "desiredStateDigest",
+          "canonicalConfiguration",
+          "issues",
+          "resolvedWorkers"
+        ],
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "schemaVersion": {
+            "type": "string",
+            "const": "postgrip.io/v1alpha1"
+          },
+          "desiredStateDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "canonicalConfiguration": {
+            "$ref": "#/components/schemas/PostGripConfiguration"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationValidationIssue"
+            }
+          },
+          "resolvedWorkers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationResolvedWorker"
+            }
+          }
+        }
+      },
+      "CreatePostGripConfigurationPlanRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "configuration",
+          "desiredStateDigest",
+          "allowAdoption",
+          "prune"
+        ],
+        "properties": {
+          "configuration": {
+            "$ref": "#/components/schemas/PostGripConfiguration"
+          },
+          "desiredStateDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "allowAdoption": {
+            "type": "boolean"
+          },
+          "prune": {
+            "type": "boolean"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 1800
+          }
+        }
+      },
+      "PostGripConfigurationPlanSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "total",
+          "create",
+          "adopt",
+          "update",
+          "replace",
+          "reconcileSecret",
+          "reconcileGitHub",
+          "delete",
+          "noOp",
+          "blocked"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "create": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "adopt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "update": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "replace": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reconcileSecret": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reconcileGitHub": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "delete": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "noOp": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "blocked": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "PostGripConfigurationResourceProjection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "framework": {
+            "type": "string"
+          },
+          "deploymentMode": {
+            "type": "string"
+          },
+          "projectType": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "repoOwner": {
+            "type": "string"
+          },
+          "repoName": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "projectPath": {
+            "type": "string"
+          },
+          "dockerfilePath": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "branchPattern": {
+            "type": "string"
+          },
+          "assignedWorkerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assignedWorkerVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "buildCommand": {
+            "type": "string"
+          },
+          "containerPort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "domain": {
+            "type": "string"
+          },
+          "isPrimary": {
+            "type": "boolean"
+          },
+          "variableName": {
+            "type": "string"
+          },
+          "isSecret": {
+            "type": "boolean"
+          },
+          "hasValue": {
+            "type": "boolean"
+          },
+          "value": {
+            "type": "string"
+          },
+          "inputName": {
+            "type": "string"
+          },
+          "secretVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "PostGripConfigurationPlanAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "path",
+          "resourceType",
+          "requiredScopes",
+          "risk",
+          "dependencies",
+          "reason",
+          "drift"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "create",
+              "adopt",
+              "update",
+              "replace",
+              "reconcile-secret",
+              "reconcile-github",
+              "delete",
+              "no-op",
+              "blocked"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string",
+            "enum": [
+              "project",
+              "environment",
+              "domain",
+              "variable",
+              "repository"
+            ]
+          },
+          "resourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "before": {
+            "$ref": "#/components/schemas/PostGripConfigurationResourceProjection"
+          },
+          "after": {
+            "$ref": "#/components/schemas/PostGripConfigurationResourceProjection"
+          },
+          "requiredScopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risk": {
+            "type": "string",
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "observedEtag": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "drift": {
+            "type": "string",
+            "enum": [
+              "none",
+              "desired-change",
+              "live-drift",
+              "both-changed"
+            ]
+          }
+        }
+      },
+      "PostGripConfigurationPlanDigestInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "stackKey",
+          "baseStackRevision",
+          "desiredStateDigest",
+          "allowAdoption",
+          "prune",
+          "actions"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "const": "postgrip.io/v1alpha1"
+          },
+          "stackKey": {
+            "type": "string"
+          },
+          "baseStackRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "desiredStateDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "allowAdoption": {
+            "type": "boolean"
+          },
+          "prune": {
+            "type": "boolean"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationPlanAction"
+            }
+          }
+        }
+      },
+      "PostGripConfigurationPlan": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "stackKey",
+          "baseStackRevision",
+          "schemaVersion",
+          "desiredStateDigest",
+          "planDigest",
+          "allowAdoption",
+          "prune",
+          "state",
+          "summary",
+          "createdAt",
+          "expiresAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stackId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stackKey": {
+            "type": "string"
+          },
+          "baseStackRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "schemaVersion": {
+            "type": "string"
+          },
+          "desiredStateDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "planDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "allowAdoption": {
+            "type": "boolean"
+          },
+          "prune": {
+            "type": "boolean"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "blocked"
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/PostGripConfigurationPlanSummary"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          }
+        }
+      },
+      "PostGripConfigurationPlanActionList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationPlanAction"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "PostGripConfigurationStackResource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "resourceType",
+          "resourceId",
+          "etag"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "etag": {
+            "type": "string"
+          }
+        }
+      },
+      "PostGripConfigurationSecretVersion": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "inputName",
+          "secretVersion"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "inputName": {
+            "type": "string"
+          },
+          "secretVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "PostGripConfigurationStack": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "schemaVersion",
+          "revision",
+          "desiredStateDigest",
+          "configuration",
+          "resources",
+          "secretVersions",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "schemaVersion": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "desiredStateDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/PostGripConfiguration"
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationStackResource"
+            }
+          },
+          "secretVersions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationSecretVersion"
+            }
+          },
+          "lastOperationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

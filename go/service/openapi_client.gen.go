@@ -71,6 +71,22 @@ func (p OpenAPIGetServiceStatusQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIListPostGripConfigurationPlanActionsQuery struct {
+	Limit  *int64
+	Cursor *string
+}
+
+func (p OpenAPIListPostGripConfigurationPlanActionsQuery) values() url.Values {
+	values := url.Values{}
+	if p.Limit != nil {
+		values.Set("limit", fmt.Sprint(*p.Limit))
+	}
+	if p.Cursor != nil {
+		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	return values
+}
+
 type OpenAPIListServiceConfigurationOperationsQuery struct {
 	Limit      *int64
 	Cursor     *string
@@ -374,6 +390,16 @@ func (p OpenAPIClearTargetServiceConnectionHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
+type OpenAPICreatePostGripConfigurationPlanHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPICreatePostGripConfigurationPlanHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	return values
 }
 
@@ -869,6 +895,11 @@ func (c *OpenAPIClient) ClearTargetServiceConnection(ctx context.Context, servic
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearTargetServiceConnection, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CreatePostGripConfigurationPlan(ctx context.Context, stackKey string, headers OpenAPICreatePostGripConfigurationPlanHeaders, body OpenAPICreatePostGripConfigurationPlanRequestBody) (OpenAPICreatePostGripConfigurationPlanResponseBody, error) {
+	var response OpenAPICreatePostGripConfigurationPlanResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreatePostGripConfigurationPlan, map[string]string{"stackKey": stackKey}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) CreateServiceDomain(ctx context.Context, serviceId string, environmentId string, headers OpenAPICreateServiceDomainHeaders, body OpenAPICreateServiceDomainRequestBody) (OpenAPICreateServiceDomainResponseBody, error) {
 	var response OpenAPICreateServiceDomainResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
@@ -939,6 +970,16 @@ func (c *OpenAPIClient) FlushServiceRuntimeLogs(ctx context.Context, serviceId s
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceRuntimeLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) GetPostGripConfigurationPlan(ctx context.Context, stackKey string, planId string) (OpenAPIGetPostGripConfigurationPlanResponseBody, error) {
+	var response OpenAPIGetPostGripConfigurationPlanResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetPostGripConfigurationPlan, map[string]string{"stackKey": stackKey, "planId": planId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetPostGripConfigurationStack(ctx context.Context, stackKey string) (OpenAPIGetPostGripConfigurationStackResponseBody, error) {
+	var response OpenAPIGetPostGripConfigurationStackResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetPostGripConfigurationStack, map[string]string{"stackKey": stackKey}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) GetService(ctx context.Context, source string, serviceId string) (OpenAPIGetServiceResponseBody, error) {
 	var response OpenAPIGetServiceResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetService, map[string]string{"source": source, "serviceId": serviceId}, nil, nil, &response)
@@ -1002,6 +1043,11 @@ func (c *OpenAPIClient) GetServiceVolumeRemovalImpact(ctx context.Context, servi
 func (c *OpenAPIClient) GetTargetServiceRemovalImpact(ctx context.Context, serviceId string) (OpenAPIGetTargetServiceRemovalImpactResponseBody, error) {
 	var response OpenAPIGetTargetServiceRemovalImpactResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetTargetServiceRemovalImpact, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) ListPostGripConfigurationPlanActions(ctx context.Context, stackKey string, planId string, query OpenAPIListPostGripConfigurationPlanActionsQuery) (OpenAPIListPostGripConfigurationPlanActionsResponseBody, error) {
+	var response OpenAPIListPostGripConfigurationPlanActionsResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListPostGripConfigurationPlanActions, map[string]string{"stackKey": stackKey, "planId": planId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceConfigurationOperations(ctx context.Context, query OpenAPIListServiceConfigurationOperationsQuery) (OpenAPIListServiceConfigurationOperationsResponseBody, error) {
@@ -1194,9 +1240,14 @@ func (c *OpenAPIClient) UpdateTargetService(ctx context.Context, serviceId strin
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateTargetService, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ValidatePostGripConfiguration(ctx context.Context, body OpenAPIValidatePostGripConfigurationRequestBody) (OpenAPIValidatePostGripConfigurationResponseBody, error) {
+	var response OpenAPIValidatePostGripConfigurationResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIValidatePostGripConfiguration, nil, nil, body, &response)
+	return response, err
+}
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 73
+const OpenAPIClientOperationCount = 78
 
-const openAPIClientSpecSHA256 = "2dd219d428083e4416f141676dcfed63fe23f5d4d729aaadb3a574c2cb2b1ec5"
+const openAPIClientSpecSHA256 = "c5324eed6f1585aca7826db1f789e94b7f8a36cfdc448b112103aa050b23c1e2"

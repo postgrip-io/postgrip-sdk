@@ -23,6 +23,7 @@ from urllib.request import HTTPHandler, HTTPRedirectHandler, HTTPSHandler, Opene
 from .._internal.config import validate_base_url, validate_management_token
 
 from .administration_types import (
+    AsyncDeclarativeConfigurationAdministration,
     AsyncConfigurationOperationsAdministration,
     AsyncDomainsAdministration,
     AsyncEnvironmentsAdministration,
@@ -34,6 +35,7 @@ from .administration_types import (
     AsyncTargetServicesAdministration,
     AsyncVariablesAdministration,
     ConfigurationOperationsAdministration,
+    DeclarativeConfigurationAdministration,
     DomainsAdministration,
     EnvironmentsAdministration,
     ManagedVolumesAdministration,
@@ -117,6 +119,11 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     "configuration_operations": (
         "list_service_configuration_operations", "get_service_configuration_operation",
         "retry_service_configuration_operation",
+    ),
+    "declarative_configuration": (
+        "validate_post_grip_configuration", "get_post_grip_configuration_stack",
+        "create_post_grip_configuration_plan", "get_post_grip_configuration_plan",
+        "list_post_grip_configuration_plan_actions",
     ),
 }
 
@@ -296,7 +303,7 @@ class _AdministrationGroup:
 
 
 class ServiceAdministration:
-    """Grouped access to all 55 generated Service-administration operations."""
+    """Grouped access to all 60 generated Service-administration operations."""
 
     target_services: TargetServicesAdministration
     projects: ProjectsAdministration
@@ -308,6 +315,7 @@ class ServiceAdministration:
     promotions: PromotionsAdministration
     retention: RetentionAdministration
     configuration_operations: ConfigurationOperationsAdministration
+    declarative_configuration: DeclarativeConfigurationAdministration
 
     def __init__(self, transport: Callable[..., Any]) -> None:
         generated = OpenAPIClient(transport)
@@ -321,6 +329,7 @@ class ServiceAdministration:
         self.promotions = cast(PromotionsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["promotions"]))
         self.retention = cast(RetentionAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["retention"]))
         self.configuration_operations = cast(ConfigurationOperationsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["configuration_operations"]))
+        self.declarative_configuration = cast(DeclarativeConfigurationAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["declarative_configuration"]))
 
 
 class AsyncServiceAdministration:
@@ -336,6 +345,7 @@ class AsyncServiceAdministration:
     promotions: AsyncPromotionsAdministration
     retention: AsyncRetentionAdministration
     configuration_operations: AsyncConfigurationOperationsAdministration
+    declarative_configuration: AsyncDeclarativeConfigurationAdministration
 
     def __init__(self, client: AsyncServiceClient, sync: ServiceAdministration) -> None:
         self.target_services = cast(AsyncTargetServicesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.target_services)))
@@ -348,6 +358,7 @@ class AsyncServiceAdministration:
         self.promotions = cast(AsyncPromotionsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.promotions)))
         self.retention = cast(AsyncRetentionAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.retention)))
         self.configuration_operations = cast(AsyncConfigurationOperationsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.configuration_operations)))
+        self.declarative_configuration = cast(AsyncDeclarativeConfigurationAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.declarative_configuration)))
 
 
 class _AsyncAdministrationGroup:

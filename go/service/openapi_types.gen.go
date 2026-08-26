@@ -741,6 +741,214 @@ type OpenAPIServiceVariablesApplyResponse struct {
 	ConfigurationOperationId string                              `json:"configurationOperationId"`
 	Receipt                  OpenAPIOperationReceipt             `json:"receipt"`
 }
+type OpenAPIPostGripConfigurationMetadata struct {
+	Name string `json:"name"`
+}
+type OpenAPIPostGripConfigurationWorkerSelector any
+type OpenAPIPostGripConfigurationRepository struct {
+	Provider       string  `json:"provider"`
+	RepoOwner      string  `json:"repoOwner"`
+	RepoName       string  `json:"repoName"`
+	DefaultBranch  string  `json:"defaultBranch"`
+	ProjectPath    *string `json:"projectPath,omitempty"`
+	DockerfilePath *string `json:"dockerfilePath,omitempty"`
+	Connection     string  `json:"connection"`
+}
+type OpenAPIPostGripConfigurationDomain struct {
+	Ref       string  `json:"ref"`
+	Id        *string `json:"id,omitempty"`
+	Domain    string  `json:"domain"`
+	IsPrimary bool    `json:"isPrimary"`
+}
+type OpenAPIPostGripConfigurationSecretSource struct {
+	Env string `json:"env"`
+}
+type OpenAPIPostGripConfigurationPlainVariable struct {
+	Id       *string `json:"id,omitempty"`
+	Name     string  `json:"name"`
+	IsSecret bool    `json:"isSecret"`
+	Value    string  `json:"value"`
+}
+type OpenAPIPostGripConfigurationSecretVariable struct {
+	Id            *string                                  `json:"id,omitempty"`
+	Name          string                                   `json:"name"`
+	IsSecret      bool                                     `json:"isSecret"`
+	ValueFrom     OpenAPIPostGripConfigurationSecretSource `json:"valueFrom"`
+	SecretVersion string                                   `json:"secretVersion"`
+	AllowEmpty    *bool                                    `json:"allowEmpty,omitempty"`
+}
+type OpenAPIPostGripConfigurationVariable any
+type OpenAPIPostGripConfigurationEnvironment struct {
+	Ref            string                                     `json:"ref"`
+	Id             *string                                    `json:"id,omitempty"`
+	Name           string                                     `json:"name"`
+	Kind           string                                     `json:"kind"`
+	BranchPattern  *string                                    `json:"branchPattern,omitempty"`
+	AssignedWorker OpenAPIPostGripConfigurationWorkerSelector `json:"assignedWorker"`
+	BuildCommand   *string                                    `json:"buildCommand,omitempty"`
+	ContainerPort  int64                                      `json:"containerPort"`
+	Domains        []OpenAPIPostGripConfigurationDomain       `json:"domains"`
+	Variables      []OpenAPIPostGripConfigurationVariable     `json:"variables"`
+}
+type OpenAPIPostGripConfigurationProject struct {
+	Ref            string                                    `json:"ref"`
+	Id             *string                                   `json:"id,omitempty"`
+	Name           string                                    `json:"name"`
+	Slug           string                                    `json:"slug"`
+	Framework      string                                    `json:"framework"`
+	DeploymentMode string                                    `json:"deploymentMode"`
+	ProjectType    string                                    `json:"projectType"`
+	Repository     OpenAPIPostGripConfigurationRepository    `json:"repository"`
+	Environments   []OpenAPIPostGripConfigurationEnvironment `json:"environments"`
+}
+type OpenAPIPostGripConfigurationSpec struct {
+	Projects []OpenAPIPostGripConfigurationProject `json:"projects"`
+}
+type OpenAPIPostGripConfiguration struct {
+	ApiVersion string                               `json:"apiVersion"`
+	Kind       string                               `json:"kind"`
+	Metadata   OpenAPIPostGripConfigurationMetadata `json:"metadata"`
+	Spec       OpenAPIPostGripConfigurationSpec     `json:"spec"`
+}
+type OpenAPIPostGripConfigurationValidationIssue struct {
+	Code    string  `json:"code"`
+	Message string  `json:"message"`
+	Path    *string `json:"path,omitempty"`
+}
+type OpenAPIPostGripConfigurationResolvedWorker struct {
+	Path    string `json:"path"`
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+	Version int64  `json:"version"`
+}
+type OpenAPIValidatePostGripConfigurationRequest struct {
+	Configuration      OpenAPIPostGripConfiguration `json:"configuration"`
+	DesiredStateDigest string                       `json:"desiredStateDigest"`
+}
+type OpenAPIPostGripConfigurationValidationResult struct {
+	Valid                  bool                                          `json:"valid"`
+	SchemaVersion          string                                        `json:"schemaVersion"`
+	DesiredStateDigest     string                                        `json:"desiredStateDigest"`
+	CanonicalConfiguration OpenAPIPostGripConfiguration                  `json:"canonicalConfiguration"`
+	Issues                 []OpenAPIPostGripConfigurationValidationIssue `json:"issues"`
+	ResolvedWorkers        []OpenAPIPostGripConfigurationResolvedWorker  `json:"resolvedWorkers"`
+}
+type OpenAPICreatePostGripConfigurationPlanRequest struct {
+	Configuration      OpenAPIPostGripConfiguration `json:"configuration"`
+	DesiredStateDigest string                       `json:"desiredStateDigest"`
+	AllowAdoption      bool                         `json:"allowAdoption"`
+	Prune              bool                         `json:"prune"`
+	ExpiresInSeconds   *int64                       `json:"expiresInSeconds,omitempty"`
+}
+type OpenAPIPostGripConfigurationPlanSummary struct {
+	Total           int64 `json:"total"`
+	Create          int64 `json:"create"`
+	Adopt           int64 `json:"adopt"`
+	Update          int64 `json:"update"`
+	Replace         int64 `json:"replace"`
+	ReconcileSecret int64 `json:"reconcileSecret"`
+	ReconcileGitHub int64 `json:"reconcileGitHub"`
+	Delete          int64 `json:"delete"`
+	NoOp            int64 `json:"noOp"`
+	Blocked         int64 `json:"blocked"`
+}
+type OpenAPIPostGripConfigurationResourceProjection struct {
+	Id                    *string `json:"id,omitempty"`
+	Ref                   *string `json:"ref,omitempty"`
+	Name                  *string `json:"name,omitempty"`
+	Slug                  *string `json:"slug,omitempty"`
+	Framework             *string `json:"framework,omitempty"`
+	DeploymentMode        *string `json:"deploymentMode,omitempty"`
+	ProjectType           *string `json:"projectType,omitempty"`
+	Provider              *string `json:"provider,omitempty"`
+	RepoOwner             *string `json:"repoOwner,omitempty"`
+	RepoName              *string `json:"repoName,omitempty"`
+	DefaultBranch         *string `json:"defaultBranch,omitempty"`
+	ProjectPath           *string `json:"projectPath,omitempty"`
+	DockerfilePath        *string `json:"dockerfilePath,omitempty"`
+	Kind                  *string `json:"kind,omitempty"`
+	BranchPattern         *string `json:"branchPattern,omitempty"`
+	AssignedWorkerId      *string `json:"assignedWorkerId,omitempty"`
+	AssignedWorkerVersion *int64  `json:"assignedWorkerVersion,omitempty"`
+	BuildCommand          *string `json:"buildCommand,omitempty"`
+	ContainerPort         *int64  `json:"containerPort,omitempty"`
+	Domain                *string `json:"domain,omitempty"`
+	IsPrimary             *bool   `json:"isPrimary,omitempty"`
+	VariableName          *string `json:"variableName,omitempty"`
+	IsSecret              *bool   `json:"isSecret,omitempty"`
+	HasValue              *bool   `json:"hasValue,omitempty"`
+	Value                 *string `json:"value,omitempty"`
+	InputName             *string `json:"inputName,omitempty"`
+	SecretVersion         *string `json:"secretVersion,omitempty"`
+}
+type OpenAPIPostGripConfigurationPlanAction struct {
+	Id             string                                          `json:"id"`
+	Kind           string                                          `json:"kind"`
+	Path           string                                          `json:"path"`
+	ResourceType   string                                          `json:"resourceType"`
+	ResourceId     *string                                         `json:"resourceId,omitempty"`
+	Before         *OpenAPIPostGripConfigurationResourceProjection `json:"before,omitempty"`
+	After          *OpenAPIPostGripConfigurationResourceProjection `json:"after,omitempty"`
+	RequiredScopes []string                                        `json:"requiredScopes"`
+	Risk           string                                          `json:"risk"`
+	ObservedEtag   *string                                         `json:"observedEtag,omitempty"`
+	Dependencies   []string                                        `json:"dependencies"`
+	Reason         string                                          `json:"reason"`
+	Drift          string                                          `json:"drift"`
+}
+type OpenAPIPostGripConfigurationPlanDigestInput struct {
+	SchemaVersion      string                                   `json:"schemaVersion"`
+	StackKey           string                                   `json:"stackKey"`
+	BaseStackRevision  int64                                    `json:"baseStackRevision"`
+	DesiredStateDigest string                                   `json:"desiredStateDigest"`
+	AllowAdoption      bool                                     `json:"allowAdoption"`
+	Prune              bool                                     `json:"prune"`
+	Actions            []OpenAPIPostGripConfigurationPlanAction `json:"actions"`
+}
+type OpenAPIPostGripConfigurationPlan struct {
+	Id                 string                                  `json:"id"`
+	StackId            *string                                 `json:"stackId,omitempty"`
+	StackKey           string                                  `json:"stackKey"`
+	BaseStackRevision  int64                                   `json:"baseStackRevision"`
+	SchemaVersion      string                                  `json:"schemaVersion"`
+	DesiredStateDigest string                                  `json:"desiredStateDigest"`
+	PlanDigest         string                                  `json:"planDigest"`
+	AllowAdoption      bool                                    `json:"allowAdoption"`
+	Prune              bool                                    `json:"prune"`
+	State              string                                  `json:"state"`
+	Summary            OpenAPIPostGripConfigurationPlanSummary `json:"summary"`
+	CreatedAt          time.Time                               `json:"createdAt"`
+	ExpiresAt          time.Time                               `json:"expiresAt"`
+	Receipt            *OpenAPIOperationReceipt                `json:"receipt,omitempty"`
+}
+type OpenAPIPostGripConfigurationPlanActionList struct {
+	Items      []OpenAPIPostGripConfigurationPlanAction `json:"items"`
+	NextCursor string                                   `json:"nextCursor"`
+}
+type OpenAPIPostGripConfigurationStackResource struct {
+	Path         string `json:"path"`
+	ResourceType string `json:"resourceType"`
+	ResourceId   string `json:"resourceId"`
+	Etag         string `json:"etag"`
+}
+type OpenAPIPostGripConfigurationSecretVersion struct {
+	Path          string `json:"path"`
+	InputName     string `json:"inputName"`
+	SecretVersion string `json:"secretVersion"`
+}
+type OpenAPIPostGripConfigurationStack struct {
+	Id                 string                                      `json:"id"`
+	Key                string                                      `json:"key"`
+	SchemaVersion      string                                      `json:"schemaVersion"`
+	Revision           int64                                       `json:"revision"`
+	DesiredStateDigest string                                      `json:"desiredStateDigest"`
+	Configuration      OpenAPIPostGripConfiguration                `json:"configuration"`
+	Resources          []OpenAPIPostGripConfigurationStackResource `json:"resources"`
+	SecretVersions     []OpenAPIPostGripConfigurationSecretVersion `json:"secretVersions"`
+	LastOperationId    *string                                     `json:"lastOperationId,omitempty"`
+	CreatedAt          time.Time                                   `json:"createdAt"`
+	UpdatedAt          time.Time                                   `json:"updatedAt"`
+}
 type OpenAPIApplyServiceVariablesRequestBody = OpenAPIApplyServiceVariablesRequest
 type OpenAPIApplyServiceVariablesResponseBody = OpenAPIServiceVariablesApplyResponse
 type OpenAPIAttachTargetServiceRequestBody = OpenAPIAttachTargetServiceRequest
@@ -757,6 +965,8 @@ type OpenAPIClearServiceVariableValueRequestBody = OpenAPINoBody
 type OpenAPIClearServiceVariableValueResponseBody = OpenAPIServiceVariableMutationResponse
 type OpenAPIClearTargetServiceConnectionRequestBody = OpenAPINoBody
 type OpenAPIClearTargetServiceConnectionResponseBody = OpenAPIServiceTargetMutationResponse
+type OpenAPICreatePostGripConfigurationPlanRequestBody = OpenAPICreatePostGripConfigurationPlanRequest
+type OpenAPICreatePostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
 type OpenAPICreateServiceDomainRequestBody = OpenAPICreateServiceDomainRequest
 type OpenAPICreateServiceDomainResponseBody = OpenAPIServiceDomainMutationResponse
 type OpenAPICreateServiceEnvironmentRequestBody = OpenAPICreateServiceEnvironmentRequest
@@ -785,6 +995,10 @@ type OpenAPIFlushServiceBuildLogsRequestBody = OpenAPINoBody
 type OpenAPIFlushServiceBuildLogsResponseBody = OpenAPIServiceBuildLogMaintenanceResponse
 type OpenAPIFlushServiceRuntimeLogsRequestBody = OpenAPINoBody
 type OpenAPIFlushServiceRuntimeLogsResponseBody = OpenAPIServiceRuntimeLogMutationResponse
+type OpenAPIGetPostGripConfigurationPlanRequestBody = OpenAPINoBody
+type OpenAPIGetPostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
+type OpenAPIGetPostGripConfigurationStackRequestBody = OpenAPINoBody
+type OpenAPIGetPostGripConfigurationStackResponseBody = OpenAPIPostGripConfigurationStack
 type OpenAPIGetServiceRequestBody = OpenAPINoBody
 type OpenAPIGetServiceResponseBody = OpenAPIService
 type OpenAPIGetServiceBuildLogSettingsRequestBody = OpenAPINoBody
@@ -811,6 +1025,8 @@ type OpenAPIGetServiceVolumeRemovalImpactRequestBody = OpenAPINoBody
 type OpenAPIGetServiceVolumeRemovalImpactResponseBody = OpenAPIServiceRemovalImpact
 type OpenAPIGetTargetServiceRemovalImpactRequestBody = OpenAPINoBody
 type OpenAPIGetTargetServiceRemovalImpactResponseBody = OpenAPIServiceRemovalImpact
+type OpenAPIListPostGripConfigurationPlanActionsRequestBody = OpenAPINoBody
+type OpenAPIListPostGripConfigurationPlanActionsResponseBody = OpenAPIPostGripConfigurationPlanActionList
 type OpenAPIListServiceConfigurationOperationsRequestBody = OpenAPINoBody
 type OpenAPIListServiceConfigurationOperationsResponseBody = OpenAPIServiceConfigurationOperationList
 type OpenAPIListServiceDeploymentsRequestBody = OpenAPINoBody
@@ -887,6 +1103,8 @@ type OpenAPIUpdateServiceVolumeBindingRequestBody = OpenAPIUpdateServiceVolumeBi
 type OpenAPIUpdateServiceVolumeBindingResponseBody = OpenAPIServiceVolumeBindingMutationResponse
 type OpenAPIUpdateTargetServiceRequestBody = OpenAPIUpdateTargetServiceRequest
 type OpenAPIUpdateTargetServiceResponseBody = OpenAPIServiceTargetMutationResponse
+type OpenAPIValidatePostGripConfigurationRequestBody = OpenAPIValidatePostGripConfigurationRequest
+type OpenAPIValidatePostGripConfigurationResponseBody = OpenAPIPostGripConfigurationValidationResult
 
 // OpenAPI-prefixed constants expose every generated enum value without
 // colliding with the ergonomic SDK's compatibility constants.
@@ -1039,5 +1257,31 @@ type ServiceBuildLogSettingsMutationResponse = OpenAPIServiceBuildLogSettingsMut
 type ServiceBuildLogMaintenanceResponse = OpenAPIServiceBuildLogMaintenanceResponse
 type ServiceVariableApplyResult = OpenAPIServiceVariableApplyResult
 type ServiceVariablesApplyResponse = OpenAPIServiceVariablesApplyResponse
+type PostGripConfigurationMetadata = OpenAPIPostGripConfigurationMetadata
+type PostGripConfigurationWorkerSelector = OpenAPIPostGripConfigurationWorkerSelector
+type PostGripConfigurationRepository = OpenAPIPostGripConfigurationRepository
+type PostGripConfigurationDomain = OpenAPIPostGripConfigurationDomain
+type PostGripConfigurationSecretSource = OpenAPIPostGripConfigurationSecretSource
+type PostGripConfigurationPlainVariable = OpenAPIPostGripConfigurationPlainVariable
+type PostGripConfigurationSecretVariable = OpenAPIPostGripConfigurationSecretVariable
+type PostGripConfigurationVariable = OpenAPIPostGripConfigurationVariable
+type PostGripConfigurationEnvironment = OpenAPIPostGripConfigurationEnvironment
+type PostGripConfigurationProject = OpenAPIPostGripConfigurationProject
+type PostGripConfigurationSpec = OpenAPIPostGripConfigurationSpec
+type PostGripConfiguration = OpenAPIPostGripConfiguration
+type PostGripConfigurationValidationIssue = OpenAPIPostGripConfigurationValidationIssue
+type PostGripConfigurationResolvedWorker = OpenAPIPostGripConfigurationResolvedWorker
+type ValidatePostGripConfigurationRequest = OpenAPIValidatePostGripConfigurationRequest
+type PostGripConfigurationValidationResult = OpenAPIPostGripConfigurationValidationResult
+type CreatePostGripConfigurationPlanRequest = OpenAPICreatePostGripConfigurationPlanRequest
+type PostGripConfigurationPlanSummary = OpenAPIPostGripConfigurationPlanSummary
+type PostGripConfigurationResourceProjection = OpenAPIPostGripConfigurationResourceProjection
+type PostGripConfigurationPlanAction = OpenAPIPostGripConfigurationPlanAction
+type PostGripConfigurationPlanDigestInput = OpenAPIPostGripConfigurationPlanDigestInput
+type PostGripConfigurationPlan = OpenAPIPostGripConfigurationPlan
+type PostGripConfigurationPlanActionList = OpenAPIPostGripConfigurationPlanActionList
+type PostGripConfigurationStackResource = OpenAPIPostGripConfigurationStackResource
+type PostGripConfigurationSecretVersion = OpenAPIPostGripConfigurationSecretVersion
+type PostGripConfigurationStack = OpenAPIPostGripConfigurationStack
 
-const openAPITypesSpecSHA256 = "2dd219d428083e4416f141676dcfed63fe23f5d4d729aaadb3a574c2cb2b1ec5"
+const openAPITypesSpecSHA256 = "c5324eed6f1585aca7826db1f789e94b7f8a36cfdc448b112103aa050b23c1e2"

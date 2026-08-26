@@ -275,6 +275,18 @@ export class ServiceClient {
       get: (operationId: string, options: RequestOptions = {}) => this.request('getServiceConfigurationOperation', { path: { operationId }, signal: options.signal }),
       retry: (operationId: string, options: AdministrationWriteOptions) => this.administrationMutation('retryServiceConfigurationOperation', { path: { operationId }, ...administrationWrite(options) }, true),
     },
+    declarativeConfiguration: {
+      validate: (body: OpenAPIRequestBody<'validatePostGripConfiguration'>, options: RequestOptions = {}) =>
+        this.request('validatePostGripConfiguration', { body, signal: options.signal }),
+      getStack: (stackKey: string, options: RequestOptions = {}) =>
+        this.request('getPostGripConfigurationStack', { path: { stackKey }, signal: options.signal }),
+      createPlan: (stackKey: string, body: OpenAPIRequestBody<'createPostGripConfigurationPlan'>, options: MutationOptions) =>
+        this.administrationMutation('createPostGripConfigurationPlan', { path: { stackKey }, body, ...mutationRequest(options) }),
+      getPlan: (stackKey: string, planId: string, options: RequestOptions = {}) =>
+        this.request('getPostGripConfigurationPlan', { path: { stackKey, planId }, signal: options.signal }),
+      listActions: (stackKey: string, planId: string, query: OpenAPIQueryParameters<'listPostGripConfigurationPlanActions'> = {}, options: RequestOptions = {}) =>
+        this.request('listPostGripConfigurationPlanActions', { path: { stackKey, planId }, query, signal: options.signal }),
+    },
   };
 
   private readonly baseUrl: URL;

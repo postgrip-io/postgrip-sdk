@@ -201,13 +201,14 @@ func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
 		reflect.TypeOf(ServicePromotionsClient{}),
 		reflect.TypeOf(ServiceRetentionClient{}),
 		reflect.TypeOf(ServiceConfigurationOperationsClient{}),
+		reflect.TypeOf(DeclarativeConfigurationClient{}),
 	}
 	operationCount := 0
 	for _, facadeType := range types {
 		operationCount += facadeType.NumMethod()
 	}
-	if operationCount != 55 {
-		t.Fatalf("administration facade operations = %d, want 55", operationCount)
+	if operationCount != 60 {
+		t.Fatalf("administration facade operations = %d, want 60", operationCount)
 	}
 }
 

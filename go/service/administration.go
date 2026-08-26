@@ -39,6 +39,7 @@ type ServiceRepositoriesClient struct{ client *Client }
 type ServicePromotionsClient struct{ client *Client }
 type ServiceRetentionClient struct{ client *Client }
 type ServiceConfigurationOperationsClient struct{ client *Client }
+type DeclarativeConfigurationClient struct{ client *Client }
 
 func (c *Client) TargetServices() TargetServicesClient { return TargetServicesClient{client: c} }
 func (c *Client) Projects() ProjectsClient             { return ProjectsClient{client: c} }
@@ -61,6 +62,9 @@ func (c *Client) ServiceRetention() ServiceRetentionClient {
 }
 func (c *Client) ServiceConfigurationOperations() ServiceConfigurationOperationsClient {
 	return ServiceConfigurationOperationsClient{client: c}
+}
+func (c *Client) DeclarativeConfiguration() DeclarativeConfigurationClient {
+	return DeclarativeConfigurationClient{client: c}
 }
 
 func (c TargetServicesClient) Attach(ctx context.Context, body OpenAPIAttachTargetServiceRequestBody, options WriteOptions) (OpenAPIAttachTargetServiceResponseBody, error) {
@@ -398,4 +402,32 @@ func (c ServiceConfigurationOperationsClient) Retry(ctx context.Context, operati
 		return OpenAPIRetryServiceConfigurationOperationResponseBody{}, err
 	}
 	return c.client.OpenAPI().RetryServiceConfigurationOperation(ctx, operationID, OpenAPIRetryServiceConfigurationOperationHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+}
+
+// Validate checks a PostGrip configuration without creating a stack or plan.
+func (c DeclarativeConfigurationClient) Validate(ctx context.Context, body OpenAPIValidatePostGripConfigurationRequestBody) (OpenAPIValidatePostGripConfigurationResponseBody, error) {
+	return c.client.OpenAPI().ValidatePostGripConfiguration(ctx, body)
+}
+
+// GetStack returns the last applied state for a declarative stack.
+func (c DeclarativeConfigurationClient) GetStack(ctx context.Context, stackKey string) (OpenAPIGetPostGripConfigurationStackResponseBody, error) {
+	return c.client.OpenAPI().GetPostGripConfigurationStack(ctx, stackKey)
+}
+
+// CreatePlan creates an immutable, expiring plan without applying it.
+func (c DeclarativeConfigurationClient) CreatePlan(ctx context.Context, stackKey string, body OpenAPICreatePostGripConfigurationPlanRequestBody, options MutationOptions) (OpenAPICreatePostGripConfigurationPlanResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPICreatePostGripConfigurationPlanResponseBody{}, err
+	}
+	return c.client.OpenAPI().CreatePostGripConfigurationPlan(ctx, stackKey, OpenAPICreatePostGripConfigurationPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+// GetPlan returns immutable plan metadata and its safe receipt.
+func (c DeclarativeConfigurationClient) GetPlan(ctx context.Context, stackKey, planID string) (OpenAPIGetPostGripConfigurationPlanResponseBody, error) {
+	return c.client.OpenAPI().GetPostGripConfigurationPlan(ctx, stackKey, planID)
+}
+
+// ListActions returns one bounded page of the plan's safe action graph.
+func (c DeclarativeConfigurationClient) ListActions(ctx context.Context, stackKey, planID string, query OpenAPIListPostGripConfigurationPlanActionsQuery) (OpenAPIListPostGripConfigurationPlanActionsResponseBody, error) {
+	return c.client.OpenAPI().ListPostGripConfigurationPlanActions(ctx, stackKey, planID, query)
 }

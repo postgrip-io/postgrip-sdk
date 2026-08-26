@@ -145,6 +145,15 @@
       ],
       "summary": "Create a schedule"
     },
+    "createPostGripConfigurationPlan": {
+      "behavior": "Validates canonical desired state and current tenant references, then creates an immutable, expiring read-only plan. The request requires Idempotency-Key. It never creates a configuration stack or mutates a managed Service resource, and its response contains secret input names and versions but never resolved secret values.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Plans expire after 30 minutes by default and no later than 24 hours.",
+        "Use the paginated action operation to inspect the complete safe action graph."
+      ],
+      "summary": "Create a deterministic declarative configuration plan"
+    },
     "createServiceDomain": {
       "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/domains behavior.",
       "lifecycle": [
@@ -302,6 +311,18 @@
       "lifecycle": [],
       "summary": "Fetch a single schedule"
     },
+    "getPostGripConfigurationPlan": {
+      "behavior": "Returns bounded metadata and summary for one tenant-scoped immutable configuration plan. Action content is exposed only by the paginated action operation.",
+      "lifecycle": [
+        "Expired plans remain readable until bounded payload retention removes them."
+      ],
+      "summary": "Get declarative configuration plan metadata"
+    },
+    "getPostGripConfigurationStack": {
+      "behavior": "Returns the last successfully applied safe desired state, ownership ledger, secret input names and versions, and stack revision. A stack is absent until the first authorized apply; planning alone never creates it.",
+      "lifecycle": [],
+      "summary": "Get declarative configuration stack state"
+    },
     "getService": {
       "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId} behavior.",
       "lifecycle": [],
@@ -418,6 +439,13 @@
       "behavior": "Uses the contract-defined GET /api/v1/schedules behavior.",
       "lifecycle": [],
       "summary": "List schedules"
+    },
+    "listPostGripConfigurationPlanActions": {
+      "behavior": "Returns one bounded, cursor-paginated page of deterministic safe plan actions. Projections include resource ETags and redacted secret input metadata, never resolved secret bytes.",
+      "lifecycle": [
+        "Follow nextCursor until it is empty to consume the complete action graph."
+      ],
+      "summary": "List declarative configuration plan actions"
     },
     "listServiceConfigurationOperations": {
       "behavior": "Uses the contract-defined GET /api/v1/services/configuration-operations behavior.",
@@ -840,6 +868,14 @@
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Update Target Service"
+    },
+    "validatePostGripConfiguration": {
+      "behavior": "Re-canonicalizes the closed PostGrip configuration schema, verifies desiredStateDigest, and resolves tenant-dependent Worker selectors without creating a plan, stack, or managed resource.",
+      "lifecycle": [
+        "This read-only POST does not use Idempotency-Key.",
+        "Local secret values are never accepted by this endpoint."
+      ],
+      "summary": "Validate declarative configuration against tenant state"
     },
     "upgradeWorker": {
       "behavior": "Uses the contract-defined POST /api/v1/workers/{workerId}/upgrade behavior.",
