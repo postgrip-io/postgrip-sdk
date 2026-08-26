@@ -67,6 +67,14 @@ error: archive, WebSocket, continuous-log, cancellation, and destructive
 Service operations had been assigned to ordinary nightly runs despite the
 implementation plan reserving them for isolated pre-release coverage.
 
+Review of the fixture safety boundary then found that a mutation could name a
+registered `resourceKey` while its resolved request targeted a different
+identifier. The manager now verifies the exact recorded identifier is present
+in every targeted mutation, destructive, or protocol request before invoking
+an adapter. Its self-test proves a mismatched ledger key and request identifier
+fail closed. The correction is
+`db1c7827643fb40c008573343635f093dbc7b69f`.
+
 ## Verification
 
 | Check | Result |
@@ -77,8 +85,8 @@ implementation plan reserving them for isolated pre-release coverage.
 | Live fixture-manager self-test | PASS |
 | Production scenario static validation | PASS — two public/read-only operations |
 | Go test/vet | PASS |
-| TypeScript typecheck/build/test | PASS — 120 tests |
-| Python wheel and native suite | PASS — 127 tests, one opt-in external skip |
+| TypeScript typecheck/build/test | PASS — 126 tests |
+| Python wheel and native suite | PASS — 128 tests, one opt-in external skip |
 | Agent Orchestrator test/vet and OpenAPI checker | PASS |
 | Workflow syntax (`actionlint` 1.7.7) | PASS |
 | Nightly disposable live execution | **BLOCKED** — protected environment/scenario not configured |

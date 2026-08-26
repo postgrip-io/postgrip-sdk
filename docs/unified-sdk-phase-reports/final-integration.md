@@ -26,6 +26,8 @@ Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd6
   `0bdcb756a31a70cce7596c783beff2282f5d752a`
 - Server SDK-boundary and Agent-recovery correction:
   `c0fbb3b7951cd010fc33e16bf294862ee20544ec`
+- SDK transport and live-target correction:
+  `db1c7827643fb40c008573343635f093dbc7b69f`
 
 The Agent contract is byte-identical between those branches. All nine
 language/plane generated surfaces embed the current bundle digest.
@@ -127,6 +129,25 @@ are corrected in the coordinated PRs:
    still unavailable to shell payload allowlists and is never replaced by the
    common management token.
 
+The next SDK review found four further deviations. Each was independently
+checked against the immutable design and corrected in
+`db1c7827643fb40c008573343635f093dbc7b69f`:
+
+1. Python sandbox WebSocket redirects now compare the destination origin
+   before constructing the redirected handshake, so arbitrary gateway headers
+   cannot cross origins on any supported `websockets>=13` release.
+2. Live targeted operations must contain the exact identifier recorded for
+   their declared fixture resource; merely naming an existing ledger key is no
+   longer sufficient.
+3. TypeScript runtime signatures cover the final request pathname and query,
+   including a configured reverse-proxy prefix.
+4. TypeScript relay scheme matching is case-insensitive as required by URL
+   semantics.
+
+The same design audit corrected one adjacent error-envelope mismatch:
+TypeScript Agent errors prefer the standard `message` field and use `error`
+only as a legacy fallback.
+
 The live gate cannot honestly be marked PASS in this change. GitHub currently
 has only `github-pages`, `npm`, and `pypi` environments; no disposable URLs,
 scenario secrets, host-runtime credentials, or live run evidence are
@@ -137,8 +158,10 @@ for that evidence.
 
 - Go unified module: all packages pass `go test ./...` and `go vet ./...`.
 - TypeScript: frozen install, typecheck, clean build, browser-target root
-  bundle, and 123 tests pass; the npm artifact contains 95 files.
-- Python: wheel builds; 127 tests pass with one opt-in external live skip.
+  bundle, and 126 tests pass; the npm artifact contains 95 files.
+- Python: wheel builds; 128 tests pass with one opt-in external live skip;
+  sandbox tests also pass against `websockets` 13.1 and 17.1, and a real
+  cross-origin redirect reaches no credential-bearing target handshake.
 - Contracts/docs: 130 generated operations, fixtures, and immutable pages;
   121 real cURL examples; runtime drift check passes.
 - Recorded transport: 390 SDK requests validate routes, queries, headers,

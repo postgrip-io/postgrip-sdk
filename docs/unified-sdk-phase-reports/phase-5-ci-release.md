@@ -87,6 +87,17 @@ deviations before this checkpoint passed:
 6. Go sandbox WebSocket handshakes bypassed the shared HTTP client's exact-origin
    redirect policy. They now reuse that client, preventing credential forwarding
    across redirect origins while preserving explicitly configured relay origins.
+7. Python's supported WebSocket client range did not uniformly refuse
+   cross-origin redirects carrying arbitrary gateway headers. A pre-handshake
+   origin guard now covers `websockets` 13 through 17 and is verified against
+   both dependency branches plus a real redirect target.
+8. TypeScript signed an operation-relative path instead of the final path
+   behind a reverse proxy. Signing now uses the exact URL pathname and query
+   sent by `fetch`; mixed-case relay schemes are normalized according to URL
+   semantics, and Agent error decoding prefers the standard `message` field.
+
+Corrections 7 and 8 are recorded in
+`db1c7827643fb40c008573343635f093dbc7b69f`.
 
 After these corrections, no unexplained Phase 5 design deviation remains.
 
@@ -97,7 +108,7 @@ After these corrections, no unexplained Phase 5 design deviation remains.
 | `actionlint` 1.7.7 over every workflow | PASS |
 | `python3 scripts/check_release_artifacts.py --ecosystem all` | PASS — three artifacts |
 | Go `GOWORK=off` test, vet, and list | PASS — 14 packages |
-| TypeScript typecheck, test, clean build, browser bundle, pack, clean install/import | PASS — 123 tests; 95 package files |
+| TypeScript typecheck, test, clean build, browser bundle, pack, clean install/import | PASS — 126 tests; 95 package files |
 | Python wheel build and clean install/import | PASS — 36 wheel files |
 | Package layout guard | PASS — exactly three manifests |
 | Version parity | PASS — 0.13.0 in root, Go, npm, and PyPI metadata |

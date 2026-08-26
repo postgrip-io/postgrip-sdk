@@ -96,6 +96,15 @@ setup in the Go management clients. These mechanics moved to
 configuration modules. Plane-specific request behavior remains in each plane
 adapter as required by the design.
 
+A later transport review found three additional cross-language mismatches.
+Python sandbox connections now reject a redirected WebSocket origin before a
+handshake can forward arbitrary gateway headers across the complete supported
+`websockets>=13` range. TypeScript signs the final URL path, including a
+configured reverse-proxy prefix, and treats URL schemes case-insensitively.
+The TypeScript Agent adapter also prefers the standard `message` error field
+while retaining `error` only as a compatibility fallback. These corrections
+are recorded in `db1c7827643fb40c008573343635f093dbc7b69f`.
+
 No unresolved Phase 2 deviations remain.
 
 ## Remaining risks
