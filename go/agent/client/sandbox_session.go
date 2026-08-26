@@ -281,7 +281,11 @@ func (s *SandboxClient) dialSandboxRelay(ctx context.Context, sessionID, ticket,
 	}
 	// The ticket authorizes the session; the management credential still
 	// authenticates the request. Both are required.
-	conn, _, err := websocket.Dial(ctx, relay, &websocket.DialOptions{HTTPHeader: header, Subprotocols: protocols})
+	conn, _, err := websocket.Dial(ctx, relay, &websocket.DialOptions{
+		HTTPClient:   s.conn.httpClient,
+		HTTPHeader:   header,
+		Subprotocols: protocols,
+	})
 	if err != nil {
 		return nil, &failure.SDKError{Message: "dial sandbox session relay", Cause: err}
 	}

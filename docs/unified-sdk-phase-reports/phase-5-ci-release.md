@@ -55,7 +55,7 @@ workflow remains.
 
 | Artifact | Contents | Size | Direct runtime dependencies | Local build/inspection |
 | --- | ---: | ---: | --- | ---: |
-| Go module source | 103 files, 14 packages | 843,943 bytes | `github.com/coder/websocket` | 0.084 s inspection |
+| Go module source | 103 files, 14 packages | 847,178 bytes | `github.com/coder/websocket` | 0.126 s inspection |
 | npm package | 95 files | 126,507 packed / 969,103 unpacked bytes | `ws` | 1.297 s build + 0.326 s inspection |
 | Python wheel | 36 files | 89,456 bytes | `cryptography>=42` | 0.462 s build |
 
@@ -66,7 +66,7 @@ submodules. The Go module passed `GOWORK=off` test, vet, and package listing.
 
 ## Design comparison and corrective actions
 
-The end-of-phase comparison and subsequent review found and corrected five
+The end-of-phase comparison and subsequent review found and corrected six
 deviations before this checkpoint passed:
 
 1. CI still referenced removed nested Go modules and six former npm/PyPI
@@ -84,6 +84,9 @@ deviations before this checkpoint passed:
 5. Incremental TypeScript builds could retain ignored outputs from the old
    package layout. Builds now clean `dist` first, and CI browser-bundles the
    root facade to prove managed-runtime Node signing is not eagerly reachable.
+6. Go sandbox WebSocket handshakes bypassed the shared HTTP client's exact-origin
+   redirect policy. They now reuse that client, preventing credential forwarding
+   across redirect origins while preserving explicitly configured relay origins.
 
 After these corrections, no unexplained Phase 5 design deviation remains.
 

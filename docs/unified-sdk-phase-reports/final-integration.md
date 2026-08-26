@@ -22,6 +22,8 @@ Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd6
   `061e3ebc413108d9cec024cf14196ac4979ab2eb`
 - Server authentication and consumer correction:
   `ecf0cd151fd6c380c612d091a5b2a1370ce6df15`
+- Server administration-boundary correction:
+  `0bdcb756a31a70cce7596c783beff2282f5d752a`
 
 The Agent contract is byte-identical between those branches. All nine
 language/plane generated surfaces embed the current bundle digest.
@@ -92,6 +94,23 @@ While rebuilding the evidence, ignored output from the pre-consolidation npm
 layout was also found in the local `dist` tree. TypeScript builds now clean that
 tree before compiling, preventing stale files from entering an artifact.
 
+A fresh Codex pass found four more valid, design-compatible deviations. They
+are corrected in the coordinated PRs:
+
+1. Go sandbox WebSocket handshakes now reuse the shared redirect-safe HTTP
+   client, so same-host redirects to a different port or subdomain cannot
+   receive management or gateway credentials. Explicit separately configured
+   relay origins remain supported.
+2. All terminal/runtime Agent API consumers prefer the standard `message`
+   error field while retaining `error` as a legacy fallback.
+3. The internal global-administration contract now includes fleet rollout
+   GET/POST/DELETE operations, and its checker enforces reverse server-route
+   coverage.
+4. Common `agent:operate` tokens can no longer reach undocumented Agent host
+   update, lifecycle, targeted-placement, or security-settings mutations.
+   High-impact host actions require an owner/admin session; ordinary member
+   check and poll probes remain compatible.
+
 The live gate cannot honestly be marked PASS in this change. GitHub currently
 has only `github-pages`, `npm`, and `pypi` environments; no disposable URLs,
 scenario secrets, host-runtime credentials, or live run evidence are
@@ -109,15 +128,17 @@ for that evidence.
 - Recorded transport: 390 SDK requests validate routes, queries, headers,
   bodies, auth lanes, signing bytes, protocol ownership, and decoding.
 - Agent server: full orchestrator test/vet and 45-operation OpenAPI route check
-  pass, including snapshot, cross-resource, limit, and byte-bound regressions.
+  pass, including snapshot, cross-resource, limit, byte-bound, internal-admin
+  contract, standardized-error, and host-authorization regressions. The full
+  dashboard suite passes 87 files / 766 tests.
 - Live infrastructure: fixture-manager self-test, production allowlist
   validation, and `actionlint` 1.7.7 pass.
 - Documentation: root strict MkDocs build passes.
 
 ## External release controls
 
-The SDK PR remains draft until organization administrators configure the
-`sdk-live-nightly`, `sdk-live-pre-release`, and
+The source PR is review-ready, but release remains blocked until organization
+administrators configure the `sdk-live-nightly`, `sdk-live-pre-release`, and
 `sdk-live-production-smoke` environments and record successful nightly and
 pre-release runs for the coordinated server revision. The server must also be
 merged/deployed and authenticated npm/PyPI owners must record control of the

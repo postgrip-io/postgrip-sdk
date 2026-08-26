@@ -80,6 +80,107 @@ func TestOpenSandboxSessionRejectsPlaintextRelayBeforeCreatingTicket(t *testing.
 	}
 }
 
+func TestOpenSandboxSessionDoesNotFollowCrossOriginRedirect(t *testing.T) {
+	t.Parallel()
+	redirected := make(chan http.Header, 1)
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		redirected <- r.Header.Clone()
+		http.Error(w, "unexpected redirect target", http.StatusBadRequest)
+	}))
+	defer target.Close()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		http.Redirect(w, r, target.URL, http.StatusFound)
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{
+		Address:             server.URL,
+		InsecureDevelopment: true,
+		AuthToken:           "management-secret",
+		Headers:             map[string]string{"X-Gateway-Token": "gateway-secret"},
+	})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	_, err = New(conn).Sandbox.OpenSandboxSession(
+		context.Background(),
+		"sandbox-1",
+		protocol.SandboxSessionKindPTY,
+		SandboxSessionOptions{},
+	)
+	if err == nil {
+		t.Fatal("sandbox WebSocket dial followed a cross-origin redirect")
+	}
+	select {
+	case header := <-redirected:
+		t.Fatalf("redirect target received credentials: Authorization=%q X-Gateway-Token=%q", header.Get("Authorization"), header.Get("X-Gateway-Token"))
+	default:
+	}
+}
+
+func TestOpenSandboxSessionAllowsExplicitSeparateOriginRelay(t *testing.T) {
+	t.Parallel()
+	relayHeaders := make(chan http.Header, 1)
+	relay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		relayHeaders <- r.Header.Clone()
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		defer conn.CloseNow()
+		<-r.Context().Done()
+	}))
+	defer relay.Close()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/sessions") {
+			http.NotFound(w, r)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{
+		Address:             server.URL,
+		InsecureDevelopment: true,
+		AuthToken:           "management-secret",
+		Headers:             map[string]string{"X-Gateway-Token": "gateway-secret"},
+	})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	stream, err := New(conn).Sandbox.OpenSandboxSession(
+		context.Background(),
+		"sandbox-1",
+		protocol.SandboxSessionKindPTY,
+		SandboxSessionOptions{RelayAddress: relay.URL},
+	)
+	if err != nil {
+		t.Fatalf("OpenSandboxSession: %v", err)
+	}
+	defer stream.Close()
+
+	select {
+	case header := <-relayHeaders:
+		if got := header.Get("Authorization"); got != "Bearer management-secret" {
+			t.Fatalf("Authorization = %q, want management credential", got)
+		}
+		if got := header.Get("X-Gateway-Token"); got != "gateway-secret" {
+			t.Fatalf("X-Gateway-Token = %q, want configured gateway credential", got)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("explicit relay was never dialled")
+	}
+}
+
 // A pty session with no command is legal; an exec session without one is not,
 // and the server would reject it after a round trip.
 func TestOpenSandboxSessionValidatesKindAndCommand(t *testing.T) {

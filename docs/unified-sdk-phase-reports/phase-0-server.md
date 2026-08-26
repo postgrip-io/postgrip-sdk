@@ -14,6 +14,7 @@ Reviewer: Codex implementation conformance review
 - Initial server contract commit: `be2b080161b58d9a294b6c5b144a8a188c162779`
 - History-pagination corrective commit: `061e3ebc`
 - Authentication and consumer corrective commit: `ecf0cd15`
+- Administration-boundary corrective commit: `0bdcb756`
 - Contract-bundle algorithm: SHA-256 over each public contract's filename,
   NUL, exact bytes, and NUL, ordered Agent, Service, Worker
 - Contract-bundle digest: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd`
@@ -113,6 +114,16 @@ byte-for-byte, follows paginated Agent event logs in the dashboard, reads the
 standard error envelope in the CLI, and makes `agent up` consume a separately
 issued one-time enrollment key instead of trying to turn a tenant management
 token into a runtime credential.
+
+A subsequent review found three more server deviations. Every terminal/runtime
+Agent client now consumes the standard error envelope; the internal
+global-admin contract includes all fleet rollout routes and is checked in both
+directions; and common tenant tokens are excluded from undocumented Agent host
+administration. Owner/admin sessions remain required for update, upgrade,
+helper, and trust-state actions, while ordinary member check/poll probes remain
+available. The same session boundary covers targeted host placement and
+security-log configuration without changing documented public Agent
+operations.
 
 No unresolved Phase 0 implementation deviations remain.
 
