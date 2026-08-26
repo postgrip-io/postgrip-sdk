@@ -123,6 +123,11 @@ quick start.
 Each project is an independently versioned and released package. Tests and
 longer-form documentation remain inside the package that owns them.
 
+See the [Unified PostGrip SDK design](docs/unified-sdk-design.md) and its
+[implementation plan](docs/unified-sdk-implementation-plan.md) for the proposed
+consolidation into one Go module, one npm package, and one PyPI distribution
+with Agent, Worker, and Service namespaces.
+
 The repository was renamed to `postgrip-sdks`, but the published Go module
 paths retain `postgrip-agent-sdks` for backward compatibility. Repository and
 documentation links use the new name; do not rewrite Go imports.
