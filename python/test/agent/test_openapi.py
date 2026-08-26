@@ -1,6 +1,7 @@
 import unittest
 from types import NoneType
 from typing import get_args, get_type_hints
+from unittest.mock import patch
 
 from postgrip.agent import Connection
 from postgrip.agent.openapi import (
@@ -17,6 +18,29 @@ from postgrip.agent.openapi import (
 
 
 class OpenAPIOperationTests(unittest.TestCase):
+    def test_public_operation_does_not_send_management_token(self) -> None:
+        captured = {}
+
+        class Response:
+            def read(self):
+                return b"{}"
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_exc):
+                return False
+
+        def fake_urlopen(request, timeout=None):
+            captured["authorization"] = request.get_header("Authorization")
+            return Response()
+
+        connection = Connection("http://agent.test", auth_token="pgt-management")
+        with patch("postgrip.agent.client.urlopen", fake_urlopen):
+            connection.openapi.refresh_agent_session({"refreshToken": "pgr-runtime"})
+
+        self.assertIsNone(captured["authorization"])
+
     def test_resolves_path_query_and_security_metadata(self) -> None:
         operation = resolve_openapi_operation(
             OperationId.COMPLETE_AGENT_TASK,

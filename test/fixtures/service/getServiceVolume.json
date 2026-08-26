@@ -1,0 +1,33 @@
+{
+  "operationId": "getServiceVolume",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111",
+      "volumeRef": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "assignedWorkerId": "11111111-1111-4111-8111-111111111111",
+      "createdAt": "2026-01-01T00:00:00Z",
+      "etag": "string",
+      "name": "string",
+      "state": "provisioning",
+      "storageClass": "string",
+      "updatedAt": "2026-01-01T00:00:00Z",
+      "version": 1,
+      "volumeRef": "11111111-1111-4111-8111-111111111111"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getServiceVolume"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

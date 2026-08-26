@@ -1,0 +1,48 @@
+{
+  "operationId": "trimServiceRuntimeLogs",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {
+      "Idempotency-Key": "recorded-trimServiceRuntimeLogs",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {
+      "environmentId": "11111111-1111-4111-8111-111111111111"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configurationOperationId": "11111111-1111-4111-8111-111111111111",
+      "effect": "string",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "settings": {
+        "consistency": "uniform",
+        "etag": "string",
+        "items": [
+          {
+            "available": true,
+            "environmentId": "11111111-1111-4111-8111-111111111111",
+            "version": 1,
+            "workerId": "11111111-1111-4111-8111-111111111111"
+          }
+        ],
+        "version": 1
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_trimServiceRuntimeLogs"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

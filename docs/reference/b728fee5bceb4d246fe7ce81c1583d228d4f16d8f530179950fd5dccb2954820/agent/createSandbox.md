@@ -33,7 +33,7 @@ Content type: `application/json` · Schema: `SandboxCreateRequest`
 ```json
 {
   "image": "string",
-  "name": "string"
+  "name": "recorded"
 }
 ```
 
@@ -97,7 +97,7 @@ trap 'rm -f "${POSTGRIP_BODY_FILE}"' EXIT
 cat >"${POSTGRIP_BODY_FILE}" <<'POSTGRIP_JSON'
 {
   "image": "string",
-  "name": "string"
+  "name": "recorded"
 }
 POSTGRIP_JSON
 curl \
@@ -128,7 +128,7 @@ baseURL := os.Getenv("POSTGRIP_AGENT_URL")
 if baseURL == "" { baseURL = os.Getenv("POSTGRIP_URL") }
 endpoint, err := url.Parse(baseURL + "/api/v1/sandboxes")
 if err != nil { return err }
-body := strings.NewReader("{\"image\":\"string\",\"name\":\"string\"}")
+body := strings.NewReader("{\"image\":\"string\",\"name\":\"recorded\"}")
 request, err := http.NewRequestWithContext(ctx, "POST", endpoint.String(), body)
 if err != nil { return err }
 request.Header.Set("Authorization", "Bearer "+os.Getenv("POSTGRIP_TOKEN"))
@@ -147,7 +147,7 @@ const url = new URL(baseUrl + "/api/v1/sandboxes");
 const response = await fetch(url, {
   method: "POST",
   headers: { Authorization: `Bearer ${process.env.POSTGRIP_TOKEN}`, "Content-Type": "application/json",  },
-  body: "{\"image\":\"string\",\"name\":\"string\"}"
+  body: "{\"image\":\"string\",\"name\":\"recorded\"}"
 });
 ```
 
@@ -156,7 +156,7 @@ const response = await fetch(url, {
 ```python
 base_url = os.environ.get("POSTGRIP_AGENT_URL") or os.environ["POSTGRIP_URL"]
 endpoint = base_url + '/api/v1/sandboxes'
-request = urllib.request.Request(endpoint, data='{"image":"string","name":"string"}'.encode(), method='POST')
+request = urllib.request.Request(endpoint, data='{"image":"string","name":"recorded"}'.encode(), method='POST')
 request.add_header('Authorization', f"Bearer {os.environ['POSTGRIP_TOKEN']}")
 request.add_header('Content-Type', 'application/json')
 

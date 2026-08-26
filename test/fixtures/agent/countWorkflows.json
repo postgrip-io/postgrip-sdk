@@ -1,0 +1,33 @@
+{
+  "operationId": "countWorkflows",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {
+      "agent_id": "string",
+      "id": "string",
+      "namespace": "string",
+      "q": "string",
+      "query": "string",
+      "queue": "string",
+      "run_id": "string",
+      "search.*": "string",
+      "state": "running",
+      "type": "string"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "count": 1
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_countWorkflows"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

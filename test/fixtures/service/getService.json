@@ -1,0 +1,52 @@
+{
+  "operationId": "getService",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111",
+      "source": "target"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "capabilities": [
+        "check"
+      ],
+      "configurationEtag": "string",
+      "configurationVersion": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "environmentCount": 1,
+      "facets": [
+        {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "source": "target"
+        }
+      ],
+      "id": "11111111-1111-4111-8111-111111111111",
+      "kind": "postgresql",
+      "mode": "connected",
+      "name": "string",
+      "ref": "project:11111111-1111-4111-8111-111111111111",
+      "slug": "string",
+      "source": "target",
+      "status": "ready",
+      "updatedAt": "2026-01-01T00:00:00Z",
+      "workers": [
+        {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "name": "string"
+        }
+      ]
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getService"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

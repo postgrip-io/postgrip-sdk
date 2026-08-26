@@ -1,0 +1,58 @@
+{
+  "operationId": "attachTargetService",
+  "plane": "service",
+  "request": {
+    "body": {
+      "metadata": {
+        "dbUser": "string",
+        "kind": "postgresql",
+        "serverType": "string"
+      },
+      "name": "string",
+      "slug": "string",
+      "workerId": "11111111-1111-4111-8111-111111111111"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-attachTargetService",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configurationOperationId": "11111111-1111-4111-8111-111111111111",
+      "configurationRevision": 1,
+      "effect": "string",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "target": {
+        "createdAt": "2026-01-01T00:00:00Z",
+        "databaseName": "string",
+        "etag": "string",
+        "hasConnectionSecret": true,
+        "host": "string",
+        "id": "11111111-1111-4111-8111-111111111111",
+        "managed": true,
+        "name": "string",
+        "port": 1,
+        "ref": "string",
+        "slug": "string",
+        "ssl": true,
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "version": 1,
+        "workerId": "11111111-1111-4111-8111-111111111111"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_attachTargetService"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

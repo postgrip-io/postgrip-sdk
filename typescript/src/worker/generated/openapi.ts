@@ -405,6 +405,17 @@ export type OpenAPITransport = <I extends OpenAPIOperationId>(
 export class OpenAPIClient {
   constructor(private readonly transport: OpenAPITransport) {}
 
+  request<I extends OpenAPIOperationId>(
+    id: I,
+    options: OpenAPIRequestOptions<I>,
+  ): Promise<OpenAPIResponseBody<I>> {
+    const operation = operationTable[id];
+    if (operation.streamingRequest || operation.webSocket) {
+      throw new Error(`postgrip-worker: operation ${id} requires its protocol adapter`);
+    }
+    return this.transport(id, options);
+  }
+
   checkWorker(options: OpenAPIRequestOptions<"checkWorker">): Promise<OpenAPIResponseBody<"checkWorker">> {
     return this.transport("checkWorker", options);
   }

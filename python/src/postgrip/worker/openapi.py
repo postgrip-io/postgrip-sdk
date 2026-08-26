@@ -310,6 +310,29 @@ class OpenAPIClient:
     def __init__(self, transport: OpenAPITransport):
         self._transport = transport
 
+    def request(
+        self,
+        operation_id: OperationId,
+        body: Any = None,
+        *,
+        path_parameters: dict[str, str] | None = None,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        """Execute an ordinary generated operation by stable operation ID."""
+        operation = _OPERATION_TABLE[operation_id]
+        if operation.streaming_request or operation.websocket:
+            raise ValueError(
+                f"postgrip-worker: operation {operation_id.value!r} requires its protocol adapter"
+            )
+        return self._transport(
+            operation_id,
+            body,
+            path_parameters=path_parameters,
+            query=query,
+            headers=headers,
+        )
+
     def check_worker(self, worker_id: str, *, idempotency_key: str) -> CheckWorkerResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)

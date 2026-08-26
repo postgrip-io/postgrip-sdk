@@ -1,0 +1,36 @@
+{
+  "operationId": "getServiceRuntimeLogSettings",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {
+      "environmentId": "11111111-1111-4111-8111-111111111111"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "consistency": "uniform",
+      "etag": "string",
+      "items": [
+        {
+          "available": true,
+          "environmentId": "11111111-1111-4111-8111-111111111111",
+          "version": 1,
+          "workerId": "11111111-1111-4111-8111-111111111111"
+        }
+      ],
+      "version": 1
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getServiceRuntimeLogSettings"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -11,6 +11,38 @@ import (
 	"time"
 )
 
+func TestPublicOpenAPIOperationDoesNotSendManagementToken(t *testing.T) {
+	t.Parallel()
+	var authorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "pgt-management"})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	var response map[string]any
+	err = conn.OpenAPI().Do(
+		context.Background(),
+		"refreshAgentSession",
+		nil,
+		nil,
+		nil,
+		map[string]any{"refreshToken": "pgr-runtime"},
+		&response,
+	)
+	if err != nil {
+		t.Fatalf("refreshAgentSession: %v", err)
+	}
+	if authorization != "" {
+		t.Fatalf("public operation Authorization = %q, want empty", authorization)
+	}
+}
+
 // SignalWithStart posted to the collection path `/api/v1/workflows/signal-with-start`
 // from the SDK's first commit. The orchestrator routes this off a
 // `/signal-with-start` *suffix* on a per-workflow path, so the collection form

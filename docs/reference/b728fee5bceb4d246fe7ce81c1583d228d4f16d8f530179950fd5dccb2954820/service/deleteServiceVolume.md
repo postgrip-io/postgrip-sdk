@@ -28,7 +28,7 @@ Uses the contract-defined POST /api/v1/services/project/{serviceId}/volumes/{vol
 | --- | --- | --- | --- | --- | --- |
 | `serviceId` | path | yes | `string (uuid)` | `"11111111-1111-4111-8111-111111111111"` | — |
 | `volumeRef` | path | yes | `string (uuid)` | `"11111111-1111-4111-8111-111111111111"` | — |
-| `Idempotency-Key` | header | yes | `string` | `"string"` | — |
+| `Idempotency-Key` | header | yes | `string` | `"recorded"` | — |
 | `If-Match` | header | yes | `string` | `"string"` | — |
 
 ## Request body

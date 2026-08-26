@@ -1,0 +1,26 @@
+{
+  "operationId": "listNamespaces",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": [
+      {
+        "created_at": "2026-01-01T00:00:00Z",
+        "name": "string",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listNamespaces"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

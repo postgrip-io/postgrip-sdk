@@ -1,0 +1,46 @@
+{
+  "operationId": "pollAgentTask",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {
+      "agent_id": "string",
+      "capabilities": [
+        "string"
+      ],
+      "log_level": "debug",
+      "namespace": "string",
+      "queue": "string",
+      "task_types": "string",
+      "version": 1,
+      "wait_seconds": 1
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "directive": {
+        "type": "upgrade"
+      },
+      "task": {
+        "attempt": 1,
+        "created_at": "2026-01-01T00:00:00Z",
+        "id": "string",
+        "lease_timeout_seconds": 1,
+        "namespace": "string",
+        "queue": "string",
+        "state": "queued",
+        "type": "string",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_pollAgentTask"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,22 @@
+{
+  "operationId": "workerOrchestratorHealth",
+  "plane": "worker",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "status": "ok"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_workerOrchestratorHealth"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

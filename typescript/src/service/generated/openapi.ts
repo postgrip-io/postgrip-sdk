@@ -2111,6 +2111,17 @@ export type OpenAPITransport = <I extends OpenAPIOperationId>(
 export class OpenAPIClient {
   constructor(private readonly transport: OpenAPITransport) {}
 
+  request<I extends OpenAPIOperationId>(
+    id: I,
+    options: OpenAPIRequestOptions<I>,
+  ): Promise<OpenAPIResponseBody<I>> {
+    const operation = operationTable[id];
+    if (operation.streamingRequest || operation.webSocket) {
+      throw new Error(`postgrip-service: operation ${id} requires its protocol adapter`);
+    }
+    return this.transport(id, options);
+  }
+
   applyServiceVariables(options: OpenAPIRequestOptions<"applyServiceVariables">): Promise<OpenAPIResponseBody<"applyServiceVariables">> {
     return this.transport("applyServiceVariables", options);
   }

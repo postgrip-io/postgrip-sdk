@@ -37,6 +37,26 @@ function deferred(): { promise: Promise<void>; resolve: () => void } {
 }
 
 describe('PostGrip Agent TypeScript Connection', () => {
+  it('does not send the management token to public operations', async () => {
+    let authorization: string | null = 'not-called';
+    const connection = Connection.create({
+      baseUrl: 'http://agent.test',
+      insecureDevelopment: true,
+      authToken: 'pgt-management',
+      fetch: vi.fn<typeof fetch>(async (_input, init) => {
+        authorization = new Headers(init?.headers).get('authorization');
+        return new Response('{}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    });
+
+    await connection.openapi.refreshAgentSession({ body: { refreshToken: 'pgr-runtime' } });
+
+    expect(authorization).toBeNull();
+  });
+
   it('keeps deprecated Worker imports as Agent aliases', () => {
     expect(IndexWorker).toBe(Agent);
     expect(ModuleWorker).toBe(Agent);

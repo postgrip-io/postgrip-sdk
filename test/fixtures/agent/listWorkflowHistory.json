@@ -1,0 +1,29 @@
+{
+  "operationId": "listWorkflowHistory",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "workflowId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": [
+      {
+        "created_at": "2026-01-01T00:00:00Z",
+        "id": "string",
+        "type": "string",
+        "workflow_id": "string"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listWorkflowHistory"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -60,7 +60,7 @@ Illustrative success body:
   "kind": "postgresql",
   "mode": "connected",
   "name": "string",
-  "ref": "string",
+  "ref": "project:11111111-1111-4111-8111-111111111111",
   "slug": "string",
   "source": "target",
   "status": "ready",

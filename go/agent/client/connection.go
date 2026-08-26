@@ -163,7 +163,10 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 			return err
 		}
 	}
-	err = c.do(ctx, operation.Method, operation.Path, body, out, agentAuth, operation.Signing)
+	err = c.do(
+		ctx, operation.Method, operation.Path, body, out,
+		agentAuth, operation.AuthLane != "public", operation.Signing,
+	)
 	if err == nil || id != openAPIPollAgentTask {
 		return err
 	}
@@ -190,7 +193,7 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 // agent's refreshable access token" (true). signing is generated from the
 // contract and selects the protocol's agent-task-v1 canonical signature for
 // the task actions that require it.
-func (c *Connection) do(ctx context.Context, method, path string, body any, out any, agentAuth bool, signing string) error {
+func (c *Connection) do(ctx context.Context, method, path string, body any, out any, agentAuth, managementAuth bool, signing string) error {
 	var rawBody []byte
 	var reader io.Reader
 	if body != nil {
@@ -233,7 +236,7 @@ func (c *Connection) do(ctx context.Context, method, path string, body any, out 
 			req.Header.Set(protocol.HeaderAgentSignatureKeyID, protocol.AgentSigningKeyID(pub))
 			req.Header.Set(protocol.HeaderAgentSignature, protocol.SignAgentRequest(priv, payload))
 		}
-	} else if c.authHeader != "" {
+	} else if managementAuth && c.authHeader != "" {
 		req.Header.Set("Authorization", c.authHeader)
 	}
 	resp, err := c.httpClient.Do(req)

@@ -1,0 +1,23 @@
+{
+  "operationId": "ready",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "stats": {},
+      "status": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_ready"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,42 @@
+{
+  "operationId": "listWorkerOperationalLogs",
+  "plane": "worker",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "workerId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {
+      "cursor": "string",
+      "limit": 1,
+      "service": "string",
+      "since": "2026-01-01T00:00:00Z",
+      "stream": "stdout",
+      "window": "string"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "items": [
+        {
+          "containerId": "string",
+          "containerName": "string",
+          "id": 1,
+          "loggedAt": "2026-01-01T00:00:00Z",
+          "message": "string",
+          "service": "string",
+          "stream": "string"
+        }
+      ],
+      "nextCursor": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listWorkerOperationalLogs"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

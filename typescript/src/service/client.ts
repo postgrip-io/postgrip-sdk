@@ -1,4 +1,5 @@
 import {
+  OpenAPIClient,
   resolveOpenAPIOperation,
   type OpenAPICheckServiceRequest,
   type OpenAPIDeployment,
@@ -138,7 +139,7 @@ export class ServiceAPIError extends Error {
 
 interface InternalRequestOptions {
   readonly path?: Readonly<Record<string, string>>;
-  readonly query?: Readonly<Record<string, unknown>>;
+  readonly query?: Readonly<Record<string, unknown>> | URLSearchParams;
   readonly body?: unknown;
   readonly signal?: AbortSignal;
   readonly idempotencyKey?: string;
@@ -152,6 +153,7 @@ interface RetryPolicy {
 }
 
 export class ServiceClient {
+  readonly openapi: OpenAPIClient;
   readonly logs = {
     list: (service: ServiceReference, options: ServiceLogOptions = {}) => this.listLogs(service, options),
     follow: (service: ServiceReference, options: ServiceLogOptions = {}) => this.followLogs(service, options),
@@ -289,6 +291,17 @@ export class ServiceClient {
     this.retriesEnabled = config.enableRetries ?? false;
     this.retryPolicy = configuredRetryPolicy(config.retry);
     this.followIntervalMs = Math.max(1, config.followIntervalMs ?? 2_000);
+    this.openapi = new OpenAPIClient((id, options) => {
+      const headers = options.headers as Readonly<Record<string, string>> | undefined;
+      return this.request(id, {
+        path: options.pathParameters as Readonly<Record<string, string>> | undefined,
+        query: options.query,
+        body: options.body,
+        signal: options.signal,
+        idempotencyKey: headers?.['Idempotency-Key'],
+        ifMatch: headers?.['If-Match'],
+      });
+    });
   }
 
   static fromEnv(config: ServiceClientEnvironmentConfig = {}): ServiceClient {
@@ -591,8 +604,9 @@ function administrationWrite(options: AdministrationWriteOptions): Pick<Internal
   return { signal: options.signal, idempotencyKey: options.idempotencyKey, ifMatch: options.ifMatch };
 }
 
-function encodeQuery(query?: Readonly<Record<string, unknown>>): URLSearchParams | undefined {
+function encodeQuery(query?: Readonly<Record<string, unknown>> | URLSearchParams): URLSearchParams | undefined {
   if (!query) return undefined;
+  if (query instanceof URLSearchParams) return query;
   const result = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (value == null) continue;

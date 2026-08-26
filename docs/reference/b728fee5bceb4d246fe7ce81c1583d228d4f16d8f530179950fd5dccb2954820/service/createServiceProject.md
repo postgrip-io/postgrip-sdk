@@ -26,7 +26,7 @@ Uses the contract-defined POST /api/v1/services/projects behavior.
 
 | Name | In | Required | Schema | Example | Description |
 | --- | --- | --- | --- | --- | --- |
-| `Idempotency-Key` | header | yes | `string` | `"string"` | — |
+| `Idempotency-Key` | header | yes | `string` | `"recorded"` | — |
 | `If-Match` | header | yes | `string` | `"string"` | — |
 
 ## Request body

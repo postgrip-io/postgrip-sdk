@@ -28,7 +28,7 @@ Uses the contract-defined PUT /api/v1/services/project/{serviceId}/repository/cr
 | --- | --- | --- | --- | --- | --- |
 | `serviceId` | path | yes | `string (uuid)` | `"11111111-1111-4111-8111-111111111111"` | — |
 | `credentialKind` | path | yes | `string` | `"source-access"` | — |
-| `Idempotency-Key` | header | yes | `string` | `"string"` | — |
+| `Idempotency-Key` | header | yes | `string` | `"recorded"` | — |
 | `If-Match` | header | yes | `string` | `"string"` | — |
 
 ## Request body

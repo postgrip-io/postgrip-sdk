@@ -1,0 +1,30 @@
+{
+  "operationId": "createSandboxSession",
+  "plane": "agent",
+  "request": {
+    "body": {
+      "columns": 80,
+      "kind": "pty",
+      "rows": 24
+    },
+    "headers": {},
+    "pathParameters": {
+      "sandboxId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "expiresAt": "2026-01-01T00:00:00Z",
+      "id": "string",
+      "ticket": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_createSandboxSession"
+    },
+    "status": 201
+  },
+  "schemaVersion": 1
+}

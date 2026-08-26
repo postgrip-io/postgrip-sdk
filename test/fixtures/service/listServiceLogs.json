@@ -1,0 +1,39 @@
+{
+  "operationId": "listServiceLogs",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111",
+      "source": "target"
+    },
+    "query": {
+      "cursor": "string",
+      "deployment": "11111111-1111-4111-8111-111111111111",
+      "environment": "11111111-1111-4111-8111-111111111111",
+      "follow": true,
+      "kind": "build",
+      "limit": 1
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "items": [
+        {
+          "kind": "build",
+          "message": "string"
+        }
+      ],
+      "nextCursor": "string",
+      "pollAfterMs": 1
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listServiceLogs"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

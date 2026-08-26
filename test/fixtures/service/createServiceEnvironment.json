@@ -1,0 +1,59 @@
+{
+  "operationId": "createServiceEnvironment",
+  "plane": "service",
+  "request": {
+    "body": {
+      "kind": "string",
+      "name": "string"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-createServiceEnvironment",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configurationRevision": 1,
+      "effect": "string",
+      "environment": {
+        "buildCommand": "string",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "etag": "string",
+        "id": "11111111-1111-4111-8111-111111111111",
+        "kind": "string",
+        "name": "string",
+        "outputDir": "string",
+        "previewBrowserCheckEnabled": true,
+        "previewPathSegment": "string",
+        "projectId": "11111111-1111-4111-8111-111111111111",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "version": 1,
+        "volumeBindings": [
+          {
+            "containerPath": "string",
+            "etag": "string",
+            "readOnly": true,
+            "version": 1,
+            "volumeRef": "11111111-1111-4111-8111-111111111111"
+          }
+        ]
+      },
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_createServiceEnvironment"
+    },
+    "status": 201
+  },
+  "schemaVersion": 1
+}

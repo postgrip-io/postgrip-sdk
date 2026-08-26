@@ -119,7 +119,11 @@ class PythonSdkTests(unittest.TestCase):
         connection = Connection("http://agent.test", agent_refresh_token="refresh-token")
         requests: list[tuple[str, str, dict | None, bool]] = []
 
-        def fake_request(method: str, path: str, body: dict | None = None, *, agent_auth: bool = False, signing: str = "") -> dict:
+        def fake_request(
+            method: str, path: str, body: dict | None = None, *,
+            agent_auth: bool = False, management_auth: bool = True,
+            signing: str = "", request_headers: dict[str, str] | None = None,
+        ) -> dict:
             requests.append((method, path, body, agent_auth))
             if path == "/api/v1/agent/session/refresh":
                 return {
@@ -141,7 +145,11 @@ class PythonSdkTests(unittest.TestCase):
         connection = Connection("http://agent.test", agent_refresh_token="refresh-token")
         requests: list[tuple[str, str, dict | None, bool]] = []
 
-        def fake_request(method: str, path: str, body: dict | None = None, *, agent_auth: bool = False, signing: str = "") -> dict:
+        def fake_request(
+            method: str, path: str, body: dict | None = None, *,
+            agent_auth: bool = False, management_auth: bool = True,
+            signing: str = "", request_headers: dict[str, str] | None = None,
+        ) -> dict:
             requests.append((method, path, body, agent_auth))
             if path == "/api/v1/agent/session/refresh":
                 return {
@@ -173,7 +181,11 @@ class PythonSdkTests(unittest.TestCase):
         )
         requests: list[tuple[str, str, dict | None, bool]] = []
 
-        def fake_request(method: str, path: str, body: dict | None = None, *, agent_auth: bool = False, signing: str = "") -> dict:
+        def fake_request(
+            method: str, path: str, body: dict | None = None, *,
+            agent_auth: bool = False, management_auth: bool = True,
+            signing: str = "", request_headers: dict[str, str] | None = None,
+        ) -> dict:
             requests.append((method, path, body, agent_auth))
             if path.startswith("/api/v1/agent/tasks/task-1/"):
                 return {"id": "task-1"}

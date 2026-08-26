@@ -106,7 +106,8 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         selected = required or list(properties)[: min(3, len(properties))]
         return {name: sample(document, properties[name], seen) for name in selected if name in properties}
     if schema_type == "array":
-        return [sample(document, schema.get("items", {}), seen)]
+        count = max(int(schema.get("minItems", 1)), 1)
+        return [sample(document, schema.get("items", {}), seen) for _ in range(count)]
     if schema_type == "integer":
         return max(int(schema.get("minimum", 1)), 1)
     if schema_type == "number":
@@ -119,7 +120,12 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return "2026-01-01T00:00:00Z"
     if schema.get("format") == "date":
         return "2026-01-01"
-    return "string"
+    pattern = schema.get("pattern")
+    if pattern == "^(target|project):[0-9a-fA-F-]{36}$":
+        return "project:11111111-1111-4111-8111-111111111111"
+    if pattern in {"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$", "^[!-~]+$"}:
+        return "recorded"
+    return "string".ljust(max(int(schema.get("minLength", 0)), 6), "x")
 
 
 def operations(document: dict[str, Any]) -> list[dict[str, Any]]:

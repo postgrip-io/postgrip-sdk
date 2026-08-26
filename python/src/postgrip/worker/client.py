@@ -31,6 +31,7 @@ from .openapi import (
     ListWorkerOperationalLogsResponseBody,
     ListWorkerSecurityLogsResponseBody,
     ListWorkersResponseBody,
+    OpenAPIClient,
     OperationId,
     PlaceWorkerInMaintenanceResponseBody,
     ResumeWorkerFromMaintenanceResponseBody,
@@ -203,6 +204,7 @@ class WorkerClient:
         self._follow_interval = max(follow_interval, 0.001)
         self._timeout = timeout
         self._opener = _redirect_safe_opener(opener)
+        self.openapi = OpenAPIClient(self._openapi_transport)
 
     @classmethod
     def from_env(
@@ -218,6 +220,26 @@ class WorkerClient:
 
     def health(self) -> WorkerOrchestratorHealthResponseBody:
         return cast(WorkerOrchestratorHealthResponseBody, self._request(OperationId.WORKER_ORCHESTRATOR_HEALTH))
+
+    def _openapi_transport(
+        self,
+        operation_id: OperationId,
+        body: Any = None,
+        *,
+        path_parameters: dict[str, str] | None = None,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        request_headers = headers or {}
+        idempotency_key = request_headers.get("Idempotency-Key")
+        if idempotency_key is not None and re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
+            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        return self._request(
+            operation_id,
+            path=path_parameters,
+            query=query,
+            idempotency_key=idempotency_key,
+        )
 
     def list(self, *, page_size: int | None = None, page_token: str | None = None,
              status: str | None = None, trust_state: str | None = None) -> ListWorkersResponseBody:

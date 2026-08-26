@@ -1,4 +1,5 @@
 import {
+  OpenAPIClient,
   resolveOpenAPIOperation,
   type OpenAPIAssignmentList,
   type OpenAPICheckWorkerResponse,
@@ -90,12 +91,13 @@ export class WorkerAPIError extends Error {
 
 interface InternalRequestOptions {
   readonly path?: Readonly<Record<string, string>>;
-  readonly query?: object;
+  readonly query?: object | URLSearchParams;
   readonly signal?: AbortSignal;
   readonly idempotencyKey?: string;
 }
 
 export class WorkerClient {
+  readonly openapi: OpenAPIClient;
   readonly operationalLogs = {
     list: (workerId: string, options: OperationalLogOptions = {}) =>
       this.listOperationalLogs(workerId, options),
@@ -122,6 +124,15 @@ export class WorkerClient {
     this.fetchImpl = config.fetch ?? globalThis.fetch;
     this.retriesEnabled = config.enableRetries ?? false;
     this.followIntervalMs = Math.max(1, config.followIntervalMs ?? 2_000);
+    this.openapi = new OpenAPIClient((id, options) => {
+      const headers = options.headers as Readonly<Record<string, string>> | undefined;
+      return this.request(id, {
+        path: options.pathParameters as Readonly<Record<string, string>> | undefined,
+        query: options.query,
+        signal: options.signal,
+        idempotencyKey: headers?.['Idempotency-Key'],
+      });
+    });
   }
 
   static fromEnv(config: WorkerClientEnvironmentConfig = {}): WorkerClient {
@@ -289,8 +300,9 @@ export class WorkerClient {
   }
 }
 
-function encodeQuery(query?: object): URLSearchParams | undefined {
+function encodeQuery(query?: object | URLSearchParams): URLSearchParams | undefined {
   if (!query) return undefined;
+  if (query instanceof URLSearchParams) return query;
   const result = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (key === 'signal' || value == null) continue;

@@ -20,6 +20,21 @@ func (c *Connection) OpenAPI() *OpenAPIClient {
 	return &OpenAPIClient{connection: c}
 }
 
+// Do executes an ordinary generated JSON operation by stable operation ID.
+// Archive streaming and WebSocket operations require their dedicated adapters.
+func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParameters map[string]string, query url.Values, headers http.Header, body, out any) error {
+	id := openAPIOperationID(operationID)
+	operation, ok := openAPIOperationTable[id]
+	if !ok {
+		return fmt.Errorf("postgrip-agent: unknown OpenAPI operation %q", operationID)
+	}
+	if operation.StreamingRequest || operation.WebSocket {
+		return fmt.Errorf("postgrip-agent: operation %q requires its protocol adapter", operationID)
+	}
+	ctx = withOpenAPIHeaders(ctx, headers)
+	return c.connection.doOpenAPI(ctx, id, pathParameters, query, body, out)
+}
+
 type OpenAPIFlushServiceRuntimeLogsQuery struct {
 	EnvironmentId *string
 }

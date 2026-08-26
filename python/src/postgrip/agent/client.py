@@ -145,6 +145,7 @@ class Connection:
         *,
         path_parameters: dict[str, str] | None = None,
         query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> Any:
         """Resolve generated HTTP metadata, retaining the custom transport."""
         operation = resolve_openapi_operation(operation_id, path_parameters, query)
@@ -156,7 +157,9 @@ class Connection:
             operation.path,
             body,
             agent_auth=agent_auth,
+            management_auth=operation.auth_lane != "public",
             signing=operation.signing,
+            request_headers=headers,
         )
 
     def _request(
@@ -166,7 +169,9 @@ class Connection:
         body: Any = None,
         *,
         agent_auth: bool = False,
+        management_auth: bool = True,
         signing: str = "",
+        request_headers: dict[str, str] | None = None,
     ) -> Any:
         data = b"" if body is None else json.dumps(body).encode()
         auth_lane = openapi_auth_lane_for_request(method, path)
@@ -179,13 +184,14 @@ class Connection:
         if use_agent_auth:
             self.ensure_agent_session()
         headers = dict(self.headers)
+        headers.update(request_headers or {})
         # Some CDN front-ends block urllib's default UA. Always send a stable
         # SDK identifier so behavior is consistent across local and proxied
         # deployments.
         headers.setdefault("User-Agent", "postgrip-agent-python")
         if use_agent_auth and self._agent_access_token:
             headers["Authorization"] = f"Bearer {self._agent_access_token}"
-        elif not use_agent_auth and self.auth_token and not has_authorization_header(headers):
+        elif not use_agent_auth and management_auth and self.auth_token and not has_authorization_header(headers):
             # An explicitly supplied header wins, so existing callers that
             # hand-build one keep working.
             headers["Authorization"] = f"Bearer {self.auth_token}"

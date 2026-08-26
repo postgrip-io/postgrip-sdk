@@ -393,6 +393,7 @@ class ServiceClient:
         self._follow_interval = max(follow_interval, 0.001)
         self._timeout = timeout
         self._opener = _redirect_safe_opener(opener)
+        self.openapi = OpenAPIClient(self._openapi_transport)
         self.administration = ServiceAdministration(self._openapi_transport)
 
     @classmethod

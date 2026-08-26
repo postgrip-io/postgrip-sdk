@@ -564,6 +564,7 @@ export class Connection {
       || (operation.authLane === 'either' && this.hasAgentRuntimeCredentials());
     return this.request(operation.method, operation.path, options.body, options.signal, {
       agentAuth,
+      managementAuth: operation.authLane !== 'public',
       signing: operation.signing,
       acceptedStatuses: id === 'pollAgentTask' ? [410] : undefined,
     });
@@ -574,7 +575,7 @@ export class Connection {
     path: string,
     body?: unknown,
     signal?: AbortSignal,
-    options: { agentAuth?: boolean; signing?: string; acceptedStatuses?: readonly number[] } = {},
+    options: { agentAuth?: boolean; managementAuth?: boolean; signing?: string; acceptedStatuses?: readonly number[] } = {},
   ): Promise<T> {
     const useAgentAuth = options.agentAuth === true;
     if (useAgentAuth) {
@@ -583,7 +584,7 @@ export class Connection {
     const headers = new Headers(this.headers);
     if (useAgentAuth && this.agentAuth.accessToken) {
       headers.set('Authorization', `Bearer ${this.agentAuth.accessToken}`);
-    } else if (!useAgentAuth && this.authToken && !headers.has('Authorization')) {
+    } else if (!useAgentAuth && options.managementAuth !== false && this.authToken && !headers.has('Authorization')) {
       // An explicit header wins, so callers already passing one keep working.
       headers.set('Authorization', `Bearer ${this.authToken}`);
     }
