@@ -202,4 +202,112 @@ describe('WorkerClient', () => {
     expect(() => new WorkerClient({ baseUrl: 'http://example.com', token: 'pgwm_token' })).toThrow('HTTPS');
     expect(() => new WorkerClient({ baseUrl: 'https://example.com', token: 'pga_token' })).toThrow('pgwm_');
   });
+
+  it('executes every Worker facade through its canonical route', async () => {
+    const seen: string[] = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      seen.push(`${init?.method ?? 'GET'} ${url.pathname}`);
+      const headers = new Headers(init?.headers);
+      if (url.pathname !== '/health') expect(headers.get('authorization')).toBe('Bearer pgwm_test-token');
+      if ((init?.method ?? 'GET') === 'POST') expect(headers.get('idempotency-key')).toBe('operation-1');
+      if (url.pathname.endsWith('/operational-logs') || url.pathname.endsWith('/security-logs')) {
+        return Response.json({ items: [], nextCursor: '' });
+      }
+      if (url.pathname.endsWith('/assignments') || url.pathname.endsWith('/jobs') || url.pathname === '/api/v1/workers') {
+        return Response.json({ items: [] });
+      }
+      return Response.json({});
+    });
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com', token: 'pgwm_test-token', fetch: fetchMock,
+    });
+
+    await client.health();
+    await client.list();
+    await client.get('worker-1');
+    await client.assignments('worker-1');
+    await client.jobs('worker-1');
+    await client.job('worker-1', 'job-1');
+    await client.operationalLogs.list('worker-1');
+    await client.securityLogs.list('worker-1');
+    await client.check('worker-1', { idempotencyKey: 'operation-1' });
+    await client.maintenance('worker-1', { idempotencyKey: 'operation-1' });
+    await client.resume('worker-1', { idempotencyKey: 'operation-1' });
+    await client.upgrade('worker-1', { idempotencyKey: 'operation-1' });
+
+    expect(seen).toEqual([
+      'GET /health',
+      'GET /api/v1/workers',
+      'GET /api/v1/workers/worker-1',
+      'GET /api/v1/workers/worker-1/assignments',
+      'GET /api/v1/workers/worker-1/jobs',
+      'GET /api/v1/workers/worker-1/jobs/job-1',
+      'GET /api/v1/workers/worker-1/operational-logs',
+      'GET /api/v1/workers/worker-1/security-logs',
+      'POST /api/v1/workers/worker-1/check',
+      'POST /api/v1/workers/worker-1/maintenance',
+      'POST /api/v1/workers/worker-1/maintenance/resume',
+      'POST /api/v1/workers/worker-1/upgrade',
+    ]);
+  });
+
+  it('paginates workers and jobs with opaque server tokens', async () => {
+    let workerPage = 0;
+    let jobPage = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/api/v1/workers') {
+        workerPage += 1;
+        if (workerPage === 2) expect(url.searchParams.get('pageToken')).toBe('worker-next');
+        return Response.json({ items: [], nextPageToken: workerPage === 1 ? 'worker-next' : undefined });
+      }
+      jobPage += 1;
+      if (jobPage === 2) expect(url.searchParams.get('pageToken')).toBe('job-next');
+      return Response.json({ items: [], nextPageToken: jobPage === 1 ? 'job-next' : undefined });
+    });
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com', token: 'pgwm_test-token', fetch: fetchMock,
+    });
+
+    const workerPages = [];
+    for await (const page of client.pages()) workerPages.push(page);
+    const jobPages = [];
+    for await (const page of client.jobPages('worker-1')) jobPages.push(page);
+
+    expect(workerPages).toHaveLength(2);
+    expect(jobPages).toHaveLength(2);
+  });
+
+  it('deduplicates security log overlap and honors cancellation', async () => {
+    let calls = 0;
+    const fetchMock = vi.fn(async () => {
+      calls += 1;
+      return Response.json(calls === 1
+        ? { items: [{ id: 1 }], nextCursor: 'first' }
+        : { items: [{ id: 1 }, { id: 2 }], nextCursor: 'second' });
+    });
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com', token: 'pgwm_test-token', fetch: fetchMock,
+    });
+    const controller = new AbortController();
+    const iterator = client.securityLogs.follow('worker-1', { signal: controller.signal });
+
+    await expect(iterator.next()).resolves.toMatchObject({ value: { id: 1 }, done: false });
+    await expect(iterator.next()).resolves.toMatchObject({ value: { id: 2 }, done: false });
+    controller.abort(new Error('stop-security-follow'));
+    await expect(iterator.next()).rejects.toThrow('stop-security-follow');
+  });
+
+  it('rejects unsafe URL and idempotency inputs before fetching', async () => {
+    expect(() => new WorkerClient({
+      baseUrl: 'https://example.com?tenant=other', token: 'pgwm_token',
+    })).toThrow('query or fragment');
+    const fetchMock = vi.fn();
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com', token: 'pgwm_test-token', fetch: fetchMock,
+    });
+    expect(() => client.check('worker-1', { idempotencyKey: 'contains whitespace' })).toThrow('visible ASCII');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

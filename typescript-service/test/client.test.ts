@@ -320,4 +320,116 @@ describe('ServiceClient', () => {
     )).toThrow(/If-Match/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
+
+  it('executes all 55 administration facades through the authenticated transport', async () => {
+    let requestCount = 0;
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      requestCount += 1;
+      const headers = new Headers(init?.headers);
+      expect(headers.get('Authorization')).toBe('Bearer pgwm_test-token');
+      if ((init?.method ?? 'GET') !== 'GET') expect(headers.get('Idempotency-Key')).toBe('operation-1');
+      return Response.json({});
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+    const admin = api.administration;
+    const body = {} as never;
+    const write = { idempotencyKey: 'operation-1', ifMatch: '"etag:1"' };
+    const mutation = { idempotencyKey: 'operation-1' };
+    const calls: Array<() => Promise<unknown>> = [
+      () => admin.targets.attach(body, write),
+      () => admin.targets.update('target-1', body, write),
+      () => admin.targets.removalImpact('target-1'),
+      () => admin.targets.detach('target-1', body, write),
+      () => admin.targets.putConnection('target-1', body, write),
+      () => admin.targets.clearConnection('target-1', write),
+      () => admin.projects.create(body, write),
+      () => admin.projects.update('project-1', body, write),
+      () => admin.projects.removalImpact('project-1'),
+      () => admin.projects.delete('project-1', body, write),
+      () => admin.environments.get('project-1', 'environment-1'),
+      () => admin.environments.create('project-1', body, write),
+      () => admin.environments.update('project-1', 'environment-1', body, write),
+      () => admin.environments.previewReassignment('project-1', 'environment-1', body, mutation),
+      () => admin.environments.reassign('project-1', 'environment-1', body, write),
+      () => admin.environments.removalImpact('project-1', 'environment-1'),
+      () => admin.environments.delete('project-1', 'environment-1', body, write),
+      () => admin.volumes.list('project-1'),
+      () => admin.volumes.create('project-1', body, write),
+      () => admin.volumes.get('project-1', 'volume-1'),
+      () => admin.volumes.removalImpact('project-1', 'volume-1'),
+      () => admin.volumes.delete('project-1', 'volume-1', body, write),
+      () => admin.volumes.bind('project-1', 'environment-1', body, write),
+      () => admin.volumes.updateBinding('project-1', 'environment-1', 'volume-1', body, write),
+      () => admin.volumes.unbind('project-1', 'environment-1', 'volume-1', write),
+      () => admin.domains.list('project-1', 'environment-1'),
+      () => admin.domains.create('project-1', 'environment-1', body, write),
+      () => admin.domains.update('project-1', 'environment-1', 'domain-1', body, write),
+      () => admin.domains.delete('project-1', 'environment-1', 'domain-1', write),
+      () => admin.variables.list('project-1', 'environment-1'),
+      () => admin.variables.create('project-1', 'environment-1', body, write),
+      () => admin.variables.update('project-1', 'environment-1', 'variable-1', body, write),
+      () => admin.variables.delete('project-1', 'environment-1', 'variable-1', write),
+      () => admin.variables.putValue('project-1', 'environment-1', 'variable-1', body, write),
+      () => admin.variables.clearValue('project-1', 'environment-1', 'variable-1', write),
+      () => admin.variables.apply('project-1', body, mutation),
+      () => admin.repositories.get('project-1'),
+      () => admin.repositories.update('project-1', body, write),
+      () => admin.repositories.putCredential('project-1', 'source-access', body, write),
+      () => admin.repositories.clearCredential('project-1', 'source-access', write),
+      () => admin.repositories.refreshCredential('project-1', 'source-access', write),
+      () => admin.promotions.list('project-1'),
+      () => admin.promotions.preview('project-1', body),
+      () => admin.promotions.create('project-1', body, mutation),
+      () => admin.retention.getBuild('project-1'),
+      () => admin.retention.updateBuild('project-1', body, write),
+      () => admin.retention.trimBuild('project-1', write),
+      () => admin.retention.flushBuild('project-1', write),
+      () => admin.retention.getRuntime('project-1'),
+      () => admin.retention.updateRuntime('project-1', body, body, write),
+      () => admin.retention.trimRuntime('project-1', body, write),
+      () => admin.retention.flushRuntime('project-1', body, write),
+      () => admin.configurationOperations.list(),
+      () => admin.configurationOperations.get('operation-1'),
+      () => admin.configurationOperations.retry('operation-1', write),
+    ];
+
+    for (const invoke of calls) await invoke();
+    expect(requestCount).toBe(55);
+  });
+
+  it('paginates environments and deployments and exercises the scoped facade', async () => {
+    const counts = { environments: 0, deployments: 0 };
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith('/environments')) {
+        counts.environments += 1;
+        if (counts.environments === 2) expect(url.searchParams.get('cursor')).toBe('environment-next');
+        return Response.json({ items: [], nextCursor: counts.environments === 1 ? 'environment-next' : '' });
+      }
+      if (url.pathname.endsWith('/deployments')) {
+        counts.deployments += 1;
+        if (counts.deployments === 2) expect(url.searchParams.get('cursor')).toBe('deployment-next');
+        return Response.json({ items: [], nextCursor: counts.deployments === 1 ? 'deployment-next' : '' });
+      }
+      if (url.pathname.endsWith('/logs')) return Response.json({ items: [], nextCursor: '', pollAfterMs: 1 });
+      return Response.json({});
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+    const ref = { source: 'project', id: 'project-1' } as const;
+
+    const environmentPages = [];
+    for await (const page of api.environmentPages(ref)) environmentPages.push(page);
+    const deploymentPages = [];
+    for await (const page of api.deploymentPages(ref)) deploymentPages.push(page);
+    const scoped = api.forService(ref);
+    await scoped.get();
+    await scoped.status();
+    await scoped.environments();
+    await scoped.deployments();
+    await scoped.check({ idempotencyKey: 'operation-1' });
+    await scoped.logs.list();
+
+    expect(environmentPages).toHaveLength(2);
+    expect(deploymentPages).toHaveLength(2);
+  });
 });

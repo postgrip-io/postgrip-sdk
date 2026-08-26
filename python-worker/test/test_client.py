@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Event, Thread
 import unittest
 from urllib.error import HTTPError
+from urllib.parse import urlparse
 from urllib.request import build_opener
 from unittest.mock import patch
 
@@ -60,6 +61,93 @@ def api_error_value(status: int, value: object, retry_after: str = "0") -> HTTPE
 
 
 class WorkerClientTests(unittest.TestCase):
+    def test_every_worker_facade_maps_to_the_canonical_operation(self) -> None:
+        expected = [
+            ("GET", "/health"),
+            ("GET", "/api/v1/workers"),
+            ("GET", "/api/v1/workers/worker-id"),
+            ("GET", "/api/v1/workers/worker-id/assignments"),
+            ("GET", "/api/v1/workers/worker-id/jobs"),
+            ("GET", "/api/v1/workers/worker-id/jobs/job-id"),
+            ("POST", "/api/v1/workers/worker-id/check"),
+            ("POST", "/api/v1/workers/worker-id/maintenance"),
+            ("POST", "/api/v1/workers/worker-id/maintenance/resume"),
+            ("POST", "/api/v1/workers/worker-id/upgrade"),
+            ("GET", "/api/v1/workers/worker-id/operational-logs"),
+            ("GET", "/api/v1/workers/worker-id/security-logs"),
+        ]
+        opener = FakeOpener([{} for _ in expected])
+        client = WorkerClient(
+            base_url="https://workers.example.com", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+
+        calls = [
+            client.health,
+            lambda: client.list(status="ready", trust_state="trusted"),
+            lambda: client.get("worker-id"),
+            lambda: client.assignments("worker-id"),
+            lambda: client.jobs("worker-id", page_size=10, state="running"),
+            lambda: client.job("worker-id", "job-id"),
+            lambda: client.check("worker-id", idempotency_key="operation-1"),
+            lambda: client.maintenance("worker-id", idempotency_key="operation-1"),
+            lambda: client.resume("worker-id", idempotency_key="operation-1"),
+            lambda: client.upgrade("worker-id", idempotency_key="operation-1"),
+            lambda: client.operational_logs("worker-id", service="worker", stream="stderr"),
+            lambda: client.security_logs("worker-id", severity="warn", focus="upgrade"),
+        ]
+        for invoke in calls:
+            invoke()
+
+        actual = [(request.method, urlparse(request.full_url).path) for request in opener.requests]
+        self.assertEqual(actual, expected)
+        self.assertIsNone(opener.requests[0].get_header("Authorization"))
+        self.assertTrue(all(
+            request.get_header("Authorization") == "Bearer pgwm_test-token"
+            for request in opener.requests[1:]
+        ))
+        self.assertTrue(all(
+            request.get_header("Idempotency-key") == "operation-1"
+            for request in opener.requests[6:10]
+        ))
+
+    def test_worker_and_job_pages_preserve_opaque_tokens(self) -> None:
+        opener = FakeOpener([
+            {"items": [], "nextPageToken": "worker-next"},
+            {"items": []},
+            {"items": [], "nextPageToken": "job-next"},
+            {"items": []},
+        ])
+        client = WorkerClient(
+            base_url="https://workers.example.com", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+
+        self.assertEqual([page.get("nextPageToken") for page in client.pages(page_size=1)], ["worker-next", None])
+        self.assertEqual(
+            [page.get("nextPageToken") for page in client.job_pages("worker-id", page_size=1)],
+            ["job-next", None],
+        )
+        self.assertNotIn("pageToken=", opener.requests[0].full_url)
+        self.assertIn("pageToken=worker-next", opener.requests[1].full_url)
+        self.assertNotIn("pageToken=", opener.requests[2].full_url)
+        self.assertIn("pageToken=job-next", opener.requests[3].full_url)
+
+    def test_security_follower_deduplicates_entries_across_pages(self) -> None:
+        opener = FakeOpener([
+            {"items": [{"id": 7}, {"id": 8}], "nextCursor": "next"},
+            {"items": [{"id": 8}, {"id": 9}], "nextCursor": "later"},
+        ])
+        client = WorkerClient(
+            base_url="https://workers.example.com", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        cancel = Event()
+        iterator = client.follow_security_logs("worker-id", cancel=cancel, severity="error")
+
+        self.assertEqual([next(iterator)["id"] for _ in range(3)], [7, 8, 9])
+        cancel.set()
+        with self.assertRaises(StopIteration):
+            next(iterator)
+        self.assertIn("cursor=next", opener.requests[1].full_url)
+
     def test_list_injects_bearer_and_query(self) -> None:
         opener = FakeOpener([{"items": []}])
         client = WorkerClient(base_url="https://workers.example.com", token="pgwm_test-token", opener=opener)  # type: ignore[arg-type]
@@ -252,6 +340,55 @@ class WorkerClientTests(unittest.TestCase):
             self.assertEqual([page["items"][0]["id"] for page in pages], ["job-1", "job-2"])
             self.assertNotIn("pageToken", opener.requests[0].full_url)
             self.assertIn("pageToken=next", opener.requests[1].full_url)
+
+        asyncio.run(run())
+
+    def test_async_facades_and_worker_pages_execute_sync_transport(self) -> None:
+        async def run() -> None:
+            responses = [
+                {},
+                {"items": [], "nextPageToken": "next"},
+                {"items": []},
+                {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+            ]
+            opener = FakeOpener(responses)
+            client = AsyncWorkerClient(
+                base_url="https://workers.example.com", token="pgwm_test-token", opener=opener,
+            )  # type: ignore[arg-type]
+
+            await client.health()
+            self.assertEqual(
+                [page.get("nextPageToken") async for page in client.pages(page_size=1)],
+                ["next", None],
+            )
+            await client.get("worker-id")
+            await client.assignments("worker-id")
+            await client.jobs("worker-id", state="running")
+            await client.job("worker-id", "job-id")
+            await client.check("worker-id", idempotency_key="operation-1")
+            await client.maintenance("worker-id", idempotency_key="operation-1")
+            await client.resume("worker-id", idempotency_key="operation-1")
+            await client.upgrade("worker-id", idempotency_key="operation-1")
+            await client.operational_logs("worker-id")
+            await client.security_logs("worker-id")
+
+            self.assertEqual(len(opener.requests), 13)
+
+        asyncio.run(run())
+
+    def test_async_security_follower_deduplicates_entries(self) -> None:
+        async def run() -> None:
+            opener = FakeOpener([
+                {"items": [{"id": 1}, {"id": 2}], "nextCursor": "next"},
+                {"items": [{"id": 2}, {"id": 3}], "nextCursor": "later"},
+            ])
+            client = AsyncWorkerClient(
+                base_url="https://workers.example.com", token="pgwm_test-token", opener=opener,
+            )  # type: ignore[arg-type]
+            iterator = client.follow_security_logs("worker-id")
+            entries = [await anext(iterator) for _ in range(3)]
+            await iterator.aclose()
+            self.assertEqual([entry["id"] for entry in entries], [1, 2, 3])
 
         asyncio.run(run())
 
