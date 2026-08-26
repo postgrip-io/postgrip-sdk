@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from email.message import Message
 from io import BytesIO
+import inspect
 import json
 from threading import Event
 from typing import get_type_hints
@@ -81,6 +82,29 @@ def api_error(status: int, code: str = "BUSY", retry_after: str = "0") -> HTTPEr
 
 
 class ServiceClientTests(unittest.TestCase):
+    @staticmethod
+    def _administration_arguments(method: object) -> tuple[list[object], dict[str, object]]:
+        positional: list[object] = []
+        keywords: dict[str, object] = {}
+        for parameter in inspect.signature(method).parameters.values():
+            if parameter.default is not inspect.Parameter.empty:
+                continue
+            if parameter.name == "body":
+                value: object = {}
+            elif parameter.name == "credential_kind":
+                value = "source-access"
+            elif parameter.name == "idempotency_key":
+                value = "operation-1"
+            elif parameter.name == "if_match":
+                value = '"etag:1"'
+            else:
+                value = f"{parameter.name.replace('_', '-')}-value"
+            if parameter.kind is inspect.Parameter.KEYWORD_ONLY:
+                keywords[parameter.name] = value
+            else:
+                positional.append(value)
+        return positional, keywords
+
     def test_list_injects_bearer_and_terminal_query_names(self) -> None:
         opener = FakeOpener([{"items": [SERVICE], "nextCursor": ""}])
         client = ServiceClient(base_url="https://services.example.test", token="pgwm_test-token", opener=opener)  # type: ignore[arg-type]
@@ -99,6 +123,15 @@ class ServiceClientTests(unittest.TestCase):
         status = client.for_service(service).status()
         self.assertEqual(status["service"]["ref"], SERVICE["ref"])
         self.assertIn(f"/api/v1/services/project/{SERVICE['id']}/status", opener.requests[1].full_url)
+
+    def test_service_references_validate_mapping_and_explicit_values(self) -> None:
+        reference = ServiceReference.from_service(SERVICE)
+        self.assertEqual(reference.path(), {"source": "project", "serviceId": SERVICE["id"]})
+        for invalid in ({}, {"source": "external", "id": "service-id"}, {"source": "project", "id": ""}):
+            with self.assertRaises(ValueError):
+                ServiceReference.from_service(invalid)
+        with self.assertRaises(ValueError):
+            ServiceReference("project", "").path()
 
     def test_deploy_sends_json_and_idempotency_key(self) -> None:
         response = {
@@ -150,6 +183,28 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual([page["nextCursor"] for page in client.pages()], ["next", ""])
         self.assertNotIn("cursor=", opener.requests[0].full_url)
         self.assertIn("cursor=next", opener.requests[1].full_url)
+
+    def test_environment_and_deployment_pages_use_opaque_cursors(self) -> None:
+        opener = FakeOpener([
+            {"items": [], "nextCursor": "environment-next"},
+            {"items": [], "nextCursor": ""},
+            {"items": [], "nextCursor": "deployment-next"},
+            {"items": [], "nextCursor": ""},
+        ])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        reference = ServiceReference("project", "project-id")
+        self.assertEqual(
+            [page["nextCursor"] for page in client.environment_pages(reference, limit=1)],
+            ["environment-next", ""],
+        )
+        self.assertEqual(
+            [page["nextCursor"] for page in client.deployment_pages(reference, limit=1)],
+            ["deployment-next", ""],
+        )
+        self.assertIn("cursor=environment-next", opener.requests[1].full_url)
+        self.assertIn("cursor=deployment-next", opener.requests[3].full_url)
 
     def test_follow_uses_cursor_and_stops_after_cancel(self) -> None:
         opener = FakeOpener([
@@ -384,6 +439,44 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(request.get_header("Idempotency-key"), "attach-1")
         self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
 
+    def test_every_administration_facade_executes_through_the_transport(self) -> None:
+        opener = FakeOpener([{} for _ in range(55)])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        groups = (
+            client.administration.target_services,
+            client.administration.projects,
+            client.administration.environments,
+            client.administration.managed_volumes,
+            client.administration.domains,
+            client.administration.variables,
+            client.administration.repositories,
+            client.administration.promotions,
+            client.administration.retention,
+            client.administration.configuration_operations,
+        )
+
+        for group in groups:
+            for name in dir(group):
+                method = getattr(group, name)
+                positional, keywords = self._administration_arguments(method)
+                method(*positional, **keywords)
+
+        self.assertEqual(len(opener.requests), 55)
+        self.assertTrue(all(
+            request.get_header("Authorization") == "Bearer pgwm_test-token"
+            for request in opener.requests
+        ))
+        mutations = [request for request in opener.requests if request.method != "GET"]
+        self.assertTrue(mutations)
+        self.assertTrue(all(
+            request.get_header("Idempotency-key") == "operation-1"
+            for request in mutations
+        ))
+        with self.assertRaises(AttributeError):
+            getattr(client.administration.projects, "unsupported_operation")
+
     def test_bulk_variable_apply_uses_per_environment_fences_without_if_match(self) -> None:
         opener = FakeOpener([{
             "results": [],
@@ -426,6 +519,30 @@ class ServiceClientTests(unittest.TestCase):
             )
         self.assertEqual(opener.requests, [])
 
+    def test_scoped_facade_covers_reads_logs_and_health_check(self) -> None:
+        opener = FakeOpener([
+            {}, {}, {}, {}, {},
+            {"items": [{"message": "one"}, {"message": "two"}], "nextCursor": "next"},
+            {},
+        ])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        scoped = client.for_service(ServiceReference("project", "project-id"))
+        scoped.get()
+        scoped.status(environment="production")
+        scoped.environments(limit=10)
+        scoped.deployments(limit=10)
+        scoped.logs(kind="runtime")
+        cancel = Event()
+        iterator = scoped.follow_logs(cancel=cancel)
+        self.assertEqual(next(iterator)["message"], "one")
+        cancel.set()
+        with self.assertRaises(StopIteration):
+            next(iterator)
+        scoped.check(idempotency_key="operation-1")
+        self.assertEqual(len(opener.requests), 7)
+
     def test_async_pages(self) -> None:
         async def run() -> None:
             opener = FakeOpener([
@@ -437,6 +554,115 @@ class ServiceClientTests(unittest.TestCase):
             )  # type: ignore[arg-type]
             cursors = [page["nextCursor"] async for page in client.pages()]
             self.assertEqual(cursors, ["next", ""])
+
+        asyncio.run(run())
+
+    def test_async_client_loads_documented_environment_variables(self) -> None:
+        client = AsyncServiceClient.from_env(environ={
+            "POSTGRIP_WORKERORCHESTRATOR_URL": "https://services.example.test",
+            "POSTGRIP_SERVICE_API_TOKEN": "pgwm_environment-token",
+        })
+        self.assertIsInstance(client, AsyncServiceClient)
+
+    def test_async_runtime_facades_execute_sync_transport(self) -> None:
+        async def run() -> None:
+            opener = FakeOpener([
+                {"items": [], "nextCursor": "next"},
+                {"items": [], "nextCursor": ""},
+                *[{} for _ in range(17)],
+            ])
+            client = AsyncServiceClient(
+                base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+            )  # type: ignore[arg-type]
+            reference = ServiceReference("project", "project-id")
+
+            self.assertEqual(
+                [page["nextCursor"] async for page in client.pages(limit=1)],
+                ["next", ""],
+            )
+            await client.resolve("api")
+            await client.get(reference)
+            await client.status(reference, environment="production")
+            await client.environments(reference, limit=10)
+            await client.environment("project-id", "production")
+            await client.deployments(reference, limit=10)
+            await client.deployment("project-id", "deployment-id")
+            await client.logs(reference, kind="runtime")
+            await client.check(reference, idempotency_key="operation-1")
+            await client.preview_deploy("project-id", environment="production")
+            await client.deploy(
+                "project-id", expected_commit_sha="commit", idempotency_key="operation-1",
+            )
+            await client.redeploy("project-id", idempotency_key="operation-1")
+            await client.cancel("project-id", "deployment-id", idempotency_key="operation-1")
+            await client.rollback("project-id", "deployment-id", idempotency_key="operation-1")
+            await client.start(
+                "project-id", "environment-id",
+                expected_deployment_id="deployment-id", idempotency_key="operation-1",
+            )
+            await client.stop(
+                "project-id", "environment-id",
+                expected_deployment_id="deployment-id", idempotency_key="operation-1",
+            )
+            await client.restart(
+                "project-id", "environment-id",
+                expected_deployment_id="deployment-id", idempotency_key="operation-1",
+            )
+            self.assertEqual(len(opener.requests), 19)
+
+        asyncio.run(run())
+
+    def test_async_administration_facades_execute_through_the_transport(self) -> None:
+        async def run() -> None:
+            opener = FakeOpener([{} for _ in range(55)])
+            client = AsyncServiceClient(
+                base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+            )  # type: ignore[arg-type]
+            groups = (
+                (client.administration.target_services, client._sync.administration.target_services),
+                (client.administration.projects, client._sync.administration.projects),
+                (client.administration.environments, client._sync.administration.environments),
+                (client.administration.managed_volumes, client._sync.administration.managed_volumes),
+                (client.administration.domains, client._sync.administration.domains),
+                (client.administration.variables, client._sync.administration.variables),
+                (client.administration.repositories, client._sync.administration.repositories),
+                (client.administration.promotions, client._sync.administration.promotions),
+                (client.administration.retention, client._sync.administration.retention),
+                (
+                    client.administration.configuration_operations,
+                    client._sync.administration.configuration_operations,
+                ),
+            )
+
+            for async_group, sync_group in groups:
+                for name in dir(async_group):
+                    positional, keywords = self._administration_arguments(getattr(sync_group, name))
+                    await getattr(async_group, name)(*positional, **keywords)
+
+            self.assertEqual(len(opener.requests), 55)
+
+        asyncio.run(run())
+
+    def test_async_log_follower_uses_cursor_and_server_delay(self) -> None:
+        async def run() -> None:
+            opener = FakeOpener([
+                {"items": [{"message": "one"}], "nextCursor": "next", "pollAfterMs": 0},
+                {"items": [], "nextCursor": "later", "pollAfterMs": 1},
+            ])
+            client = AsyncServiceClient(
+                base_url="https://services.example.test", token="pgwm_test-token", opener=opener,
+                follow_interval=0.001,
+            )  # type: ignore[arg-type]
+            iterator = client.follow_logs(ServiceReference("project", "project-id"))
+            self.assertEqual((await anext(iterator))["message"], "one")
+            pending = asyncio.create_task(anext(iterator))
+            while len(opener.requests) < 2:
+                await asyncio.sleep(0)
+            pending.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await pending
+            await iterator.aclose()
+            self.assertIn("cursor=next", opener.requests[1].full_url)
 
         asyncio.run(run())
 
