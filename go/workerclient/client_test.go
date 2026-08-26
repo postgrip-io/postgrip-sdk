@@ -39,6 +39,24 @@ func TestListInjectsBearerAndEncodesQuery(t *testing.T) {
 	}
 }
 
+func TestListDecodesObservedSignerRuntime(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"items":[{"id":"worker-1","name":"worker-east","status":"online","trustState":"trusted","createdAt":"2026-08-25T00:00:00Z","updatedAt":"2026-08-25T00:00:00Z","capabilities":[],"previewSubdomainEnabled":false,"autoShutdownOnRemoval":false,"signerVersion":2,"signerRevision":"30a3e4c53a48544f77735398f4784c20279f0ae3"}]}`))
+	}))
+	defer server.Close()
+
+	page, err := newTestClient(t, server, false).List(context.Background(), ListWorkersOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].SignerVersion == nil || *page.Items[0].SignerVersion != 2 {
+		t.Fatalf("List() signer version = %#v", page.Items)
+	}
+	if page.Items[0].SignerRevision == nil || *page.Items[0].SignerRevision != "30a3e4c53a48544f77735398f4784c20279f0ae3" {
+		t.Fatalf("List() signer revision = %#v", page.Items[0].SignerRevision)
+	}
+}
+
 func TestListPreservesConfiguredBasePath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got, want := r.URL.Path, "/postgrip/api/v1/workers"; got != want {

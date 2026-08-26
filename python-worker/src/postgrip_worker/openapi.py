@@ -8,7 +8,7 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'c6cdf81157eec099cfde167e3adbebd84bd820b44070542fe407f182931e2101'
+OPENAPI_SPEC_SHA256 = '274cbd5d7c9d38d617052d0c31030e03c659c292f9ad555fadb6e1372c3248a1'
 OPENAPI_OPERATION_COUNT = 12
 OPENAPI_CLIENT_OPERATION_COUNT = 12
 
@@ -50,6 +50,8 @@ class _SchemaWorkerOptional(TypedDict, total=False):
     trustReason: str
     lastSeenAt: str
     version: int
+    signerVersion: int
+    signerRevision: str
     goVersion: str
     platform: str
     maintenanceWindow: _SchemaMaintenanceWindow

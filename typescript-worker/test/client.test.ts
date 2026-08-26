@@ -19,6 +19,35 @@ describe('WorkerClient', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it('exposes the observed signer runtime returned for a worker', async () => {
+    const fetchMock = vi.fn(async () => Response.json({
+      items: [{
+        id: 'worker-1',
+        name: 'worker-east',
+        status: 'online',
+        trustState: 'trusted',
+        createdAt: '2026-08-25T00:00:00Z',
+        updatedAt: '2026-08-25T00:00:00Z',
+        capabilities: [],
+        previewSubdomainEnabled: false,
+        autoShutdownOnRemoval: false,
+        signerVersion: 2,
+        signerRevision: '30a3e4c53a48544f77735398f4784c20279f0ae3',
+      }],
+    }));
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com',
+      token: 'pgwm_test-token',
+      fetch: fetchMock,
+    });
+
+    const page = await client.list();
+    expect(page.items[0]).toMatchObject({
+      signerVersion: 2,
+      signerRevision: '30a3e4c53a48544f77735398f4784c20279f0ae3',
+    });
+  });
+
   it('preserves a configured reverse-proxy base path', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       expect(String(input)).toBe('https://workers.example.com/postgrip/api/v1/workers');
