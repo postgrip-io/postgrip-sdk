@@ -33,8 +33,6 @@ type OpenAPISandboxObservedState = protocol.SandboxObservedState
 type OpenAPISandboxSessionKind string
 type OpenAPINamespace = protocol.Namespace
 type OpenAPICreateNamespaceRequest = protocol.CreateNamespaceRequest
-type OpenAPICompactRequest = protocol.CompactRequest
-type OpenAPICompactResponse = protocol.CompactResponse
 type OpenAPIEnqueueTaskRequest = protocol.EnqueueTaskRequest
 type OpenAPITask = protocol.Task
 type OpenAPITaskResult = protocol.TaskResult
@@ -86,8 +84,10 @@ type OpenAPICreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type OpenAPISandboxWorkspace = protocol.SandboxWorkspace
 type OpenAPISandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
 type OpenAPIErrorResponse struct {
-	Error string  `json:"error"`
-	Code  *string `json:"code,omitempty"`
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	RequestId string         `json:"requestId"`
+	Details   map[string]any `json:"details,omitempty"`
 }
 type OpenAPIAppendAgentTaskEventRequestBody = OpenAPIAppendTaskEventRequest
 type OpenAPIAppendAgentTaskEventResponseBody = OpenAPITaskEvent
@@ -97,8 +97,6 @@ type OpenAPIBlockAgentTaskRequestBody = OpenAPIBlockTaskRequest
 type OpenAPIBlockAgentTaskResponseBody = OpenAPITask
 type OpenAPICancelWorkflowRequestBody = OpenAPICancelWorkflowRequest
 type OpenAPICancelWorkflowResponseBody = OpenAPIWorkflowHistoryEvent
-type OpenAPICompactRequestBody = OpenAPICompactRequest
-type OpenAPICompactResponseBody = OpenAPICompactResponse
 type OpenAPICompleteAgentTaskRequestBody = OpenAPICompleteTaskRequest
 type OpenAPICompleteAgentTaskResponseBody = OpenAPITask
 type OpenAPIConnectSandboxSessionRequestBody = OpenAPINoBody
@@ -263,8 +261,6 @@ type SandboxObservedState = protocol.SandboxObservedState
 type SandboxSessionKind = OpenAPISandboxSessionKind
 type Namespace = protocol.Namespace
 type CreateNamespaceRequest = protocol.CreateNamespaceRequest
-type CompactRequest = protocol.CompactRequest
-type CompactResponse = protocol.CompactResponse
 type EnqueueTaskRequest = protocol.EnqueueTaskRequest
 type Task = protocol.Task
 type TaskResult = protocol.TaskResult
@@ -314,4 +310,4 @@ type CreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type SandboxWorkspace = protocol.SandboxWorkspace
 type SandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
 
-const openAPITypesSpecSHA256 = "ec53ad7fb89758df396157d0dbce4e9d068e66671a33cd886f2afdfa5348cdc5"
+const openAPITypesSpecSHA256 = "d9df466806e58ae32ab98f6622086d49749672258af902bdf3777a061fef28ff"

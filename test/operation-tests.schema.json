@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://postgrip.io/schemas/unified-sdk-operation-tests-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "operations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "operations": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/ownership" }
+    }
+  },
+  "$defs": {
+    "ownership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plane",
+        "fixture",
+        "cleanup",
+        "mockTest",
+        "liveTest",
+        "curlEligible",
+        "protocolException"
+      ],
+      "properties": {
+        "plane": { "enum": ["agent", "worker", "service"] },
+        "fixture": { "type": "string", "minLength": 1 },
+        "cleanup": { "enum": ["none", "reverse-dependency"] },
+        "mockTest": { "type": "string", "minLength": 1 },
+        "liveTest": { "enum": ["nightly", "pre-release", "production-smoke"] },
+        "curlEligible": { "type": "boolean" },
+        "protocolException": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["reason", "owner", "runner"],
+              "properties": {
+                "reason": { "type": "string", "minLength": 1 },
+                "owner": { "type": "string", "minLength": 1 },
+                "runner": { "type": "string", "minLength": 1 }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

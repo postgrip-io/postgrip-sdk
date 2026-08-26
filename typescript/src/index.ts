@@ -55,7 +55,6 @@ export type {
   ContinueAsNewOptions,
   ContinueAsNewResult,
   ChildWorkflowOptions,
-  CompactResponse,
   CreateSandboxSessionRequest,
   CreateSandboxSessionResponse,
   CreateScheduleRequest,

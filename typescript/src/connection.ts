@@ -1,7 +1,6 @@
 import type {
   BackfillScheduleRequest,
   BackfillScheduleResponse,
-  CompactResponse,
   CreateSandboxSessionRequest,
   CreateSandboxSessionResponse,
   CreateScheduleRequest,
@@ -59,12 +58,8 @@ export interface ConnectionOptions {
   fetch?: typeof fetch;
   headers?: HeadersInit;
   /**
-   * Bearer token sent on management and global-admin requests. Use a tenant
-   * management token for normal APIs and a dedicated connection configured
-   * with the service's global admin token for compaction.
-   *
-   * Treat the value as opaque: the console issues a bare hex string with no
-   * prefix, so there is nothing to validate.
+   * Common tenant-bound bearer sent on management requests. Treat it as an
+   * opaque `pgt_` value and load it from `POSTGRIP_TOKEN` at the root facade.
    */
   authToken?: string;
   agentAuth?: AgentAuthOptions;
@@ -168,12 +163,6 @@ export class Connection {
 
   async createNamespace(name: string): Promise<Namespace> {
     return this.openapi.createNamespace({ body: { name } });
-  }
-
-  async compact(options: { retentionSeconds?: number } = {}): Promise<CompactResponse> {
-    // The connection must be configured with the service's global admin token;
-    // tenant management tokens are intentionally rejected by this operation.
-    return this.openapi.compact({ body: { retention_seconds: options.retentionSeconds ?? 0 } });
   }
 
   async enqueueTask<P = unknown, R = unknown>(request: EnqueueTaskRequest<P>): Promise<Task<P, R>> {

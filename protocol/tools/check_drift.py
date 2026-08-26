@@ -154,7 +154,7 @@ MONOREPO_PATHS = {
     "ts":     [MONOREPO_ROOT / "typescript" / "src" / "types.ts"],
     "python": [MONOREPO_ROOT / "python" / "src" / "postgrip_agent" / "types.py"],
 }
-MONOREPO_OPENAPI_PATH = MONOREPO_ROOT / "openapi.json"
+MONOREPO_OPENAPI_PATH = MONOREPO_ROOT / "contracts" / "agent-openapi.json"
 MONOREPO_GENERATOR_PATH = MONOREPO_ROOT / "scripts" / "generate_openapi.py"
 
 # json:"..." -> field name (strip ",omitempty" etc.)
@@ -1130,7 +1130,7 @@ def main() -> int:
             print(line, file=sys.stderr)
         print(file=sys.stderr)
         print(
-            "Resolve OpenAPI-owned models in openapi.json and regenerate the "
+            "Resolve OpenAPI-owned models in contracts/agent-openapi.json and regenerate the "
             "SDKs. Resolve runtime-only models in each language mirror. Update "
             "tools/check_drift.py:TRACKED_TYPES if a type was renamed.",
             file=sys.stderr,

@@ -30,7 +30,6 @@ AgentPollDirectiveType: TypeAlias = _openapi.OpenAPIAgentPollDirectiveType
 AgentPollDirectiveSubject: TypeAlias = _openapi.OpenAPIAgentPollDirectiveSubject
 WorkflowState: TypeAlias = _openapi.OpenAPIWorkflowState
 CreateNamespaceRequest: TypeAlias = _openapi.OpenAPICreateNamespaceRequest
-CompactRequest: TypeAlias = _openapi.OpenAPICompactRequest
 HeartbeatTaskRequest: TypeAlias = _openapi.OpenAPIHeartbeatTaskRequest
 AppendTaskEventRequest: TypeAlias = _openapi.OpenAPIAppendTaskEventRequest
 CompleteTaskRequest: TypeAlias = _openapi.OpenAPICompleteTaskRequest
@@ -231,9 +230,6 @@ WorkflowCountResponse: TypeAlias = _openapi.OpenAPIWorkflowCountResponse
 
 
 Namespace: TypeAlias = _openapi.OpenAPINamespace
-
-
-CompactResponse: TypeAlias = _openapi.OpenAPICompactResponse
 
 
 class WorkflowSignalDefinition(TypedDict):

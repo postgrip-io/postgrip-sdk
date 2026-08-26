@@ -35,18 +35,14 @@ class OpenAPIOperationTests(unittest.TestCase):
         poll = resolve_openapi_operation(OperationId.POLL_AGENT_TASK)
         self.assertEqual(poll.auth_lane, "agent")
         self.assertEqual(poll.signing, "")
-        self.assertEqual(
-            resolve_openapi_operation(OperationId.COMPACT).auth_lane,
-            "global-admin",
-        )
 
     def test_rejects_missing_path_parameter(self) -> None:
         with self.assertRaisesRegex(ValueError, "taskId"):
             resolve_openapi_operation(OperationId.GET_TASK)
 
     def test_generates_request_and_response_payload_types(self) -> None:
-        self.assertEqual(OPENAPI_OPERATION_COUNT, 46)
-        self.assertEqual(OPENAPI_CLIENT_OPERATION_COUNT, 44)
+        self.assertEqual(OPENAPI_OPERATION_COUNT, 45)
+        self.assertEqual(OPENAPI_CLIENT_OPERATION_COUNT, 43)
         request: EnqueueTaskRequestBody = {"type": "noop"}
         response: EnqueueTaskResponseBody = {
             "id": "task-1",

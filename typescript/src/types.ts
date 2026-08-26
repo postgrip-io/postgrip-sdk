@@ -203,8 +203,6 @@ export type WorkflowExecution<R = unknown> = Omit<OpenAPIComponents['WorkflowExe
 export type WorkflowHistoryEvent = OpenAPIComponents['WorkflowHistoryEvent'];
 export type WorkflowCountResponse = OpenAPIComponents['WorkflowCountResponse'];
 export type Namespace = OpenAPIComponents['Namespace'];
-export type CompactResponse = OpenAPIComponents['CompactResponse'];
-
 export interface WorkflowSignalDefinition<Args extends unknown[] = []> {
   name: string;
   type: 'signal';

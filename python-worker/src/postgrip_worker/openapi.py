@@ -8,7 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'c6cdf81157eec099cfde167e3adbebd84bd820b44070542fe407f182931e2101'
+OPENAPI_SPEC_SHA256 = 'f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820'
 OPENAPI_OPERATION_COUNT = 12
 OPENAPI_CLIENT_OPERATION_COUNT = 12
 
@@ -50,6 +51,8 @@ class _SchemaWorkerOptional(TypedDict, total=False):
     trustReason: str
     lastSeenAt: str
     version: int
+    signerVersion: int
+    signerRevision: str
     goVersion: str
     platform: str
     maintenanceWindow: _SchemaMaintenanceWindow
@@ -430,4 +433,4 @@ def resolve_openapi_operation(
     )
 
 
-__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIHealthResponse', 'OpenAPIErrorResponse', 'OpenAPIMaintenanceWindow', 'OpenAPIWorker', 'OpenAPIWorkerList', 'OpenAPIAssignment', 'OpenAPIAssignmentList', 'OpenAPIJobState', 'OpenAPIJob', 'OpenAPIJobList', 'OpenAPIOperationReceipt', 'OpenAPICheckResult', 'OpenAPICheckWorkerResponse', 'OpenAPIOperationalLogEntry', 'OpenAPISecurityLogEntry', 'OpenAPIOperationalLogList', 'OpenAPISecurityLogList', 'OpenAPIWorkerOperationResponse', 'OpenAPIUpgradeWorkerResponse', 'CheckWorkerRequestBody', 'CheckWorkerResponseBody', 'GetWorkerRequestBody', 'GetWorkerResponseBody', 'GetWorkerJobRequestBody', 'GetWorkerJobResponseBody', 'ListWorkerAssignmentsRequestBody', 'ListWorkerAssignmentsResponseBody', 'ListWorkerJobsRequestBody', 'ListWorkerJobsResponseBody', 'ListWorkerOperationalLogsRequestBody', 'ListWorkerOperationalLogsResponseBody', 'ListWorkerSecurityLogsRequestBody', 'ListWorkerSecurityLogsResponseBody', 'ListWorkersRequestBody', 'ListWorkersResponseBody', 'PlaceWorkerInMaintenanceRequestBody', 'PlaceWorkerInMaintenanceResponseBody', 'ResumeWorkerFromMaintenanceRequestBody', 'ResumeWorkerFromMaintenanceResponseBody', 'UpgradeWorkerRequestBody', 'UpgradeWorkerResponseBody', 'WorkerOrchestratorHealthRequestBody', 'WorkerOrchestratorHealthResponseBody']
+__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIHealthResponse', 'OpenAPIErrorResponse', 'OpenAPIMaintenanceWindow', 'OpenAPIWorker', 'OpenAPIWorkerList', 'OpenAPIAssignment', 'OpenAPIAssignmentList', 'OpenAPIJobState', 'OpenAPIJob', 'OpenAPIJobList', 'OpenAPIOperationReceipt', 'OpenAPICheckResult', 'OpenAPICheckWorkerResponse', 'OpenAPIOperationalLogEntry', 'OpenAPISecurityLogEntry', 'OpenAPIOperationalLogList', 'OpenAPISecurityLogList', 'OpenAPIWorkerOperationResponse', 'OpenAPIUpgradeWorkerResponse', 'CheckWorkerRequestBody', 'CheckWorkerResponseBody', 'GetWorkerRequestBody', 'GetWorkerResponseBody', 'GetWorkerJobRequestBody', 'GetWorkerJobResponseBody', 'ListWorkerAssignmentsRequestBody', 'ListWorkerAssignmentsResponseBody', 'ListWorkerJobsRequestBody', 'ListWorkerJobsResponseBody', 'ListWorkerOperationalLogsRequestBody', 'ListWorkerOperationalLogsResponseBody', 'ListWorkerSecurityLogsRequestBody', 'ListWorkerSecurityLogsResponseBody', 'ListWorkersRequestBody', 'ListWorkersResponseBody', 'PlaceWorkerInMaintenanceRequestBody', 'PlaceWorkerInMaintenanceResponseBody', 'ResumeWorkerFromMaintenanceRequestBody', 'ResumeWorkerFromMaintenanceResponseBody', 'UpgradeWorkerRequestBody', 'UpgradeWorkerResponseBody', 'WorkerOrchestratorHealthRequestBody', 'WorkerOrchestratorHealthResponseBody']

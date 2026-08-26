@@ -1,0 +1,860 @@
+{
+  "operations": {
+    "appendAgentTaskEvent": {
+      "behavior": "Records one task event and returns 202. Agents send progress, milestone, stdout, and stderr; the TypeScript and Python workers additionally emit started, completed, and failed markers alongside the authoritative complete and fail calls, so a finished task can carry two completed events. Only the server writes leased. The kind is not validated -- an empty value defaults to progress. This does not extend the lease; send a heartbeat for that.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Append an event to a leased task"
+    },
+    "applyServiceVariables": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/variables/apply behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Apply Service Variables"
+    },
+    "attachTargetService": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/targets behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Attach Target Service"
+    },
+    "backfillSchedule": {
+      "behavior": "Enqueues one task per scheduled instant between the requested start and end. A range that would exceed the server's per-request cap is rejected outright rather than silently truncated.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Backfill a schedule across a time range"
+    },
+    "bindServiceVolume": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Bind Service Volume"
+    },
+    "blockAgentTask": {
+      "behavior": "Non-terminal: the task moves to blocked and its lease is released, so it is not retried and no longer counts against the agent. A worker calls this whenever a workflow body suspends on a pending durable command -- an activity, a timer, a child workflow, or an awaited signal. The orchestrator re-queues the task for redelivery as soon as that dependency resolves: the activity completes, fails, or times out; the timer fires; the child workflow finishes; a signal or workflow update arrives; or the workflow is cancelled.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Park a leased task until its workflow is signalled"
+    },
+    "cancelServiceDeployment": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/deployments/{deploymentId}/cancel behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Cancel a queued service deployment"
+    },
+    "cancelWorkflow": {
+      "behavior": "Asks the workflow to stop at its next cancellation point. Use terminate for an execution that does not cooperate.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Request cooperative cancellation of a workflow"
+    },
+    "checkService": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/{source}/{serviceId}/check behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Probe a target or deployed service"
+    },
+    "checkWorker": {
+      "behavior": "Uses the contract-defined POST /api/v1/workers/{workerId}/check behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Check worker connectivity and trust"
+    },
+    "clearServiceRepositoryCredential": {
+      "behavior": "Uses the contract-defined DELETE /api/v1/services/project/{serviceId}/repository/credentials/{credentialKind} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Clear Service Repository Credential"
+    },
+    "clearServiceVariableValue": {
+      "behavior": "Uses the contract-defined DELETE /api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Clear Service Variable Value"
+    },
+    "clearTargetServiceConnection": {
+      "behavior": "Uses the contract-defined DELETE /api/v1/services/target/{serviceId}/connection behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Clear Target Service Connection"
+    },
+    "completeAgentTask": {
+      "behavior": "Terminal. Stores the result, releases the lease, and advances the owning workflow. Secret values drawn from the task's environment are masked out of the stored result.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Complete a leased task successfully"
+    },
+    "connectSandboxSession": {
+      "behavior": "Upgrades to the one-shot WebSocket stream authorized by the ticket. For pty and exec sessions, binary messages carry raw stdin/stdout bytes and stdout/stderr are interleaved. postgrip.sandbox.terminal.v1 reserves client-to-agent text frames for strict resize JSON of the form {\"type\":\"resize\",\"rows\":24,\"columns\":80}; postgrip.sandbox.terminal.v2 applies strict JSON control framing in both directions and additionally permits agent-to-client notice messages of the form {\"type\":\"notice\",\"code\":\"session_ready\",\"message\":\"Sandbox stream is ready\"}. Rows and columns must be integers from 1 through 65535. A zero-length client binary message signals terminal stdin EOF without closing output. Without a negotiated terminal protocol, text messages remain legacy raw stdin. Exec exit codes, and only exec exit codes, use WebSocket close status 4000 plus the process code. For port sessions, postgrip.sandbox.port.v1 carries raw TCP bytes in binary messages; text messages are invalid, and terminal controls and terminal close-code semantics do not apply. Ping/Pong liveness is enforced independently on every proxy hop, and any failed hop terminates both relay peers.",
+      "lifecycle": [],
+      "summary": "Attach to an interactive session over WebSocket"
+    },
+    "countWorkflows": {
+      "behavior": "Applies the same filters as the list operation and returns only the count. Paging parameters are ignored.",
+      "lifecycle": [],
+      "summary": "Count workflow executions matching a filter"
+    },
+    "createNamespace": {
+      "behavior": "Any tenantId in the body is ignored and replaced with the tenant the credential resolves to.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create a namespace"
+    },
+    "createSandbox": {
+      "behavior": "Records the desired sandbox and returns 201. Provisioning is asynchronous, so the returned record is not yet running. Names must be unique per tenant among live sandboxes.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create a sandbox"
+    },
+    "createSandboxSession": {
+      "behavior": "Creates a pending pty, exec, or port session and returns its ticket exactly once -- only a hash of it is stored. The ticket is short-lived and is redeemed against the connect operation. The sandbox must already be running. Port sessions require an advertised port-stream-capable agent and a TCP guest port that is already published by the sandbox. Pending and connected sessions are limited to 20 per tenant, 10 per agent, and 5 per sandbox; a limit breach returns 429.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Mint a single-use ticket for a sandbox stream"
+    },
+    "createSchedule": {
+      "behavior": "Returns 202. Any tenantId in the body is replaced with the tenant the credential resolves to.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create a schedule"
+    },
+    "createServiceDomain": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/domains behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create Service Domain"
+    },
+    "createServiceEnvironment": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create Service Environment"
+    },
+    "createServiceProject": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/projects behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create Service Project"
+    },
+    "createServiceVariable": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/variables behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create Service Variable"
+    },
+    "createServiceVolume": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/volumes behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create Service Volume"
+    },
+    "deleteSandbox": {
+      "behavior": "Sets desired state to deleted and returns 202 with the updated record. Teardown is asynchronous and completes when the assigned agent reports it.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Request sandbox deletion"
+    },
+    "deleteSchedule": {
+      "behavior": "Returns the deleted schedule with 200 rather than an empty 204; the record moves to the deleted state.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Delete a schedule"
+    },
+    "deleteServiceDomain": {
+      "behavior": "Uses the contract-defined DELETE /api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Delete Service Domain"
+    },
+    "deleteServiceEnvironment": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/delete behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Delete Service Environment"
+    },
+    "deleteServiceProject": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/delete behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Delete Service Project"
+    },
+    "deleteServiceVariable": {
+      "behavior": "Uses the contract-defined DELETE /api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Delete Service Variable"
+    },
+    "deleteServiceVolume": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/volumes/{volumeRef}/delete behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Delete Service Volume"
+    },
+    "deleteWorkspace": {
+      "behavior": "Deletes the tenant's workspace record and removes its archive once no tenant references the same content-addressed blob. A workspace still referenced by a live sandbox returns 409.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Delete an uploaded workspace"
+    },
+    "deployService": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/deploy behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Queue a deployment for a confirmed commit"
+    },
+    "detachTargetService": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/target/{serviceId}/delete behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Detach Target Service"
+    },
+    "enqueueTask": {
+      "behavior": "Returns 202 with the created task. Any tenantId in the body is replaced with the tenant the credential resolves to.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Enqueue a task"
+    },
+    "failAgentTask": {
+      "behavior": "Terminal. Records the error, releases the lease, and drives the workflow's retry or failure handling. Error text is masked for secrets before it is stored.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Fail a leased task"
+    },
+    "flushServiceBuildLogs": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/logs/build/flush behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Flush Service Build Logs"
+    },
+    "flushServiceRuntimeLogs": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/logs/runtime/flush behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Flush Service Runtime Logs"
+    },
+    "getSandbox": {
+      "behavior": "Uses the contract-defined GET /api/v1/sandboxes/{sandboxId} behavior.",
+      "lifecycle": [],
+      "summary": "Fetch a sandbox"
+    },
+    "getSchedule": {
+      "behavior": "Uses the contract-defined GET /api/v1/schedules/{scheduleId} behavior.",
+      "lifecycle": [],
+      "summary": "Fetch a single schedule"
+    },
+    "getService": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId} behavior.",
+      "lifecycle": [],
+      "summary": "Get a service and its capabilities"
+    },
+    "getServiceBuildLogSettings": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/logs/build/settings behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Build Log Settings"
+    },
+    "getServiceConfigurationOperation": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/configuration-operations/{operationId} behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Configuration Operation"
+    },
+    "getServiceDeployment": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/deployments/{deploymentId} behavior.",
+      "lifecycle": [],
+      "summary": "Get a service deployment"
+    },
+    "getServiceEnvironment": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/environments/{environmentId} behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Environment"
+    },
+    "getServiceEnvironmentRemovalImpact": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/environments/{environmentId}/removal-impact behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Environment Removal Impact"
+    },
+    "getServiceProjectRemovalImpact": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/removal-impact behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Project Removal Impact"
+    },
+    "getServiceRepository": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/repository behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Repository"
+    },
+    "getServiceRuntimeLogSettings": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/logs/runtime/settings behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Runtime Log Settings"
+    },
+    "getServiceStatus": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId}/status behavior.",
+      "lifecycle": [],
+      "summary": "Get last-known service and environment status"
+    },
+    "getServiceVolume": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/volumes/{volumeRef} behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Volume"
+    },
+    "getServiceVolumeRemovalImpact": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/volumes/{volumeRef}/removal-impact behavior.",
+      "lifecycle": [],
+      "summary": "Get Service Volume Removal Impact"
+    },
+    "getTargetServiceRemovalImpact": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/target/{serviceId}/removal-impact behavior.",
+      "lifecycle": [],
+      "summary": "Get Target Service Removal Impact"
+    },
+    "getTask": {
+      "behavior": "A task belonging to another tenant is reported as 404 rather than 403, so identifiers cannot be probed across tenant boundaries.",
+      "lifecycle": [],
+      "summary": "Fetch a single task"
+    },
+    "getWorker": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers/{workerId} behavior.",
+      "lifecycle": [],
+      "summary": "Get a worker"
+    },
+    "getWorkerJob": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers/{workerId}/jobs/{jobId} behavior.",
+      "lifecycle": [],
+      "summary": "Get a worker job"
+    },
+    "getWorkflow": {
+      "behavior": "Returns the latest run of the workflow.",
+      "lifecycle": [],
+      "summary": "Fetch a workflow execution"
+    },
+    "getWorkspace": {
+      "behavior": "Uses the contract-defined GET /api/v1/workspaces/{workspaceId} behavior.",
+      "lifecycle": [],
+      "summary": "Fetch an uploaded workspace"
+    },
+    "health": {
+      "behavior": "Returns a fixed ok status without touching the store. This is the only route that bypasses authentication entirely, so an uptime monitor can call it with no credential.",
+      "lifecycle": [],
+      "summary": "Liveness probe"
+    },
+    "heartbeatAgentTask": {
+      "behavior": "Extends the lease and appends a heartbeat event. The task must currently be leased to the calling agent.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Extend a leased task's lease"
+    },
+    "listNamespaces": {
+      "behavior": "Scoped to the tenant the credential resolves to, and narrowed further to the agent's namespace allow-list when called with an agent session.",
+      "lifecycle": [],
+      "summary": "List namespaces visible to the caller"
+    },
+    "listSandboxes": {
+      "behavior": "Returns the tenant's live sandboxes. Deleted sandboxes are omitted here but remain fetchable by id.",
+      "lifecycle": [],
+      "summary": "List sandboxes"
+    },
+    "listSchedules": {
+      "behavior": "Uses the contract-defined GET /api/v1/schedules behavior.",
+      "lifecycle": [],
+      "summary": "List schedules"
+    },
+    "listServiceConfigurationOperations": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/configuration-operations behavior.",
+      "lifecycle": [],
+      "summary": "List Service Configuration Operations"
+    },
+    "listServiceDeployments": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId}/deployments behavior.",
+      "lifecycle": [],
+      "summary": "List service deployments"
+    },
+    "listServiceDomains": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/environments/{environmentId}/domains behavior.",
+      "lifecycle": [],
+      "summary": "List Service Domains"
+    },
+    "listServiceEnvironments": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId}/environments behavior.",
+      "lifecycle": [],
+      "summary": "List service environments"
+    },
+    "listServiceLogs": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId}/logs behavior.",
+      "lifecycle": [],
+      "summary": "List build or runtime logs"
+    },
+    "listServicePromotions": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/promotions behavior.",
+      "lifecycle": [],
+      "summary": "List Service Promotions"
+    },
+    "listServiceVariables": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/environments/{environmentId}/variables behavior.",
+      "lifecycle": [],
+      "summary": "List Service Variables"
+    },
+    "listServiceVolumes": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/volumes behavior.",
+      "lifecycle": [],
+      "summary": "List Service Volumes"
+    },
+    "listServices": {
+      "behavior": "Uses the contract-defined GET /api/v1/services behavior.",
+      "lifecycle": [],
+      "summary": "List services"
+    },
+    "listTaskEvents": {
+      "behavior": "Returns the task's full event history in order -- lease, start, heartbeat, stdout, stderr, and terminal events. This endpoint is not paginated.",
+      "lifecycle": [],
+      "summary": "List a task's event stream"
+    },
+    "listTaskEventsBatch": {
+      "behavior": "Uses the contract-defined GET /api/v1/task-events behavior.",
+      "lifecycle": [],
+      "summary": "List recent events for multiple tasks"
+    },
+    "listTasks": {
+      "behavior": "Filters by namespace, queue, type, and state within the caller's tenant, then sorts and paginates.",
+      "lifecycle": [],
+      "summary": "List tasks"
+    },
+    "listWorkerAssignments": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers/{workerId}/assignments behavior.",
+      "lifecycle": [],
+      "summary": "List worker assignments"
+    },
+    "listWorkerJobs": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers/{workerId}/jobs behavior.",
+      "lifecycle": [],
+      "summary": "List worker jobs"
+    },
+    "listWorkerOperationalLogs": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers/{workerId}/operational-logs behavior.",
+      "lifecycle": [],
+      "summary": "List operational logs"
+    },
+    "listWorkerSecurityLogs": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers/{workerId}/security-logs behavior.",
+      "lifecycle": [],
+      "summary": "List security logs"
+    },
+    "listWorkers": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers behavior.",
+      "lifecycle": [],
+      "summary": "List workers"
+    },
+    "listWorkflowHistory": {
+      "behavior": "Uses the contract-defined GET /api/v1/workflows/{workflowId}/history behavior.",
+      "lifecycle": [],
+      "summary": "List a workflow's history events"
+    },
+    "listWorkflows": {
+      "behavior": "Uses the contract-defined GET /api/v1/workflows behavior.",
+      "lifecycle": [],
+      "summary": "List workflow executions"
+    },
+    "listWorkspaces": {
+      "behavior": "Returns every workspace archive owned by the authenticated tenant, newest first.",
+      "lifecycle": [],
+      "summary": "List uploaded workspaces"
+    },
+    "pauseSchedule": {
+      "behavior": "Stops the schedule firing without deleting it, and returns the updated schedule.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Pause a schedule"
+    },
+    "placeWorkerInMaintenance": {
+      "behavior": "Uses the contract-defined POST /api/v1/workers/{workerId}/maintenance behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Place a worker in maintenance"
+    },
+    "pollAgentTask": {
+      "behavior": "Blocks up to wait_seconds and returns 200 with an empty object -- not 204 -- when nothing is available. A queued lifecycle directive (upgrade, log level, attest) is returned in place of a task, and an agent that has been removed receives 410 carrying a shutdown directive.",
+      "lifecycle": [],
+      "summary": "Long-poll for the next leased task or lifecycle directive"
+    },
+    "previewServiceDeploy": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/deploy/preview behavior.",
+      "lifecycle": [],
+      "summary": "Resolve a deploy request to an immutable commit"
+    },
+    "previewServiceEnvironmentReassignment": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/reassignment-preview behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Preview Service Environment Reassignment"
+    },
+    "previewServicePromotion": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/promotions/preview behavior.",
+      "lifecycle": [],
+      "summary": "Preview Service Promotion"
+    },
+    "promoteServiceDeployment": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/promotions behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Promote Service Deployment"
+    },
+    "putServiceRepositoryCredential": {
+      "behavior": "Uses the contract-defined PUT /api/v1/services/project/{serviceId}/repository/credentials/{credentialKind} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Put Service Repository Credential"
+    },
+    "putServiceVariableValue": {
+      "behavior": "Uses the contract-defined PUT /api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Put Service Variable Value"
+    },
+    "putTargetServiceConnection": {
+      "behavior": "Uses the contract-defined PUT /api/v1/services/target/{serviceId}/connection behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Put Target Service Connection"
+    },
+    "ready": {
+      "behavior": "Reports readiness along with current task, workflow, schedule, and namespace counts. Unlike the liveness probe this route requires a credential.",
+      "lifecycle": [],
+      "summary": "Readiness probe with store counts"
+    },
+    "reassignServiceEnvironment": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/reassign behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Reassign Service Environment"
+    },
+    "redeployService": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/redeploy behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Queue a deployment from an existing immutable revision"
+    },
+    "refreshAgentSession": {
+      "behavior": "The refresh token in the body is itself the credential, so this operation carries no bearer token. Rotation is single-use: presenting a token that has already been rotated revokes the whole token family.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Exchange a refresh token for a new agent session"
+    },
+    "refreshServiceRepositoryCredential": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}/refresh behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Refresh Service Repository Credential"
+    },
+    "resolveService": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/resolve behavior.",
+      "lifecycle": [],
+      "summary": "Resolve an exact service reference, ID, or name"
+    },
+    "resolveServiceEnvironment": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/environments/resolve behavior.",
+      "lifecycle": [],
+      "summary": "Resolve an exact service environment ID or name"
+    },
+    "restartServiceRuntime": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/restart behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Restart the exact current service runtime"
+    },
+    "resumeWorkerFromMaintenance": {
+      "behavior": "Uses the contract-defined POST /api/v1/workers/{workerId}/maintenance/resume behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Resume a worker from maintenance"
+    },
+    "retryServiceConfigurationOperation": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/configuration-operations/{operationId}/retry behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Retry Service Configuration Operation"
+    },
+    "rollbackServiceDeployment": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Queue rollback to a historical service deployment"
+    },
+    "signalWithStartWorkflow": {
+      "behavior": "Starts a new execution of workflowType when no running one exists, then delivers the signal. A workflowId in the body takes precedence over the one in the path.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Signal a workflow, starting it first if none is running"
+    },
+    "signalWorkflow": {
+      "behavior": "Returns 202 with the appended history event. A signal also releases the workflow's blocked task, which is how a task that parked itself resumes. Signalling a workflow that is no longer running fails.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Send a signal to a running workflow"
+    },
+    "startSandbox": {
+      "behavior": "Sets desired state to running and returns 202. The returned record still carries the previous observed state; a sandbox is ready only once observedState is running and observedGeneration has caught up with generation.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Request that a sandbox start"
+    },
+    "startServiceRuntime": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/start behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Start the exact current service runtime"
+    },
+    "stopSandbox": {
+      "behavior": "Sets desired state to stopped and returns 202. The assigned agent applies it asynchronously.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Request that a sandbox stop"
+    },
+    "stopServiceRuntime": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/stop behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Stop the exact current service runtime"
+    },
+    "terminateWorkflow": {
+      "behavior": "Stops the execution immediately, without giving workflow code a chance to clean up.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Forcibly terminate a workflow"
+    },
+    "triggerSchedule": {
+      "behavior": "Fires the schedule out of band from its spec. The next scheduled run is unaffected.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Run a schedule immediately"
+    },
+    "trimServiceBuildLogs": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/logs/build/trim behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Trim Service Build Logs"
+    },
+    "trimServiceRuntimeLogs": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/logs/runtime/trim behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Trim Service Runtime Logs"
+    },
+    "unbindServiceVolume": {
+      "behavior": "Uses the contract-defined DELETE /api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Unbind Service Volume"
+    },
+    "unpauseSchedule": {
+      "behavior": "Uses the contract-defined POST /api/v1/schedules/{scheduleId}/unpause behavior.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Resume a paused schedule"
+    },
+    "updateSchedule": {
+      "behavior": "A partial update: only the fields present in the body are changed.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update a schedule"
+    },
+    "updateServiceBuildLogSettings": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/logs/build/settings behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Build Log Settings"
+    },
+    "updateServiceDomain": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Domain"
+    },
+    "updateServiceEnvironment": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/environments/{environmentId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Environment"
+    },
+    "updateServiceProject": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Project"
+    },
+    "updateServiceRepository": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/repository behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Repository"
+    },
+    "updateServiceRuntimeLogSettings": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/logs/runtime/settings behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Runtime Log Settings"
+    },
+    "updateServiceVariable": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Variable"
+    },
+    "updateServiceVolumeBinding": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Service Volume Binding"
+    },
+    "updateTargetService": {
+      "behavior": "Uses the contract-defined PATCH /api/v1/services/target/{serviceId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Update Target Service"
+    },
+    "upgradeWorker": {
+      "behavior": "Uses the contract-defined POST /api/v1/workers/{workerId}/upgrade behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Queue a bounded worker-host upgrade"
+    },
+    "uploadWorkspace": {
+      "behavior": "The request body is a raw gzipped tar stream, not a multipart form. Repository and revision metadata travel in the X-PostGrip-Repository and X-PostGrip-Revision headers. Storage is content-addressed, so re-uploading identical bytes returns the existing record rather than creating a new one.",
+      "lifecycle": [
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Upload a workspace archive"
+    },
+    "workerOrchestratorHealth": {
+      "behavior": "Uses the contract-defined GET /health behavior.",
+      "lifecycle": [],
+      "summary": "Check Worker Orchestrator health"
+    }
+  },
+  "schemaVersion": 1
+}

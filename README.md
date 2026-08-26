@@ -115,9 +115,9 @@ quick start.
 | [`go/serviceclient/`](go/serviceclient/) | Go Service management client |
 | [`typescript-service/`](typescript-service/) | TypeScript Service management SDK |
 | [`python-service/`](python-service/) | Python Service management SDK |
-| [`openapi.json`](openapi.json) | Synchronized public HTTP contract used by every SDK generator |
-| [`worker-openapi.json`](worker-openapi.json) | Synchronized public Worker management contract |
-| [`service-openapi.json`](service-openapi.json) | Synchronized public Service management contract |
+| [`contracts/agent-openapi.json`](contracts/agent-openapi.json) | Synchronized public Agent HTTP contract |
+| [`contracts/worker-openapi.json`](contracts/worker-openapi.json) | Synchronized public Worker management contract |
+| [`contracts/service-openapi.json`](contracts/service-openapi.json) | Synchronized public Service management contract |
 | [`scripts/`](scripts/) | OpenAPI synchronization and SDK generation tooling |
 
 Each project is an independently versioned and released package. Tests and
@@ -134,8 +134,9 @@ documentation links use the new name; do not rewrite Go imports.
 
 ## OpenAPI contracts
 
-[`openapi.json`](openapi.json), [`worker-openapi.json`](worker-openapi.json),
-and [`service-openapi.json`](service-openapi.json) are synchronized from their
+[`contracts/agent-openapi.json`](contracts/agent-openapi.json),
+[`contracts/worker-openapi.json`](contracts/worker-openapi.json), and
+[`contracts/service-openapi.json`](contracts/service-openapi.json) are synchronized from their
 canonical contracts under `postgrip-web/postgrip-api/`. Each generates closed
 public wire models, per-operation request/response types, transport metadata,
 and typed low-level clients for Go, TypeScript, and Python. Stable public
@@ -160,7 +161,7 @@ This includes `go/client/openapi_*.gen.go`,
 `python/src/postgrip_agent/generated/`, and
 `python/src/postgrip_agent/openapi.py`, plus the corresponding Worker and
 Service generated directories. Update the canonical contract,
-synchronize `openapi.json`, and rerun the generator.
+synchronize the applicable file under `contracts/`, and rerun the generator.
 
 ## Development
 

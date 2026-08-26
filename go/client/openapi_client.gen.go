@@ -337,11 +337,6 @@ func (c *OpenAPIClient) CancelWorkflow(ctx context.Context, workflowId string, b
 	err := c.connection.doOpenAPI(ctx, openAPICancelWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
 	return response, err
 }
-func (c *OpenAPIClient) Compact(ctx context.Context, body OpenAPICompactRequestBody) (OpenAPICompactResponseBody, error) {
-	var response OpenAPICompactResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICompact, nil, nil, body, &response)
-	return response, err
-}
 func (c *OpenAPIClient) CompleteAgentTask(ctx context.Context, taskId string, query OpenAPICompleteAgentTaskQuery, body OpenAPICompleteAgentTaskRequestBody) (OpenAPICompleteAgentTaskResponseBody, error) {
 	var response OpenAPICompleteAgentTaskResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPICompleteAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
@@ -538,6 +533,6 @@ func (c *OpenAPIClient) UpdateSchedule(ctx context.Context, scheduleId string, b
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 44
+const OpenAPIClientOperationCount = 43
 
-const openAPIClientSpecSHA256 = "ec53ad7fb89758df396157d0dbce4e9d068e66671a33cd886f2afdfa5348cdc5"
+const openAPIClientSpecSHA256 = "d9df466806e58ae32ab98f6622086d49749672258af902bdf3777a061fef28ff"

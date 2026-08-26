@@ -273,10 +273,6 @@ class Connection:
     def create_namespace(self, name: str) -> dict[str, Any]:
         return self.openapi.create_namespace({"name": name})
 
-    def compact(self, *, retention_seconds: int = 0) -> dict[str, Any]:
-        """Compact global state using a connection with the global admin token."""
-        return self.openapi.compact({"retention_seconds": retention_seconds})
-
     def enqueue_task(self, request: dict[str, Any]) -> dict[str, Any]:
         if _runtime_only_task_type(str(request.get("type") or "")) and not self._has_agent_runtime_credentials():
             raise RuntimeError("postgrip-agent: workflow tasks can only be enqueued from a managed runtime; submit workflow.runtime to an agent pool")

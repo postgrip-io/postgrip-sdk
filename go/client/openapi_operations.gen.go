@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256     = "ec53ad7fb89758df396157d0dbce4e9d068e66671a33cd886f2afdfa5348cdc5"
-	OpenAPIOperationCount = 46
+	OpenAPISpecSHA256           = "d9df466806e58ae32ab98f6622086d49749672258af902bdf3777a061fef28ff"
+	OpenAPIContractBundleSHA256 = "b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820"
+	OpenAPIOperationCount       = 45
 )
 
 type openAPIOperationID string
@@ -20,7 +21,6 @@ const (
 	openAPIBackfillSchedule        openAPIOperationID = "backfillSchedule"
 	openAPIBlockAgentTask          openAPIOperationID = "blockAgentTask"
 	openAPICancelWorkflow          openAPIOperationID = "cancelWorkflow"
-	openAPICompact                 openAPIOperationID = "compact"
 	openAPICompleteAgentTask       openAPIOperationID = "completeAgentTask"
 	openAPIConnectSandboxSession   openAPIOperationID = "connectSandboxSession"
 	openAPICountWorkflows          openAPIOperationID = "countWorkflows"
@@ -89,7 +89,6 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIBackfillSchedule:        {Method: "POST", Path: "/api/v1/schedules/{scheduleId}/backfill", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "BackfillScheduleRequest", ResponseSchema: "BackfillScheduleResponse", PathParameters: []string{"scheduleId"}},
 	openAPIBlockAgentTask:          {Method: "POST", Path: "/api/v1/agent/tasks/{taskId}/block", AuthLane: "agent", Signing: "agent-task-v1", StreamingRequest: false, WebSocket: false, RequestSchema: "BlockTaskRequest", ResponseSchema: "Task", PathParameters: []string{"taskId"}},
 	openAPICancelWorkflow:          {Method: "POST", Path: "/api/v1/workflows/{workflowId}/cancel", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CancelWorkflowRequest", ResponseSchema: "WorkflowHistoryEvent", PathParameters: []string{"workflowId"}},
-	openAPICompact:                 {Method: "POST", Path: "/api/v1/admin/compact", AuthLane: "global-admin", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CompactRequest", ResponseSchema: "CompactResponse", PathParameters: []string{}},
 	openAPICompleteAgentTask:       {Method: "POST", Path: "/api/v1/agent/tasks/{taskId}/complete", AuthLane: "agent", Signing: "agent-task-v1", StreamingRequest: false, WebSocket: false, RequestSchema: "CompleteTaskRequest", ResponseSchema: "Task", PathParameters: []string{"taskId"}},
 	openAPIConnectSandboxSession:   {Method: "GET", Path: "/api/v1/sandbox-sessions/{sessionId}/connect", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: true, RequestSchema: "", ResponseSchema: "", PathParameters: []string{"sessionId"}},
 	openAPICountWorkflows:          {Method: "GET", Path: "/api/v1/workflows/count", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkflowCountResponse", PathParameters: []string{}},

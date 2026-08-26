@@ -1184,4 +1184,4 @@ func (c *OpenAPIClient) UpdateTargetService(ctx context.Context, serviceId strin
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 73
 
-const openAPIClientSpecSHA256 = "141e587315aac297bc61c58c073b32d8571f46857cca99a719bddfe9fc7b7463"
+const openAPIClientSpecSHA256 = "2dd219d428083e4416f141676dcfed63fe23f5d4d729aaadb3a574c2cb2b1ec5"

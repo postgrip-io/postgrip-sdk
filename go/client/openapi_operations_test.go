@@ -42,20 +42,13 @@ func TestResolveOpenAPIOperation(t *testing.T) {
 	if poll.AuthLane != "agent" || poll.Signing != "" {
 		t.Fatalf("unexpected poll security: %#v", poll)
 	}
-	compact, err := resolveOpenAPIOperation(openAPICompact, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if compact.AuthLane != "global-admin" {
-		t.Fatalf("unexpected compact security: %#v", compact)
-	}
 }
 
 func TestGeneratedOpenAPIPayloadTypesCompile(t *testing.T) {
-	if got, want := OpenAPIOperationCount, 46; got != want {
+	if got, want := OpenAPIOperationCount, 45; got != want {
 		t.Fatalf("generated operation count = %d, want %d", got, want)
 	}
-	if got, want := OpenAPIClientOperationCount, 44; got != want {
+	if got, want := OpenAPIClientOperationCount, 43; got != want {
 		t.Fatalf("generated client operation count = %d, want %d", got, want)
 	}
 	request := OpenAPIEnqueueTaskRequestBody{Type: "noop"}
