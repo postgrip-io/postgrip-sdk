@@ -20,6 +20,8 @@ Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd6
 - Server common-auth baseline: `be2b080161b58d9a294b6c5b144a8a188c162779`
 - Server history-pagination correction:
   `061e3ebc413108d9cec024cf14196ac4979ab2eb`
+- Server authentication and consumer correction:
+  `ecf0cd151fd6c380c612d091a5b2a1370ce6df15`
 
 The Agent contract is byte-identical between those branches. All nine
 language/plane generated surfaces embed the current bundle digest.
@@ -47,7 +49,7 @@ language/plane generated surfaces embed the current bundle digest.
 
 | Phase | Report | Result |
 | --- | --- | --- |
-| 0 | Server common authentication and contracts | PASS, including pagination correction |
+| 0 | Server common authentication and contracts | PASS, including pagination and authentication corrections |
 | 1 | Deterministic generation and inventory | PASS |
 | 2 | Language package consolidation | PASS |
 | 3 | Detailed API documentation and secure cURL | PASS |
@@ -70,6 +72,26 @@ corrected:
    durable ledger. Workflows schedule nightly and production runs and gate all
    releases on isolated pre-release coverage.
 
+A later Codex pass found six additional source-level regressions. All were
+valid under the approved design and are corrected without weakening its auth
+boundaries:
+
+1. Legacy Agent runtime session families are revoked rather than refreshed
+   without their original namespace, queue, and signing-key bindings.
+2. The dashboard unwraps and follows paginated Agent event pages.
+3. The Agent CLI reads the standard `message` error field with legacy fallback.
+4. `postgrip agent up` consumes an administrator-issued one-time enrollment
+   key; the tenant management token remains management-only.
+5. Previously applied migration 0136 is restored byte-for-byte so deployment
+   checksum validation remains stable.
+6. TypeScript managed-runtime signing loads Node crypto only when signing is
+   configured. A browser-target root-facade bundle and eager-graph regression
+   prove Worker-style runtimes do not need Node compatibility.
+
+While rebuilding the evidence, ignored output from the pre-consolidation npm
+layout was also found in the local `dist` tree. TypeScript builds now clean that
+tree before compiling, preventing stale files from entering an artifact.
+
 The live gate cannot honestly be marked PASS in this change. GitHub currently
 has only `github-pages`, `npm`, and `pypi` environments; no disposable URLs,
 scenario secrets, host-runtime credentials, or live run evidence are
@@ -79,7 +101,8 @@ for that evidence.
 ## Final evidence
 
 - Go unified module: all packages pass `go test ./...` and `go vet ./...`.
-- TypeScript: frozen install, typecheck, build, and 120 tests pass.
+- TypeScript: frozen install, typecheck, clean build, browser-target root
+  bundle, and 123 tests pass; the npm artifact contains 95 files.
 - Python: wheel builds; 127 tests pass with one opt-in external live skip.
 - Contracts/docs: 130 generated operations, fixtures, and immutable pages;
   121 real cURL examples; runtime drift check passes.

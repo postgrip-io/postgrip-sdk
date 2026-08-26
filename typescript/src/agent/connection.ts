@@ -39,10 +39,7 @@ import {
   HEADER_AGENT_SIGNATURE,
   HEADER_AGENT_SIGNATURE_KEY_ID,
   HEADER_AGENT_SIGNATURE_TIMESTAMP,
-  importSigningKeyFromBase64,
-  signRequest,
-  type AgentSigningKey,
-} from './_signing.js';
+} from './_signing_headers.js';
 import {
   encodeOpenAPIQuery,
   OpenAPIClient,
@@ -103,6 +100,8 @@ interface PollTaskOptions {
 }
 
 type AgentSessionResponse = OpenAPIComponents['AgentSessionResponse'];
+type AgentSigningModule = typeof import('./_signing.js');
+type AgentSigningKey = Awaited<ReturnType<AgentSigningModule['importSigningKeyFromBase64']>>;
 
 export class Connection {
   readonly baseUrl: string;
@@ -115,6 +114,8 @@ export class Connection {
   private agentSessionRefresh: Promise<void> | undefined;
   // Ed25519 keypair injected by the host agent for managed workflow runtimes.
   private agentSigningKey: AgentSigningKey | undefined;
+  private agentSigningPrivateKey: string | undefined;
+  private agentSigningModule: Promise<AgentSigningModule> | undefined;
 
   private constructor(options: Required<Pick<ConnectionOptions, 'baseUrl'>> & Omit<ConnectionOptions, 'baseUrl'>) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -152,7 +153,10 @@ export class Connection {
       ...Object.fromEntries(Object.entries(normalized).filter(([, value]) => value != null && value !== '')),
     };
     if (normalized.signingPrivateKey) {
-      this.agentSigningKey = importSigningKeyFromBase64(normalized.signingPrivateKey);
+      if (normalized.signingPrivateKey !== this.agentSigningPrivateKey) {
+        this.agentSigningPrivateKey = normalized.signingPrivateKey;
+        this.agentSigningKey = undefined;
+      }
     }
   }
 
@@ -634,15 +638,23 @@ export class Connection {
       headers.set('Content-Type', 'application/json');
     }
     const bodyString = body == null ? '' : JSON.stringify(body);
-    if (useAgentAuth && options.signing === 'agent-task-v1' && this.agentSigningKey) {
+    const signing = useAgentAuth && options.signing === 'agent-task-v1'
+      ? await this.loadAgentSigningKey()
+      : undefined;
+    if (signing) {
       const queryStart = path.indexOf('?');
       const reqPath = queryStart === -1 ? path : path.slice(0, queryStart);
       const reqQuery = queryStart === -1 ? '' : path.slice(queryStart + 1);
       const ts = Math.floor(Date.now() / 1000);
       headers.set(HEADER_AGENT_SIGNATURE_TIMESTAMP, String(ts));
-      headers.set(HEADER_AGENT_SIGNATURE_KEY_ID, this.agentSigningKey.keyId);
-      headers.set(HEADER_AGENT_SIGNATURE, signRequest(
-        this.agentSigningKey.privateKey, method, reqPath, reqQuery, ts, Buffer.from(bodyString),
+      headers.set(HEADER_AGENT_SIGNATURE_KEY_ID, signing.key.keyId);
+      headers.set(HEADER_AGENT_SIGNATURE, await signing.module.signRequest(
+        signing.key.privateKey,
+        method,
+        reqPath,
+        reqQuery,
+        ts,
+        new TextEncoder().encode(bodyString),
       ));
     }
     const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
@@ -687,6 +699,17 @@ export class Connection {
 
   private hasAgentRuntimeCredentials(): boolean {
     return Boolean(this.agentAuth.accessToken || this.agentAuth.refreshToken);
+  }
+
+  private async loadAgentSigningKey(): Promise<{
+    module: AgentSigningModule;
+    key: AgentSigningKey;
+  } | undefined> {
+    if (!this.agentSigningPrivateKey) return undefined;
+    this.agentSigningModule ??= import('./_signing.js');
+    const signingModule = await this.agentSigningModule;
+    this.agentSigningKey ??= await signingModule.importSigningKeyFromBase64(this.agentSigningPrivateKey);
+    return { module: signingModule, key: this.agentSigningKey };
   }
 }
 

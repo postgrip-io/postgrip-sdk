@@ -56,7 +56,7 @@ workflow remains.
 | Artifact | Contents | Size | Direct runtime dependencies | Local build/inspection |
 | --- | ---: | ---: | --- | ---: |
 | Go module source | 103 files, 14 packages | 843,943 bytes | `github.com/coder/websocket` | 0.084 s inspection |
-| npm package | 131 files | 150,316 packed / 1,360,787 unpacked bytes | `ws` | 1.285 s build + 0.567 s inspection |
+| npm package | 95 files | 126,507 packed / 969,103 unpacked bytes | `ws` | 1.297 s build + 0.326 s inspection |
 | Python wheel | 36 files | 89,456 bytes | `cryptography>=42` | 0.462 s build |
 
 The npm tarball was installed into an empty project and imported through the
@@ -66,8 +66,8 @@ submodules. The Go module passed `GOWORK=off` test, vet, and package listing.
 
 ## Design comparison and corrective actions
 
-The end-of-phase comparison found and corrected four deviations before this
-checkpoint passed:
+The end-of-phase comparison and subsequent review found and corrected five
+deviations before this checkpoint passed:
 
 1. CI still referenced removed nested Go modules and six former npm/PyPI
    packages. Those jobs and their license/version assumptions were replaced
@@ -81,6 +81,9 @@ checkpoint passed:
 4. The Go contributor guide still described the pre-consolidation module and
    two-lane transport. It now documents the root facade, language-local
    packages, and public/management/delegated lanes.
+5. Incremental TypeScript builds could retain ignored outputs from the old
+   package layout. Builds now clean `dist` first, and CI browser-bundles the
+   root facade to prove managed-runtime Node signing is not eagerly reachable.
 
 After these corrections, no unexplained Phase 5 design deviation remains.
 
@@ -91,7 +94,7 @@ After these corrections, no unexplained Phase 5 design deviation remains.
 | `actionlint` 1.7.7 over every workflow | PASS |
 | `python3 scripts/check_release_artifacts.py --ecosystem all` | PASS — three artifacts |
 | Go `GOWORK=off` test, vet, and list | PASS — 14 packages |
-| TypeScript typecheck, test, build, pack, clean install/import | PASS — 120 tests |
+| TypeScript typecheck, test, clean build, browser bundle, pack, clean install/import | PASS — 123 tests; 95 package files |
 | Python wheel build and clean install/import | PASS — 36 wheel files |
 | Package layout guard | PASS — exactly three manifests |
 | Version parity | PASS — 0.13.0 in root, Go, npm, and PyPI metadata |

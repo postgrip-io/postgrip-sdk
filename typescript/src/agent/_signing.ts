@@ -12,13 +12,24 @@
 // The orchestrator verifies every signed POST against the agent's enrolled
 // Ed25519 public key. Strict by default — signing is mandatory in production.
 
-import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign, type KeyObject } from 'node:crypto';
-
-export const HEADER_AGENT_SIGNATURE = 'X-Agent-Signature';
-export const HEADER_AGENT_SIGNATURE_KEY_ID = 'X-Agent-Signature-Key-Id';
-export const HEADER_AGENT_SIGNATURE_TIMESTAMP = 'X-Agent-Signature-Timestamp';
+export {
+  HEADER_AGENT_SIGNATURE,
+  HEADER_AGENT_SIGNATURE_KEY_ID,
+  HEADER_AGENT_SIGNATURE_TIMESTAMP,
+} from './_signing_headers.js';
 
 const AGENT_SIGNATURE_CONTEXT = 'agent-task-v1';
+const NODE_CRYPTO_SPECIFIER = ['node', 'crypto'].join(':');
+
+type NodeCrypto = typeof import('node:crypto');
+type KeyObject = import('node:crypto').KeyObject;
+
+let nodeCryptoPromise: Promise<NodeCrypto> | undefined;
+
+function loadNodeCrypto(): Promise<NodeCrypto> {
+  nodeCryptoPromise ??= import(NODE_CRYPTO_SPECIFIER) as Promise<NodeCrypto>;
+  return nodeCryptoPromise;
+}
 
 export interface AgentSigningKey {
   privateKey: KeyObject;
@@ -27,30 +38,32 @@ export interface AgentSigningKey {
   keyId: string;
 }
 
-export function generateSigningKey(): AgentSigningKey {
+export async function generateSigningKey(): Promise<AgentSigningKey> {
+  const { createHash, generateKeyPairSync } = await loadNodeCrypto();
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   // jwk format gives us the raw 32-byte public key in `x` (base64url-encoded).
   const jwk = publicKey.export({ format: 'jwk' });
   if (typeof jwk.x !== 'string') {
     throw new Error('Ed25519 public key export missing x');
   }
-  const rawPub = Buffer.from(jwk.x, 'base64url');
-  const publicKeyBase64 = rawPub.toString('base64');
+  const rawPub = decodeBase64(jwk.x, true);
+  const publicKeyBase64 = encodeBase64(rawPub);
   const keyId = createHash('sha256').update(rawPub).digest('hex').slice(0, 16);
   return { privateKey, publicKey, publicKeyBase64, keyId };
 }
 
-export function importSigningKeyFromBase64(encoded: string): AgentSigningKey {
-  const raw = Buffer.from(encoded, 'base64');
+export async function importSigningKeyFromBase64(encoded: string): Promise<AgentSigningKey> {
+  const { createHash, createPrivateKey, createPublicKey } = await loadNodeCrypto();
+  const raw = decodeBase64(encoded);
   if (raw.length !== 32 && raw.length !== 64) {
     throw new Error(`Ed25519 private key has ${raw.length} bytes, want 32 or 64`);
   }
   const seed = raw.subarray(0, 32);
   const privateKey = createPrivateKey({
-    key: Buffer.concat([
-      Buffer.from('302e020100300506032b657004220420', 'hex'),
+    key: concatenateBytes(
+      decodeHex('302e020100300506032b657004220420'),
       seed,
-    ]),
+    ) as unknown as import('node:buffer').Buffer,
     format: 'der',
     type: 'pkcs8',
   });
@@ -59,15 +72,16 @@ export function importSigningKeyFromBase64(encoded: string): AgentSigningKey {
   if (typeof jwk.x !== 'string') {
     throw new Error('Ed25519 public key export missing x');
   }
-  const rawPub = Buffer.from(jwk.x, 'base64url');
-  const publicKeyBase64 = rawPub.toString('base64');
+  const rawPub = decodeBase64(jwk.x, true);
+  const publicKeyBase64 = encodeBase64(rawPub);
   const keyId = createHash('sha256').update(rawPub).digest('hex').slice(0, 16);
   return { privateKey, publicKey, publicKeyBase64, keyId };
 }
 
-export function canonicalRequest(method: string, path: string, query: string, timestampUnix: number, body: Buffer): Buffer {
+export async function canonicalRequest(method: string, path: string, query: string, timestampUnix: number, body: Uint8Array): Promise<Uint8Array> {
+  const { createHash } = await loadNodeCrypto();
   const bodyDigest = createHash('sha256').update(body).digest('base64');
-  return Buffer.from([
+  return new TextEncoder().encode([
     AGENT_SIGNATURE_CONTEXT,
     method.toUpperCase(),
     path,
@@ -78,7 +92,39 @@ export function canonicalRequest(method: string, path: string, query: string, ti
   ].join('\n'));
 }
 
-export function signRequest(privateKey: KeyObject, method: string, path: string, query: string, timestampUnix: number, body: Buffer): string {
-  const canonical = canonicalRequest(method, path, query, timestampUnix, body);
-  return sign(null, canonical, privateKey).toString('base64');
+export async function signRequest(privateKey: KeyObject, method: string, path: string, query: string, timestampUnix: number, body: Uint8Array): Promise<string> {
+  const { sign } = await loadNodeCrypto();
+  const canonical = await canonicalRequest(method, path, query, timestampUnix, body);
+  return encodeBase64(sign(null, canonical, privateKey));
+}
+
+function decodeBase64(value: string, urlSafe = false): Uint8Array {
+  const normalized = urlSafe
+    ? value.replace(/-/g, '+').replace(/_/g, '/')
+    : value;
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  const decoded = atob(padded);
+  return Uint8Array.from(decoded, (character) => character.charCodeAt(0));
+}
+
+function encodeBase64(value: Uint8Array): string {
+  let binary = '';
+  for (const byte of value) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function decodeHex(value: string): Uint8Array {
+  if (value.length % 2 !== 0) throw new Error('hex input must contain complete bytes');
+  const bytes = new Uint8Array(value.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) {
+    bytes[index] = Number.parseInt(value.slice(index * 2, index * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+function concatenateBytes(left: Uint8Array, right: Uint8Array): Uint8Array {
+  const combined = new Uint8Array(left.length + right.length);
+  combined.set(left);
+  combined.set(right, left.length);
+  return combined;
 }

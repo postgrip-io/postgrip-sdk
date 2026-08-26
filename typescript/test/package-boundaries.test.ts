@@ -19,12 +19,35 @@ function localDependencies(entry: string): Set<string> {
   return seen;
 }
 
+function eagerLocalDependencies(entry: string): Set<string> {
+  const seen = new Set<string>();
+  const visit = (file: string) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    const source = readFileSync(file, 'utf8');
+    for (const match of source.matchAll(/(?:from\s*|^import\s*)['"](\.[^'"]*)['"]/gm)) {
+      const candidate = join(dirname(file), match[1].replace(/\.js$/, '.ts'));
+      if (existsSync(candidate)) visit(candidate);
+    }
+  };
+  visit(entry);
+  return seen;
+}
+
 describe('package boundaries', () => {
   it.each(['worker', 'service'])('%s does not load the Agent plane', (plane) => {
     const files = [...localDependencies(join(ROOT, 'src', plane, 'index.ts'))]
       .map((file) => relative(join(ROOT, 'src'), file));
     expect(files.some((file) => file.startsWith('agent/'))).toBe(false);
     expect(files.some((file) => readFileSync(join(ROOT, 'src', file), 'utf8').includes("from 'ws'"))).toBe(false);
+  });
+
+  it('keeps the root facade eager module graph free of Node built-ins', () => {
+    const files = [...eagerLocalDependencies(join(ROOT, 'src', 'index.ts'))];
+    expect(files.map((file) => relative(join(ROOT, 'src'), file))).not.toContain('agent/_signing.ts');
+    for (const file of files) {
+      expect(readFileSync(file, 'utf8')).not.toMatch(/from ['"]node:/);
+    }
   });
 
   it('declares every public subpath with runtime and type entries', () => {

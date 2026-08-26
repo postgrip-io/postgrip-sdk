@@ -111,6 +111,8 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run build
+      - name: Verify the root facade bundles without Node compatibility
+        run: bun build dist/index.js --target=browser --outdir /tmp/postgrip-sdk-browser
       - run: bun run test:coverage
       - run: npm pack --dry-run --json
 
