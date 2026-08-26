@@ -10,7 +10,11 @@ permissions:
   id-token: write
 
 jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: validate
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,34 +24,45 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Verify tag matches package version
+      - name: Verify coordinated version and tag
         run: |
+          version=$(tr -d '\n' < ../VERSION)
           package_version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
-          test "$GITHUB_REF_NAME" = "python/v${package_version}"
+          test "$version" = "$package_version"
+          test "$GITHUB_REF_NAME" = "python/v${version}"
       - run: python -m pip install --upgrade build
-      - run: python ../scripts/generate_openapi.py --check
       - run: python -m build
-      - run: python -m pip install dist/postgrip_agent-*.whl
-      - name: Test the installed wheel before publishing
-        run: python -m unittest discover -s test
+      - run: python -m pip install dist/postgrip-*.whl
+      - name: Smoke installed root and plane namespaces
+        working-directory: /tmp
+        run: |
+          python -c "from postgrip import PostGrip, AsyncPostGrip; from postgrip.agent.openapi import OPENAPI_CONTRACT_BUNDLE_SHA256 as a; from postgrip.worker.openapi import OPENAPI_CONTRACT_BUNDLE_SHA256 as w; from postgrip.service.openapi import OPENAPI_CONTRACT_BUNDLE_SHA256 as s; assert a == w == s"
+      - name: Inspect wheel contents and size
+        run: python ../scripts/check_release_artifacts.py --ecosystem python --report /tmp/python-release-artifact.json
       - uses: actions/upload-artifact@v4
         with:
           name: python-dist
           path: python/dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-release-artifact
+          path: /tmp/python-release-artifact.json
 
   publish:
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/postgrip-agent/
+      url: https://pypi.org/project/postgrip/
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: python-dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
-      - name: Create GitHub release
+        with:
+          packages-dir: dist/
+      - name: Create Python SDK release
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes --title "$GITHUB_REF_NAME"

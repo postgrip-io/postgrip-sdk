@@ -203,7 +203,8 @@ def markdown(report: dict[str, Any]) -> str:
         "",
         f"Contract bundle: `{report['contractBundleDigest']}`",
         "",
-        "| Operations | Documented | SDK-generated | cURL | Protocol exceptions | Recorded-tested | Nightly-live | Pre-release-live | Production-smoke |",
+        "| Operations | Documented | SDK-generated | cURL | Protocol exceptions | "
+        "Recorded-tested | Nightly-live | Pre-release-live | Production-smoke |",
         "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         (
             f"| {summary['operations']} | {summary['documented']} | "

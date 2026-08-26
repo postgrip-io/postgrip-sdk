@@ -1555,7 +1555,7 @@ def write_or_check(outputs: dict[Path, str], check: bool, plane: str) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--plane", choices=sorted(SPEC_PATHS), default="agent")
+    parser.add_argument("--plane", choices=("all", *sorted(SPEC_PATHS)), default="agent")
     parser.add_argument(
         "--language",
         choices=("all", "go", "typescript", "python", "inventory"),
@@ -1571,24 +1571,44 @@ def main() -> int:
     parser.add_argument("--check-source", type=Path, help="verify the mirrored plane contract matches the canonical source")
     args = parser.parse_args()
 
-    spec_path = SPEC_PATHS[args.plane]
-
-    if args.check_source and spec_path.read_bytes() != args.check_source.resolve().read_bytes():
-        print(f"{spec_path.name} differs from canonical source {args.check_source}", file=sys.stderr)
-        return 1
-
-    spec, digest = load_contract(spec_path)
-    validate_schema_references(spec)
+    if args.plane == "all" and args.check_source:
+        parser.error("--check-source requires one concrete --plane")
+    selected_planes = sorted(SPEC_PATHS) if args.plane == "all" else [args.plane]
     bundle_digest = contract_bundle_digest()
-    outputs = select_outputs(
-        generated_files(spec, digest, bundle_digest, args.plane), args.language, args.output_dir
-    )
+    outputs: dict[Path, str] = {}
+    counts: dict[str, int] = {}
+    digests: dict[str, str] = {}
+    for plane in selected_planes:
+        spec_path = SPEC_PATHS[plane]
+        if args.check_source and spec_path.read_bytes() != args.check_source.resolve().read_bytes():
+            print(f"{spec_path.name} differs from canonical source {args.check_source}", file=sys.stderr)
+            return 1
+        spec, digest = load_contract(spec_path)
+        validate_schema_references(spec)
+        outputs.update(
+            select_outputs(
+                generated_files(spec, digest, bundle_digest, plane),
+                args.language,
+                args.output_dir,
+            )
+        )
+        counts[plane] = len(operation_rows(spec))
+        digests[plane] = digest
     if not write_or_check(outputs, args.check, args.plane):
         return 1
     action = "verified" if args.check else "generated"
+    if args.plane == "all":
+        details = ", ".join(
+            f"{plane}={counts[plane]} ({digests[plane][:12]})" for plane in selected_planes
+        )
+        print(
+            f"All OpenAPI bindings {action}: {sum(counts.values())} operations "
+            f"({details}; bundle {bundle_digest[:12]})"
+        )
+        return 0
     print(
-        f"{args.plane.title()} OpenAPI bindings {action}: {len(operation_rows(spec))} "
-        f"operations ({digest[:12]}, bundle {bundle_digest[:12]})"
+        f"{args.plane.title()} OpenAPI bindings {action}: {counts[args.plane]} "
+        f"operations ({digests[args.plane][:12]}, bundle {bundle_digest[:12]})"
     )
     return 0
 

@@ -80,7 +80,10 @@ class Recorder:
                         recorder.failures.put(
                             f"{recorder.language}/{case.plane}/{case.operation_id}: {failure}"
                         )
-                    payload = b'{"code":"CONFORMANCE_FAILED","message":"recording mismatch","requestId":"req_recorded"}'
+                    payload = (
+                        b'{"code":"CONFORMANCE_FAILED","message":"recording mismatch",'
+                        b'"requestId":"req_recorded"}'
+                    )
                     self.send_response(500)
                     self.send_header("Content-Type", "application/json")
                     self.send_header("Content-Length", str(len(payload)))
@@ -272,7 +275,9 @@ def load_cases(selected_planes: tuple[str, ...]) -> list[Case]:
     return cases
 
 
-def run(command: list[str], *, cwd: Path, environment: dict[str, str], timeout: int = 180) -> subprocess.CompletedProcess[str]:
+def run(
+    command: list[str], *, cwd: Path, environment: dict[str, str], timeout: int = 180
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command, cwd=cwd, env=environment, capture_output=True, text=True, timeout=timeout,
     )
@@ -326,7 +331,9 @@ def main() -> int:
                 environment=environment,
             )
             if completed.returncode != 0:
-                output = (completed.stderr or completed.stdout).replace(TOKEN, "[REDACTED]").replace(ACCESS_TOKEN, "[REDACTED]")
+                output = (completed.stderr or completed.stdout).replace(
+                    TOKEN, "[REDACTED]"
+                ).replace(ACCESS_TOKEN, "[REDACTED]")
                 failures.append(f"{language} runner exited {completed.returncode}: {output.strip()}")
                 continue
             try:
@@ -364,7 +371,8 @@ def main() -> int:
         for language, (command, cwd) in protocol_commands.items():
             completed = run(command, cwd=cwd, environment=environment)
             if completed.returncode != 0:
-                failures.append(f"{language} WebSocket protocol runner failed: {completed.stderr.strip() or completed.stdout.strip()}")
+                detail = completed.stderr.strip() or completed.stdout.strip()
+                failures.append(f"{language} WebSocket protocol runner failed: {detail}")
 
     if failures:
         print("Recorded endpoint conformance failed:")

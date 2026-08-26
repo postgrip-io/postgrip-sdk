@@ -1,30 +1,57 @@
-name: CI
+name: Unified SDK validation
 
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  protocol:
+  contracts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: protocol/go.mod
-      - name: Check formatting
+          go-version-file: go/go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install contract test dependencies
+        run: python -m pip install "cryptography>=42" "jsonschema>=4.23,<5"
+      - name: Verify licenses and package layout
         run: |
-          out=$(gofmt -l protocol)
-          if [ -n "$out" ]; then
-            echo "gofmt-dirty:" >&2
-            echo "$out" >&2
-            exit 1
-          fi
-      - run: go vet ./protocol/...
-      - run: go test ./protocol/...
+          cmp LICENSE go/LICENSE
+          cmp LICENSE typescript/LICENSE
+          cmp LICENSE python/LICENSE
+          grep -Fq '"license": "Apache-2.0"' typescript/package.json
+          grep -Fxq 'license = "Apache-2.0"' python/pyproject.toml
+          python3 scripts/check_package_layout.py
+      - name: Verify runtime wire contract
+        run: |
+          python3 go/protocol/tools/check_drift.py --self-test
+          python3 go/protocol/tools/check_drift.py --monorepo
+      - name: Verify generated contracts and ownership
+        run: |
+          python3 scripts/generate_openapi.py --plane all --check
+          python3 scripts/check_operation_inventory.py --self-test
+          python3 scripts/check_operation_inventory.py
+          python3 scripts/generate_test_fixtures.py --check
+          python3 scripts/check_operation_coverage.py
+      - name: Verify detailed API documentation and cURL
+        run: |
+          python3 scripts/generate_api_docs.py --check
+          python3 scripts/check_api_docs.py
+          python3 scripts/test_curl_examples.py --plane all --mode recorded
 
-  go-sdk:
+  go:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,15 +60,19 @@ jobs:
           go-version-file: go/go.mod
       - name: Check formatting
         run: |
-          out=$(gofmt -l go)
-          if [ -n "$out" ]; then
-            echo "gofmt-dirty:" >&2
-            echo "$out" >&2
+          output=$(gofmt -l go test/runners/go)
+          if [ -n "$output" ]; then
+            echo "$output" >&2
             exit 1
           fi
-      - run: go vet ./go/...
-      - run: go test ./go/...
-      - name: Enforce coverage for core Agent SDK packages
+      - name: Vet and test standalone module
+        working-directory: go
+        env:
+          GOWORK: "off"
+        run: |
+          go vet ./...
+          go test ./...
+      - name: Enforce package coverage floors
         working-directory: go
         env:
           GOWORK: "off"
@@ -57,56 +88,13 @@ jobs:
               if (actual + 0 < minimum + 0) exit 1
             }'
           }
-          check_coverage ./activity 97
-          check_coverage ./client 52
-          check_coverage ./failure 52
-          check_coverage ./worker 47
-          check_coverage ./workflow 36
-      - name: Test standalone module against the pinned protocol release
-        working-directory: go
-        env:
-          GOWORK: "off"
-        run: go test ./...
-
-  go-service:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: go/serviceclient
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go/serviceclient/go.mod
-      - run: go vet ./...
-      - name: Test with coverage gate
-        run: |
-          go test ./... -coverprofile=/tmp/postgrip-service-go.coverage
-          actual=$(go tool cover -func=/tmp/postgrip-service-go.coverage | awk '/^total:/ {gsub("%", "", $3); print $3}')
-          awk -v actual="$actual" 'BEGIN {
-            printf "Service Go SDK statement coverage: %.1f%% (minimum 85.0%%)\n", actual
-            if (actual + 0 < 85) exit 1
-          }'
-
-  go-worker:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: go/workerclient
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go/workerclient/go.mod
-      - run: go vet ./...
-      - name: Test with coverage gate
-        run: |
-          go test ./... -coverprofile=/tmp/postgrip-worker-go.coverage
-          actual=$(go tool cover -func=/tmp/postgrip-worker-go.coverage | awk '/^total:/ {gsub("%", "", $3); print $3}')
-          awk -v actual="$actual" 'BEGIN {
-            printf "Worker Go SDK statement coverage: %.1f%% (minimum 79.0%%)\n", actual
-            if (actual + 0 < 79) exit 1
-          }'
+          check_coverage ./agent/activity 97
+          check_coverage ./agent/client 52
+          check_coverage ./agent/failure 52
+          check_coverage ./agent/worker 47
+          check_coverage ./agent/workflow 36
+          check_coverage ./worker 79
+          check_coverage ./service 85
 
   typescript:
     runs-on: ubuntu-latest
@@ -117,41 +105,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.4.0"
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run build
       - run: bun run test:coverage
-
-  typescript-worker:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: typescript-worker
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun run build
-      - run: bun run test:coverage
-
-  typescript-service:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: typescript-service
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun run build
-      - run: bun run test:coverage
+      - run: npm pack --dry-run --json
 
   python:
     runs-on: ubuntu-latest
@@ -166,81 +125,68 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -m pip wheel --no-deps . -w /tmp/wheel
-      - run: python -m pip install coverage==7.15.4 /tmp/wheel/postgrip_agent-*.whl
-      - name: Test the installed wheel with coverage gate
+      - run: python -m pip install --upgrade build coverage==7.15.0
+      - run: python -m build --wheel
+      - run: python -m pip install dist/postgrip-*.whl
+      - name: Test installed wheel with coverage
         run: |
-          python -m coverage run --source=postgrip_agent -m unittest discover -s test
+          python -m coverage run --source=postgrip -m unittest discover -s test
           python -m coverage report --fail-under=80
-
-  python-worker:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-    defaults:
-      run:
-        working-directory: python-worker
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: python -m pip wheel --no-deps . -w /tmp/worker-wheel
-      - run: python -m pip install coverage==7.15.4 /tmp/worker-wheel/postgrip_worker-*.whl
-      - name: Test the installed wheel with coverage gate
+      - name: Smoke all installed namespaces
+        working-directory: /tmp
         run: |
-          python -m coverage run --source=postgrip_worker -m unittest discover -s test
-          python -m coverage report --fail-under=83
+          python -c "from postgrip import PostGrip, AsyncPostGrip; import postgrip.agent, postgrip.worker, postgrip.service"
 
-  python-service:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-    defaults:
-      run:
-        working-directory: python-service
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: python -m pip wheel --no-deps . -w /tmp/service-wheel
-      - run: python -m pip install coverage==7.15.4 /tmp/service-wheel/postgrip_service-*.whl
-      - name: Test the installed wheel with coverage gate
-        run: |
-          python -m coverage run --source=postgrip_service -m unittest discover -s test
-          python -m coverage report --fail-under=90
-
-  drift:
+  recorded-endpoints:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go/go.mod
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Check license consistency
-        run: |
-          cmp LICENSE protocol/LICENSE
-          cmp LICENSE go/LICENSE
-          cmp LICENSE typescript/LICENSE
-          cmp LICENSE python/LICENSE
-          cmp LICENSE typescript-worker/LICENSE
-          cmp LICENSE python-worker/LICENSE
-          cmp LICENSE typescript-service/LICENSE
-          cmp LICENSE python-service/LICENSE
-          grep -Fq '"license": "Apache-2.0"' typescript/package.json
-          grep -Fq '"license": "Apache-2.0"' typescript-worker/package.json
-          grep -Fq '"license": "Apache-2.0"' typescript-service/package.json
-          grep -Fxq 'license = "Apache-2.0"' python/pyproject.toml
-          grep -Fxq 'license = "Apache-2.0"' python-worker/pyproject.toml
-          grep -Fxq 'license = "Apache-2.0"' python-service/pyproject.toml
-      - run: python3 protocol/tools/check_drift.py --self-test
-      - run: python3 protocol/tools/check_drift.py --monorepo
-      - run: python3 scripts/generate_openapi.py --check
-      - run: python3 scripts/generate_openapi.py --plane worker --check
-      - run: python3 scripts/generate_openapi.py --plane service --check
+      - run: python -m pip install "cryptography>=42" "jsonschema>=4.23,<5"
+      - run: bun install --frozen-lockfile
+        working-directory: typescript
+      - run: python3 scripts/test_api_endpoints.py --plane all --mode recorded
+
+  artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: bun install --frozen-lockfile
+        working-directory: typescript
+      - run: python -m pip install --upgrade build
+      - run: python3 scripts/check_release_artifacts.py --ecosystem all --report /tmp/release-artifacts.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifact-report
+          path: /tmp/release-artifacts.json
+
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "mkdocs-material>=9.7,<10"
+      - run: mkdocs build --strict --site-dir /tmp/postgrip-docs
+      - run: mkdocs build --strict --site-dir /tmp/postgrip-typescript-docs
+        working-directory: typescript
+      - run: mkdocs build --strict --site-dir /tmp/postgrip-python-docs
+        working-directory: python

@@ -24,6 +24,8 @@ fourth publishable manifest or a plane-specific release path.
 - `python3 go/protocol/tools/check_drift.py --self-test && python3 go/protocol/tools/check_drift.py --monorepo` verifies the cross-language runtime contract.
 - `python3 scripts/generate_openapi.py --plane all --check` verifies generated clients and operation metadata.
 - `python3 scripts/generate_api_docs.py --check && python3 scripts/check_operation_coverage.py` verifies reference docs and endpoint ownership.
+- `python3 scripts/test_api_endpoints.py --plane all --mode recorded && python3 scripts/test_curl_examples.py --plane all --mode recorded` executes every SDK operation and eligible cURL example.
+- `python3 scripts/check_release_artifacts.py --ecosystem all` builds and inspects the three publishable artifacts.
 
 ## Style and Testing
 

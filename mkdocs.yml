@@ -12,6 +12,7 @@ nav:
   - Authentication: authentication.md
   - Configuration: configuration.md
   - Secure cURL: curl.md
+  - Releasing: releasing.md
   - API reference: reference/README.md
   - Architecture:
       - Design: unified-sdk-design.md
