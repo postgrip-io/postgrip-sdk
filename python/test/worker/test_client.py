@@ -156,6 +156,26 @@ class WorkerClientTests(unittest.TestCase):
         self.assertIn("pageSize=25", request.full_url)
         self.assertEqual(request.get_header("Authorization"), "Bearer pgt_test-token")
 
+    def test_list_exposes_observed_signer_runtime(self) -> None:
+        opener = FakeOpener([{"items": [{
+            "id": "worker-1",
+            "name": "worker-east",
+            "status": "online",
+            "trustState": "trusted",
+            "createdAt": "2026-08-25T00:00:00Z",
+            "updatedAt": "2026-08-25T00:00:00Z",
+            "capabilities": [],
+            "previewSubdomainEnabled": False,
+            "autoShutdownOnRemoval": False,
+            "signerVersion": 2,
+            "signerRevision": "30a3e4c53a48544f77735398f4784c20279f0ae3",
+        }]}])
+        client = WorkerClient(base_url="https://workers.example.com", token="pgt_test-token", opener=opener)  # type: ignore[arg-type]
+
+        worker = client.list()["items"][0]
+        self.assertEqual(worker["signerVersion"], 2)
+        self.assertEqual(worker["signerRevision"], "30a3e4c53a48544f77735398f4784c20279f0ae3")
+
     def test_idempotent_mutation_retries_when_enabled(self) -> None:
         opener = FakeOpener([api_error(503), api_error(503), {
             "status": "queued", "worker": {}, "lifecycleDirective": "upgrade",
