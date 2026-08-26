@@ -24,6 +24,8 @@ Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd6
   `ecf0cd151fd6c380c612d091a5b2a1370ce6df15`
 - Server administration-boundary correction:
   `0bdcb756a31a70cce7596c783beff2282f5d752a`
+- Server SDK-boundary and Agent-recovery correction:
+  `c0fbb3b7951cd010fc33e16bf294862ee20544ec`
 
 The Agent contract is byte-identical between those branches. All nine
 language/plane generated surfaces embed the current bundle digest.
@@ -110,6 +112,20 @@ are corrected in the coordinated PRs:
    update, lifecycle, targeted-placement, or security-settings mutations.
    High-impact host actions require an owner/admin session; ordinary member
    check and poll probes remain compatible.
+5. Every remaining undocumented Agent GET route that exposes host,
+   credential, configuration, or browser-only history state now requires an
+   organization member session. The Agent contract checker enforces reverse
+   coverage so a future non-contract management route cannot silently inherit
+   common-token access.
+6. Migration-0140 recovery now has an explicit owner/admin rotation grant: a
+   fresh key is bound atomically to the same tenant and Agent ID only when the
+   caller supplies the current key hash. The old key and sessions are revoked,
+   stale/cross-tenant/replayed grants fail closed, and normal enrollment still
+   rejects a mismatched key.
+7. Image-backed managed runtimes accept the host-injected delegated refresh
+   credential and omit the variable when none is issued. The credential is
+   still unavailable to shell payload allowlists and is never replaced by the
+   common management token.
 
 The live gate cannot honestly be marked PASS in this change. GitHub currently
 has only `github-pages`, `npm`, and `pypi` environments; no disposable URLs,
@@ -129,8 +145,10 @@ for that evidence.
   bodies, auth lanes, signing bytes, protocol ownership, and decoding.
 - Agent server: full orchestrator test/vet and 45-operation OpenAPI route check
   pass, including snapshot, cross-resource, limit, byte-bound, internal-admin
-  contract, standardized-error, and host-authorization regressions. The full
-  dashboard suite passes 87 files / 766 tests.
+  contract, standardized-error, reverse non-contract route coverage, targeted
+  enrollment recovery, and host-authorization regressions. A disposable
+  PostgreSQL 16 run passes the complete Agent store integration suite. The
+  full dashboard suite passes 87 files / 766 tests.
 - Live infrastructure: fixture-manager self-test, production allowlist
   validation, and `actionlint` 1.7.7 pass.
 - Documentation: root strict MkDocs build passes.

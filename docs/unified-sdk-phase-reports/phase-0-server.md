@@ -15,6 +15,7 @@ Reviewer: Codex implementation conformance review
 - History-pagination corrective commit: `061e3ebc`
 - Authentication and consumer corrective commit: `ecf0cd15`
 - Administration-boundary corrective commit: `0bdcb756`
+- SDK-boundary and Agent-recovery corrective commit: `c0fbb3b7`
 - Contract-bundle algorithm: SHA-256 over each public contract's filename,
   NUL, exact bytes, and NUL, ordered Agent, Service, Worker
 - Contract-bundle digest: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd`
@@ -124,6 +125,18 @@ helper, and trust-state actions, while ordinary member check/poll probes remain
 available. The same session boundary covers targeted host placement and
 security-log configuration without changing documented public Agent
 operations.
+
+The next review found three further deviations at the same boundary. All
+undocumented host inventory, credential inventory, metrics/config, and
+browser-only history routes now require an organization session, with a
+reverse router-to-contract check preventing future common-token exposure. A
+targeted owner/admin enrollment-key rotation preserves the existing Agent ID,
+tenant, placement, and relationships while atomically revoking its old key and
+sessions; this restores the documented migration-0140 fresh-key recovery path
+without relaxing normal enrollment binding. Finally, image-backed managed
+runtimes accept the delegated `POSTGRIP_AGENT_REFRESH_TOKEN` that the host
+already injects, while shell allowlists and the common tenant token remain
+unchanged. The public Agent contract and migration chain are byte-identical.
 
 No unresolved Phase 0 implementation deviations remain.
 
