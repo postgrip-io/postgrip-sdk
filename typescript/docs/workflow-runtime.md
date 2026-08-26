@@ -37,7 +37,7 @@ When the function's outermost promise stays pending past its scheduled commands,
 If your workflow uses any of these directly, the validator throws `ApplicationFailure` with a message pointing at the offending API. Run it once during agent startup or as part of your workflow registration code:
 
 ```ts
-import { validateWorkflowSandbox } from '@postgrip/agent';
+import { validateWorkflowSandbox } from '@postgrip/sdk/agent';
 
 const workflows = { greetingWorkflow };
 for (const wf of Object.values(workflows)) {
@@ -59,7 +59,7 @@ The sandbox is a static check — it can't catch dynamically-imported nondetermi
 Activities are the right place for non-deterministic work: HTTP calls, database queries, anything that touches the outside world or wall-clock state.
 
 ```ts
-import { proxyActivities } from '@postgrip/agent';
+import { proxyActivities } from '@postgrip/sdk/agent';
 
 const activities = {
   async fetchUser(id: string): Promise<{ name: string }> {
@@ -88,7 +88,7 @@ If an activity throws an `ApplicationFailure({ nonRetryable: true })`, the runti
 `sleep(ms)` is **not** `setTimeout`. It enqueues a durable timer task with the runtime service:
 
 ```ts
-import { sleep } from '@postgrip/agent';
+import { sleep } from '@postgrip/sdk/agent';
 
 await sleep(60_000); // ten minutes
 ```
@@ -100,7 +100,7 @@ The first time your workflow reaches the line, the timer is enqueued and the awa
 `executeChild` schedules a separate workflow execution and waits for its result:
 
 ```ts
-import { executeChild } from '@postgrip/agent';
+import { executeChild } from '@postgrip/sdk/agent';
 
 export async function parentWorkflow(): Promise<string> {
   const child = await executeChild(childWorkflow, {
@@ -118,7 +118,7 @@ Same suspension semantics as activity calls; the child runs its own replay loop.
 Signals are inputs sent into a running workflow from outside. Queries are read-only state reads. Updates are synchronous-from-the-caller's-perspective handlers that may trigger commands. All three follow the same pattern: a top-level definition declares the name, then `setHandler` wires it to a function inside the workflow body.
 
 ```ts
-import { defineSignal, defineQuery, defineUpdate, setHandler, condition } from '@postgrip/agent';
+import { defineSignal, defineQuery, defineUpdate, setHandler, condition } from '@postgrip/sdk/agent';
 
 // Declare names at module scope so client and worker can reference them.
 export const onMessage = defineSignal<[message: string]>('on_message');
@@ -164,7 +164,7 @@ To cancel from the client side: `await handle.cancel('reason')`.
 For activities to react to cancellation, periodically `await heartbeat()` — when the runtime service has a cancellation request for an activity that's currently leased, the heartbeat throws `CancelledFailure`:
 
 ```ts
-import { heartbeat, CancelledFailure } from '@postgrip/agent';
+import { heartbeat, CancelledFailure } from '@postgrip/sdk/agent';
 
 async function longRunning(items: unknown[]): Promise<number> {
   let count = 0;
@@ -189,7 +189,7 @@ async function longRunning(items: unknown[]): Promise<number> {
 Long-running workflows accumulate history. Eventually that history gets big enough to slow down replay. The fix is `continueAsNew`: end the current run and atomically schedule a new run with a fresh history.
 
 ```ts
-import { continueAsNew } from '@postgrip/agent';
+import { continueAsNew } from '@postgrip/sdk/agent';
 
 export async function longRunner(counter = 0): Promise<number> {
   for (let i = 0; i < 1000; i++) {

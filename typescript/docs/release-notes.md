@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.13.0
+
+- Consolidates Agent, Worker-management, and Service-management into one
+  `@postgrip/sdk` npm package with singular subpath exports.
+- Adds the one-token `PostGrip` root facade and deterministic generated
+  clients for all three planes.
+- Publishes immutable detailed API reference and secure cURL examples.
+
 ## 0.12.3
 
 - Adds the `stdin` exec option and `SandboxSession.closeInput()` so commands
@@ -22,7 +30,7 @@
   The previous default, `agentorchestrator.postgrip.app`, does not resolve, so
   any client constructed without an explicit address or environment override
   was contacting a host that does not exist. Callers that already pass an
-  address, or set `POSTGRIP_AGENTORCHESTRATOR_URL`, are unaffected.
+  address, or set `POSTGRIP_AGENT_URL`, are unaffected.
 - Authenticates sandbox WebSocket relay handshakes with the configured
   management token and custom connection headers on Node and Bun.
 - Adds `webSocketFactory` for custom authenticated relay transports and reports
@@ -34,7 +42,7 @@ This release completes the hard cutover to the public SDK monorepo.
 
 - Moves source, release automation, CI, and documentation to the monorepo.
 - Regenerates the OpenAPI-owned models and typed client from the canonical contract.
-- Retains the existing `@postgrip/agent` npm package name and public API.
+- Retains the Agent API under the `@postgrip/sdk/agent` subpath.
 
 ## 0.11.0
 

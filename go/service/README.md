@@ -1,28 +1,28 @@
 # PostGrip Service Go client
 
-`serviceclient` is the typed client for PostGrip's public Service API. It uses
-a tenant-scoped `pgt_` management token carrying `services:*` scopes and does
+Package `service` is the typed client for PostGrip's public Service API. It uses
+a tenant-scoped `pgt_` token carrying the required Service scopes and does
 not receive worker-local paths or readable repository, environment, or
 connection credentials.
 
 ```sh
-go get github.com/postgrip-io/postgrip-agent-sdks/go/service@latest
+go get github.com/postgrip-io/postgrip-agent-sdks/go@latest
 ```
 
 ```go
 import "github.com/postgrip-io/postgrip-agent-sdks/go/service"
 
-client, err := serviceclient.New(serviceclient.Config{BaseURL: baseURL, Token: token})
-service, err := client.Resolve(ctx, "project:6dd0d11e-87a4-4d51-8655-3cbf7cbc90a1")
-selected, err := client.ForService(serviceclient.ReferenceFor(service))
-status, err := selected.Status(ctx, serviceclient.OpenAPIGetServiceStatusQuery{})
+client, err := service.New(service.Config{BaseURL: baseURL, Token: token})
+resolved, err := client.Resolve(ctx, "project:6dd0d11e-87a4-4d51-8655-3cbf7cbc90a1")
+selected, err := client.ForService(service.ReferenceFor(resolved))
+status, err := selected.Status(ctx, service.OpenAPIGetServiceStatusQuery{})
 
 volumes, err := client.ManagedVolumes().List(ctx, projectID)
 impact, err := client.Projects().RemovalImpact(ctx, projectID)
 ```
 
-`serviceclient.NewFromEnv(serviceclient.Config{})` reads
-`POSTGRIP_WORKERORCHESTRATOR_URL` and `POSTGRIP_SERVICE_API_TOKEN`. Explicit
+`service.NewFromEnv(service.Config{})` reads
+`POSTGRIP_SERVICE_URL` and `POSTGRIP_TOKEN`. Explicit
 configuration remains authoritative. Retries are disabled by default; enabling
 them permits at most three attempts, with configurable caps that cannot exceed
 the contract's 2-second backoff and 30-second `Retry-After` limits.

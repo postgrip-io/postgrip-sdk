@@ -14,7 +14,7 @@
 //     TaskFailed) and the FromInfo / ToInfo wire converters.
 //
 // Mirrors the [TypeScript SDK] and [Python SDK]; wire shapes come from the
-// shared [protocol package] so all four packages agree on the
+// shared [protocol package] so all three language SDKs agree on the
 // runtime contract.
 //
 // Quick start — submit a workflow runtime:
@@ -49,7 +49,7 @@
 //	})
 //	_ = w.Run(ctx)
 //
-// [TypeScript SDK]: https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/typescript
-// [Python SDK]: https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/python
-// [protocol package]: https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/protocol
+// [TypeScript SDK]: https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript
+// [Python SDK]: https://github.com/postgrip-io/postgrip-sdks/tree/main/python
+// [protocol package]: https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol
 package postgrip

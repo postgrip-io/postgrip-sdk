@@ -271,7 +271,7 @@ class SandboxClient:
 
         Requires the optional ``websockets`` dependency::
 
-            pip install "postgrip-agent[sandbox]"
+            pip install "postgrip[sandbox]"
         """
         session = self.create_session(
             sandbox_id, kind=kind, command=command, rows=rows, columns=columns
@@ -337,7 +337,7 @@ class SandboxSession:
         except ImportError as exc:  # pragma: no cover - dependency guard
             raise RuntimeError(
                 "postgrip-agent: sandbox sessions need the 'websockets' package; "
-                'install with pip install "postgrip-agent[sandbox]"'
+                'install with pip install "postgrip[sandbox]"'
             ) from exc
         self._socket = connect(url, additional_headers=headers, max_size=None)
         self.exit_code: int | None = None

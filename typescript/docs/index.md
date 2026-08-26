@@ -2,11 +2,11 @@
 
 Run shell commands, container workloads, and durable workflows on the PostGrip Agent runtime service from your TypeScript code.
 
-**Current release:** `0.12.3`
+**Current release:** `0.13.0`
 
 [Quick start →](quickstart.md){ .md-button .md-button--primary }
-[GitHub](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/typescript){ .md-button }
-[npm](https://www.npmjs.com/package/@postgrip/agent){ .md-button }
+[GitHub](https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript){ .md-button }
+[npm](https://www.npmjs.com/package/@postgrip/sdk){ .md-button }
 
 ---
 
@@ -17,7 +17,7 @@ A TypeScript library that lets you talk to the PostGrip Agent runtime service. Y
 The shape mirrors the Temporal TypeScript SDK on purpose: workflows are plain async functions, activities are plain async functions accessed through a typed `proxyActivities<typeof activities>(...)` stub, and the agent registers both and runs the polling loop. If you've used Temporal in TypeScript, the surface should feel immediate.
 
 ```ts
-import { proxyActivities } from '@postgrip/agent';
+import { proxyActivities } from '@postgrip/sdk/agent';
 
 const activities = {
   async greet(name: string): Promise<string> {
@@ -37,15 +37,17 @@ export async function greetingWorkflow(name: string): Promise<string> {
 
 ## Polyglot
 
-This SDK is one of three. The Go and Python siblings implement the same model against the same wire protocol, so a workflow started by a TypeScript client can be picked up by a Go agent and vice versa.
+This is the TypeScript member of the three-language SDK family. The single
+`@postgrip/sdk` package contains Agent, Worker, and Service clients; its Go and
+Python siblings expose the same API planes and wire contracts.
 
-- [agent-sdk-go](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/go)
-- [agent-sdk-python](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/python)
-- [agent-sdk-protocol](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/protocol) — the shared wire shapes (Go, with hand-mirrored TS / Python definitions)
+- [Go SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/go)
+- [Python SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/python)
+- [Agent protocol](https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol) — the shared runtime wire shapes
 
 ## Where to next
 
 - [Installation](installation.md) — `npm install` and Node version requirements.
 - [Quick start](quickstart.md) — copy-paste examples for enqueueing tasks and running an agent.
 - [Workflow runtime](workflow-runtime.md) — the durable replay model in depth: history cursor, suspension, determinism rules, sandbox, ContinueAsNew.
-- [API](api.md) — the public surface re-exported from `@postgrip/agent`.
+- [API](api.md) — the public surface re-exported from `@postgrip/sdk/agent`.

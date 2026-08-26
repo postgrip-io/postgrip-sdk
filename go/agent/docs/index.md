@@ -10,10 +10,10 @@ nav_order: 1
 Run shell commands, container workloads, and durable workflows on the PostGrip Agent runtime service from your Go code.
 {: .fs-6 .fw-300 }
 
-**Current release:** `v0.12.3`
+**Current release:** `v0.13.0`
 
 [Quick start →]({{ "/quickstart" | relative_url }}){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[GitHub](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/go){: .btn .fs-5 .mb-4 .mb-md-0 }
+[GitHub](https://github.com/postgrip-io/postgrip-sdks/tree/main/go){: .btn .fs-5 .mb-4 .mb-md-0 }
 [pkg.go.dev](https://pkg.go.dev/github.com/postgrip-io/postgrip-agent-sdks/go){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -22,7 +22,9 @@ Run shell commands, container workloads, and durable workflows on the PostGrip A
 
 A Go library that lets you talk to the PostGrip Agent runtime service. You enqueue tasks (shell commands, containers, workflows, schedules), or you run a worker that picks up tasks and executes your registered workflow / activity functions.
 
-The SDK ships as five focused sub-packages under `github.com/postgrip-io/postgrip-agent-sdks/go`. You only import what you need — most apps that just enqueue tasks need only `client`; only worker processes need `worker` + `workflow` + `activity`.
+The module contains Agent, Worker-management, and Service-management packages.
+Agent runtime support is split into five focused packages under `agent/`. You
+only import what you need—most apps that enqueue tasks need only `agent/client`.
 
 | Package    | What's in it                                                                        |
 |:-----------|:------------------------------------------------------------------------------------|
@@ -34,11 +36,12 @@ The SDK ships as five focused sub-packages under `github.com/postgrip-io/postgri
 
 ## Polyglot
 
-This SDK is one of three. The TypeScript and Python siblings implement the same model against the same wire protocol, so a workflow started by a Python client can be picked up by a Go worker and vice versa.
+This is the Go member of the three-language SDK family. Its TypeScript and
+Python siblings expose the same API planes and wire contracts.
 
-- [agent-sdk-typescript](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/typescript)
-- [agent-sdk-python](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/python)
-- [agent-sdk-protocol](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/protocol) — the shared wire shapes
+- [TypeScript SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript)
+- [Python SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/python)
+- [Agent protocol](https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol) — the shared runtime wire shapes
 
 ## Where to next
 

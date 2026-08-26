@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.13.0
+
+- Consolidates Agent, Worker-management, and Service-management into one
+  `postgrip` PyPI distribution with singular Python submodules.
+- Adds synchronous and asynchronous one-token root facades.
+- Publishes immutable detailed API reference and secure cURL examples.
+
 ## 0.12.3
 
 - Adds the `stdin` exec argument and `SandboxSession.close_input()` so commands
@@ -21,7 +28,7 @@
   The previous default, `agentorchestrator.postgrip.app`, does not resolve, so
   any client constructed without an explicit address or environment override
   was contacting a host that does not exist. Callers that already pass an
-  address, or set `POSTGRIP_AGENTORCHESTRATOR_URL`, are unaffected.
+  address, or set `POSTGRIP_AGENT_URL`, are unaffected.
 - Streams file-like sandbox workspace archives instead of reading the entire
   upload into memory.
 - Tests the installed wheel in CI and again before publishing, without the
@@ -33,7 +40,7 @@ This release completes the hard cutover to the public SDK monorepo.
 
 - Moves source, release automation, CI, and documentation to the monorepo.
 - Regenerates the OpenAPI-owned models and typed client from the canonical contract.
-- Retains the existing `postgrip-agent` PyPI package name and public API.
+- Retains the existing `postgrip` PyPI package name and public API.
 
 ## 0.11.0
 

@@ -8,6 +8,14 @@ nav_order: 7
 
 ## Unreleased
 
+## v0.13.0
+
+- Consolidates Agent, Worker-management, Service-management, and protocol
+  packages into one Go module with one-token root-client configuration.
+- Adds deterministic generated clients and immutable detailed API reference
+  pages for all three public planes.
+- Preserves the published Go module path for compatibility.
+
 ## v0.12.3
 
 - Signals stdin EOF after `SandboxClient.Exec` drains its input so commands
@@ -27,7 +35,7 @@ nav_order: 7
   The previous default, `agentorchestrator.postgrip.app`, does not resolve, so
   any client constructed without an explicit address or environment override
   was contacting a host that does not exist. Callers that already pass an
-  address, or set `POSTGRIP_AGENTORCHESTRATOR_URL`, are unaffected.
+  address, or set `POSTGRIP_AGENT_URL`, are unaffected.
 
 ## v0.12.0
 

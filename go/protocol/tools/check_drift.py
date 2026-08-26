@@ -4,7 +4,7 @@ TypeScript / Python definitions in the SDK monorepo.
 
 The contract being checked: every exported wire-format struct in
 types.go has an equivalent type with matching field names in
-agent-sdk-typescript/src/types.ts and agent-sdk-python/src/postgrip_agent/types.py.
+typescript/src/agent/types.ts and python/src/postgrip/agent/types.py.
 
 What we check (deliberately narrow, since the source of truth is Go):
 
@@ -13,7 +13,7 @@ What we check (deliberately narrow, since the source of truth is Go):
     * Runtime-only models that are outside OpenAPI remain hand-mirrored with
       matching field names in all three languages.
 
-agent-sdk-go is checked under a *different* contract (`--local go-sdk`). It
+The Go SDK is checked under a *different* contract (`--local go-sdk`). It
 isn't a mirror — it imports this package and re-exports the wire types as
 aliases — so field-set comparison doesn't apply to it. What goes wrong there
 instead is redefinition: when the SDK's protocol pin predates a type, the SDK
@@ -127,9 +127,9 @@ TRACKED_TYPES = [
 # every type in it report "not found in types.go" while the mirrors sat
 # unchecked. A language's declarations may live in as many files as it likes.
 GITHUB_SOURCES = {
-    "go":     ("postgrip-io", "postgrip-agent-sdks", ["go/protocol/types.go", "go/protocol/sandbox.go"]),
-    "ts":     ("postgrip-io", "postgrip-agent-sdks", ["typescript/src/agent/types.ts"]),
-    "python": ("postgrip-io", "postgrip-agent-sdks", ["python/src/postgrip/agent/types.py"]),
+    "go":     ("postgrip-io", "postgrip-sdks", ["go/protocol/types.go", "go/protocol/sandbox.go"]),
+    "ts":     ("postgrip-io", "postgrip-sdks", ["typescript/src/agent/types.ts"]),
+    "python": ("postgrip-io", "postgrip-sdks", ["python/src/postgrip/agent/types.py"]),
 }
 # Repo-local paths, keyed by --local: the language whose types live in this
 # checkout (CI in that repo will set --local to it so a PR's changes are
@@ -902,7 +902,7 @@ def self_test() -> int:
     fetched: list[str] = []
 
     def fake_load(url, *, from_github):
-        fetched.append(url.rsplit("/postgrip-agent-sdks/", 1)[-1])
+        fetched.append(url.rsplit("/postgrip-sdks/", 1)[-1])
         if url.endswith("/branch/go/protocol/types.go"):
             raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
         return f"// {url}\n"

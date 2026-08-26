@@ -13,9 +13,9 @@ agent pool, and the host-launched runtime registers one activity and one
 workflow.
 
 ```sh
-cp example/.env.example .env
+cp agent/example/.env.example .env
 # edit .env and set POSTGRIP_AGENT_TOKEN to your Agent token
-go run ./example/greeting
+go run ./agent/example/greeting
 ```
 
 The generated `.env` file is ignored by git. The committed

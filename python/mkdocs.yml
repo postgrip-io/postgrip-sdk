@@ -37,7 +37,7 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/postgrip-io/postgrip-sdks/tree/main/python
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/postgrip-agent/
+      link: https://pypi.org/project/postgrip/
   generator: false
 
 nav:

@@ -37,7 +37,7 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript
     - icon: fontawesome/brands/npm
-      link: https://www.npmjs.com/package/@postgrip/agent
+      link: https://www.npmjs.com/package/@postgrip/sdk
   generator: false
 
 nav:

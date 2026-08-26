@@ -16,7 +16,7 @@ import (
 )
 
 // History event type strings the runtime service writes. Mirrors the
-// strings the TypeScript SDK matches on (postgrip-agent/typescript/src/agent.ts).
+// strings the TypeScript SDK matches on (typescript/src/agent/agent.ts).
 // Exported so SDK-side integration tests can construct realistic histories
 // without copy-pasting the wire strings.
 const (

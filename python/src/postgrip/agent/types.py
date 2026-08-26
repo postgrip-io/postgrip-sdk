@@ -394,7 +394,7 @@ CreateSandboxSessionResponse: TypeAlias = _openapi.OpenAPICreateSandboxSessionRe
 
 # Computed last, deliberately. It used to sit above the sandbox section, and a
 # `globals()` comprehension only sees what has already been defined — so every
-# sandbox type was silently absent from `from postgrip_agent.types import *`,
+# sandbox type was silently absent from `from postgrip.agent.types import *`,
 # unlike every other public type in this module. Keep new declarations above
 # this line.
 __all__ = [name for name in globals() if not name.startswith("_")]

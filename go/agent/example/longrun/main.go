@@ -7,7 +7,7 @@
 //
 //	cp example/.env.example .env
 //	# edit .env and set POSTGRIP_AGENT_TOKEN to your Agent token
-//	go run ./example/longrun
+//	go run ./agent/example/longrun
 //
 // The SDK does not enroll standalone agents; host agents inject delegated
 // managed-runtime credentials.
@@ -43,13 +43,13 @@ const (
 
 var defaultRuntimeArgs = []string{
 	"-lc",
-	`git init /tmp/postgrip-agent-sdks && cd /tmp/postgrip-agent-sdks && git remote add origin https://github.com/postgrip-io/postgrip-agent-sdks.git && git fetch --depth 1 origin "${SDK_EXAMPLE_RUNTIME_REF:-main}" && git checkout --detach FETCH_HEAD && cd go && PATH=/usr/local/go/bin:$PATH go run ./example/longrun`,
+	`git init /tmp/postgrip-sdks && cd /tmp/postgrip-sdks && git remote add origin https://github.com/postgrip-io/postgrip-sdks.git && git fetch --depth 1 origin "${SDK_EXAMPLE_RUNTIME_REF:-main}" && git checkout --detach FETCH_HEAD && cd go && PATH=/usr/local/go/bin:$PATH go run ./agent/example/longrun`,
 }
 
 func main() {
 	loadExampleEnv()
 
-	address := envOr("POSTGRIP_AGENTORCHESTRATOR_URL", envOr("POSTGRIP_AGENT_LIVE_SERVER_URL", "https://agentorchestrator1.postgrip.io"))
+	address := envOr("POSTGRIP_AGENT_URL", envOr("POSTGRIP_AGENT_LIVE_SERVER_URL", "https://agentorchestrator1.postgrip.io"))
 	authToken := os.Getenv("POSTGRIP_AGENT_TOKEN")
 	queue := envOr("POSTGRIP_AGENT_TASK_QUEUE", "go-longrun")
 	agentID := envOr("POSTGRIP_AGENT_ID", "go-longrun-agent")

@@ -4,9 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-TypeScript SDK for the PostGrip Agent runtime service. Mirrors `../go` and `../python`; the wire-shape source of truth lives in `../protocol` and is hand-mirrored into `src/types.ts`. Root CI compares the local definitions atomically.
+Unified TypeScript SDK for PostGrip Agent, Worker-management, and
+Service-management APIs. Agent runtime wire shapes come from `../go/protocol`
+and are mirrored into `src/agent/types.ts`. Root CI compares the definitions
+atomically.
 
-The npm package is `@postgrip/agent` (scoped under `@postgrip` org). API shape follows the Temporal TypeScript SDK: `Connection.connect`, `Client`, `Agent`, **plain async functions for workflows** (no class decorators — TS uses functions, unlike Python's `@workflow.defn class`), `proxyActivities<typeof activities>(...)` for typed activity stubs.
+The npm package is `@postgrip/sdk`; `@postgrip/sdk/agent` is its Agent
+subpath. The Agent API shape follows the Temporal TypeScript SDK:
+`Connection.connect`, `Client`, `Agent`, plain async workflow functions, and
+`proxyActivities<typeof activities>(...)` for typed activity stubs.
 
 ## Commands
 
@@ -36,7 +42,18 @@ Root CI (`../.github/workflows/ci.yml`) runs `typecheck`, `build`, `test`, and t
 
 ```
 src/
-├─ index.ts          Re-exports the public surface; this is the customer-facing namespace.
+├─ index.ts          Root PostGrip facade and plane exports.
+├─ client.ts         Root facade implementation.
+├─ agent/            Agent runtime and management surface.
+├─ worker/           Worker-management client and generated contract.
+├─ service/          Service-management client and generated contract.
+└─ internal/         Shared transport and configuration mechanics.
+```
+
+Within `src/agent/`:
+
+```
+├─ index.ts          Re-exports the Agent public surface.
 ├─ client.ts         Client, Connection (re-exported from connection.ts), TaskClient,
 │                    WorkflowClient, ScheduleClient, WorkflowHandle, WorkflowUpdateHandle.
 ├─ connection.ts     HTTP transport (Connection, ConnectionOptions).
@@ -49,17 +66,19 @@ src/
 │                    `activityMilestone` from index.ts to avoid clash with workflow.milestone).
 ├─ errors.ts         ApplicationFailure, CancelledFailure, TimeoutFailure, TaskFailedError,
 │                    PostGripAgentError.
-└─ types.ts          Wire-format types mirroring ../protocol/types.go.
+└─ types.ts          Wire-format types mirroring ../../go/protocol/types.go.
 ```
 
-`index.ts` is the customer-facing import surface. Re-export new public names through `index.ts` explicitly; the `exports` field in `package.json` exposes only `./dist/index.js` so anything not re-exported from there is effectively private.
+The package root and each singular subpath are deliberate public surfaces.
+Re-export new public names explicitly and keep generated plane clients from
+importing the root facade.
 
 ### Workflow shape: functions, not classes
 
 Unlike the Python SDK (where workflows are classes with `@workflow.defn` and `@workflow.run`), TS workflows are **plain async functions**:
 
 ```ts
-import { proxyActivities } from '@postgrip/agent';
+import { proxyActivities } from '@postgrip/sdk/agent';
 
 const { greet } = proxyActivities<typeof activities>({
   startToCloseTimeoutMs: 10_000,
@@ -108,26 +127,29 @@ The custom `milestone` re-export in `index.ts`:
 export { activityInfo, heartbeat, milestone as activityMilestone } from './activity.js';
 ```
 
-— so customers write `import { milestone, activityMilestone } from '@postgrip/agent'`, where `milestone` is the workflow one and `activityMilestone` is the activity one. Don't simplify these to a single `milestone` export — they have different signatures and different runtime expectations.
+— so customers write `import { milestone, activityMilestone } from '@postgrip/sdk/agent'`, where `milestone` is the workflow one and `activityMilestone` is the activity one. Don't simplify these to a single `milestone` export — they have different signatures and different runtime expectations.
 
 ## Polyglot mirror
 
-This is one of four packages sharing the runtime contract:
+This is one of three language packages sharing the Agent runtime contract:
 
-- `../protocol` — wire-shape source of truth (Go).
-- `../go` — Go SDK; imports protocol directly.
-- `../python` — Python SDK; mirrors types in `src/postgrip_agent/types.py`.
-- `typescript/` — this package; mirrors types in `src/types.ts`.
+- `../go/protocol` — wire-shape source of truth (Go).
+- `../go` — unified Go SDK; imports protocol directly.
+- `../python` — Python SDK; mirrors types in `src/postgrip/agent/types.py`.
+- `typescript/` — this package; mirrors types in `src/agent/types.ts`.
 
 Wire-shape changes must update protocol and each mirror in one commit. The drift guard catches name-level disagreement; it does **not** catch type-level drift (number vs string, optional vs required) — those need human review.
 
 ## Distribution
 
-The npm package is `@postgrip/agent`. Releases are gated on a `typescript/v*` tag which fires `../.github/workflows/publish-typescript.yml` to build and publish via npm trusted publishing. The trusted publisher must be configured with:
+The npm package is `@postgrip/sdk`. Releases are gated on a `typescript/v*`
+tag which fires `../.github/workflows/publish-typescript.yml` to build and
+publish via npm trusted publishing. The trusted publisher must be configured
+with:
 
-- Package name: `@postgrip/agent`
+- Package name: `@postgrip/sdk`
 - Repository owner: `postgrip-io`
-- Repository: `postgrip-agent-sdks`
+- Repository: `postgrip-sdks`
 - Workflow filename: `publish-typescript.yml`
 - Environment: `npm`
 

@@ -6,7 +6,7 @@ nav_order: 2
 
 # Installation
 
-The SDK lives at `github.com/postgrip-io/postgrip-agent-sdks/go`; its source is the [`go/`](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/go) directory of the SDK monorepo.
+The SDK lives at `github.com/postgrip-io/postgrip-agent-sdks/go`; its source is the [`go/`](https://github.com/postgrip-io/postgrip-sdks/tree/main/go) directory of the SDK monorepo.
 
 ```sh
 go get github.com/postgrip-io/postgrip-agent-sdks/go@latest
@@ -15,7 +15,7 @@ go get github.com/postgrip-io/postgrip-agent-sdks/go@latest
 To pin a specific version:
 
 ```sh
-go get github.com/postgrip-io/postgrip-agent-sdks/go@v0.12.3
+go get github.com/postgrip-io/postgrip-agent-sdks/go@v0.13.0
 ```
 
 ## Requirements
@@ -53,4 +53,4 @@ conn, _ := client.NewConnection(client.ConnectionOptions{
 })
 ```
 
-`Address` defaults to PostGrip Cloud if empty. For local or self-hosted development, pass `Address` explicitly or set `POSTGRIP_AGENTORCHESTRATOR_URL`.
+`Address` defaults to PostGrip Cloud if empty. For local or self-hosted development, pass `Address` explicitly or set `POSTGRIP_AGENT_URL`.

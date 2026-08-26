@@ -1,6 +1,6 @@
 # API
 
-Public surface re-exported from `@postgrip/agent`. Customer code should import every name from the package root — sub-paths under `dist/` aren't part of the supported API.
+Public surface re-exported from `@postgrip/sdk/agent`. Customer code should import every name from the package root — sub-paths under `dist/` aren't part of the supported API.
 
 ## Top-level
 
@@ -54,7 +54,11 @@ Constructors: `new ApplicationFailure(message, { type, nonRetryable, details })`
 
 ## Wire types
 
-The package re-exports the wire-format types defined in `src/types.ts`, mirroring the Go [`protocol`](https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/protocol) package. Common ones (`Task`, `WorkflowExecution`, `WorkflowHistoryEvent`, `RetryPolicy`, `Schedule`, `FailureInfo`) and their request/response counterparts are all `import type { ... }`-able from `@postgrip/agent`.
+The Agent subpath re-exports the wire-format types defined in
+`src/agent/types.ts`, mirroring the Go
+[`protocol`](https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol)
+package. Common types and their request/response counterparts are all
+`import type { ... }`-able from `@postgrip/sdk/agent`.
 
 ## TypeScript
 
@@ -64,6 +68,6 @@ The package ships with type declarations (`dist/index.d.ts`). All public functio
 
 When in doubt, the code is the documentation:
 
-- [`src/index.ts`](https://github.com/postgrip-io/postgrip-agent-sdks/blob/main/typescript/src/index.ts) — full re-export list.
-- [`src/types.ts`](https://github.com/postgrip-io/postgrip-agent-sdks/blob/main/typescript/src/types.ts) — wire-type definitions.
-- [`src/workflow.ts`](https://github.com/postgrip-io/postgrip-agent-sdks/blob/main/typescript/src/workflow.ts), [`src/activity.ts`](https://github.com/postgrip-io/postgrip-agent-sdks/blob/main/typescript/src/activity.ts) — runtime helpers.
+- [`src/agent/index.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/index.ts) — full Agent re-export list.
+- [`src/agent/types.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/types.ts) — wire-type definitions.
+- [`src/agent/workflow.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/workflow.ts), [`src/agent/activity.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/activity.ts) — runtime helpers.

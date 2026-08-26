@@ -4,12 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-The wire-shape **source of truth** for the PostGrip Agent runtime. Two files of Go (`types.go` + `signing.go`) at this package root are consumed by the runtime and Go SDK, and **mirrored by hand** in `../typescript/src/types.ts` and `../python/src/postgrip_agent/types.py`. Any wire-format change must update all mirrors in the same monorepo commit; `tools/check_drift.py --monorepo` enforces matching field names.
+The wire-shape **source of truth** for the PostGrip Agent runtime. The Go
+package is consumed by the runtime and Go SDK, and runtime-only shapes are
+**mirrored by hand** in `../../typescript/src/agent/types.ts` and
+`../../python/src/postgrip/agent/types.py`. Any wire-format change must update
+all mirrors in the same monorepo commit; `tools/check_drift.py --monorepo`
+enforces matching field names.
 
-The module path is `github.com/postgrip-io/postgrip-agent-sdks/go/protocol`.
-Protocol releases use repository-prefixed tags such as `protocol/v0.3.0`.
+The package import path is
+`github.com/postgrip-io/postgrip-agent-sdks/go/protocol`. It ships as part of
+the unified Go module with `go/v*` repository tags.
 
-**This package is not customer-facing.** End-users of the SDK never write `protocol.Task` directly — the Go SDK aliases the wire types in `../go/client/aliases.go` so customers stay within the SDK namespace. The only consumer that normally needs a protocol release is the Go SDK or server runtime.
+**This package is not the high-level client surface.** Agent client types in
+`../agent/client/aliases.go` alias protocol definitions so application code
+can stay within the Agent namespace.
 
 ## Commands
 
@@ -24,7 +32,9 @@ python3 tools/check_drift.py --from-github     # check vs TS/Python main on GitH
 python3 tools/check_drift.py --self-test       # exercise the detectors themselves
 ```
 
-Root CI runs `gofmt -l`, `go vet`, `go test`, and the local monorepo drift check (`../.github/workflows/ci.yml`). **A failing drift job is a real signal**, not noise — it means the same commit contains incompatible wire definitions.
+Root CI runs formatting, vet, tests, and the local monorepo drift check
+(`../../.github/workflows/ci.yml`). **A failing drift job is a real signal**,
+not noise—it means the same commit contains incompatible wire definitions.
 
 The drift job runs `--self-test` **before** the tree scan. A clean tree only proves today's type files agree; it never proves the checker still detects disagreement. The self-test caught a live bug in its own first run — the literal-const regex captured `const` as the name on single-line declarations — which is exactly the failure mode it exists to prevent.
 
@@ -42,11 +52,16 @@ The contract being checked is narrow: every exported Go struct that represents a
 
 When you add, rename, or remove a field on a wire struct, update the TypeScript and Python paths in the same commit. The monorepo removes cross-repository branch and push-order races, but requiredness and field types still require human review.
 
-### agent-sdk-go is checked differently
+### Go aliases are checked differently
 
-The Go SDK at `../go` is not a mirror — it imports this package and re-exports the wire types as aliases, so there are no field sets to compare. Its failure mode is *redeclaration*: when its protocol pin predates a type, it grows a local copy that compiles cleanly and mirrors nothing. Monorepo drift validation scans the SDK tree and fails on any struct or string-literal constant whose name collides with something protocol owns, matched case-insensitively. The fix is always the same: alias it.
+The Go Agent client at `../agent/client` is not a mirror—it imports this
+package and re-exports wire types as aliases, so field-set comparison does not
+apply. Monorepo drift validation scans the SDK tree and fails on any struct or
+string-literal constant whose name collides with something protocol owns. The
+fix is to alias the protocol declaration.
 
-This is not hypothetical — it is how `WorkflowRuntimePayload` and `TaskTypeWorkflowRuntime` came to exist twice in `agent-sdk-go/client/`, against a pin from before this package had either.
+This check prevents `WorkflowRuntimePayload`, `TaskTypeWorkflowRuntime`, and
+other protocol-owned declarations from drifting into local copies.
 
 ### Custom `UnmarshalJSON` on `Task`
 
@@ -62,11 +77,11 @@ The signature header carries a key ID (`first 16 hex chars of sha256(pubkey)`) b
 
 ## Polyglot mirror
 
-This is one of four packages in the `postgrip-agent-sdks` monorepo:
+This package is part of the single Go module in the `postgrip-sdks` monorepo:
 
-- `protocol/` (this) — the source of truth.
-- `go/` — Go SDK; imports this package directly.
-- `typescript/` — TS SDK; mirrors types in `src/types.ts`.
-- `python/` — Python SDK; mirrors types in `src/postgrip_agent/types.py`.
+- `go/protocol/` (this) — the Agent runtime wire source of truth.
+- `go/agent/` — Go Agent SDK; imports this package directly.
+- `typescript/` — unified TypeScript SDK; mirrors runtime types in `src/agent/types.ts`.
+- `python/` — unified Python SDK; mirrors runtime types in `src/postgrip/agent/types.py`.
 
 The runtime (`postgrip-io/postgrip-web`) also imports this package directly and is the canonical implementer of the orchestrator side. Wire-shape changes that touch `types.go` should be reviewed with both the runtime and the SDKs in mind; a wire change without runtime support is wasted work.

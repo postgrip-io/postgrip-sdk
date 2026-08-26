@@ -52,7 +52,7 @@ Activities are the right place for non-deterministic work: HTTP calls, database 
 
 ```python
 from datetime import timedelta
-from postgrip_agent import RetryPolicy, workflow
+from postgrip.agent import RetryPolicy, workflow
 
 @workflow.defn
 class MyWorkflow:
@@ -90,7 +90,7 @@ The first time your body reaches that line, the timer is enqueued and the `await
 Signals are inputs sent into a running workflow from outside. Queries are read-only state reads. Updates are synchronous-from-the-caller's-perspective handlers that may trigger commands. All three follow the same pattern: a top-level definition declares the name, then `workflow.set_handler` wires it to a method.
 
 ```python
-from postgrip_agent import workflow, CancelledFailure
+from postgrip.agent import workflow, CancelledFailure
 
 # Declare names at module scope so client and worker can reference them.
 on_message = workflow.define_signal("on_message")
@@ -143,7 +143,7 @@ To cancel from the client side: `await handle.cancel("reason")`.
 For activities to react to cancellation, periodically `await activity.heartbeat()` — when the runtime service has a cancellation request for an activity that's currently leased, the heartbeat call surfaces it as a `CancelledFailure`:
 
 ```python
-from postgrip_agent import activity, CancelledFailure
+from postgrip.agent import activity, CancelledFailure
 
 @activity.defn
 async def long_running(items: list) -> int:

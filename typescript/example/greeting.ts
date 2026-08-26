@@ -21,7 +21,7 @@ import {
   proxyActivities,
   type ActivityRegistry,
   type WorkflowRegistry,
-} from '@postgrip/agent';
+} from '@postgrip/sdk/agent';
 import { loadExampleEnv } from './env';
 
 loadExampleEnv(import.meta.url);
@@ -30,7 +30,7 @@ const DEFAULT_RUNTIME_IMAGE = 'oven/bun:1';
 const DEFAULT_RUNTIME_COMMAND = 'sh';
 const DEFAULT_RUNTIME_ARGS = [
   '-lc',
-  'apt-get update >/dev/null && apt-get install -y git >/dev/null && git clone --depth 1 https://github.com/postgrip-io/postgrip-agent-sdks.git /tmp/postgrip-agent-sdks && cd /tmp/postgrip-agent-sdks/typescript && bun install --frozen-lockfile && bun run build && bun run example/greeting.ts',
+  'apt-get update >/dev/null && apt-get install -y git >/dev/null && git clone --depth 1 https://github.com/postgrip-io/postgrip-sdks.git /tmp/postgrip-sdks && cd /tmp/postgrip-sdks/typescript && bun install --frozen-lockfile && bun run build && bun run example/greeting.ts',
 ];
 
 const activities = {
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const baseUrl = process.env.POSTGRIP_AGENTORCHESTRATOR_URL ?? process.env.POSTGRIP_AGENT_LIVE_SERVER_URL ?? 'https://agentorchestrator1.postgrip.io';
+  const baseUrl = process.env.POSTGRIP_AGENT_URL ?? process.env.POSTGRIP_AGENT_LIVE_SERVER_URL ?? 'https://agentorchestrator1.postgrip.io';
   const taskQueue = process.env.POSTGRIP_AGENT_TASK_QUEUE ?? 'typescript-example';
   const agentId = process.env.POSTGRIP_AGENT_ID ?? 'typescript-example-agent';
 
@@ -109,7 +109,7 @@ main().catch((err) => {
 });
 
 async function submitManagedRuntime(): Promise<void> {
-  const baseUrl = process.env.POSTGRIP_AGENTORCHESTRATOR_URL ?? process.env.POSTGRIP_AGENT_LIVE_SERVER_URL ?? 'https://agentorchestrator1.postgrip.io';
+  const baseUrl = process.env.POSTGRIP_AGENT_URL ?? process.env.POSTGRIP_AGENT_LIVE_SERVER_URL ?? 'https://agentorchestrator1.postgrip.io';
   const connection = await Connection.connect({ baseUrl, headers: agentTokenHeaders() });
   const client = new Client({ connection });
   const args = readStringArrayJSON('SDK_EXAMPLE_RUNTIME_ARGS_JSON')
