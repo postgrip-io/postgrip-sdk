@@ -20,7 +20,7 @@ Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5d
 - Coordinated server common-auth/contracts commit:
   `be2b080161b58d9a294b6c5b144a8a188c162779`
 - Coordinated server final commit:
-  `79f141ef5f9b22863f25920552f7b1b64e950dfa`
+  `a81fc23940882767e0cb76673e8047499c27f175`
 - Server module dependency:
   `github.com/postgrip-io/postgrip-agent-sdks/go@v0.12.4-0.20260826075702-c61a4bf40f53`
 
@@ -71,6 +71,10 @@ JSON-import seam in the new delegated-session columns: nil Go slices encoded as
 SQL `NULL` for non-null scope arrays. The persistence adapter now normalizes
 legacy bindings to concrete empty arrays, with a focused unit regression; the
 exact PostgreSQL 16 migration and Agent store integration lane passes.
+An unrelated Worker progress test then revealed that it waited for completion
+but asserted an independently asynchronous progress callback immediately. Its
+gate now waits for both observable outcomes; the focused race ran 100 times and
+the complete Worker test and vet suites pass.
 
 ## Final evidence
 
