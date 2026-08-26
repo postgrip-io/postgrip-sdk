@@ -28,6 +28,8 @@ Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd6
   `c0fbb3b7951cd010fc33e16bf294862ee20544ec`
 - SDK transport and live-target correction:
   `db1c7827643fb40c008573343635f093dbc7b69f`
+- SDK final fixture and raw-HTTP correction:
+  `9e35ddf2a4fbe68ec8cb3f73f6f01bb96576da14`
 
 The Agent contract is byte-identical between those branches. All nine
 language/plane generated surfaces embed the current bundle digest.
@@ -147,6 +149,21 @@ checked against the immutable design and corrected in
 The same design audit corrected one adjacent error-envelope mismatch:
 TypeScript Agent errors prefer the standard `message` field and use `error`
 only as a legacy fallback.
+
+The final SDK review found four valid design deviations, all corrected in
+`9e35ddf2a4fbe68ec8cb3f73f6f01bb96576da14`:
+
+1. Fixture ownership is checked against target path parameters only, so an
+   identifier elsewhere in a request cannot authorize mutation of another
+   object.
+2. Cleanup requests are fully resolved and frozen when their resource is
+   registered, preventing later captures from redirecting cleanup.
+3. Creation intent is persisted before execution and finalized immediately
+   from resource captures, before any unrelated response capture can fail.
+4. Generated raw Python examples refuse redirects instead of forwarding the
+   management bearer. The same final design audit applies explicit redirect
+   refusal to the Go and TypeScript examples, and static documentation checks
+   enforce all three guards across 121 generated examples.
 
 The live gate cannot honestly be marked PASS in this change. GitHub currently
 has only `github-pages`, `npm`, and `pypi` environments; no disposable URLs,

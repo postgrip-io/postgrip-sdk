@@ -75,6 +75,16 @@ an adapter. Its self-test proves a mismatched ledger key and request identifier
 fail closed. The correction is
 `db1c7827643fb40c008573343635f093dbc7b69f`.
 
+The final review tightened that boundary to the actual target path, so a
+decoy identifier in a query, header, or body cannot authorize a different
+path target. It also found two cleanup-ledger races. Cleanup requests are now
+resolved and frozen at registration; creation intent is persisted before the
+network call, then its identifier and cleanup are finalized before unrelated
+response captures can fail. The self-test covers target-path decoys, capture
+mutation, and successful cleanup after a secondary capture failure. These
+corrections are recorded in
+`9e35ddf2a4fbe68ec8cb3f73f6f01bb96576da14`.
+
 ## Verification
 
 | Check | Result |

@@ -55,7 +55,7 @@ authorization header appears there.
 
 ## Design comparison and corrective actions
 
-The end-of-phase comparison found and corrected three deviations before this
+The end-of-phase comparison found and corrected four deviations before this
 checkpoint passed:
 
 1. Path-level OpenAPI parameters were being overwritten when an operation
@@ -68,6 +68,12 @@ checkpoint passed:
    artifacts, versions, or example paths. They now describe the three unified
    language packages, singular plane subpaths, version 0.13.0, and the current
    monorepo layout.
+4. Generated raw Python examples followed redirects with the management
+   bearer, and the equivalent Go snippets inherited a broader-than-exact
+   sensitive-header redirect policy. All generated Go, TypeScript, and Python
+   examples now refuse redirects. The documentation validator rejects a page
+   that omits any language guard. This correction is recorded in
+   `9e35ddf2a4fbe68ec8cb3f73f6f01bb96576da14`.
 
 After those corrections, no unexplained Phase 3 design deviation remains.
 
