@@ -46,7 +46,7 @@ import (
     "log"
     "os"
 
-    "github.com/postgrip-io/postgrip-agent-sdks/go/client"
+    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/client"
 )
 
 func main() {
@@ -172,10 +172,10 @@ larger frames are refused locally rather than silently closing the session.
 import (
     "context"
 
-    "github.com/postgrip-io/postgrip-agent-sdks/go/activity"
-    "github.com/postgrip-io/postgrip-agent-sdks/go/client"
-    "github.com/postgrip-io/postgrip-agent-sdks/go/worker"
-    "github.com/postgrip-io/postgrip-agent-sdks/go/workflow"
+    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/activity"
+    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/client"
+    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/worker"
+    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/workflow"
 )
 
 // This process is launched by a PostGrip host agent from a workflow.runtime task.
@@ -241,7 +241,7 @@ import (
     "context"
     "os"
 
-    "github.com/postgrip-io/postgrip-agent-sdks/go/client"
+    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/client"
 )
 
 func submitRuntime(ctx context.Context) error {

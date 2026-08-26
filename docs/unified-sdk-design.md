@@ -12,7 +12,7 @@ one root client.
 
 | Ecosystem | Distribution | Direct plane modules |
 | --- | --- | --- |
-| Go | `github.com/postgrip-io/postgrip-sdks/go` | `agent`, `worker`, `service` |
+| Go | `github.com/postgrip-io/postgrip-agent-sdks/go` | `agent`, `worker`, `service` |
 | npm | `@postgrip/sdk` | `@postgrip/sdk/agent`, `/worker`, `/service` |
 | PyPI | `postgrip` | `postgrip.agent`, `.worker`, `.service` |
 
@@ -301,7 +301,7 @@ remain with their plane.
 
 ```sh
 export POSTGRIP_URL="https://api.postgrip.io"
-export POSTGRIP_TOKEN="pg_..."
+export POSTGRIP_TOKEN="pgt_..."
 ```
 
 ```python
@@ -356,7 +356,7 @@ services, err := postgripClient.Services.List(ctx, service.ListOptions{})
 Direct plane packages remain available:
 
 ```go
-import "github.com/postgrip-io/postgrip-sdks/go/worker"
+import "github.com/postgrip-io/postgrip-agent-sdks/go/worker"
 ```
 
 ## Configuration

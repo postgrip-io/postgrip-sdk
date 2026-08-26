@@ -8,7 +8,7 @@ Reviewer: Codex implementation conformance review
 
 ## Revision and contract baseline
 
-- Design SHA-256: `1868629d5c969122490045784f0a3cf87747028b6dd9ecd9df3aff541b3d1fab`
+- Design SHA-256: `c381af949ea5da1378462c1a130d8fb43742e6cd3ab7fd246111210e8471aa6a`
 - Implementation-plan SHA-256: `e548a76a725210f116fe0663df40b421c4260d4a9a8c7cd35c6c5730d429e32e`
 - Coordinated server contract commit:
   `be2b080161b58d9a294b6c5b144a8a188c162779`
@@ -93,6 +93,14 @@ The first drift-check run still classified `CompactRequest` and
 `CompactResponse` as public OpenAPI-owned protocol models. Their ownership
 entries were removed from the public generator while the server may continue
 to use its internal admin contract. The drift check then passed.
+
+The Phase 2 import audit found that two design examples still used the
+placeholder `pg_` token prefix and a Go module path that conflicted with the
+repository's explicit compatibility constraint. The normative examples now
+use `pgt_` and retain
+`github.com/postgrip-io/postgrip-agent-sdks/go`. Phase 0 authentication and
+Phase 1 generation were rerun because the correction affected their recorded
+design revision; both remained green.
 
 No unresolved Phase 1 deviations remain.
 

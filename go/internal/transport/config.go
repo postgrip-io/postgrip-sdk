@@ -1,0 +1,69 @@
+// Package transport owns configuration mechanics shared by public API planes.
+package transport
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+)
+
+// ParseBaseURL validates a plane URL and preserves any reverse-proxy path.
+func ParseBaseURL(plane, raw string, insecureDevelopment bool) (*url.URL, error) {
+	raw = strings.TrimSpace(raw)
+	baseURL, err := url.Parse(raw)
+	if err != nil || baseURL.Host == "" || (baseURL.Scheme != "https" && !(insecureDevelopment && baseURL.Scheme == "http")) {
+		return nil, fmt.Errorf("postgrip-%s: base URL must use HTTPS (or explicitly enable insecure development for HTTP)", plane)
+	}
+	if strings.ContainsAny(raw, "?#") || baseURL.RawQuery != "" || baseURL.Fragment != "" {
+		return nil, fmt.Errorf("postgrip-%s: base URL must not contain a query or fragment", plane)
+	}
+	return baseURL, nil
+}
+
+// ManagementToken validates the common developer-configured token class.
+func ManagementToken(plane, raw string) (string, error) {
+	token := strings.TrimSpace(raw)
+	if !strings.HasPrefix(token, "pgt_") {
+		return "", fmt.Errorf("postgrip-%s: token must use the pgt_ prefix", plane)
+	}
+	return token, nil
+}
+
+// HTTPClient returns a copy that refuses cross-origin redirects so bearer
+// credentials cannot be forwarded to another origin.
+func HTTPClient(source *http.Client) *http.Client {
+	if source == nil {
+		source = http.DefaultClient
+	}
+	clientCopy := *source
+	priorRedirect := clientCopy.CheckRedirect
+	clientCopy.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if len(via) == 0 {
+			return nil
+		}
+		origin := via[0].URL
+		if !strings.EqualFold(req.URL.Scheme, origin.Scheme) || !strings.EqualFold(req.URL.Host, origin.Host) {
+			return http.ErrUseLastResponse
+		}
+		if priorRedirect != nil {
+			return priorRedirect(req, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		return nil
+	}
+	return &clientCopy
+}
+
+// FirstNonEmpty returns the first trimmed non-empty string.
+func FirstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value = strings.TrimSpace(value); value != "" {
+			return value
+		}
+	}
+	return ""
+}

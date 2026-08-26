@@ -1,0 +1,540 @@
+package client
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/coder/websocket"
+	"github.com/postgrip-io/postgrip-agent-sdks/go/protocol"
+)
+
+func TestSandboxRelayURL(t *testing.T) {
+	t.Parallel()
+	cases := []struct{ address, want string }{
+		{"https://agents.example.com", "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+		{"http://127.0.0.1:4100", "ws://127.0.0.1:4100/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+		{"https://agents.example.com/", "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+		{"wss://agents.example.com", "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+	}
+	for _, tc := range cases {
+		got, err := sandboxRelayURL(tc.address, "ses_1", "pgss_t")
+		if err != nil {
+			t.Fatalf("sandboxRelayURL(%q): %v", tc.address, err)
+		}
+		if got != tc.want {
+			t.Fatalf("sandboxRelayURL(%q) = %q, want %q", tc.address, got, tc.want)
+		}
+	}
+	if _, err := sandboxRelayURL("ftp://nope", "ses_1", "t"); err == nil {
+		t.Fatal("accepted a non-http(s) relay address")
+	}
+}
+
+// The ticket must be escaped into the query, not concatenated raw.
+func TestSandboxRelayURLEscapesTheTicket(t *testing.T) {
+	t.Parallel()
+	got, err := sandboxRelayURL("https://x.example", "ses/1", "a b&c=d")
+	if err != nil {
+		t.Fatalf("sandboxRelayURL: %v", err)
+	}
+	if strings.Contains(got, "a b&c=d") {
+		t.Fatalf("ticket was not escaped: %s", got)
+	}
+	if !strings.Contains(got, "ses%2F1") {
+		t.Fatalf("session id was not escaped: %s", got)
+	}
+}
+
+// A pty session with no command is legal; an exec session without one is not,
+// and the server would reject it after a round trip.
+func TestOpenSandboxSessionValidatesKindAndCommand(t *testing.T) {
+	t.Parallel()
+	c, _ := sandboxTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("no request should have been issued, got %s %s", r.Method, r.URL.Path)
+	})
+	ctx := context.Background()
+	if _, err := c.Sandbox.OpenSandboxSession(ctx, "sbx_1", "port", SandboxSessionOptions{}); err == nil {
+		t.Fatal("accepted an unsupported session kind")
+	}
+	if _, err := c.Sandbox.OpenSandboxSession(ctx, "sbx_1", protocol.SandboxSessionKindExec, SandboxSessionOptions{}); err == nil {
+		t.Fatal("accepted an exec session with no command")
+	}
+}
+
+func TestOpenSandboxPortUsesSeparateBinaryProtocol(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			var request CreateSandboxSessionRequest
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				t.Error(err)
+			}
+			if request.Kind != protocol.SandboxSessionKindPort || request.Port != 3000 {
+				t.Errorf("port request = %+v", request)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_port","ticket":"pgss_port","byteStreamProtocols":["postgrip.sandbox.port.v1"]}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+			OriginPatterns: []string{"*"},
+			Subprotocols:   []string{protocol.SandboxPortStreamProtocolV1},
+		})
+		if err != nil {
+			return
+		}
+		defer conn.CloseNow()
+		kind, data, err := conn.Read(r.Context())
+		if err == nil {
+			_ = conn.Write(r.Context(), kind, data)
+		}
+	}))
+	defer server.Close()
+
+	connection, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream, err := New(connection).Sandbox.OpenSandboxPort(context.Background(), "sbx_1", 3000, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	payload := []byte{0, 1, 2, 255}
+	go func() { _, _ = stream.Write(payload) }()
+	got := make([]byte, len(payload))
+	if _, err = io.ReadFull(stream, got); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, payload) {
+		t.Fatalf("echo = %v, want %v", got, payload)
+	}
+}
+
+// End-to-end over a real WebSocket: the session is created over HTTP, the
+// relay is dialled, bytes flow, and the exit code arrives as a close status.
+func TestExecStreamsAndReportsTheExitCode(t *testing.T) {
+	t.Parallel()
+	var gotStdin bytes.Buffer
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		if !strings.Contains(r.URL.Path, "/sandbox-sessions/") {
+			t.Errorf("unexpected path %s", r.URL.Path)
+			return
+		}
+		if r.URL.Query().Get("ticket") != "pgss_t" {
+			t.Errorf("relay dialled without the ticket: %s", r.URL.RawQuery)
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		ctx := r.Context()
+		// Do not produce output or an exit status until the client half-closes
+		// stdin. Before the EOF control this exact shape hung forever for cat.
+		for {
+			kind, data, readErr := conn.Read(ctx)
+			if readErr != nil {
+				return
+			}
+			if kind == websocket.MessageBinary && len(data) == 0 {
+				break
+			}
+			gotStdin.Write(data)
+		}
+		_ = conn.Write(ctx, websocket.MessageBinary, []byte("hello from sandbox"))
+		_ = conn.Close(websocket.StatusCode(protocol.SandboxExecCloseStatusBase+3), "exit:3")
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	c := New(conn)
+
+	var stdout bytes.Buffer
+	code, err := c.Sandbox.Exec(context.Background(), "sbx_1", []string{"false"}, strings.NewReader("stdin bytes"), &stdout)
+	if err != nil {
+		t.Fatalf("Exec: %v", err)
+	}
+	if code != 3 {
+		t.Fatalf("exit code = %d, want 3 (close status %d)", code, protocol.SandboxExecCloseStatusBase+3)
+	}
+	if !strings.Contains(stdout.String(), "hello from sandbox") {
+		t.Fatalf("stdout = %q", stdout.String())
+	}
+	if got := gotStdin.String(); got != "stdin bytes" {
+		t.Fatalf("stdin = %q, want %q before EOF", got, "stdin bytes")
+	}
+}
+
+// A nil Reader means an empty stdin stream, not "leave stdin open forever".
+// Commands such as cat still need the EOF control before they can exit.
+func TestExecSignalsEOFForNilStdin(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		kind, data, err := conn.Read(r.Context())
+		if err != nil || kind != websocket.MessageBinary || len(data) != 0 {
+			t.Errorf("first stdin message = (%v, %d bytes, %v), want empty binary EOF", kind, len(data), err)
+			return
+		}
+		_ = conn.Close(websocket.StatusCode(protocol.SandboxExecCloseStatusBase), "exit:0")
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	code, err := New(conn).Sandbox.Exec(context.Background(), "sbx_1", []string{"cat"}, nil, io.Discard)
+	if err != nil || code != 0 {
+		t.Fatalf("Exec = (%d, %v), want (0, nil)", code, err)
+	}
+}
+
+// A command such as true can report its process close before the client sends
+// the empty-input EOF frame. The close status is authoritative once all input
+// bytes were delivered; treating the losing EOF write as fatal loses a valid
+// exit code nondeterministically.
+func TestExecPreservesExitStatusWhenEmptyStdinEOFLosesTheCloseRace(t *testing.T) {
+	t.Parallel()
+	exit := websocket.CloseError{
+		Code:   websocket.StatusCode(protocol.SandboxExecCloseStatusBase + 7),
+		Reason: "exit:7",
+	}
+	code, err := sandboxExecResult(exit, sandboxExecStdinOutcome{eofErr: io.ErrClosedPipe})
+	if err != nil || code != 7 {
+		t.Fatalf("sandboxExecResult = (%d, %v), want (7, nil)", code, err)
+	}
+}
+
+func TestSandboxStreamCloseWriteIsIdempotentAndClosesOnlyInput(t *testing.T) {
+	t.Parallel()
+	eofFrames := make(chan int, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		count := 0
+		for {
+			kind, data, readErr := conn.Read(r.Context())
+			if readErr != nil {
+				break
+			}
+			if kind == websocket.MessageBinary && len(data) == 0 {
+				count++
+			}
+		}
+		eofFrames <- count
+	}))
+	defer server.Close()
+
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	stream, err := New(conn).Sandbox.OpenSandboxSession(context.Background(), "sbx_1", protocol.SandboxSessionKindExec, SandboxSessionOptions{Command: []string{"cat"}})
+	if err != nil {
+		t.Fatalf("OpenSandboxSession: %v", err)
+	}
+	if n, err := stream.Write(nil); n != 0 || err != nil {
+		t.Fatalf("empty Write = (%d, %v), want (0, nil)", n, err)
+	}
+	if err := stream.CloseWrite(); err != nil {
+		t.Fatalf("CloseWrite: %v", err)
+	}
+	if err := stream.CloseWrite(); err != nil {
+		t.Fatalf("second CloseWrite: %v", err)
+	}
+	if _, err := stream.Write([]byte("late")); !errors.Is(err, io.ErrClosedPipe) {
+		t.Fatalf("Write after CloseWrite = %v, want io.ErrClosedPipe", err)
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	select {
+	case count := <-eofFrames:
+		if count != 1 {
+			t.Fatalf("EOF frame count = %d, want 1", count)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("relay never received stdin EOF")
+	}
+}
+
+// A relay that vanishes without sending an exit close status must not read as
+// a successful run. This is the difference between "the command failed" and
+// "the command never reported", and a caller gating on the exit code would act
+// on exit 0 as though the work had happened.
+func TestExecRejectsAStreamThatEndsWithoutAnExitStatus(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		close func(conn *websocket.Conn)
+	}{
+		// A normal WebSocket close, no exit status: the previous code read the
+		// resulting io.EOF as exit 0.
+		{"clean close", func(conn *websocket.Conn) { _ = conn.Close(websocket.StatusNormalClosure, "bye") }},
+		// An abrupt drop, which is what a killed relay or recycled proxy does.
+		{"abrupt drop", func(conn *websocket.Conn) { _ = conn.CloseNow() }},
+		// In range for a close status, but not the exec exit-code range.
+		{"unrelated status", func(conn *websocket.Conn) { _ = conn.Close(websocket.StatusInternalError, "boom") }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/sessions") {
+					w.WriteHeader(http.StatusCreated)
+					_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+					return
+				}
+				conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+				if err != nil {
+					return
+				}
+				_ = conn.Write(r.Context(), websocket.MessageBinary, []byte("partial output"))
+				tc.close(conn)
+			}))
+			defer server.Close()
+
+			conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+			if err != nil {
+				t.Fatalf("NewConnection: %v", err)
+			}
+			var stdout bytes.Buffer
+			code, err := New(conn).Sandbox.Exec(context.Background(), "sbx_1", []string{"true"}, nil, &stdout)
+			if err == nil {
+				t.Fatalf("Exec returned (%d, nil) for a session with no exit status", code)
+			}
+			if code != 0 {
+				t.Fatalf("exit code = %d, want 0 alongside the error", code)
+			}
+		})
+	}
+}
+
+// Same rule one level down: ExitCode on a raw stream.
+func TestExitCodeRejectsEOFWithoutAnExitStatus(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		_ = conn.Close(websocket.StatusNormalClosure, "bye")
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	ctx := context.Background()
+	stream, err := New(conn).Sandbox.OpenSandboxSession(ctx, "sbx_1", protocol.SandboxSessionKindExec, SandboxSessionOptions{Command: []string{"true"}})
+	if err != nil {
+		t.Fatalf("OpenSandboxSession: %v", err)
+	}
+	defer stream.Close()
+	if code, err := stream.ExitCode(ctx); err == nil {
+		t.Fatalf("ExitCode returned (%d, nil) for a close with no exit status", code)
+	}
+}
+
+// A stdin reader that fails partway leaves the sandbox with truncated input.
+// The process can still exit 0 on what it did receive, so the exit code alone
+// would report success for a command that never got its data.
+func TestExecReportsAFailedStdinCopy(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		// Let the stdin copy fail first, then exit 0 as though all was well.
+		time.Sleep(100 * time.Millisecond)
+		_ = conn.Close(websocket.StatusCode(protocol.SandboxExecCloseStatusBase), "exit:0")
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	var stdout bytes.Buffer
+	stdin := io.MultiReader(strings.NewReader("some bytes"), &failingReader{})
+	code, err := New(conn).Sandbox.Exec(context.Background(), "sbx_1", []string{"cat"}, stdin, &stdout)
+	if err == nil {
+		t.Fatalf("Exec returned (%d, nil) despite stdin failing mid-copy", code)
+	}
+	if !strings.Contains(err.Error(), "stdin") {
+		t.Fatalf("error does not name stdin as the cause: %v", err)
+	}
+}
+
+type failingReader struct{}
+
+func (*failingReader) Read([]byte) (int, error) { return 0, errors.New("reader disconnected") }
+
+// A write past the relay's frame bound is refused locally. The relay would
+// otherwise close the session, which surfaces as an unexplained disconnect.
+func TestSandboxStreamRejectsOversizedWrites(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		defer conn.CloseNow()
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	c := New(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	stream, err := c.Sandbox.OpenSandboxSession(ctx, "sbx_1", protocol.SandboxSessionKindPTY, SandboxSessionOptions{})
+	if err != nil {
+		t.Fatalf("OpenSandboxSession: %v", err)
+	}
+	defer stream.Close()
+
+	oversized := make([]byte, protocol.SandboxRelayMaxFrameBytes+1)
+	if _, err := stream.Write(oversized); err == nil {
+		t.Fatal("oversized write was accepted; the relay would have closed the session")
+	}
+	if _, err := stream.Write([]byte("small")); err != nil {
+		t.Fatalf("a normal write failed: %v", err)
+	}
+}
+
+// ExitCode accepts a context, so a deadline passed to it must apply. It used
+// to be ignored entirely: only the context that opened the session could
+// interrupt the read, so ExitCode(timeoutCtx) blocked for the life of the
+// session.
+func TestExitCodeHonoursItsOwnContext(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		// Never close: the session outlives the caller's patience, which is
+		// the case ExitCode's context exists for.
+		<-r.Context().Done()
+		_ = conn.CloseNow()
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	stream, err := New(conn).Sandbox.OpenSandboxSession(context.Background(), "sbx_1", protocol.SandboxSessionKindExec, SandboxSessionOptions{Command: []string{"sleep"}})
+	if err != nil {
+		t.Fatalf("OpenSandboxSession: %v", err)
+	}
+	defer stream.Close()
+
+	exitCtx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	if _, err := stream.ExitCode(exitCtx); err == nil {
+		t.Fatal("ExitCode returned success for a session that never ended")
+	}
+	if elapsed := time.Since(start); elapsed > 5*time.Second {
+		t.Fatalf("ExitCode ignored its context and blocked for %s", elapsed)
+	}
+}
+
+// A gateway that authenticates on a custom header rejects the WebSocket
+// upgrade unless the relay dial carries it. Sandbox creation succeeds either
+// way, because that goes through the HTTP client, so the failure looks like
+// "sessions are broken" rather than "a header is missing".
+func TestOpenSandboxSessionForwardsConfiguredHeaders(t *testing.T) {
+	t.Parallel()
+	gotRelayHeader := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sessions") {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":"ses_1","ticket":"pgss_t"}`))
+			return
+		}
+		gotRelayHeader <- r.Header.Get("X-Gateway-Token")
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: []string{"*"}})
+		if err != nil {
+			return
+		}
+		_ = conn.Close(websocket.StatusCode(protocol.SandboxExecCloseStatusBase), "exit:0")
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{
+		Address:   server.URL,
+		AuthToken: "mgmt",
+		Headers:   map[string]string{"X-Gateway-Token": "gw-secret"},
+	})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	stream, err := New(conn).Sandbox.OpenSandboxSession(context.Background(), "sbx_1", protocol.SandboxSessionKindExec, SandboxSessionOptions{Command: []string{"true"}})
+	if err != nil {
+		t.Fatalf("OpenSandboxSession: %v", err)
+	}
+	defer stream.Close()
+
+	select {
+	case got := <-gotRelayHeader:
+		if got != "gw-secret" {
+			t.Fatalf("relay dial sent X-Gateway-Token = %q, want the configured value", got)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("relay was never dialled")
+	}
+}

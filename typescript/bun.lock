@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@postgrip/agent",
+      "name": "@postgrip/sdk",
       "dependencies": {
         "ws": "^8.18.3",
       },
