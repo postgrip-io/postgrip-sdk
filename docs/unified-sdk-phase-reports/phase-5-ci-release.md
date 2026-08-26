@@ -4,11 +4,11 @@ Status: **PASS**
 
 Completed: 2026-08-26
 
-Design SHA-256: `c381af949ea5da1378462c1a130d8fb43742e6cd3ab7fd246111210e8471aa6a`
+Design SHA-256: `4a35c1e1c89fea5a729d5d19fd00cc27824a8ae3e4cf1945d6741a382c9e0ad7`
 
-Implementation-plan SHA-256: `e548a76a725210f116fe0663df40b421c4260d4a9a8c7cd35c6c5730d429e32e`
+Implementation-plan SHA-256: `15d1d37ef4372b57477f1cecee4eb796bdc8652d7680bf36501b9b47edee266e`
 
-Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820`
+Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd`
 
 ## Delivered
 
@@ -21,6 +21,12 @@ Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5d
 - Made all release workflows call the same reusable validation before they can
   publish. Tags are limited to `go/v*`, `typescript/v*`, and `python/v*` and
   must equal the root/package version.
+- Made every release workflow depend on the protected isolated pre-release
+  live suite. A tag cannot reach an artifact or publishing job if that suite
+  is absent, rejected, or fails.
+- Added scheduled disposable-nightly and production-safe smoke workflows. The
+  production job uses a checked-in hard-coded allowlist containing only two
+  public read-only health operations.
 - Added artifact inspection for version, registry name, manifest cardinality,
   embedded contract digest, namespace contents, direct dependencies, size,
   file count, and build/inspection time. CI uploads the machine-readable report.
@@ -49,9 +55,9 @@ workflow remains.
 
 | Artifact | Contents | Size | Direct runtime dependencies | Local build/inspection |
 | --- | ---: | ---: | --- | ---: |
-| Go module source | 102 files, 14 packages | 838,392 bytes | `github.com/coder/websocket` | 0.075 s inspection |
-| npm package | 131 files | 149,244 packed / 1,355,645 unpacked bytes | `ws` | 1.212 s build + 0.580 s inspection |
-| Python wheel | 36 files | 89,035 bytes | `cryptography>=42` | 0.459 s build |
+| Go module source | 103 files, 14 packages | 843,943 bytes | `github.com/coder/websocket` | 0.084 s inspection |
+| npm package | 131 files | 150,316 packed / 1,360,787 unpacked bytes | `ws` | 1.285 s build + 0.567 s inspection |
+| Python wheel | 36 files | 89,456 bytes | `cryptography>=42` | 0.462 s build |
 
 The npm tarball was installed into an empty project and imported through the
 root plus all singular subpaths. The Python wheel was installed into an empty
@@ -93,9 +99,10 @@ After these corrections, no unexplained Phase 5 design deviation remains.
 
 ## Remaining release controls
 
-No release tag was created. The protected `sdk-release`, `npm`, and `pypi`
-environments must not approve publication until Phase 4's disposable nightly
-and isolated pre-release live suites are implemented and pass, the coordinated
-server PR is merged/deployed, and authenticated registry owners record
-ownership evidence. The absent live suites are tracked as a blocking Phase 4
-design deviation in the final integration report.
+No release tag was created. The live workflows and publication dependency now
+exist, but the repository currently has no `sdk-live-nightly`,
+`sdk-live-pre-release`, or `sdk-live-production-smoke` GitHub Environments and
+therefore no passing live execution evidence. An organization administrator
+must configure those protected environments and scenarios. Publication also
+remains conditional on coordinated server deployment and authenticated
+registry-owner evidence.

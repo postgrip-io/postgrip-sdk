@@ -312,7 +312,7 @@ func TestWorkflowQueryAndUpdateDispatchReplayRegisteredHandlers(t *testing.T) {
 		case "/api/v1/tasks/workflow-task-1":
 			_, _ = w.Write([]byte(`{"id":"workflow-task-1","namespace":"default","queue":"default","type":"workflow:Approval","state":"blocked","attempt":1,"lease_timeout_seconds":30,"payload":{"workflowType":"Approval","workflowId":"workflow-1","runId":"run-1","args":[]},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
 		case "/api/v1/workflows/run-1/history":
-			_, _ = w.Write([]byte(`[{"id":"event-1","workflow_id":"workflow-1","type":"WorkflowUpdateCompleted","attributes":{"update_name":"rename","args":["Grace"]},"created_at":"2026-01-01T00:00:00Z"}]`))
+			_, _ = w.Write([]byte(`{"items":[{"id":"event-1","workflow_id":"workflow-1","type":"WorkflowUpdateCompleted","attributes":{"update_name":"rename","args":["Grace"]},"created_at":"2026-01-01T00:00:00Z"}]}`))
 		default:
 			http.Error(w, "unexpected request "+r.URL.Path, http.StatusBadRequest)
 		}
@@ -385,10 +385,10 @@ func TestWorkflowUpdateCanScheduleDurableActivity(t *testing.T) {
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/workflow-task-1":
 			_, _ = w.Write([]byte(`{"id":"workflow-task-1","namespace":"default","queue":"default","type":"workflow:Approval","state":"blocked","attempt":1,"lease_timeout_seconds":30,"payload":{"workflowType":"Approval","workflowId":"workflow-1","runId":"run-1","args":[]},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/workflows/run-1/history":
-			_, _ = w.Write([]byte(`[
+			_, _ = w.Write([]byte(`{"items":[
 				{"id":"event-1","workflow_id":"workflow-1","task_id":"timer-parent","type":"TimerStarted","attributes":{"duration_ms":3600000},"created_at":"2026-01-01T00:00:00Z"},
 				{"id":"event-2","workflow_id":"workflow-1","task_id":"update-task-1","type":"WorkflowUpdateAccepted","attributes":{"update_name":"run","args":[]},"created_at":"2026-01-01T00:00:01Z"}
-			]`))
+			]}`))
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tasks":
 			var req client.EnqueueTaskRequest
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

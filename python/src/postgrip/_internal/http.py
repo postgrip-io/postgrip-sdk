@@ -42,13 +42,16 @@ def redirect_safe_open(request: Request, timeout: float | None = None) -> Any:
     return _REDIRECT_SAFE_OPENER.open(request, timeout=timeout)
 
 
-def read_bounded_response(source: Any, plane: str, *, bounded: bool = True) -> bytes:
-    """Read a response with the generic bound or an explicit contract exception."""
+def read_bounded_response(
+    source: Any,
+    plane: str,
+    *,
+    maximum_bytes: int = _MAX_RESPONSE_BYTES,
+) -> bytes:
+    """Read a response without exceeding the selected plane bound."""
 
-    if not bounded:
-        return source.read()
     chunks: list[bytes] = []
-    remaining = _MAX_RESPONSE_BYTES + 1
+    remaining = maximum_bytes + 1
     while remaining > 0:
         chunk = source.read(remaining)
         if not chunk:
@@ -56,6 +59,6 @@ def read_bounded_response(source: Any, plane: str, *, bounded: bool = True) -> b
         chunks.append(chunk)
         remaining -= len(chunk)
     body = b"".join(chunks)
-    if len(body) > _MAX_RESPONSE_BYTES:
+    if len(body) > maximum_bytes:
         raise ValueError(f"PostGrip {plane} response is invalid or too large")
     return body

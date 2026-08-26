@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "d9df466806e58ae32ab98f6622086d49749672258af902bdf3777a061fef28ff"
-	OpenAPIContractBundleSHA256 = "b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820"
+	OpenAPISpecSHA256           = "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018"
+	OpenAPIContractBundleSHA256 = "5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd"
 	OpenAPIOperationCount       = 45
 )
 
@@ -111,10 +111,10 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIListNamespaces:          {Method: "GET", Path: "/api/v1/namespaces", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{}},
 	openAPIListSandboxes:           {Method: "GET", Path: "/api/v1/sandboxes", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "SandboxListResponse", PathParameters: []string{}},
 	openAPIListSchedules:           {Method: "GET", Path: "/api/v1/schedules", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{}},
-	openAPIListTaskEvents:          {Method: "GET", Path: "/api/v1/tasks/{taskId}/events", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{"taskId"}},
+	openAPIListTaskEvents:          {Method: "GET", Path: "/api/v1/tasks/{taskId}/events", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "TaskEventPage", PathParameters: []string{"taskId"}},
 	openAPIListTaskEventsBatch:     {Method: "GET", Path: "/api/v1/task-events", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "TaskEventBatchResponse", PathParameters: []string{}},
 	openAPIListTasks:               {Method: "GET", Path: "/api/v1/tasks", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{}},
-	openAPIListWorkflowHistory:     {Method: "GET", Path: "/api/v1/workflows/{workflowId}/history", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{"workflowId"}},
+	openAPIListWorkflowHistory:     {Method: "GET", Path: "/api/v1/workflows/{workflowId}/history", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkflowHistoryPage", PathParameters: []string{"workflowId"}},
 	openAPIListWorkflows:           {Method: "GET", Path: "/api/v1/workflows", AuthLane: "either", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "inline", PathParameters: []string{}},
 	openAPIListWorkspaces:          {Method: "GET", Path: "/api/v1/workspaces", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "SandboxWorkspaceListResponse", PathParameters: []string{}},
 	openAPIPauseSchedule:           {Method: "POST", Path: "/api/v1/schedules/{scheduleId}/pause", AuthLane: "management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "PauseScheduleRequest", ResponseSchema: "Schedule", PathParameters: []string{"scheduleId"}},

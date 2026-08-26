@@ -8,14 +8,15 @@ Reviewer: Codex implementation conformance review
 
 ## Revision and contract baseline
 
-- Design SHA-256: `c381af949ea5da1378462c1a130d8fb43742e6cd3ab7fd246111210e8471aa6a`
-- Implementation-plan SHA-256: `e548a76a725210f116fe0663df40b421c4260d4a9a8c7cd35c6c5730d429e32e`
+- Design SHA-256: `4a35c1e1c89fea5a729d5d19fd00cc27824a8ae3e4cf1945d6741a382c9e0ad7`
+- Implementation-plan SHA-256: `15d1d37ef4372b57477f1cecee4eb796bdc8652d7680bf36501b9b47edee266e`
 - Coordinated server repository: `postgrip-web`
-- Server contract commit: `be2b080161b58d9a294b6c5b144a8a188c162779`
+- Initial server contract commit: `be2b080161b58d9a294b6c5b144a8a188c162779`
+- History-pagination corrective commit: `061e3ebc`
 - Contract-bundle algorithm: SHA-256 over each public contract's filename,
   NUL, exact bytes, and NUL, ordered Agent, Service, Worker
-- Contract-bundle digest: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820`
-- Agent contract SHA-256: `d9df466806e58ae32ab98f6622086d49749672258af902bdf3777a061fef28ff`
+- Contract-bundle digest: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd`
+- Agent contract SHA-256: `86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018`
 - Worker contract SHA-256: `f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9`
 - Service contract SHA-256: `2dd219d428083e4416f141676dcfed63fe23f5d4d729aaadb3a574c2cb2b1ec5`
 

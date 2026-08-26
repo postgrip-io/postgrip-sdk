@@ -535,13 +535,18 @@ CI publishes JSON and Markdown reports with:
 
 ```text
 operations | documented | SDK-generated | cURL | protocol exceptions |
-recorded-tested | nightly-live | pre-release-live
+recorded-tested | nightly-owned | pre-release-owned | production-smoke-owned
 ```
 
 Expected counts are derived from OpenAPI. The gate requires every operation to
 have documentation, generated-client ownership, recorded coverage, and either
 cURL or a justified protocol runner. Approved exceptions are visible and never
 counted as cURL coverage.
+
+Static reports count live-tier ownership, never execution. Each live workflow
+publishes a cleanup ledger containing the exact contract digest, operation
+results, resource IDs, cleanup status, and remaining IDs. Only a successful
+workflow run plus that ledger is `nightly-live` or `pre-release-live` evidence.
 
 ## Phase 5: CI and release cutover
 

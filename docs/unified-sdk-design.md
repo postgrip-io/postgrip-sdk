@@ -482,6 +482,11 @@ Global administration is tested in the server repository because it is absent
 from public SDK contracts. Expected operation counts always derive from the
 contracts. Exceptions remain visible and never count as cURL coverage.
 
+Live-tier assignment in a static coverage report is ownership metadata, not
+proof of execution. Passing live evidence consists of a successful configured
+workflow and its contract-digest-bound cleanup ledger; recorded fixtures or
+runner self-tests cannot satisfy that gate.
+
 The exact scripts, fixture rules, reports, and source refactor are specified in
 the [implementation plan](unified-sdk-implementation-plan.md).
 

@@ -96,21 +96,29 @@ describe('PostGrip Agent TypeScript Connection', () => {
   it('rejects an oversized response body', async () => {
     const connection = Connection.create({
       baseUrl: 'https://agent.example.test',
-      fetch: vi.fn<typeof fetch>(async () => new Response('x'.repeat((4 << 20) + 1))),
+      fetch: vi.fn<typeof fetch>(async () => new Response('x'.repeat((40 << 20) + 1))),
     });
 
     await expect(connection.listNamespaces()).rejects.toThrow(/too large/);
   });
 
-  it('allows complete unpaginated workflow history above the generic response bound', async () => {
+  it('follows stable workflow history pages', async () => {
+    const requests: URL[] = [];
     const connection = Connection.create({
       baseUrl: 'https://agent.example.test',
-      fetch: vi.fn<typeof fetch>(async () => Response.json([
-        { type: 'event', attributes: { payload: 'x'.repeat(4 << 20) } },
-      ])),
+      fetch: vi.fn<typeof fetch>(async (input) => {
+        const url = new URL(String(input));
+        requests.push(url);
+        return url.searchParams.get('cursor') == null
+          ? Response.json({ items: [{ id: 'event-1' }], nextCursor: 'next-page' })
+          : Response.json({ items: [{ id: 'event-2' }] });
+      }),
     });
 
-    await expect(connection.getWorkflowHistory('workflow-1')).resolves.toHaveLength(1);
+    await expect(connection.getWorkflowHistory('workflow-1')).resolves.toHaveLength(2);
+    expect(requests).toHaveLength(2);
+    expect(requests[0]?.searchParams.get('limit')).toBe('500');
+    expect(requests[1]?.searchParams.get('cursor')).toBe('next-page');
   });
 
   it('keeps deprecated Worker imports as Agent aliases', () => {

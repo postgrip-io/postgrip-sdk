@@ -39,7 +39,7 @@ dependency for Agent signing; interactive sandbox WebSockets use the optional
 
 See the repository [quick start](../README.md), [authentication
 model](../docs/authentication.md), and [generated API
-reference](../docs/reference/b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820/README.md).
+reference](../docs/reference/5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd/README.md).
 
 ```sh
 PYTHONPATH=src python3 -m unittest discover -s test

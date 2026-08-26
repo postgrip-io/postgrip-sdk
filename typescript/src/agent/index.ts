@@ -8,7 +8,7 @@ export {
 export type { ActivityEventInput, ActivityInfo, ActivityOutputOptions, MilestoneOptions } from './activity.js';
 export { Client, ScheduleClient, TaskClient, WorkflowClient, WorkflowHandle, WorkflowUpdateHandle } from './client.js';
 export { Connection } from './connection.js';
-export type { ConnectionOptions } from './connection.js';
+export type { ConnectionOptions, HistoryPageOptions } from './connection.js';
 export * from './generated/openapi.js';
 export {
   ApplicationFailure,
@@ -87,6 +87,7 @@ export type {
   Task,
   TaskEvent,
   TaskEventInput,
+  TaskEventPage,
   TaskEventKind,
   TaskResult,
   TaskState,
@@ -100,6 +101,7 @@ export type {
   WorkflowCountResponse,
   WorkflowFunction,
   WorkflowHistoryEvent,
+  WorkflowHistoryPage,
   WorkflowIdReusePolicy,
   WorkflowQueryDefinition,
   WorkflowQueryPayload,

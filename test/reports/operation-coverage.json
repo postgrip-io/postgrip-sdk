@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820",
+  "contractBundleDigest": "5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd",
   "operations": [
     {
       "curl": false,
@@ -94,7 +94,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "connectSandboxSession",
       "plane": "agent",
       "protocolException": true,
@@ -757,7 +757,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "uploadWorkspace",
       "plane": "agent",
       "protocolException": true,
@@ -825,7 +825,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "cancelServiceDeployment",
       "plane": "service",
       "protocolException": false,
@@ -859,7 +859,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "clearServiceRepositoryCredential",
       "plane": "service",
       "protocolException": false,
@@ -876,7 +876,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "clearServiceVariableValue",
       "plane": "service",
       "protocolException": false,
@@ -893,7 +893,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "clearTargetServiceConnection",
       "plane": "service",
       "protocolException": false,
@@ -995,7 +995,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "deleteServiceDomain",
       "plane": "service",
       "protocolException": false,
@@ -1012,7 +1012,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "deleteServiceEnvironment",
       "plane": "service",
       "protocolException": false,
@@ -1029,7 +1029,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "deleteServiceProject",
       "plane": "service",
       "protocolException": false,
@@ -1046,7 +1046,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "deleteServiceVariable",
       "plane": "service",
       "protocolException": false,
@@ -1063,7 +1063,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "deleteServiceVolume",
       "plane": "service",
       "protocolException": false,
@@ -1114,7 +1114,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "flushServiceBuildLogs",
       "plane": "service",
       "protocolException": false,
@@ -1131,7 +1131,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "flushServiceRuntimeLogs",
       "plane": "service",
       "protocolException": false,
@@ -1437,7 +1437,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "listServiceLogs",
       "plane": "service",
       "protocolException": false,
@@ -1811,7 +1811,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "trimServiceBuildLogs",
       "plane": "service",
       "protocolException": false,
@@ -1828,7 +1828,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "trimServiceRuntimeLogs",
       "plane": "service",
       "protocolException": false,
@@ -1845,7 +1845,7 @@
         "typescript",
         "python"
       ],
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "operationId": "unbindServiceVolume",
       "plane": "service",
       "protocolException": false,
@@ -2236,10 +2236,10 @@
   "summary": {
     "curl": 121,
     "documented": 130,
-    "nightlyLive": 121,
+    "nightlyOwned": 104,
     "operations": 130,
-    "preReleaseLive": 7,
-    "productionSmoke": 2,
+    "preReleaseOwned": 24,
+    "productionSmokeOwned": 2,
     "protocolExceptions": 9,
     "recordedTested": 130,
     "sdkGenerated": 130

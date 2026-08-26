@@ -170,9 +170,12 @@ def build_report() -> dict[str, Any]:
         "curl": count("curl"),
         "protocolExceptions": count("protocolException"),
         "recordedTested": count("recordedTested"),
-        "nightlyLive": sum(row["liveTest"] == "nightly" for row in rows),
-        "preReleaseLive": sum(row["liveTest"] == "pre-release" for row in rows),
-        "productionSmoke": sum(row["liveTest"] == "production-smoke" for row in rows),
+        # These are cadence ownership counts, not execution evidence. Live
+        # workflows publish their ledgers as per-run artifacts; a static source
+        # report must never imply that a configured environment actually ran.
+        "nightlyOwned": sum(row["liveTest"] == "nightly" for row in rows),
+        "preReleaseOwned": sum(row["liveTest"] == "pre-release" for row in rows),
+        "productionSmokeOwned": sum(row["liveTest"] == "production-smoke" for row in rows),
     }
     planes = {
         plane: {
@@ -204,14 +207,14 @@ def markdown(report: dict[str, Any]) -> str:
         f"Contract bundle: `{report['contractBundleDigest']}`",
         "",
         "| Operations | Documented | SDK-generated | cURL | Protocol exceptions | "
-        "Recorded-tested | Nightly-live | Pre-release-live | Production-smoke |",
+        "Recorded-tested | Nightly-owned | Pre-release-owned | Production-smoke-owned |",
         "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         (
             f"| {summary['operations']} | {summary['documented']} | "
             f"{summary['sdkGenerated']} | {summary['curl']} | "
             f"{summary['protocolExceptions']} | {summary['recordedTested']} | "
-            f"{summary['nightlyLive']} | {summary['preReleaseLive']} | "
-            f"{summary['productionSmoke']} |"
+            f"{summary['nightlyOwned']} | {summary['preReleaseOwned']} | "
+            f"{summary['productionSmokeOwned']} |"
         ),
         "",
         "| Plane | Operations | cURL | Protocol exceptions | Recorded-tested |",
@@ -225,9 +228,10 @@ def markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "Every operation is documented, owned by generated clients in all three languages, "
-            "and exercised by a recorded runner. Protocol exceptions are visible and are not "
-            "counted as cURL coverage.",
+        "Every operation is documented, owned by generated clients in all three languages, "
+        "and exercised by a recorded runner. Protocol exceptions are visible and are not "
+        "counted as cURL coverage. Live columns are cadence ownership only; passing live "
+        "evidence is carried by workflow cleanup-ledger artifacts.",
             "",
         ]
     )

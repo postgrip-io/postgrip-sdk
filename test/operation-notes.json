@@ -465,8 +465,11 @@
       "summary": "List services"
     },
     "listTaskEvents": {
-      "behavior": "Returns the task's full event history in order -- lease, start, heartbeat, stdout, stderr, and terminal events. This endpoint is not paginated.",
-      "lifecycle": [],
+      "behavior": "Returns one stable cursor page of the task's ordered event history. Follow nextCursor unchanged until it is absent; a fresh request is required to observe events appended after the first page fixed the snapshot boundary.",
+      "lifecycle": [
+        "The opaque cursor is bound to one task and cannot be reused for another task.",
+        "The server may return fewer than limit events to honor its serialized response-size bound."
+      ],
       "summary": "List a task's event stream"
     },
     "listTaskEventsBatch": {
@@ -505,8 +508,11 @@
       "summary": "List workers"
     },
     "listWorkflowHistory": {
-      "behavior": "Uses the contract-defined GET /api/v1/workflows/{workflowId}/history behavior.",
-      "lifecycle": [],
+      "behavior": "Returns one stable cursor page for a single workflow run. Follow nextCursor unchanged until it is absent; a fresh request is required to observe later history.",
+      "lifecycle": [
+        "The opaque cursor remains bound to the original run if the workflow continues as new.",
+        "The server may return fewer than limit events to honor its serialized response-size bound."
+      ],
       "summary": "List a workflow's history events"
     },
     "listWorkflows": {

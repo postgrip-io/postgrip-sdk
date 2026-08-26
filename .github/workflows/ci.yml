@@ -45,6 +45,8 @@ jobs:
           python3 scripts/check_operation_inventory.py
           python3 scripts/generate_test_fixtures.py --check
           python3 scripts/check_operation_coverage.py
+          PYTHONPATH=python/src python3 scripts/test_live_api.py --self-test
+          python3 scripts/test_live_api.py --tier production-smoke --scenario test/live/production-smoke.json --validate-only
       - name: Verify detailed API documentation and cURL
         run: |
           python3 scripts/generate_api_docs.py --check

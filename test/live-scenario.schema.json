@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://postgrip.io/schemas/unified-sdk-live-scenario-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractBundleDigest",
+    "tier",
+    "disposableEnvironment",
+    "seedResources",
+    "steps"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractBundleDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "tier": { "enum": ["nightly", "pre-release", "production-smoke"] },
+    "disposableEnvironment": { "type": "boolean" },
+    "seedResources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/resource" }
+    },
+    "steps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/step" }
+    }
+  },
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathParameters", "query", "headers", "body", "streamBodyBase64"],
+      "properties": {
+        "pathParameters": { "type": "object" },
+        "query": { "type": "object" },
+        "headers": { "type": "object" },
+        "body": true,
+        "streamBodyBase64": { "type": ["string", "null"] }
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operationId", "request"],
+      "properties": {
+        "operationId": { "type": "string", "minLength": 1 },
+        "request": { "$ref": "#/$defs/request" }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "kind", "identifier", "name", "cleanup"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "identifier": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "cleanup": { "$ref": "#/$defs/cleanup" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "request",
+        "capture",
+        "resourceKey",
+        "createsResource",
+        "cleansResources"
+      ],
+      "properties": {
+        "operationId": { "type": "string", "minLength": 1 },
+        "request": { "$ref": "#/$defs/request" },
+        "capture": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "resourceKey": { "type": ["string", "null"] },
+        "createsResource": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/resource" }
+          ]
+        },
+        "cleansResources": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

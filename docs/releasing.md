@@ -14,6 +14,14 @@ linked server contract/common-token change is deployed before approving a
 publishing job. The npm and PyPI jobs use trusted publishing; no long-lived
 registry token belongs in this repository.
 
+Every publishing workflow also calls the reusable pre-release live suite
+before its artifact job. Configure the protected `sdk-live-pre-release`
+environment with isolated plane URLs, one combined management token,
+host-injected Agent credentials, disposable fixture values, and the compressed
+scenario secret described in [Live integration tiers](live-testing.md). The
+scheduled `sdk-live-nightly` environment uses the same fixture-manager format.
+Neither environment may point at production.
+
 ## Before creating tags
 
 1. Merge and deploy the coordinated server PR. Record its commit and deployment
@@ -32,11 +40,15 @@ registry token belongs in this repository.
    python3 scripts/test_curl_examples.py --plane all --mode recorded
    python3 scripts/check_release_artifacts.py --ecosystem all \
      --report /tmp/postgrip-release-artifacts.json
+   PYTHONPATH=python/src python3 scripts/test_live_api.py --self-test
    ```
 
 5. Review the artifact report for contents, direct dependencies, size, and
    build/inspection time. Raising a limit in `test/release-limits.json`
    requires explicit release review.
+6. Confirm the current contract bundle has a successful disposable nightly run
+   and approve the isolated pre-release environment. A tier label or recorded
+   fixture is not live execution evidence.
 
 ## Publishing order
 

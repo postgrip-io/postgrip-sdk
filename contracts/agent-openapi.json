@@ -465,7 +465,7 @@
       "get": {
         "operationId": "listTaskEvents",
         "summary": "List a task's event stream",
-        "description": "Returns the task's full event history in order -- lease, start, heartbeat, stdout, stderr, and terminal events. This endpoint is not paginated.",
+        "description": "Returns one stable cursor page of the task's event history in order -- lease, start, heartbeat, stdout, stderr, and terminal events. Follow nextCursor until it is absent to consume the snapshot.",
         "tags": [
           "Tasks"
         ],
@@ -479,16 +479,21 @@
             "agentSession": []
           }
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HistoryCursor"
+          },
+          {
+            "$ref": "#/components/parameters/HistoryPageLimit"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Task events",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TaskEvent"
-                  }
+                  "$ref": "#/components/schemas/TaskEventPage"
                 }
               }
             }
@@ -509,7 +514,7 @@
         ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
-        "x-postgrip-pagination": "none",
+        "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       }
@@ -1289,6 +1294,7 @@
       "get": {
         "operationId": "listWorkflowHistory",
         "summary": "List a workflow's history events",
+        "description": "Returns one stable cursor page for a single workflow run. Follow nextCursor until it is absent to consume the snapshot; a cursor remains bound to the original run if the workflow continues as new.",
         "tags": [
           "Workflows"
         ],
@@ -1302,16 +1308,21 @@
             "agentSession": []
           }
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HistoryCursor"
+          },
+          {
+            "$ref": "#/components/parameters/HistoryPageLimit"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Workflow history",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WorkflowHistoryEvent"
-                  }
+                  "$ref": "#/components/schemas/WorkflowHistoryPage"
                 }
               }
             }
@@ -1332,7 +1343,7 @@
         ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
-        "x-postgrip-pagination": "none",
+        "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       }
@@ -2707,6 +2718,27 @@
           "type": "integer",
           "minimum": 0
         }
+      },
+      "HistoryCursor": {
+        "name": "cursor",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "description": "Opaque cursor returned as nextCursor by the preceding page."
+      },
+      "HistoryPageLimit": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100
+        },
+        "description": "Maximum number of events in one response page. The server may return fewer items to honor its serialized response-size bound."
       }
     },
     "responses": {
@@ -3284,6 +3316,25 @@
           }
         }
       },
+      "TaskEventPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskEvent"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
       "RetryPolicy": {
         "type": "object",
         "additionalProperties": false,
@@ -3719,6 +3770,25 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "WorkflowHistoryPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowHistoryEvent"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1
           }
         }
       },

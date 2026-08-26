@@ -10,6 +10,7 @@ One SDK per language for PostGrip Agent, Worker, and Service APIs, using one
 - [Authentication](authentication.md)
 - [Configuration](configuration.md)
 - [Secure cURL guide](curl.md)
+- [Live integration tiers and cleanup guarantees](live-testing.md)
 
 The current reference is immutable and names the exact contract-bundle digest
 embedded in all generated clients.

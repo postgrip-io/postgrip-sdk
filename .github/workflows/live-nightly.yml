@@ -1,0 +1,58 @@
+name: Nightly disposable SDK integration
+
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-live-nightly
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: sdk-live-nightly
+    env:
+      POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
+      POSTGRIP_AGENT_URL: ${{ vars.POSTGRIP_AGENT_URL }}
+      POSTGRIP_WORKER_URL: ${{ vars.POSTGRIP_WORKER_URL }}
+      POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
+      POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
+      POSTGRIP_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_LIVE_DISPOSABLE }}
+      POSTGRIP_LIVE_SCENARIO_GZIP_BASE64: ${{ secrets.POSTGRIP_LIVE_SCENARIO_GZIP_BASE64 }}
+      POSTGRIP_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_WORKER_ID }}
+      POSTGRIP_LIVE_REPOSITORY_OWNER: ${{ vars.POSTGRIP_LIVE_REPOSITORY_OWNER }}
+      POSTGRIP_LIVE_REPOSITORY_NAME: ${{ vars.POSTGRIP_LIVE_REPOSITORY_NAME }}
+      POSTGRIP_LIVE_REPOSITORY_CREDENTIAL: ${{ secrets.POSTGRIP_LIVE_REPOSITORY_CREDENTIAL }}
+      POSTGRIP_LIVE_SANDBOX_IMAGE: ${{ vars.POSTGRIP_LIVE_SANDBOX_IMAGE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build and install the unified SDK
+        run: |
+          python -m pip install --upgrade build
+          python -m build --wheel python
+          python -m pip install "python/dist/postgrip-"*.whl "websockets>=13"
+      - name: Verify fixture-manager safety invariants
+        run: python3 scripts/test_live_api.py --self-test
+      - name: Run nightly tenant API scenario
+        run: >-
+          python3 scripts/test_live_api.py
+          --tier nightly
+          --allow-destructive
+          --ledger test/reports/live-nightly-ledger.json
+      - name: Upload cleanup ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-nightly-ledger-${{ github.run_id }}
+          path: test/reports/live-nightly-ledger.json
+          if-no-files-found: warn
+          retention-days: 30

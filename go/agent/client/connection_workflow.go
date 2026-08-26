@@ -54,7 +54,33 @@ func (c *Connection) GetWorkflowExecution(ctx context.Context, workflowID string
 	return &out, nil
 }
 
-// GetWorkflowHistory returns the ordered durable history for a workflow.
+// GetWorkflowHistoryPage returns one stable cursor page for a single workflow
+// run. A cursor remains bound to that run if the workflow continues as new.
+func (c *Connection) GetWorkflowHistoryPage(ctx context.Context, workflowID string, opts HistoryPageOptions) (WorkflowHistoryPage, error) {
+	query := OpenAPIListWorkflowHistoryQuery{}
+	if opts.Cursor != "" {
+		query.Cursor = &opts.Cursor
+	}
+	if opts.Limit > 0 {
+		query.Limit = &opts.Limit
+	}
+	return c.OpenAPI().ListWorkflowHistory(ctx, workflowID, query)
+}
+
+// GetWorkflowHistory returns the ordered durable history for a workflow by
+// following stable, individually bounded response pages.
 func (c *Connection) GetWorkflowHistory(ctx context.Context, workflowID string) ([]WorkflowHistoryEvent, error) {
-	return c.OpenAPI().ListWorkflowHistory(ctx, workflowID)
+	return collectHistoryPages(ctx, func(ctx context.Context, opts HistoryPageOptions) ([]WorkflowHistoryEvent, *string, error) {
+		page, err := c.GetWorkflowHistoryPage(ctx, workflowID, opts)
+		return page.Items, page.NextCursor, err
+	})
+}
+
+// WalkWorkflowHistory visits workflow history incrementally without
+// assembling the complete history in SDK memory.
+func (c *Connection) WalkWorkflowHistory(ctx context.Context, workflowID string, visit func(WorkflowHistoryEvent) error) error {
+	return walkHistoryPages(ctx, func(ctx context.Context, opts HistoryPageOptions) ([]WorkflowHistoryEvent, *string, error) {
+		page, err := c.GetWorkflowHistoryPage(ctx, workflowID, opts)
+		return page.Items, page.NextCursor, err
+	}, visit)
 }

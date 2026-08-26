@@ -1,0 +1,50 @@
+name: Production-safe SDK smoke
+
+on:
+  schedule:
+    - cron: "41 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-live-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: sdk-live-production-smoke
+    env:
+      POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
+      POSTGRIP_AGENT_URL: ${{ vars.POSTGRIP_AGENT_URL }}
+      POSTGRIP_WORKER_URL: ${{ vars.POSTGRIP_WORKER_URL }}
+      POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
+      POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
+      POSTGRIP_LIVE_DISPOSABLE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build and install the unified SDK
+        run: |
+          python -m pip install --upgrade build
+          python -m build --wheel python
+          python -m pip install "python/dist/postgrip-"*.whl
+      - name: Run hard-coded public read-only smoke allowlist
+        run: >-
+          python3 scripts/test_live_api.py
+          --tier production-smoke
+          --scenario test/live/production-smoke.json
+          --ledger test/reports/live-production-smoke-ledger.json
+      - name: Upload smoke ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-production-smoke-ledger-${{ github.run_id }}
+          path: test/reports/live-production-smoke-ledger.json
+          if-no-files-found: warn
+          retention-days: 14

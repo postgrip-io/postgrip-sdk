@@ -66,7 +66,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/cancelServiceDeployment.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -102,7 +102,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/clearServiceRepositoryCredential.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -111,7 +111,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/clearServiceVariableValue.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -120,7 +120,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/clearTargetServiceConnection.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -142,7 +142,7 @@
       "cleanup": "none",
       "curlEligible": false,
       "fixture": "agent/connectSandboxSession.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-websocket-protocol",
       "plane": "agent",
       "protocolException": {
@@ -263,7 +263,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/deleteServiceDomain.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -272,7 +272,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/deleteServiceEnvironment.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -281,7 +281,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/deleteServiceProject.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -290,7 +290,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/deleteServiceVariable.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -299,7 +299,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/deleteServiceVolume.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -357,7 +357,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/flushServiceBuildLogs.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -366,7 +366,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/flushServiceRuntimeLogs.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -640,7 +640,7 @@
       "cleanup": "none",
       "curlEligible": true,
       "fixture": "service/listServiceLogs.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -1053,7 +1053,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/trimServiceBuildLogs.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -1062,7 +1062,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/trimServiceRuntimeLogs.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -1071,7 +1071,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/unbindServiceVolume.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null
@@ -1188,7 +1188,7 @@
       "cleanup": "reverse-dependency",
       "curlEligible": false,
       "fixture": "agent/uploadWorkspace.json",
-      "liveTest": "nightly",
+      "liveTest": "pre-release",
       "mockTest": "recorded-streaming-protocol",
       "plane": "agent",
       "protocolException": {

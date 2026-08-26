@@ -22,7 +22,10 @@ import (
 
 const DefaultAddress = "https://agentorchestrator1.postgrip.io"
 
-const maxResponseBytes = 4 << 20
+// Agent task results may contain a single signed event payload up to 32 MiB.
+// Cursor pages are server-bounded to 36 MiB, leaving envelope headroom while
+// keeping every ordinary response read finite.
+const maxResponseBytes = 40 << 20
 
 // ConnectionOptions configures the HTTP connection to the agent runtime
 // service. Address is the base URL (defaults to DefaultAddress).
@@ -249,7 +252,7 @@ func (c *Connection) do(ctx context.Context, method, path string, body any, out 
 		return &failure.SDKError{Message: "http request", Cause: err}
 	}
 	defer resp.Body.Close()
-	raw, err := readResponseBody(resp.Body, responseBodyLimit(method, path, resp.StatusCode))
+	raw, err := readResponseBody(resp.Body, maxResponseBytes)
 	if err != nil {
 		return &failure.SDKError{Message: "read response body", Cause: err}
 	}
@@ -355,22 +358,6 @@ func readResponseBody(body io.Reader, limit int64) ([]byte, error) {
 		return nil, errors.New("postgrip-agent: response is invalid or too large")
 	}
 	return raw, nil
-}
-
-func responseBodyLimit(method, requestPath string, statusCode int) int64 {
-	if method != http.MethodGet || statusCode >= http.StatusBadRequest {
-		return maxResponseBytes
-	}
-	path, _, _ := strings.Cut(requestPath, "?")
-	if path == "/api/v1/task-events" ||
-		(strings.HasPrefix(path, "/api/v1/tasks/") && strings.HasSuffix(path, "/events")) ||
-		(strings.HasPrefix(path, "/api/v1/workflows/") && strings.HasSuffix(path, "/history")) {
-		// These public contracts return complete, unpaginated histories used by
-		// workflow replay. Capping successful responses would permanently block
-		// a valid workflow after its history crosses the generic response limit.
-		return 0
-	}
-	return maxResponseBytes
 }
 
 func hasAuthorizationHeader(headers http.Header) bool {

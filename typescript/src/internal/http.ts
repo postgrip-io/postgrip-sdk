@@ -3,9 +3,8 @@ const MAX_RESPONSE_BYTES = 4 << 20;
 export async function readBoundedResponseBody(
   response: Response,
   plane: string,
-  bounded = true,
+  maximumBytes = MAX_RESPONSE_BYTES,
 ): Promise<string> {
-  if (!bounded) return response.text();
   if (!response.body) return '';
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -14,7 +13,7 @@ export async function readBoundedResponseBody(
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_RESPONSE_BYTES) {
+    if (size > maximumBytes) {
       await reader.cancel();
       throw new Error(`PostGrip ${plane} response is invalid or too large`);
     }

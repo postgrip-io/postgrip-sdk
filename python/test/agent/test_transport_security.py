@@ -120,7 +120,7 @@ class TransportSecurityTests(unittest.TestCase):
             def do_GET(self) -> None:
                 self.send_response(200)
                 self.end_headers()
-                self.wfile.write(b"x" * ((4 << 20) + 1))
+                self.wfile.write(b"x" * ((40 << 20) + 1))
 
             def log_message(self, _format: str, *_args: object) -> None:
                 return
@@ -130,21 +130,29 @@ class TransportSecurityTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "too large"):
                 connection.list_namespaces()
 
-    def test_unpaginated_workflow_history_can_exceed_default_response_bound(self) -> None:
-        payload = b'[{"type":"event","attributes":{"payload":"' + b"x" * (4 << 20) + b'"}}]'
+    def test_workflow_history_follows_stable_pages(self) -> None:
+        requests: list[str] = []
 
         class HistoryHandler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:
+                requests.append(self.path)
                 self.send_response(200)
                 self.end_headers()
-                self.wfile.write(payload)
+                if "cursor=next-page" in self.path:
+                    self.wfile.write(b'{"items":[{"id":"event-2"}]}')
+                else:
+                    self.wfile.write(b'{"items":[{"id":"event-1"}],"nextCursor":"next-page"}')
 
             def log_message(self, _format: str, *_args: object) -> None:
                 return
 
         with serve(HistoryHandler) as base_url:
             connection = Connection(base_url, insecure_development=True)
-            self.assertEqual(len(connection.get_workflow_history("workflow-1")), 1)
+            self.assertEqual(len(connection.get_workflow_history("workflow-1")), 2)
+
+        self.assertEqual(len(requests), 2)
+        self.assertIn("limit=500", requests[0])
+        self.assertIn("cursor=next-page", requests[1])
 
 
 if __name__ == "__main__":

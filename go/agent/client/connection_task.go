@@ -3,8 +3,17 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 )
+
+// HistoryPageOptions selects one stable page of an Agent event history.
+// Cursor is opaque and must be passed back unchanged. Limit defaults on the
+// server and may be reduced there to honor the serialized response-size bound.
+type HistoryPageOptions struct {
+	Cursor string
+	Limit  int64
+}
 
 // EnqueueTask enqueues a single task. Use TaskClient.Enqueue / ShellExec /
 // ContainerExec / Noop helpers for ergonomic construction; this is the raw
@@ -49,10 +58,80 @@ func (c *Connection) GetTask(ctx context.Context, taskID string) (*Task, error) 
 	return &out, nil
 }
 
-// GetTaskEvents returns the full event log for a task.
-func (c *Connection) GetTaskEvents(ctx context.Context, taskID string) ([]TaskEvent, error) {
-	return c.OpenAPI().ListTaskEvents(ctx, taskID)
+// GetTaskEventsPage returns one stable cursor page of the task event log.
+func (c *Connection) GetTaskEventsPage(ctx context.Context, taskID string, opts HistoryPageOptions) (TaskEventPage, error) {
+	query := OpenAPIListTaskEventsQuery{}
+	if opts.Cursor != "" {
+		query.Cursor = &opts.Cursor
+	}
+	if opts.Limit > 0 {
+		query.Limit = &opts.Limit
+	}
+	return c.OpenAPI().ListTaskEvents(ctx, taskID, query)
 }
+
+// GetTaskEvents returns the full event log for a task by following stable,
+// individually bounded response pages.
+func (c *Connection) GetTaskEvents(ctx context.Context, taskID string) ([]TaskEvent, error) {
+	return collectHistoryPages(ctx, func(ctx context.Context, opts HistoryPageOptions) ([]TaskEvent, *string, error) {
+		page, err := c.GetTaskEventsPage(ctx, taskID, opts)
+		return page.Items, page.NextCursor, err
+	})
+}
+
+// WalkTaskEvents visits the task event log incrementally without assembling
+// the complete history in SDK memory.
+func (c *Connection) WalkTaskEvents(ctx context.Context, taskID string, visit func(TaskEvent) error) error {
+	return walkHistoryPages(ctx, func(ctx context.Context, opts HistoryPageOptions) ([]TaskEvent, *string, error) {
+		page, err := c.GetTaskEventsPage(ctx, taskID, opts)
+		return page.Items, page.NextCursor, err
+	}, visit)
+}
+
+func collectHistoryPages[T any](
+	ctx context.Context,
+	fetch func(context.Context, HistoryPageOptions) ([]T, *string, error),
+) ([]T, error) {
+	items := make([]T, 0)
+	err := walkHistoryPages(ctx, fetch, func(item T) error {
+		items = append(items, item)
+		return nil
+	})
+	return items, err
+}
+
+func walkHistoryPages[T any](
+	ctx context.Context,
+	fetch func(context.Context, HistoryPageOptions) ([]T, *string, error),
+	visit func(T) error,
+) error {
+	cursor := ""
+	seen := make(map[string]struct{})
+	for {
+		items, next, err := fetch(ctx, HistoryPageOptions{Cursor: cursor, Limit: historyPageMaximumLimit})
+		if err != nil {
+			return err
+		}
+		for _, item := range items {
+			if err := visit(item); err != nil {
+				return err
+			}
+		}
+		if next == nil {
+			return nil
+		}
+		cursor = strings.TrimSpace(*next)
+		if cursor == "" {
+			return errors.New("postgrip-agent: history page returned an empty next cursor")
+		}
+		if _, exists := seen[cursor]; exists {
+			return fmt.Errorf("postgrip-agent: history page repeated its next cursor")
+		}
+		seen[cursor] = struct{}{}
+	}
+}
+
+const historyPageMaximumLimit int64 = 500
 
 // PollTask leases the next task for the given namespace+queue for this
 // agent. Returns nil task when the queue is empty (HTTP 204 / empty body

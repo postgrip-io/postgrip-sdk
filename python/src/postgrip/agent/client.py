@@ -8,7 +8,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request
@@ -31,6 +31,8 @@ from .workflow import workflow_name
 _MISSING = object()
 _POSTGRIP_UI_MEMO_KEY = "postgrip.ui"
 DEFAULT_ADDRESS = "https://agentorchestrator1.postgrip.io"
+_AGENT_MAX_RESPONSE_BYTES = 40 << 20
+_HISTORY_PAGE_MAXIMUM_LIMIT = 500
 
 
 def has_authorization_header(headers: dict[str, str]) -> bool:
@@ -47,15 +49,26 @@ def has_authorization_header(headers: dict[str, str]) -> bool:
     return any(name.lower() == "authorization" for name in headers)
 
 
-def _requires_complete_history_response(method: str, path: str) -> bool:
-    if method != "GET":
-        return False
-    path = path.split("?", 1)[0]
-    return (
-        path == "/api/v1/task-events"
-        or (path.startswith("/api/v1/tasks/") and path.endswith("/events"))
-        or (path.startswith("/api/v1/workflows/") and path.endswith("/history"))
-    )
+def _iter_history_pages(
+    fetch_page: Callable[[str | None], dict[str, Any]],
+) -> Iterator[dict[str, Any]]:
+    cursor: str | None = None
+    seen: set[str] = set()
+    while True:
+        page = fetch_page(cursor)
+        items = page.get("items")
+        if not isinstance(items, list):
+            raise RuntimeError("postgrip-agent: history page is missing its items array")
+        yield from items
+        next_cursor = page.get("nextCursor")
+        if next_cursor is None:
+            return
+        if not isinstance(next_cursor, str) or not next_cursor.strip():
+            raise RuntimeError("postgrip-agent: history page returned an empty next cursor")
+        cursor = next_cursor.strip()
+        if cursor in seen:
+            raise RuntimeError("postgrip-agent: history page repeated its next cursor")
+        seen.add(cursor)
 
 
 class Connection:
@@ -225,13 +238,13 @@ class Connection:
                 raw = read_bounded_response(
                     response,
                     "Agent",
-                    bounded=not _requires_complete_history_response(method, path),
+                    maximum_bytes=_AGENT_MAX_RESPONSE_BYTES,
                 )
         except ValueError as exc:
             raise RuntimeError(str(exc)) from exc
         except HTTPError as exc:
             try:
-                raw = read_bounded_response(exc, "Agent")
+                raw = read_bounded_response(exc, "Agent", maximum_bytes=_AGENT_MAX_RESPONSE_BYTES)
             except ValueError as read_error:
                 raise RuntimeError(str(read_error)) from exc
             finally:
@@ -314,8 +327,26 @@ class Connection:
     def get_task(self, task_id: str) -> dict[str, Any]:
         return self.openapi.get_task(task_id)
 
+    def get_task_events_page(
+        self,
+        task_id: str,
+        *,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self.openapi.list_task_events(task_id, cursor=cursor, limit=limit)
+
+    def iter_task_events(self, task_id: str) -> Iterator[dict[str, Any]]:
+        return _iter_history_pages(
+            lambda cursor: self.get_task_events_page(
+                task_id,
+                cursor=cursor,
+                limit=_HISTORY_PAGE_MAXIMUM_LIMIT,
+            )
+        )
+
     def get_task_events(self, task_id: str) -> list[dict[str, Any]]:
-        return self.openapi.list_task_events(task_id)
+        return list(self.iter_task_events(task_id))
 
     def complete_task(self, task_id: str, agent_id: str | None = None, result: dict[str, Any] | object = _MISSING, *, worker_id: str | None = None) -> dict[str, Any]:
         resolved_agent_id = agent_id or worker_id
@@ -385,8 +416,30 @@ class Connection:
     def get_workflow(self, workflow_id_or_run_id: str) -> dict[str, Any]:
         return self.openapi.get_workflow(workflow_id_or_run_id)
 
+    def get_workflow_history_page(
+        self,
+        workflow_id_or_run_id: str,
+        *,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self.openapi.list_workflow_history(
+            workflow_id_or_run_id,
+            cursor=cursor,
+            limit=limit,
+        )
+
+    def iter_workflow_history(self, workflow_id_or_run_id: str) -> Iterator[dict[str, Any]]:
+        return _iter_history_pages(
+            lambda cursor: self.get_workflow_history_page(
+                workflow_id_or_run_id,
+                cursor=cursor,
+                limit=_HISTORY_PAGE_MAXIMUM_LIMIT,
+            )
+        )
+
     def get_workflow_history(self, workflow_id_or_run_id: str) -> list[dict[str, Any]]:
-        return self.openapi.list_workflow_history(workflow_id_or_run_id)
+        return list(self.iter_workflow_history(workflow_id_or_run_id))
 
     def list_workflows(self, **options: Any) -> list[dict[str, Any]]:
         query_options, search = _generated_workflow_query(options)

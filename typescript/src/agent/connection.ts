@@ -24,11 +24,13 @@ import type {
   Task,
   TaskEvent,
   TaskEventInput,
+  TaskEventPage,
   TaskResult,
   TaskState,
   WorkflowExecution,
   WorkflowCountResponse,
   WorkflowHistoryEvent,
+  WorkflowHistoryPage,
   SignalWorkflowRequest,
   SignalWithStartWorkflowRequest,
   SignalWithStartWorkflowResponse,
@@ -68,6 +70,11 @@ export interface ConnectionOptions {
   agentAuth?: AgentAuthOptions;
 }
 
+export interface HistoryPageOptions {
+  cursor?: string;
+  limit?: number;
+}
+
 export interface AgentAuthOptions {
   agentId?: string;
   workerId?: string;
@@ -82,6 +89,8 @@ export interface AgentAuthOptions {
 }
 
 export const DEFAULT_BASE_URL = 'https://agentorchestrator1.postgrip.io';
+const AGENT_MAX_RESPONSE_BYTES = 40 << 20;
+const HISTORY_PAGE_MAXIMUM_LIMIT = 500;
 
 interface PollTaskOptions {
   namespace?: string;
@@ -209,8 +218,21 @@ export class Connection {
     return this.openapi.getTask({ pathParameters: { taskId } }) as Promise<Task<P, R>>;
   }
 
+  async getTaskEventsPage(taskId: string, options: HistoryPageOptions = {}): Promise<TaskEventPage> {
+    return this.openapi.listTaskEvents({
+      pathParameters: { taskId },
+      query: historyPageQuery(options),
+    });
+  }
+
+  async *iterateTaskEvents(taskId: string): AsyncGenerator<TaskEvent, void, void> {
+    yield* iterateHistoryPages((options) => this.getTaskEventsPage(taskId, options));
+  }
+
   async getTaskEvents(taskId: string): Promise<TaskEvent[]> {
-    return this.openapi.listTaskEvents({ pathParameters: { taskId } });
+    const events: TaskEvent[] = [];
+    for await (const event of this.iterateTaskEvents(taskId)) events.push(event);
+    return events;
   }
 
   async createSchedule<Args extends unknown[] = unknown[]>(request: CreateScheduleRequest<Args>): Promise<Schedule<Args>> {
@@ -331,8 +353,21 @@ export class Connection {
     return this.openapi.getWorkflow({ pathParameters: { workflowId } }) as Promise<WorkflowExecution<R>>;
   }
 
+  async getWorkflowHistoryPage(workflowId: string, options: HistoryPageOptions = {}): Promise<WorkflowHistoryPage> {
+    return this.openapi.listWorkflowHistory({
+      pathParameters: { workflowId },
+      query: historyPageQuery(options),
+    });
+  }
+
+  async *iterateWorkflowHistory(workflowId: string): AsyncGenerator<WorkflowHistoryEvent, void, void> {
+    yield* iterateHistoryPages((options) => this.getWorkflowHistoryPage(workflowId, options));
+  }
+
   async getWorkflowHistory(workflowId: string): Promise<WorkflowHistoryEvent[]> {
-    return this.openapi.listWorkflowHistory({ pathParameters: { workflowId } });
+    const history: WorkflowHistoryEvent[] = [];
+    for await (const event of this.iterateWorkflowHistory(workflowId)) history.push(event);
+    return history;
   }
 
   async signalWorkflow<Args extends unknown[] = unknown[]>(workflowId: string, request: SignalWorkflowRequest<Args>): Promise<WorkflowHistoryEvent> {
@@ -519,7 +554,7 @@ export class Connection {
         ? { duplex: 'half' }
         : {}),
     } as RequestInit);
-    const responseBody = await readBoundedResponseBody(response, 'Agent');
+    const responseBody = await readBoundedResponseBody(response, 'Agent', AGENT_MAX_RESPONSE_BYTES);
     if (!response.ok) {
       const payload = parseJSONRecord(responseBody);
       throw new Error(typeof payload.error === 'string' ? payload.error : response.statusText);
@@ -617,11 +652,7 @@ export class Connection {
       body: body == null ? undefined : bodyString,
       redirect: 'manual',
     });
-    const text = await readBoundedResponseBody(
-      response,
-      'Agent',
-      !response.ok || !requiresCompleteHistoryResponse(method, path),
-    );
+    const text = await readBoundedResponseBody(response, 'Agent', AGENT_MAX_RESPONSE_BYTES);
     if (!response.ok && !options.acceptedStatuses?.includes(response.status)) {
       const payload = parseJSONRecord(text);
       throw new Error(typeof payload.error === 'string' ? payload.error : response.statusText);
@@ -670,12 +701,28 @@ function parseJSONRecord(value: string): Record<string, unknown> {
   }
 }
 
-function requiresCompleteHistoryResponse(method: string, requestPath: string): boolean {
-  if (method !== 'GET') return false;
-  const path = requestPath.split('?', 1)[0] ?? requestPath;
-  return path === '/api/v1/task-events'
-    || (path.startsWith('/api/v1/tasks/') && path.endsWith('/events'))
-    || (path.startsWith('/api/v1/workflows/') && path.endsWith('/history'));
+function historyPageQuery(options: HistoryPageOptions): URLSearchParams {
+  const query = new URLSearchParams();
+  if (options.cursor) query.set('cursor', options.cursor);
+  if (options.limit != null) query.set('limit', String(options.limit));
+  return query;
+}
+
+async function* iterateHistoryPages<T>(
+  fetchPage: (options: HistoryPageOptions) => Promise<{ items: T[]; nextCursor?: string }>,
+): AsyncGenerator<T, void, void> {
+  let cursor: string | undefined;
+  const seen = new Set<string>();
+  while (true) {
+    const page = await fetchPage({ cursor, limit: HISTORY_PAGE_MAXIMUM_LIMIT });
+    for (const item of page.items) yield item;
+    if (page.nextCursor == null) return;
+    const next = page.nextCursor.trim();
+    if (next === '') throw new Error('postgrip-agent: history page returned an empty next cursor');
+    if (seen.has(next)) throw new Error('postgrip-agent: history page repeated its next cursor');
+    seen.add(next);
+    cursor = next;
+  }
 }
 
 function accessTokenIsFresh(expiresAt: string | undefined): boolean {

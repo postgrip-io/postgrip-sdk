@@ -13,8 +13,12 @@ jobs:
   validate:
     uses: ./.github/workflows/ci.yml
 
+  pre-release-live:
+    uses: ./.github/workflows/live-pre-release.yml
+    secrets: inherit
+
   publish:
-    needs: validate
+    needs: [validate, pre-release-live]
     runs-on: ubuntu-latest
     environment:
       name: npm

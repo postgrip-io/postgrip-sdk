@@ -1,10 +1,10 @@
 # Unified SDK operation coverage
 
-Contract bundle: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820`
+Contract bundle: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd`
 
-| Operations | Documented | SDK-generated | cURL | Protocol exceptions | Recorded-tested | Nightly-live | Pre-release-live | Production-smoke |
+| Operations | Documented | SDK-generated | cURL | Protocol exceptions | Recorded-tested | Nightly-owned | Pre-release-owned | Production-smoke-owned |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 130 | 130 | 130 | 121 | 9 | 130 | 121 | 7 | 2 |
+| 130 | 130 | 130 | 121 | 9 | 130 | 104 | 24 | 2 |
 
 | Plane | Operations | cURL | Protocol exceptions | Recorded-tested |
 | --- | ---: | ---: | ---: | ---: |
@@ -12,4 +12,4 @@ Contract bundle: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb29548
 | Worker | 12 | 12 | 0 | 12 |
 | Service | 73 | 73 | 0 | 73 |
 
-Every operation is documented, owned by generated clients in all three languages, and exercised by a recorded runner. Protocol exceptions are visible and are not counted as cURL coverage.
+Every operation is documented, owned by generated clients in all three languages, and exercised by a recorded runner. Protocol exceptions are visible and are not counted as cURL coverage. Live columns are cadence ownership only; passing live evidence is carried by workflow cleanup-ledger artifacts.

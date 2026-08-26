@@ -1,36 +1,38 @@
 # Phase 4 checkpoint: exhaustive endpoint tests
 
-Status: **BLOCKED**
+Status: **BLOCKED — external live execution evidence required**
 
-Completed: 2026-08-26
+Updated: 2026-08-26
 
-Design SHA-256: `c381af949ea5da1378462c1a130d8fb43742e6cd3ab7fd246111210e8471aa6a`
+Design SHA-256: `4a35c1e1c89fea5a729d5d19fd00cc27824a8ae3e4cf1945d6741a382c9e0ad7`
 
-Implementation-plan SHA-256: `e548a76a725210f116fe0663df40b421c4260d4a9a8c7cd35c6c5730d429e32e`
+Implementation-plan SHA-256: `15d1d37ef4372b57477f1cecee4eb796bdc8652d7680bf36501b9b47edee266e`
 
-Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820`
+Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd`
 
 ## Delivered
 
-- Added deterministic, contract-derived, schema-valid recordings for all 130
-  public operations and a non-mutating fixture drift check.
-- Added generated low-level operation dispatch to Go, TypeScript, and Python.
-  This exposes every ordinary generated operation without bypassing the
-  language SDK transport, while archive upload and WebSocket upgrade remain
-  on their required custom adapters.
-- Added one recording server and native Go, TypeScript, and Python runners.
-  The server validates method, route expansion, repeated queries, required
-  headers, JSON or archive bytes, content type, authentication class,
-  Agent `agent-task-v1` signing bytes and key ID, and response decoding.
-- Added dedicated native WebSocket protocol runs in all three languages.
-  Archive upload goes through each SDK's streaming adapter, and signed Agent
-  operations are cryptographically verified by the recording server.
-- Added `scripts/check_operation_coverage.py` and checked-in JSON and Markdown
-  coverage reports. The report derives expected counts from the contract and
-  verifies immutable docs, generated ownership in every language, fixtures,
-  recorded runner ownership, cURL, and visible protocol exceptions.
-- Preserved selectable `--plane` execution for focused diagnosis. The all,
-  Agent, Worker, and Service modes pass independently.
+- Deterministic contract-derived fixtures and strict recorded transport for
+  all 130 operations in Go, TypeScript, and Python (390 requests).
+- Real cURL execution for all 121 eligible management/public operations and
+  nine visible protocol exceptions with dedicated runners.
+- Stable, server-bounded cursor pagination for Agent task events and workflow
+  history. The three SDKs expose one-page and incremental APIs while preserving
+  full-history convenience methods through automatic cursor following.
+- `scripts/test_live_api.py`, a contract-aware live fixture manager that
+  validates exact tier ownership and contract digest; generates a unique run
+  prefix; restricts mutations to registered resources; captures explicit
+  identifiers; refuses wildcard cleanup; requires three independent
+  destructive-operation controls; redacts credentials; writes a mode-0600
+  ledger; and cleans in reverse registration order.
+- Safety self-tests proving reverse cleanup, destructive refusal, preservation
+  of the primary failure, separate cleanup failures, and remaining-ID reports.
+- Scheduled disposable-nightly, protected isolated pre-release, and
+  production-smoke workflows. All three publishing workflows now depend on the
+  reusable pre-release live job.
+- Corrected cadence ownership: 104 ordinary operations are nightly, 24
+  protocol/high-risk operations are pre-release, and two public read-only
+  health operations are production smoke.
 
 ## Coverage evidence
 
@@ -41,82 +43,56 @@ Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5d
 | Service | 73 | 73 | 73 | 73 | 73 | 0 |
 | **Total** | **130** | **130** | **130** | **130** | **121** | **9** |
 
-The recorded endpoint suite performs 390 language-operation ownership checks.
-Live cadence *metadata* assigns 121 operations to nightly disposable runs,
-seven to isolated pre-release runs, and two to production-safe smoke runs.
-That metadata is not execution evidence: the repository has no live endpoint
-runner, disposable fixture manager, cleanup ledger, or scheduled/pre-release
-workflow. Phase 0's PostgreSQL integration tests validate common-token server
-authentication but do not exercise every SDK operation in a live environment.
-
-## Requirement traceability
-
-| Requirement | Implementation | Evidence |
-| --- | --- | --- |
-| Every public operation is owned | Contract-derived fixtures and `operation-tests.json` | Coverage report: 130/130 |
-| Every language sends the correct wire request | Native SDK runners against one strict recorder | 390/390 checks |
-| One management token crosses management planes | Shared root clients and management auth lanes | Agent, Worker, and Service recordings use one `POSTGRIP_TOKEN` |
-| Runtime credentials do not leak to management | Recorder asserts credential class per operation | All Agent management and delegated recordings pass |
-| Management credentials do not leak to public bootstrap | Auth-lane-aware Agent transports plus regressions | Go, TypeScript, and Python public-operation tests pass |
-| Signed runtime mutations retain protocol bytes | Ed25519 verification of `agent-task-v1` canonical payloads | Five signed operation recordings pass in every language |
-| Protocol exceptions remain explicit | Nine owner/reason/runner annotations | Coverage report: 9 exceptions, none counted as cURL |
-| Secure cURL remains executable | Real cURL recorder from Phase 3 rerun | 121/121 examples pass |
-| Required live suites execute | Disposable nightly and isolated pre-release runners | **BLOCKED** — ownership metadata exists, but runners and execution evidence do not |
+The pre-release tier owns delegated polling/refresh/signing, archive upload,
+sandbox WebSocket, cancellable continuous Service logs, deployment
+cancellation, and every Service operation marked destructive. The production
+runner independently verifies its two-operation hard-coded allowlist is still
+public and read-only before making a request.
 
 ## Design comparison and corrective actions
 
-The end-of-phase design comparison found and corrected four deviations before
-this checkpoint passed:
+The earlier checkpoint had two valid design deviations:
 
-1. Generated clients exposed typed methods but had no uniform way for the
-   contract-derived runner to dispatch every operation. Each language now has
-   a generated low-level operation-ID entry point that still uses the real SDK
-   transport and rejects protocols needing a custom adapter.
-2. The Agent transport inherited the management bearer on public session
-   refresh. All three implementations now model management authorization
-   separately, and focused regressions prove public requests omit it.
-3. The first fixture sampler did not honor `minItems`, `minLength`, or two
-   contract patterns. The shared documentation/fixture sampler now produces
-   schema-valid values, and affected immutable examples were regenerated.
-4. Focused `--plane` runs originally launched runners over all fixture
-   directories. Each native runner now honors the selected plane, and all four
-   selection modes pass.
+1. Live cadence annotations were presented without an executable fixture
+   manager, workflows, cleanup ledger, or release dependency. Those source
+   gaps are corrected. Recorded evidence is still never labeled live.
+2. Agent histories were complete unpaginated responses exempted from the
+   transport bound. The coordinated server now returns stable cursor pages
+   bounded by both item count and serialized bytes. Go walkers, TypeScript
+   async generators, and Python iterators permit incremental consumption; each
+   individual Agent response has a finite SDK bound.
 
-A pull-request conformance review found a fifth deviation after the original
-checkpoint: live-tier labels had been treated as if they proved live execution.
-This report now distinguishes recorded coverage from live evidence. Phase 4
-remains blocked until the fixture manager, destructive-operation safety gates,
-cleanup ledger, live runners, workflows, and successful disposable/isolated
-run evidence exist.
+The implementation comparison found and corrected an additional cadence
+error: archive, WebSocket, continuous-log, cancellation, and destructive
+Service operations had been assigned to ordinary nightly runs despite the
+implementation plan reserving them for isolated pre-release coverage.
 
 ## Verification
 
 | Check | Result |
 | --- | --- |
-| `python3 scripts/generate_test_fixtures.py --check` | PASS — 130 schema-valid recordings |
-| `python3 scripts/check_operation_coverage.py` | PASS — 130 documented/generated/recorded |
-| `python3 scripts/test_api_endpoints.py --plane all --mode recorded` | PASS — 390 checks |
-| Focused Agent, Worker, and Service endpoint modes | PASS — 135, 36, and 219 checks |
-| `python3 scripts/test_curl_examples.py --plane all --mode recorded` | PASS — 121 cURL operations |
-| Go native suite and vet | PASS |
-| TypeScript typecheck, build, and native suite | PASS — 120 tests |
-| Python native suite | PASS — 127 tests, one opt-in live skip |
-| Documentation generation and static checks | PASS — 130 pages |
-| Nightly disposable live suite | **BLOCKED** — no executable suite or workflow exists |
-| Pre-release isolated live suite | **BLOCKED** — no executable suite or workflow exists |
-| `git diff --check` | PASS |
+| Contract generation, inventory, fixtures, and docs | PASS — 130 operations, bundle `5b44c873737a` |
+| Recorded SDK conformance | PASS — 130 × 3 = 390 requests |
+| Recorded cURL conformance | PASS — 121 real cURL processes |
+| Live fixture-manager self-test | PASS |
+| Production scenario static validation | PASS — two public/read-only operations |
+| Go test/vet | PASS |
+| TypeScript typecheck/build/test | PASS — 120 tests |
+| Python wheel and native suite | PASS — 127 tests, one opt-in external skip |
+| Agent Orchestrator test/vet and OpenAPI checker | PASS |
+| Workflow syntax (`actionlint` 1.7.7) | PASS |
+| Nightly disposable live execution | **BLOCKED** — protected environment/scenario not configured |
+| Isolated pre-release live execution | **BLOCKED** — protected environment/scenario not configured |
 
-## Remaining risks
+## Remaining gate
 
-Publication is blocked. Implementing and proving the live tiers requires
-configured disposable and isolated infrastructure plus explicit destructive
-operation authorization. Recorded fixtures must not be presented as a
-substitute, and live calls must never be silently redirected to production.
+The repository currently exposes only `github-pages`, `npm`, and `pypi`
+GitHub Environments. It has no live environment variables, scenario secrets,
+or successful nightly/pre-release run. Creating those protected environments
+and supplying disposable deployment fixtures requires organization-owned
+infrastructure and credentials that are not present in this workspace.
 
-The Agent task-event and workflow-history contracts return complete,
-unpaginated histories needed for deterministic replay. Successful responses
-for those operations are therefore exempt from the generic 4 MiB SDK response
-bound; applying the bound would permanently strand a valid long-running
-workflow. Error responses and every other ordinary response remain bounded.
-Adding contract/server pagination or a streaming replay protocol is required
-before the bounded-read design rule can cover those history operations.
+Phase 4 therefore remains blocked on execution evidence, not missing test
+code. Once both live workflows pass against the coordinated server revision,
+their ledgers and run URLs must be recorded here before changing this gate to
+PASS.

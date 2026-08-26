@@ -173,6 +173,22 @@ func (p OpenAPIListSchedulesQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIListTaskEventsQuery struct {
+	Cursor *string
+	Limit  *int64
+}
+
+func (p OpenAPIListTaskEventsQuery) values() url.Values {
+	values := url.Values{}
+	if p.Cursor != nil {
+		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	if p.Limit != nil {
+		values.Set("limit", fmt.Sprint(*p.Limit))
+	}
+	return values
+}
+
 type OpenAPIListTaskEventsBatchQuery struct {
 	TaskId       []string
 	LimitPerTask *int64
@@ -225,6 +241,22 @@ func (p OpenAPIListTasksQuery) values() url.Values {
 	}
 	if p.Offset != nil {
 		values.Set("offset", fmt.Sprint(*p.Offset))
+	}
+	return values
+}
+
+type OpenAPIListWorkflowHistoryQuery struct {
+	Cursor *string
+	Limit  *int64
+}
+
+func (p OpenAPIListWorkflowHistoryQuery) values() url.Values {
+	values := url.Values{}
+	if p.Cursor != nil {
+		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	if p.Limit != nil {
+		values.Set("limit", fmt.Sprint(*p.Limit))
 	}
 	return values
 }
@@ -458,9 +490,9 @@ func (c *OpenAPIClient) ListSchedules(ctx context.Context, query OpenAPIListSche
 	err := c.connection.doOpenAPI(ctx, openAPIListSchedules, nil, query.values(), nil, &response)
 	return response, err
 }
-func (c *OpenAPIClient) ListTaskEvents(ctx context.Context, taskId string) (OpenAPIListTaskEventsResponseBody, error) {
+func (c *OpenAPIClient) ListTaskEvents(ctx context.Context, taskId string, query OpenAPIListTaskEventsQuery) (OpenAPIListTaskEventsResponseBody, error) {
 	var response OpenAPIListTaskEventsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListTaskEvents, map[string]string{"taskId": taskId}, nil, nil, &response)
+	err := c.connection.doOpenAPI(ctx, openAPIListTaskEvents, map[string]string{"taskId": taskId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListTaskEventsBatch(ctx context.Context, query OpenAPIListTaskEventsBatchQuery) (OpenAPIListTaskEventsBatchResponseBody, error) {
@@ -473,9 +505,9 @@ func (c *OpenAPIClient) ListTasks(ctx context.Context, query OpenAPIListTasksQue
 	err := c.connection.doOpenAPI(ctx, openAPIListTasks, nil, query.values(), nil, &response)
 	return response, err
 }
-func (c *OpenAPIClient) ListWorkflowHistory(ctx context.Context, workflowId string) (OpenAPIListWorkflowHistoryResponseBody, error) {
+func (c *OpenAPIClient) ListWorkflowHistory(ctx context.Context, workflowId string, query OpenAPIListWorkflowHistoryQuery) (OpenAPIListWorkflowHistoryResponseBody, error) {
 	var response OpenAPIListWorkflowHistoryResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkflowHistory, map[string]string{"workflowId": workflowId}, nil, nil, &response)
+	err := c.connection.doOpenAPI(ctx, openAPIListWorkflowHistory, map[string]string{"workflowId": workflowId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkflows(ctx context.Context, query OpenAPIListWorkflowsQuery) (OpenAPIListWorkflowsResponseBody, error) {
@@ -553,4 +585,4 @@ func (c *OpenAPIClient) UpdateSchedule(ctx context.Context, scheduleId string, b
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 43
 
-const openAPIClientSpecSHA256 = "d9df466806e58ae32ab98f6622086d49749672258af902bdf3777a061fef28ff"
+const openAPIClientSpecSHA256 = "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018"

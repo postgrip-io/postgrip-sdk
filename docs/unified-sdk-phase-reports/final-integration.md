@@ -1,133 +1,101 @@
 # Final integration gate
 
-Status: **BLOCKED**
+Status: **BLOCKED — external live execution evidence required**
 
-Completed: 2026-08-26
+Updated: 2026-08-26
 
 Reviewer: Codex implementation conformance review
 
-Design SHA-256: `c381af949ea5da1378462c1a130d8fb43742e6cd3ab7fd246111210e8471aa6a`
+Design SHA-256: `4a35c1e1c89fea5a729d5d19fd00cc27824a8ae3e4cf1945d6741a382c9e0ad7`
 
-Implementation-plan SHA-256: `e548a76a725210f116fe0663df40b421c4260d4a9a8c7cd35c6c5730d429e32e`
+Implementation-plan SHA-256: `15d1d37ef4372b57477f1cecee4eb796bdc8652d7680bf36501b9b47edee266e`
 
-Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5dccb2954820`
+Contract-bundle SHA-256: `5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd`
 
 ## Coordinated revisions
 
-- SDK branch: `postgrip-io/postgrip-sdks`, `feat/unified-sdk`
-- SDK module revision consumed by the server:
-  `c61a4bf40f536801e62cb085882feaebdb3d3120`
-- Coordinated server common-auth/contracts commit:
-  `be2b080161b58d9a294b6c5b144a8a188c162779`
-- Coordinated server final commit:
-  `3441011198c237b74e24d775178e0a18f3103c8c`
-- Server module dependency:
-  `github.com/postgrip-io/postgrip-agent-sdks/go@v0.12.4-0.20260826075702-c61a4bf40f53`
+- SDK repository/branch: `postgrip-io/postgrip-sdks`, `feat/unified-sdk`
+- Server repository/branch: `sungkim11/postgrip-web`,
+  `feat/unified-sdk-auth`
+- Server common-auth baseline: `be2b080161b58d9a294b6c5b144a8a188c162779`
+- Server history-pagination correction:
+  `061e3ebc413108d9cec024cf14196ac4979ab2eb`
 
-The host Agent, Agent Orchestrator, and shared sandbox module resolve that
-published branch revision directly. None uses a local SDK replacement or the
-former standalone protocol module.
+The Agent contract is byte-identical between those branches. All nine
+language/plane generated surfaces embed the current bundle digest.
 
 ## Acceptance traceability
 
-| Design acceptance criterion | Final implementation and evidence |
+| Design acceptance criterion | Current implementation and evidence |
 | --- | --- |
-| One artifact per language | Exactly `go/go.mod`, `typescript/package.json`, and `python/pyproject.toml`; package-layout and release checks pass |
-| Same coordinated version | Root, Go, npm, and PyPI metadata are all 0.13.0 |
-| Same contract bundle | All nine language/plane bindings embed `b728fee5…` |
-| Singular plane namespaces | Go `/agent`, `/worker`, `/service`; npm `/agent`, `/worker`, `/service`; Python `.agent`, `.worker`, `.service`; clean-install smokes pass |
-| One developer management token | Root clients load `POSTGRIP_TOKEN`; 390 recorded language-operation checks validate management credential class |
-| Runtime auth remains delegated | Session refresh, access token, and Ed25519 signing remain host-injected; five signed operations per language verify canonical bytes |
-| Global administration is server-only | Public inventories contain 130 tenant/public operations and reject global-admin classification |
-| Standard public errors and scopes | Coordinated server route/contract tests and disposable PostgreSQL common-token integration pass |
-| Unified protocol ownership | Protocol is `go/protocol`; three server consumers build/test from the exact unified module pseudo-version |
-| Detailed immutable docs | 130 digest-matched operation pages pass generation and static validation |
-| AI-agent-friendly cURL | 121 eligible operations execute a real cURL process with bearer material absent from argv; nine protocol exceptions remain explicit |
-| Exhaustive SDK endpoint tests | 130 operations × three languages = 390 strict recorded checks, plus native archive, signing, polling, refresh, and WebSocket adapters |
-| Live test policy | **BLOCKED** — every operation has tier metadata, but nightly disposable and isolated pre-release runners, workflows, and passing run evidence are absent |
-| Three release paths | Only `publish-go`, `publish-typescript`, and `publish-python`; all call reusable full validation and protected owner/deployment gates |
+| One artifact per language | Exactly `go/go.mod`, `typescript/package.json`, and `python/pyproject.toml`; layout and artifact checks pass |
+| Same coordinated version | Root, Go, npm, and PyPI metadata are 0.13.0 |
+| Same contract bundle | All nine bindings embed `5b44c873…` |
+| Singular namespaces | Go `/agent`, `/worker`, `/service`; npm subpaths; Python submodules; installed-package smokes pass |
+| One developer management token | Root clients load `POSTGRIP_TOKEN`; recorded auth-lane checks use one token across all management planes |
+| Runtime auth remains delegated | Refresh/access/signing remain host-injected; signed recordings preserve `agent-task-v1` bytes |
+| Global administration is server-only | Public inventory contains 130 tenant/public operations and no global-admin operation |
+| Standard public errors and scopes | Coordinated server route, authorization, and PostgreSQL integration tests pass |
+| Detailed immutable docs | 130 digest-bound pages and 121 secure cURL examples pass generation/static checks |
+| Exhaustive endpoint tests | 130 operations × three languages = 390 strict recorded requests |
+| Bounded Agent histories | Stable task/workflow cursor pages, serialized server limit, finite SDK reads, and incremental APIs pass regressions |
+| Executable live policy | Fixture manager, safety guards, cleanup ledger, nightly/pre-release/production workflows, and release dependency exist |
+| Passing live policy | **BLOCKED** — protected environments/scenarios and successful nightly/pre-release runs do not yet exist |
+| Three release paths | Only Go, npm, and PyPI publishers; each depends on reusable validation and isolated pre-release live execution |
 
 ## Phase gate results
 
 | Phase | Report | Result |
 | --- | --- | --- |
-| 0 | Server common authentication and contracts | PASS |
+| 0 | Server common authentication and contracts | PASS, including pagination correction |
 | 1 | Deterministic generation and inventory | PASS |
 | 2 | Language package consolidation | PASS |
 | 3 | Detailed API documentation and secure cURL | PASS |
-| 4 | Exhaustive endpoint tests and coverage | **BLOCKED** — live suites are not implemented or evidenced |
-| 5 | Unified CI and publishing cutover | PASS |
+| 4 | Exhaustive endpoint and live tests | **BLOCKED on external live execution evidence** |
+| 5 | Unified CI and publishing cutover | PASS; publication depends on pre-release live workflow |
 
-Each phase compared its implementation to the design and recorded corrective
-actions before work continued. The final upstream merge added Worker signer
-visibility; the contract already contained those fields, generated files were
-regenerated, the upstream regression tests were migrated to the common `pgt_`
-token, and all final suites passed. The first linked-server PR run then exposed
-stale Agent API reference assertions and coverage prose for the removed public
-global-admin operation. The server reference, consolidated install examples,
-coverage counts, and regression tests were corrected in `4b2f2aa8`; its Agent
-reference suite now passes all 110 tests. The next server run exposed a legacy
-JSON-import seam in the new delegated-session columns: nil Go slices encoded as
-SQL `NULL` for non-null scope arrays. The persistence adapter now normalizes
-legacy bindings to concrete empty arrays, with a focused unit regression; the
-exact PostgreSQL 16 migration and Agent store integration lane passes.
-An unrelated Worker progress test then revealed that it waited for completion
-but asserted an independently asynchronous progress callback immediately. Its
-gate now waits for both observable outcomes; the focused race ran 100 times and
-the complete Worker test and vet suites pass.
+## Corrective review
 
-A later pull-request conformance review invalidated the Phase 4 and final PASS
-claims. `operation-tests.json` assigns live tiers, but the repository only
-executes recorded endpoint and cURL modes. There is no disposable fixture
-manager, cleanup ledger, live mode, scheduled nightly job, isolated
-pre-release job, or passing live-suite evidence. The source and recorded gates
-remain useful evidence, but the design explicitly requires the nightly and
-pre-release live suites to pass, so the final integration gate is blocked.
+The PR review raised two genuine blockers. Both source-code deviations are now
+corrected:
 
-The same review corrected the executable SDK paths before merge: direct Agent
-clients now enforce explicit HTTP opt-in, prevent cross-origin bearer
-redirects, bound ordinary response reads, load the common environment token,
-preserve explicit authorization headers, treat token syntax as opaque, and
-avoid a hard dependency on Node's `process` global. Cross-language regressions
-cover ordinary JSON requests, complete unpaginated history, archive upload,
-and sandbox relay paths.
+1. Agent task and workflow histories no longer require unbounded HTTP
+   responses. The server captures a stable snapshot boundary in an opaque,
+   resource-bound cursor and constrains pages by event count and serialized
+   bytes. SDK full-history methods follow cursors, while walkers/async
+   generators/iterators permit bounded incremental consumption.
+2. Live tiers are executable rather than labels. The fixture manager enforces
+   exact contract ownership, run-prefixed resources, explicit IDs,
+   triple-consent destructive calls, reverse cleanup, secret redaction, and a
+   durable ledger. Workflows schedule nightly and production runs and gate all
+   releases on isolated pre-release coverage.
 
-The coordinated server correction enforces concrete Agent scopes without
-treating a tenant management token as an organization administrator, assigns
-workflow timelines to `agent:logs:read`, removes the obsolete Agent-only token
-issuer, preserves successful authentication when best-effort usage metadata
-cannot be written, and surfaces the standardized error `message` in the Agent
-Console. Route, authorization, database-integration, and UI regressions cover
-those paths.
+The live gate cannot honestly be marked PASS in this change. GitHub currently
+has only `github-pages`, `npm`, and `pypi` environments; no disposable URLs,
+scenario secrets, host-runtime credentials, or live run evidence are
+available. Recorded tests and fixture-manager self-tests are not substituted
+for that evidence.
 
 ## Final evidence
 
-- Go: 14 packages pass `GOWORK=off go test ./...` and `go vet ./...`; all
-  seven package coverage floors pass.
-- TypeScript: frozen install, typecheck, build, 120 native tests, coverage,
-  pack inspection, and clean installed-subpath smoke pass.
-- Python: wheel build, 127 native tests with one opt-in external live skip,
-  85% aggregate coverage, wheel inspection, and clean installed-submodule
-  smoke pass.
-- Contracts and docs: runtime drift (67 total types), all 130 generated HTTP
-  operations, 130 fixtures, 130 reference pages, and 121 cURL examples pass.
-- Recorded transport: 390 SDK requests validate route, query, header, body,
-  auth lane, signing bytes, protocol ownership, and response decoding.
-- Artifacts: Go 102 files / 838,392 bytes; npm 131 files / 149,244 packed
-  bytes; Python 36 files / 89,035 bytes. All remain below reviewed limits.
-- Coordinated server: shared, host Agent, and Agent Orchestrator full test and
-  vet suites pass without an SDK replacement.
-- Workflow syntax: `actionlint` 1.7.7 passes every GitHub workflow.
-- Documentation: root, TypeScript, and Python strict builds pass.
-- Whitespace and generation drift checks pass.
+- Go unified module: all packages pass `go test ./...` and `go vet ./...`.
+- TypeScript: frozen install, typecheck, build, and 120 tests pass.
+- Python: wheel builds; 127 tests pass with one opt-in external live skip.
+- Contracts/docs: 130 generated operations, fixtures, and immutable pages;
+  121 real cURL examples; runtime drift check passes.
+- Recorded transport: 390 SDK requests validate routes, queries, headers,
+  bodies, auth lanes, signing bytes, protocol ownership, and decoding.
+- Agent server: full orchestrator test/vet and 45-operation OpenAPI route check
+  pass, including snapshot, cross-resource, limit, and byte-bound regressions.
+- Live infrastructure: fixture-manager self-test, production allowlist
+  validation, and `actionlint` 1.7.7 pass.
+- Documentation: root strict MkDocs build passes.
 
 ## External release controls
 
-Opening the linked PRs does not publish a package. Release tags remain blocked
-until the Phase 4 live suites are implemented and pass, the server change is
-merged and deployed, and authenticated npm/PyPI owners record control of the
-designed registry names.
-
-The missing executable live tiers and the lack of paginated or streaming Agent
-history responses are unresolved design deviations and release blockers. They
-must be corrected and evidenced before this report can return to PASS.
+The SDK PR remains draft until organization administrators configure the
+`sdk-live-nightly`, `sdk-live-pre-release`, and
+`sdk-live-production-smoke` environments and record successful nightly and
+pre-release runs for the coordinated server revision. The server must also be
+merged/deployed and authenticated npm/PyPI owners must record control of the
+designed registry names before any release tag is approved.

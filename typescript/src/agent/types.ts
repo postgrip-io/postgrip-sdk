@@ -11,6 +11,7 @@ export type Task<P = unknown, R = unknown> = Omit<OpenAPIComponents['Task'], 'pa
 };
 export type TaskEvent = OpenAPIComponents['TaskEvent'];
 export type TaskEventInput = OpenAPIComponents['TaskEventInput'];
+export type TaskEventPage = OpenAPIComponents['TaskEventPage'];
 export type EnqueueTaskRequest<P = unknown> = Omit<OpenAPIComponents['EnqueueTaskRequest'], 'payload'> & {
   payload?: P;
 };
@@ -59,6 +60,8 @@ export type AgentPollDirective = OpenAPIComponents['AgentPollDirective'];
 export type PollTaskResponse<P = unknown, R = unknown> = Omit<OpenAPIComponents['PollTaskResponse'], 'task'> & {
   task?: Task<P, R>;
 };
+
+export type WorkflowHistoryPage = OpenAPIComponents['WorkflowHistoryPage'];
 
 export interface AgentUpgradeRequest {
   image?: string;

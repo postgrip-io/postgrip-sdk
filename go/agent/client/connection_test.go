@@ -188,11 +188,20 @@ func TestResponseBodyIsBounded(t *testing.T) {
 	}
 }
 
-func TestUnpaginatedWorkflowHistoryCanExceedDefaultResponseBound(t *testing.T) {
+func TestWorkflowHistoryFollowsStableResponsePages(t *testing.T) {
 	t.Parallel()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	var requests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = fmt.Fprintf(w, `[{"type":"event","attributes":{"payload":%q}}]`, strings.Repeat("x", maxResponseBytes))
+		switch r.URL.Query().Get("cursor") {
+		case "":
+			_, _ = fmt.Fprint(w, `{"items":[{"id":"event-1","workflow_id":"workflow-1","type":"Started","created_at":"2026-01-01T00:00:00Z"}],"nextCursor":"next-page"}`)
+		case "next-page":
+			_, _ = fmt.Fprint(w, `{"items":[{"id":"event-2","workflow_id":"workflow-1","type":"Completed","created_at":"2026-01-01T00:00:01Z"}]}`)
+		default:
+			http.Error(w, "unexpected cursor", http.StatusBadRequest)
+		}
 	}))
 	defer server.Close()
 
@@ -204,8 +213,8 @@ func TestUnpaginatedWorkflowHistoryCanExceedDefaultResponseBound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetWorkflowHistory: %v", err)
 	}
-	if len(history) != 1 {
-		t.Fatalf("history length = %d, want 1", len(history))
+	if len(history) != 2 || requests != 2 {
+		t.Fatalf("history length = %d, requests = %d, want 2/2", len(history), requests)
 	}
 }
 

@@ -43,6 +43,10 @@ type OpenAPITaskEvent = protocol.TaskEvent
 type OpenAPITaskEventBatchResponse struct {
 	EventsByTaskId map[string][]OpenAPITaskEvent `json:"eventsByTaskId"`
 }
+type OpenAPITaskEventPage struct {
+	Items      []OpenAPITaskEvent `json:"items"`
+	NextCursor *string            `json:"nextCursor,omitempty"`
+}
 type OpenAPIRetryPolicy = protocol.RetryPolicy
 type OpenAPIScheduleCalendarSpec = protocol.ScheduleCalendarSpec
 type OpenAPIScheduleSpec = protocol.ScheduleSpec
@@ -58,6 +62,10 @@ type OpenAPIBackfillScheduleRequest = protocol.BackfillScheduleRequest
 type OpenAPIBackfillScheduleResponse = protocol.BackfillScheduleResponse
 type OpenAPIWorkflowExecution = protocol.WorkflowExecution
 type OpenAPIWorkflowHistoryEvent = protocol.WorkflowHistoryEvent
+type OpenAPIWorkflowHistoryPage struct {
+	Items      []OpenAPIWorkflowHistoryEvent `json:"items"`
+	NextCursor *string                       `json:"nextCursor,omitempty"`
+}
 type OpenAPIWorkflowCountResponse = protocol.WorkflowCountResponse
 type OpenAPISignalWorkflowRequest = protocol.SignalWorkflowRequest
 type OpenAPISignalWithStartWorkflowRequest = protocol.SignalWithStartWorkflowRequest
@@ -142,13 +150,13 @@ type OpenAPIListSandboxesResponseBody = OpenAPISandboxListResponse
 type OpenAPIListSchedulesRequestBody = OpenAPINoBody
 type OpenAPIListSchedulesResponseBody = []OpenAPISchedule
 type OpenAPIListTaskEventsRequestBody = OpenAPINoBody
-type OpenAPIListTaskEventsResponseBody = []OpenAPITaskEvent
+type OpenAPIListTaskEventsResponseBody = OpenAPITaskEventPage
 type OpenAPIListTaskEventsBatchRequestBody = OpenAPINoBody
 type OpenAPIListTaskEventsBatchResponseBody = OpenAPITaskEventBatchResponse
 type OpenAPIListTasksRequestBody = OpenAPINoBody
 type OpenAPIListTasksResponseBody = []OpenAPITask
 type OpenAPIListWorkflowHistoryRequestBody = OpenAPINoBody
-type OpenAPIListWorkflowHistoryResponseBody = []OpenAPIWorkflowHistoryEvent
+type OpenAPIListWorkflowHistoryResponseBody = OpenAPIWorkflowHistoryPage
 type OpenAPIListWorkflowsRequestBody = OpenAPINoBody
 type OpenAPIListWorkflowsResponseBody = []OpenAPIWorkflowExecution
 type OpenAPIListWorkspacesRequestBody = OpenAPINoBody
@@ -269,6 +277,7 @@ type ContinueAsNewResult = protocol.ContinueAsNewResult
 type TaskEventInput = protocol.TaskEventInput
 type TaskEvent = protocol.TaskEvent
 type TaskEventBatchResponse = OpenAPITaskEventBatchResponse
+type TaskEventPage = OpenAPITaskEventPage
 type RetryPolicy = protocol.RetryPolicy
 type ScheduleCalendarSpec = protocol.ScheduleCalendarSpec
 type ScheduleSpec = protocol.ScheduleSpec
@@ -284,6 +293,7 @@ type BackfillScheduleRequest = protocol.BackfillScheduleRequest
 type BackfillScheduleResponse = protocol.BackfillScheduleResponse
 type WorkflowExecution = protocol.WorkflowExecution
 type WorkflowHistoryEvent = protocol.WorkflowHistoryEvent
+type WorkflowHistoryPage = OpenAPIWorkflowHistoryPage
 type WorkflowCountResponse = protocol.WorkflowCountResponse
 type SignalWorkflowRequest = protocol.SignalWorkflowRequest
 type SignalWithStartWorkflowRequest = protocol.SignalWithStartWorkflowRequest
@@ -310,4 +320,4 @@ type CreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type SandboxWorkspace = protocol.SandboxWorkspace
 type SandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
 
-const openAPITypesSpecSHA256 = "d9df466806e58ae32ab98f6622086d49749672258af902bdf3777a061fef28ff"
+const openAPITypesSpecSHA256 = "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018"
