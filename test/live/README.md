@@ -24,10 +24,13 @@ Every mutation must either declare `createsResource` or target a registered
 only operation results and explicit resource identifiers in its mode-0600
 ledger—never tokens, headers, bodies, or captured secrets. Cleanup operations
 run in reverse registration order and may not contain wildcard path values.
-For targeted mutation, destructive, and protocol steps, the resolved request
-must contain the exact identifier recorded for `resourceKey`; naming a ledger
-entry while the path or body targets another object is rejected before network
-execution.
+For targeted mutation, destructive, and protocol steps, the resolved path
+parameters must contain the exact identifier recorded for `resourceKey`;
+naming a ledger entry while the target path names another object is rejected
+before network execution. Cleanup requests are resolved and frozen when a
+resource is registered. Creation intent is written before the request, and the
+identifier plus cleanup are finalized before processing non-resource response
+captures.
 
 Destructive operations and destructive cleanup require all three controls:
 

@@ -166,6 +166,22 @@ def contains_scalar(value: Any, expected: str) -> bool:
     return str(value) == expected
 
 
+def referenced_variables(value: Any) -> set[str]:
+    """Return captured variable names referenced by a scenario value."""
+
+    if isinstance(value, dict):
+        return set().union(*(referenced_variables(item) for item in value.values()))
+    if isinstance(value, list):
+        return set().union(*(referenced_variables(item) for item in value))
+    if not isinstance(value, str):
+        return set()
+    return {
+        match.group(1).removeprefix("var.")
+        for match in PLACEHOLDER.finditer(value)
+        if match.group(1).startswith("var.")
+    }
+
+
 def validate_request(value: Any, location: str) -> dict[str, Any]:
     expected = {"pathParameters", "query", "headers", "body", "streamBodyBase64"}
     if not isinstance(value, dict) or set(value) != expected:
@@ -242,12 +258,17 @@ def validate_scenario(
     if not isinstance(seeds, list) or not isinstance(steps, list):
         raise LiveSuiteError("scenario seedResources and steps must be arrays")
     keys: set[str] = set()
+    captured_names: set[str] = set()
     for index, resource in enumerate(seeds):
         validated = validate_resource(
             resource, f"seedResources[{index}]", operations, seeded=True
         )
         if validated["key"] in keys:
             raise LiveSuiteError(f"duplicate resource key {validated['key']!r}")
+        if referenced_variables(validated):
+            raise LiveSuiteError(
+                f"seedResources[{index}] cannot reference response captures"
+            )
         keys.add(validated["key"])
     actual_ids: list[str] = []
     for index, step in enumerate(steps):
@@ -277,6 +298,17 @@ def validate_scenario(
             for name, pointer in capture.items()
         ):
             raise LiveSuiteError(f"{location}.capture must map names to JSON pointers")
+        duplicate_captures = captured_names.intersection(capture)
+        if duplicate_captures:
+            raise LiveSuiteError(
+                f"{location}.capture redefines variables {sorted(duplicate_captures)}"
+            )
+        unavailable_request_captures = referenced_variables(step["request"]) - captured_names
+        if unavailable_request_captures:
+            raise LiveSuiteError(
+                f"{location}.request references unavailable captures "
+                f"{sorted(unavailable_request_captures)}"
+            )
         resource_key = step["resourceKey"]
         if resource_key is not None and (
             not isinstance(resource_key, str) or not resource_key
@@ -289,6 +321,22 @@ def validate_scenario(
             )
             if validated["key"] in keys:
                 raise LiveSuiteError(f"duplicate resource key {validated['key']!r}")
+            unavailable_intent_captures = referenced_variables(
+                {name: validated[name] for name in ("key", "kind", "name")}
+            ) - captured_names
+            if unavailable_intent_captures:
+                raise LiveSuiteError(
+                    f"{location}.createsResource intent references unavailable captures "
+                    f"{sorted(unavailable_intent_captures)}"
+                )
+            unavailable_resource_captures = referenced_variables(validated) - (
+                captured_names | set(capture)
+            )
+            if unavailable_resource_captures:
+                raise LiveSuiteError(
+                    f"{location}.createsResource references unavailable captures "
+                    f"{sorted(unavailable_resource_captures)}"
+                )
             keys.add(validated["key"])
         cleaned = step["cleansResources"]
         if not isinstance(cleaned, list) or not all(
@@ -297,6 +345,7 @@ def validate_scenario(
             raise LiveSuiteError(
                 f"{location}.cleansResources must be an array of resource keys"
             )
+        captured_names.update(capture)
 
     expected_ids = {
         operation_id
@@ -328,9 +377,9 @@ def validate_scenario(
 class ResourceRecord:
     key: str
     kind: str
-    identifier: str
+    identifier: str | None
     name: str
-    cleanup: dict[str, Any] = field(repr=False)
+    cleanup: dict[str, Any] | None = field(repr=False)
     cleaned: bool = False
     cleanup_error: str | None = None
 
@@ -384,7 +433,9 @@ class CleanupLedger:
                 for item in self.resources
             ],
             "remainingIdentifiers": [
-                item.identifier for item in self.resources if not item.cleaned
+                item.identifier or item.name
+                for item in self.resources
+                if not item.cleaned
             ],
         }
 
@@ -475,11 +526,10 @@ class FixtureManager:
             value, self.variables, self.environ, self.run_id, self.run_prefix
         )
 
-    def _register_resource(self, descriptor: Mapping[str, Any]) -> None:
+    def _prepare_resource(self, descriptor: Mapping[str, Any]) -> ResourceRecord:
         resolved = self._resolve(
-            {name: descriptor[name] for name in ("key", "kind", "identifier", "name")}
+            {name: descriptor[name] for name in ("key", "kind", "name")}
         )
-        cleanup = dict(descriptor["cleanup"])
         name = str(resolved["name"])
         key = str(resolved["key"])
         if any(item.key == key for item in self.ledger.resources):
@@ -488,35 +538,50 @@ class FixtureManager:
             raise LiveSuiteError(
                 f"resource {resolved['key']!r} name does not contain this run's unique prefix"
             )
-        identifier = str(resolved["identifier"])
-        if not identifier or "*" in identifier:
-            raise LiveSuiteError(
-                f"resource {resolved['key']!r} has an unsafe identifier"
-            )
-        cleanup_operation = self.operations[cleanup["operationId"]]
+        cleanup_operation = self.operations[descriptor["cleanup"]["operationId"]]
         if cleanup_operation["safety"] not in {"mutation", "destructive"}:
             raise LiveSuiteError(
                 f"resource {resolved['key']!r} cleanup is not a mutating operation"
             )
+        record = ResourceRecord(
+            key=key,
+            kind=str(resolved["kind"]),
+            identifier=None,
+            name=name,
+            cleanup=None,
+        )
+        self.ledger.resources.append(record)
+        # Persist the intent before the network call. A timeout after the
+        # server commits is indistinguishable from a pre-commit failure, so a
+        # conservative manual-cleanup record is safer than losing ownership.
+        self.ledger.write()
+        return record
+
+    def _finalize_resource(
+        self, record: ResourceRecord, descriptor: Mapping[str, Any]
+    ) -> None:
+        identifier = str(self._resolve(descriptor["identifier"]))
+        if not identifier or "*" in identifier:
+            raise LiveSuiteError(f"resource {record.key!r} has an unsafe identifier")
+        cleanup = self._resolve(descriptor["cleanup"])
         cleanup_paths = {
-            str(item)
-            for item in self._resolve(cleanup["request"]["pathParameters"]).values()
+            str(item) for item in cleanup["request"]["pathParameters"].values()
         }
         if identifier not in cleanup_paths:
             raise LiveSuiteError(
-                f"resource {resolved['key']!r} cleanup does not use its explicit identifier "
+                f"resource {record.key!r} cleanup does not use its explicit identifier "
                 "as a path parameter"
             )
-        self.ledger.resources.append(
-            ResourceRecord(
-                key=key,
-                kind=str(resolved["kind"]),
-                identifier=identifier,
-                name=name,
-                cleanup=cleanup,
-            )
-        )
+        record.identifier = identifier
+        # Store the resolved request, not a template backed by mutable capture
+        # variables. Cleanup ownership cannot change after registration.
+        record.cleanup = cleanup
         self.ledger.write()
+
+    def _register_resource(self, descriptor: Mapping[str, Any]) -> ResourceRecord:
+        record = self._prepare_resource(descriptor)
+        self._finalize_resource(record, descriptor)
+        return record
 
     def _resource(self, key: str) -> ResourceRecord:
         matches = [item for item in self.ledger.resources if item.key == key]
@@ -536,6 +601,10 @@ class FixtureManager:
                 )
             if resource_key is not None:
                 resource = self._resource(resource_key)
+                if resource.identifier is None or resource.cleanup is None:
+                    raise LiveSuiteError(
+                        f"{operation['operationId']} targets unresolved resource {resource_key!r}"
+                    )
                 if resource.cleaned:
                     raise LiveSuiteError(
                         f"{operation['operationId']} targets already-cleaned resource {resource_key!r}"
@@ -567,9 +636,11 @@ class FixtureManager:
             and resource_key is not None
         ):
             resource = self._resource(resource_key)
-            if not contains_scalar(request, resource.identifier):
+            if not contains_scalar(
+                request["pathParameters"], resource.identifier
+            ):
                 raise LiveSuiteError(
-                    f"{operation['operationId']} request does not contain the recorded "
+                    f"{operation['operationId']} target path does not contain the recorded "
                     f"identifier {resource.identifier!r} for resource {resource_key!r}"
                 )
         if step["createsResource"] is not None:
@@ -580,7 +651,10 @@ class FixtureManager:
                     "resource name"
                 )
         for key in step["cleansResources"]:
-            expected = self._resolve(self._resource(key).cleanup)
+            resource = self._resource(key)
+            if resource.cleanup is None:
+                raise LiveSuiteError(f"resource {key!r} has no finalized cleanup request")
+            expected = resource.cleanup
             if (
                 operation["operationId"] != expected["operationId"]
                 or request != expected["request"]
@@ -589,6 +663,9 @@ class FixtureManager:
                     f"{operation['operationId']} does not match the recorded cleanup for "
                     f"resource {key!r}"
                 )
+        creation: ResourceRecord | None = None
+        if step["createsResource"] is not None:
+            creation = self._prepare_resource(step["createsResource"])
         try:
             response = self.adapter.execute(operation, request)
         except Exception as exc:
@@ -596,10 +673,19 @@ class FixtureManager:
                 f"{operation['plane']}/{operation['operationId']} failed: "
                 f"{type(exc).__name__}: {self._redact(exc)}"
             ) from exc
+        creation_captures = (
+            referenced_variables(step["createsResource"]) & set(step["capture"])
+            if step["createsResource"] is not None
+            else set()
+        )
+        for name in creation_captures:
+            self.variables[name] = json_pointer(response, step["capture"][name])
+        if creation is not None:
+            self._finalize_resource(creation, step["createsResource"])
         for name, pointer in step["capture"].items():
+            if name in creation_captures:
+                continue
             self.variables[name] = json_pointer(response, pointer)
-        if step["createsResource"] is not None:
-            self._register_resource(step["createsResource"])
         for key in step["cleansResources"]:
             self._resource(key).cleaned = True
         self.ledger.operations.append(
@@ -614,7 +700,16 @@ class FixtureManager:
         for resource in reversed(self.ledger.resources):
             if resource.cleaned:
                 continue
-            cleanup = self._resolve(resource.cleanup)
+            if resource.identifier is None or resource.cleanup is None:
+                message = (
+                    "creation outcome has no captured identifier; "
+                    f"manually inspect run-prefixed resource {resource.name!r}"
+                )
+                resource.cleanup_error = message
+                failures.append(f"{resource.kind}/{resource.name}: {message}")
+                self.ledger.write()
+                continue
+            cleanup = resource.cleanup
             operation = self.operations[cleanup["operationId"]]
             if operation["safety"] == "destructive" and not self.destructive_enabled:
                 message = "destructive cleanup guard is not enabled"
@@ -784,10 +879,12 @@ class FakeAdapter:
         self.responses = responses
         self.failures = failures or set()
         self.calls: list[str] = []
+        self.requests: list[tuple[str, Mapping[str, Any]]] = []
 
     def execute(self, operation: Mapping[str, Any], request: Mapping[str, Any]) -> Any:
         operation_id = operation["operationId"]
         self.calls.append(operation_id)
+        self.requests.append((operation_id, request))
         if operation_id in self.failures:
             raise RuntimeError("injected failure")
         return self.responses.get(operation_id)
@@ -890,6 +987,9 @@ def self_test() -> None:
             },
         ],
     }
+    validate_scenario(
+        scenario, tier="nightly", inventory=inventory, ownership=ownership
+    )
     with tempfile.TemporaryDirectory() as directory:
         adapter = FakeAdapter({"createA": {"id": "id-a"}, "createB": {"id": "id-b"}})
         manager = FixtureManager(
@@ -914,6 +1014,10 @@ def self_test() -> None:
 
         mismatched_scenario = json.loads(json.dumps(scenario))
         mismatched_scenario["steps"][2]["request"]["pathParameters"]["id"] = "${var.a}"
+        # A decoy occurrence outside the target path must not satisfy ownership.
+        mismatched_scenario["steps"][2]["request"]["body"] = {
+            "relatedId": "${var.b}"
+        }
         mismatched = FixtureManager(
             scenario=mismatched_scenario,
             inventory=inventory,
@@ -936,6 +1040,61 @@ def self_test() -> None:
                 ) from exc
         else:
             raise AssertionError("targeted mutation accepted another resource identifier")
+
+        frozen_adapter = FakeAdapter({"createA": {"id": "id-a"}})
+        frozen = FixtureManager(
+            scenario=scenario,
+            inventory=inventory,
+            ownership=ownership,
+            tier="nightly",
+            adapter=frozen_adapter,
+            environ={"POSTGRIP_LIVE_DISPOSABLE": "true"},
+            ledger_path=Path(directory) / "frozen.json",
+            allow_destructive=True,
+            run_id="1122334455667788",
+        )
+        frozen.execute_step(scenario["steps"][0])
+        frozen.variables["a"] = "id-overwritten"
+        if frozen.cleanup():
+            raise AssertionError("frozen cleanup unexpectedly failed")
+        cleanup_request = frozen_adapter.requests[-1][1]
+        if cleanup_request["pathParameters"]["id"] != "id-a":
+            raise AssertionError("cleanup request changed after capture mutation")
+
+        capture_failure_scenario = json.loads(json.dumps(scenario))
+        capture_failure_scenario["steps"][0]["capture"] = {
+            "unrelated": "/missing",
+            "a": "/id",
+        }
+        capture_failure_adapter = FakeAdapter({"createA": {"id": "id-a"}})
+        capture_failure = FixtureManager(
+            scenario=capture_failure_scenario,
+            inventory=inventory,
+            ownership=ownership,
+            tier="nightly",
+            adapter=capture_failure_adapter,
+            environ={"POSTGRIP_LIVE_DISPOSABLE": "true"},
+            ledger_path=Path(directory) / "capture-failure.json",
+            allow_destructive=True,
+            run_id="2233445566778899",
+        )
+        try:
+            capture_failure.run()
+        except LiveSuiteError:
+            pass
+        else:
+            raise AssertionError("missing secondary capture unexpectedly passed")
+        capture_failure_ledger = load_json(
+            Path(directory) / "capture-failure.json"
+        )
+        if (
+            capture_failure_adapter.calls != ["createA", "deleteA"]
+            or capture_failure_ledger["remainingIdentifiers"]
+            or not capture_failure_ledger["resources"][0]["cleaned"]
+        ):
+            raise AssertionError(
+                "created resource was not recorded before secondary capture failure"
+            )
 
         guarded = FixtureManager(
             scenario=scenario,

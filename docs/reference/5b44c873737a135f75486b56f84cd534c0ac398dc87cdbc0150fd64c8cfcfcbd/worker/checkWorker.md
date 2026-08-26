@@ -110,7 +110,10 @@ if err != nil { return err }
 request.Header.Set("Authorization", "Bearer "+os.Getenv("POSTGRIP_TOKEN"))
 
 request.Header.Set("Idempotency-Key", os.Getenv("POSTGRIP_IDEMPOTENCY_KEY"))
-response, err := http.DefaultClient.Do(request)
+client := &http.Client{
+    CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+}
+response, err := client.Do(request)
 ```
 
 ### TypeScript
@@ -122,6 +125,7 @@ const url = new URL(baseUrl + "/api/v1/workers/" + encodeURIComponent(process.en
 
 const response = await fetch(url, {
   method: "POST",
+  redirect: "manual",
   headers: { Authorization: `Bearer ${process.env.POSTGRIP_TOKEN}`,  "Idempotency-Key": process.env.POSTGRIP_IDEMPOTENCY_KEY, }
 });
 ```
@@ -135,7 +139,11 @@ request = urllib.request.Request(endpoint, method='POST')
 request.add_header('Authorization', f"Bearer {os.environ['POSTGRIP_TOKEN']}")
 
 request.add_header('Idempotency-Key', os.environ["POSTGRIP_IDEMPOTENCY_KEY"])
-with urllib.request.urlopen(request) as response:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, target):
+        return None
+
+with urllib.request.build_opener(_NoRedirect()).open(request) as response:
     result = json.load(response)
 ```
 

@@ -99,6 +99,33 @@ def main() -> int:
                         failures.append(f"{label}: protocol exception metadata is incomplete")
                 if "## Equivalent raw HTTP" in page:
                     failures.append(f"{label}: protocol exception includes invalid raw HTTP")
+        if "## Equivalent raw HTTP" in page:
+            go_block = extract_block(page, "go")
+            typescript_block = extract_block(page, "ts")
+            python_block = extract_block(page, "python")
+            if "http.DefaultClient.Do(request)" in go_block:
+                failures.append(f"{label}: Go example follows redirects unsafely")
+            for marker in (
+                "CheckRedirect:",
+                "http.ErrUseLastResponse",
+                "client.Do(request)",
+            ):
+                if marker not in go_block:
+                    failures.append(
+                        f"{label}: Go example missing redirect guard {marker!r}"
+                    )
+            if 'redirect: "manual"' not in typescript_block:
+                failures.append(f"{label}: TypeScript example follows redirects")
+            if "urllib.request.urlopen" in python_block:
+                failures.append(f"{label}: Python example follows redirects unsafely")
+            for marker in (
+                "class _NoRedirect(urllib.request.HTTPRedirectHandler):",
+                "urllib.request.build_opener(_NoRedirect()).open(request)",
+            ):
+                if marker not in python_block:
+                    failures.append(
+                        f"{label}: Python example missing redirect guard {marker!r}"
+                    )
 
     for package_readme in (ROOT / "go" / "README.md", ROOT / "typescript" / "README.md", ROOT / "python" / "README.md"):
         if bundle not in package_readme.read_text(encoding="utf-8"):

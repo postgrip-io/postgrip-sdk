@@ -113,7 +113,10 @@ if err != nil { return err }
 request.Header.Set("Authorization", "Bearer "+os.Getenv("POSTGRIP_TOKEN"))
 
 
-response, err := http.DefaultClient.Do(request)
+client := &http.Client{
+    CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+}
+response, err := client.Do(request)
 ```
 
 ### TypeScript
@@ -125,6 +128,7 @@ const url = new URL(baseUrl + "/api/v1/schedules");
 
 const response = await fetch(url, {
   method: "GET",
+  redirect: "manual",
   headers: { Authorization: `Bearer ${process.env.POSTGRIP_TOKEN}`,   }
 });
 ```
@@ -138,7 +142,11 @@ request = urllib.request.Request(endpoint, method='GET')
 request.add_header('Authorization', f"Bearer {os.environ['POSTGRIP_TOKEN']}")
 
 
-with urllib.request.urlopen(request) as response:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, target):
+        return None
+
+with urllib.request.build_opener(_NoRedirect()).open(request) as response:
     result = json.load(response)
 ```
 

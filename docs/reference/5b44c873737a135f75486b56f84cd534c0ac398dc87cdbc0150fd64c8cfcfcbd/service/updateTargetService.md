@@ -152,7 +152,10 @@ request.Header.Set("Authorization", "Bearer "+os.Getenv("POSTGRIP_TOKEN"))
 request.Header.Set("Content-Type", "application/json")
 request.Header.Set("Idempotency-Key", os.Getenv("POSTGRIP_IDEMPOTENCY_KEY"))
 request.Header.Set("If-Match", os.Getenv("POSTGRIP_IF_MATCH"))
-response, err := http.DefaultClient.Do(request)
+client := &http.Client{
+    CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+}
+response, err := client.Do(request)
 ```
 
 ### TypeScript
@@ -164,6 +167,7 @@ const url = new URL(baseUrl + "/api/v1/services/target/" + encodeURIComponent(pr
 
 const response = await fetch(url, {
   method: "PATCH",
+  redirect: "manual",
   headers: { Authorization: `Bearer ${process.env.POSTGRIP_TOKEN}`, "Content-Type": "application/json", "Idempotency-Key": process.env.POSTGRIP_IDEMPOTENCY_KEY, "If-Match": process.env.POSTGRIP_IF_MATCH, },
   body: "{\"appId\":\"11111111-1111-4111-8111-111111111111\",\"clearAppId\":true,\"name\":\"string\"}"
 });
@@ -179,7 +183,11 @@ request.add_header('Authorization', f"Bearer {os.environ['POSTGRIP_TOKEN']}")
 request.add_header('Content-Type', 'application/json')
 request.add_header('Idempotency-Key', os.environ["POSTGRIP_IDEMPOTENCY_KEY"])
 request.add_header('If-Match', os.environ["POSTGRIP_IF_MATCH"])
-with urllib.request.urlopen(request) as response:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, target):
+        return None
+
+with urllib.request.build_opener(_NoRedirect()).open(request) as response:
     result = json.load(response)
 ```
 

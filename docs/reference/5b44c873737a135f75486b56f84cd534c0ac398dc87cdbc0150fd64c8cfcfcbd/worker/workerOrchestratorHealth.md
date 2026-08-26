@@ -87,7 +87,10 @@ if err != nil { return err }
 
 
 
-response, err := http.DefaultClient.Do(request)
+client := &http.Client{
+    CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+}
+response, err := client.Do(request)
 ```
 
 ### TypeScript
@@ -99,6 +102,7 @@ const url = new URL(baseUrl + "/health");
 
 const response = await fetch(url, {
   method: "GET",
+  redirect: "manual",
   headers: {    }
 });
 ```
@@ -112,7 +116,11 @@ request = urllib.request.Request(endpoint, method='GET')
 
 
 
-with urllib.request.urlopen(request) as response:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, target):
+        return None
+
+with urllib.request.build_opener(_NoRedirect()).open(request) as response:
     result = json.load(response)
 ```
 

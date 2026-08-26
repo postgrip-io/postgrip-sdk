@@ -341,7 +341,10 @@ if err != nil {{ return err }}
 {auth_go}
 {go_content}
 {go_headers}
-response, err := http.DefaultClient.Do(request)'''
+client := &http.Client{{
+    CheckRedirect: func(_ *http.Request, _ []*http.Request) error {{ return http.ErrUseLastResponse }},
+}}
+response, err := client.Do(request)'''
     ts_body = f",\n  body: {json.dumps(body_json)}" if body is not None else ""
     ts_content = '"Content-Type": "application/json",' if body is not None else ""
     ts = f'''const baseUrl = process.env.POSTGRIP_{plane.upper()}_URL ?? process.env.POSTGRIP_URL;
@@ -350,6 +353,7 @@ const url = new URL(baseUrl + {ts_path});
 {ts_query}
 const response = await fetch(url, {{
   method: {json.dumps(method)},
+  redirect: "manual",
   headers: {{ {auth_ts} {ts_content} {ts_headers} }}{ts_body}
 }});'''
     py_data = f", data={body_json!r}.encode()" if body is not None else ""
@@ -360,7 +364,11 @@ request = urllib.request.Request(endpoint{py_data}, method={method!r})
 {auth_py}
 {py_content}
 {py_headers}
-with urllib.request.urlopen(request) as response:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, target):
+        return None
+
+with urllib.request.build_opener(_NoRedirect()).open(request) as response:
     result = json.load(response)'''
     return go, ts, py
 

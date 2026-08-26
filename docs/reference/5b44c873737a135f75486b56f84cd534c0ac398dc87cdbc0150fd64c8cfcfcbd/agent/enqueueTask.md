@@ -119,7 +119,10 @@ if err != nil { return err }
 request.Header.Set("Authorization", "Bearer "+os.Getenv("POSTGRIP_TOKEN"))
 request.Header.Set("Content-Type", "application/json")
 
-response, err := http.DefaultClient.Do(request)
+client := &http.Client{
+    CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+}
+response, err := client.Do(request)
 ```
 
 ### TypeScript
@@ -131,6 +134,7 @@ const url = new URL(baseUrl + "/api/v1/tasks");
 
 const response = await fetch(url, {
   method: "POST",
+  redirect: "manual",
   headers: { Authorization: `Bearer ${process.env.POSTGRIP_TOKEN}`, "Content-Type": "application/json",  },
   body: "{\"type\":\"string\"}"
 });
@@ -145,7 +149,11 @@ request = urllib.request.Request(endpoint, data='{"type":"string"}'.encode(), me
 request.add_header('Authorization', f"Bearer {os.environ['POSTGRIP_TOKEN']}")
 request.add_header('Content-Type', 'application/json')
 
-with urllib.request.urlopen(request) as response:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, target):
+        return None
+
+with urllib.request.build_opener(_NoRedirect()).open(request) as response:
     result = json.load(response)
 ```
 
