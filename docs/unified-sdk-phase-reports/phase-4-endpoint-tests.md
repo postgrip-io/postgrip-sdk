@@ -92,8 +92,8 @@ After these corrections, no unexplained Phase 4 design deviation remains.
 | Focused Agent, Worker, and Service endpoint modes | PASS — 135, 36, and 219 checks |
 | `python3 scripts/test_curl_examples.py --plane all --mode recorded` | PASS — 121 cURL operations |
 | Go native suite and vet | PASS |
-| TypeScript typecheck, build, and native suite | PASS — 111 tests |
-| Python native suite | PASS — 120 tests, one opt-in live skip |
+| TypeScript typecheck, build, and native suite | PASS — 112 tests |
+| Python native suite | PASS — 121 tests, one opt-in live skip |
 | Documentation generation and static checks | PASS — 130 pages |
 | `git diff --check` | PASS |
 

@@ -85,7 +85,7 @@ After these corrections, no unexplained Phase 5 design deviation remains.
 | `actionlint` 1.7.7 over every workflow | PASS |
 | `python3 scripts/check_release_artifacts.py --ecosystem all` | PASS — three artifacts |
 | Go `GOWORK=off` test, vet, and list | PASS — 14 packages |
-| TypeScript typecheck, test, build, pack, clean install/import | PASS — 111 tests |
+| TypeScript typecheck, test, build, pack, clean install/import | PASS — 112 tests |
 | Python wheel build and clean install/import | PASS — 35 wheel files |
 | Package layout guard | PASS — exactly three manifests |
 | Version parity | PASS — 0.13.0 in root, Go, npm, and PyPI metadata |
