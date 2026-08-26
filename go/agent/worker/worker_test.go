@@ -18,7 +18,7 @@ func TestNewWorkerValidatesInputs(t *testing.T) {
 	if _, err := New(Options{}); err == nil {
 		t.Fatal("expected New to require Connection")
 	}
-	conn, _ := client.NewConnection(client.ConnectionOptions{Address: "http://example.test"})
+	conn, _ := client.NewConnection(client.ConnectionOptions{Address: "http://example.test", InsecureDevelopment: true})
 	if _, err := New(Options{Connection: conn}); err == nil {
 		t.Fatal("expected New to require AgentID")
 	}
@@ -48,7 +48,7 @@ func TestWorkerStopsWhenPollReturnsGoneShutdownDirective(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL})
+	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
 	if err != nil {
 		t.Fatal(err)
 	}

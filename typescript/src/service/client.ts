@@ -26,9 +26,9 @@ import {
   type OpenAPIServiceStatusValue,
 } from './generated/openapi.js';
 import { validateBaseUrl, validateManagementToken, type PostGripEnvironment } from '../internal/config.js';
+import { readBoundedResponseBody } from '../internal/http.js';
 
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
-const MAX_RESPONSE_BYTES = 4 << 20;
 const DEFAULT_RETRY_MAX_ATTEMPTS = 3;
 const MAXIMUM_RETRY_MAX_ATTEMPTS = 3;
 const DEFAULT_RETRY_MAX_DELAY_MS = 2_000;
@@ -628,14 +628,14 @@ function validateETag(value: string): void {
 }
 
 async function decodeSuccess<I extends OpenAPIOperationId>(response: Response): Promise<OpenAPIResponseBody<I>> {
-  const body = await readBoundedResponseBody(response);
+  const body = await readBoundedResponseBody(response, 'Service');
   return JSON.parse(body) as OpenAPIResponseBody<I>;
 }
 
 async function decodeError(response: Response, retryAfterMaxDelayMs: number): Promise<ServiceAPIError> {
   let value: Record<string, unknown> = {};
   try {
-    const decoded: unknown = JSON.parse(await readBoundedResponseBody(response));
+    const decoded: unknown = JSON.parse(await readBoundedResponseBody(response, 'Service'));
     if (typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)) {
       value = decoded as Record<string, unknown>;
     }
@@ -650,30 +650,6 @@ async function decodeError(response: Response, retryAfterMaxDelayMs: number): Pr
     typeof value.details === 'object' && value.details !== null ? value.details as Record<string, unknown> : undefined,
     parseRetryAfter(response.headers.get('retry-after'), retryAfterMaxDelayMs),
   );
-}
-
-async function readBoundedResponseBody(response: Response): Promise<string> {
-  if (!response.body) return '';
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > MAX_RESPONSE_BYTES) {
-      await reader.cancel();
-      throw new Error('PostGrip Service response is invalid or too large');
-    }
-    chunks.push(value);
-  }
-  const body = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    body.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(body);
 }
 
 function parseRetryAfter(value: string | null, maximumMs: number): number | undefined {

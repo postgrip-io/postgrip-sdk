@@ -19,7 +19,10 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-async function sandboxClient(handler: (url: string, init: RequestInit) => Response | Promise<Response>) {
+async function sandboxClient(
+  handler: (url: string, init: RequestInit) => Response | Promise<Response>,
+  insecureDevelopment = false,
+) {
   const fetchImpl = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) =>
     handler(String(input), init),
   );
@@ -27,6 +30,7 @@ async function sandboxClient(handler: (url: string, init: RequestInit) => Respon
     baseUrl: 'https://agents.example.com',
     authToken: 'mgmt-token',
     fetch: fetchImpl as unknown as typeof fetch,
+    insecureDevelopment,
   });
   // Connection.connect() performs a /healthz handshake; drop it so tests can
   // assert on the sandbox requests alone.
@@ -242,7 +246,19 @@ describe('sandbox client', () => {
     }
   });
 
-  it('authenticates the default Node WebSocket relay dial', async () => {
+  it('rejects a plaintext relay before creating a session ticket', async () => {
+    const { client, fetchImpl } = await sandboxClient(() =>
+      jsonResponse({ id: 'ses_1', ticket: 'pgss_t' }, 201),
+    );
+
+    await expect(client.sandbox.openSession('sbx_1', 'pty', {
+      relayBaseUrl: 'ws://relay.example.com',
+      webSocketFactory: () => { throw new Error('should not dial'); },
+    })).rejects.toThrow(/WSS/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('authenticates an explicitly insecure Node WebSocket relay dial', async () => {
     const relay = new WebSocketServer({ host: '127.0.0.1', port: 0 });
     await new Promise<void>((resolve) => relay.once('listening', resolve));
     const port = (relay.address() as AddressInfo).port;
@@ -253,8 +269,9 @@ describe('sandbox client', () => {
     });
 
     try {
-      const { client } = await sandboxClient(() =>
-        jsonResponse({ id: 'ses_1', ticket: 'pgss_t' }, 201),
+      const { client } = await sandboxClient(
+        () => jsonResponse({ id: 'ses_1', ticket: 'pgss_t' }, 201),
+        true,
       );
       const session = await client.sandbox.openSession('sbx_1', 'exec', {
         command: ['true'],
@@ -290,8 +307,9 @@ describe('sandbox client', () => {
     });
 
     try {
-      const { client } = await sandboxClient(() =>
-        jsonResponse({ id: 'ses_1', ticket: 'pgss_t' }, 201),
+      const { client } = await sandboxClient(
+        () => jsonResponse({ id: 'ses_1', ticket: 'pgss_t' }, 201),
+        true,
       );
       const result = await client.sandbox.exec('sbx_1', ['cat'], {
         relayBaseUrl: `http://127.0.0.1:${port}`,
@@ -345,9 +363,10 @@ describe('sandbox relay contract', () => {
     expect(sandboxRelayUrl('https://agents.example.com', 'ses_1', 'pgss_t')).toBe(
       'wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t',
     );
-    expect(sandboxRelayUrl('http://127.0.0.1:4100/', 'ses_1', 'pgss_t')).toBe(
+    expect(sandboxRelayUrl('http://127.0.0.1:4100/', 'ses_1', 'pgss_t', true)).toBe(
       'ws://127.0.0.1:4100/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t',
     );
+    expect(() => sandboxRelayUrl('ws://relay.example.com', 'ses_1', 'pgss_t')).toThrow(/WSS/);
     const escaped = sandboxRelayUrl('https://x.example', 'ses/1', 'a b&c=d');
     expect(escaped).toContain('ses%2F1');
     expect(escaped).not.toContain('a b&c=d');

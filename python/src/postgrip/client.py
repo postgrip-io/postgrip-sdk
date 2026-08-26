@@ -40,7 +40,12 @@ class PostGrip:
             "enable_retries": enable_retries,
             "timeout": timeout,
         }
-        self.agent = AgentClient(Connection(resolved.agent_url, auth_token=resolved.token, timeout=timeout))
+        self.agent = AgentClient(Connection(
+            resolved.agent_url,
+            auth_token=resolved.token,
+            insecure_development=insecure_development,
+            timeout=timeout,
+        ))
         self.workers = WorkerClient(base_url=resolved.worker_url, token=resolved.token, **common)
         self.services = ServiceClient(base_url=resolved.service_url, token=resolved.token, **common)
 
@@ -79,7 +84,12 @@ class AsyncPostGrip:
             "enable_retries": enable_retries,
             "timeout": timeout,
         }
-        self.agent = AgentClient(Connection(resolved.agent_url, auth_token=resolved.token, timeout=timeout))
+        self.agent = AgentClient(Connection(
+            resolved.agent_url,
+            auth_token=resolved.token,
+            insecure_development=insecure_development,
+            timeout=timeout,
+        ))
         self.workers = AsyncWorkerClient(base_url=resolved.worker_url, token=resolved.token, **common)
         self.services = AsyncServiceClient(base_url=resolved.service_url, token=resolved.token, **common)
 

@@ -15,6 +15,7 @@ from postgrip import AsyncPostGrip, PostGrip
 class FakeResponse:
     def __init__(self, value: object):
         self.body = json.dumps(value).encode()
+        self.offset = 0
 
     def __enter__(self) -> FakeResponse:
         return self
@@ -23,7 +24,10 @@ class FakeResponse:
         return None
 
     def read(self, limit: int = -1) -> bytes:
-        return self.body if limit < 0 else self.body[:limit]
+        end = len(self.body) if limit < 0 else min(self.offset + limit, len(self.body))
+        chunk = self.body[self.offset:end]
+        self.offset = end
+        return chunk
 
 
 class FakeOpener:
@@ -44,7 +48,7 @@ class RootClientTests(unittest.TestCase):
     def test_one_token_authenticates_all_three_planes(self) -> None:
         client = PostGrip(
             base_url="https://api.example.test",
-            token="pgt_one-token",
+            token="opaque-one-token",
         )
         agent_requests = []
         management_requests = []
@@ -70,7 +74,7 @@ class RootClientTests(unittest.TestCase):
         requests = agent_requests + management_requests
         self.assertEqual(
             [request.get_header("Authorization") for request in requests],
-            ["Bearer pgt_one-token"] * 3,
+            ["Bearer opaque-one-token"] * 3,
         )
 
     def test_environment_precedence(self) -> None:

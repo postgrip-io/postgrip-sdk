@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,7 +22,7 @@ func TestPublicOpenAPIOperationDoesNotSendManagementToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "pgt-management"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt-management"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -59,7 +60,7 @@ func TestSignalWithStartUsesPerWorkflowPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := NewConnection(ConnectionOptions{Address: server.URL})
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
 	conn.SeedAgentSession("agent-1", "tok", time.Now().Add(time.Hour))
 	c := New(conn)
 
@@ -84,22 +85,127 @@ func TestSignalWithStartUsesPerWorkflowPath(t *testing.T) {
 func TestNewConnectionNormalizesAddress(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		in   string
-		want string
+		in       string
+		insecure bool
+		want     string
+		wantErr  bool
 	}{
-		{"", DefaultAddress},
-		{"127.0.0.1:4100", "http://127.0.0.1:4100"},
-		{"http://example.com:1234/", "http://example.com:1234"},
-		{"https://agent.test", "https://agent.test"},
+		{in: "", want: DefaultAddress},
+		{in: "127.0.0.1:4100", wantErr: true},
+		{in: "http://example.com:1234/", wantErr: true},
+		{in: "http://example.com:1234/", insecure: true, want: "http://example.com:1234"},
+		{in: "https://agent.test", want: "https://agent.test"},
 	}
 	for _, c := range cases {
-		conn, err := NewConnection(ConnectionOptions{Address: c.in})
+		conn, err := NewConnection(ConnectionOptions{Address: c.in, InsecureDevelopment: c.insecure})
+		if c.wantErr {
+			if err == nil {
+				t.Fatalf("NewConnection(%q) succeeded, want URL validation error", c.in)
+			}
+			continue
+		}
 		if err != nil {
 			t.Fatalf("NewConnection(%q) err = %v", c.in, err)
 		}
 		if conn.Address() != c.want {
 			t.Fatalf("NewConnection(%q) address = %q, want %q", c.in, conn.Address(), c.want)
 		}
+	}
+}
+
+func TestManagementTokenIsNotForwardedAcrossRedirectOrigins(t *testing.T) {
+	t.Parallel()
+	targetCalled := make(chan string, 1)
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetCalled <- r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer target.Close()
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", target.URL+"/api/v1/namespaces")
+		w.WriteHeader(http.StatusFound)
+	}))
+	defer source.Close()
+
+	conn, err := NewConnection(ConnectionOptions{
+		Address:             source.URL,
+		AuthToken:           "opaque-management-token",
+		InsecureDevelopment: true,
+	})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	var namespaces []Namespace
+	_ = conn.OpenAPI().Do(context.Background(), "listNamespaces", nil, nil, nil, nil, &namespaces)
+	select {
+	case authorization := <-targetCalled:
+		t.Fatalf("redirect target received Authorization=%q, want no request", authorization)
+	default:
+	}
+}
+
+func TestExplicitAuthorizationHeaderWinsOverEnvironmentToken(t *testing.T) {
+	t.Setenv("POSTGRIP_TOKEN", "environment-token")
+	var authorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{
+		Address:             server.URL,
+		Headers:             map[string]string{"authorization": "Bearer explicit-token"},
+		InsecureDevelopment: true,
+	})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	if _, err := conn.ListNamespaces(context.Background()); err != nil {
+		t.Fatalf("ListNamespaces: %v", err)
+	}
+	if authorization != "Bearer explicit-token" {
+		t.Fatalf("Authorization = %q, want explicit header", authorization)
+	}
+}
+
+func TestResponseBodyIsBounded(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(strings.Repeat("x", maxResponseBytes+1)))
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	if _, err := conn.ListNamespaces(context.Background()); err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Fatalf("ListNamespaces error = %v, want bounded-response error", err)
+	}
+}
+
+func TestUnpaginatedWorkflowHistoryCanExceedDefaultResponseBound(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(w, `[{"type":"event","attributes":{"payload":%q}}]`, strings.Repeat("x", maxResponseBytes))
+	}))
+	defer server.Close()
+
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	history, err := conn.GetWorkflowHistory(context.Background(), "workflow-1")
+	if err != nil {
+		t.Fatalf("GetWorkflowHistory: %v", err)
+	}
+	if len(history) != 1 {
+		t.Fatalf("history length = %d, want 1", len(history))
 	}
 }
 
@@ -115,7 +221,7 @@ func TestEnqueueTaskSendsAuthAndJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "secret"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "secret"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -156,7 +262,7 @@ func TestContainerExecBuildsExpectedPayload(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := NewConnection(ConnectionOptions{Address: server.URL})
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
 	c := New(conn)
 	_, err := c.Task.ContainerExec(context.Background(), ContainerExecInput{
 		Queue:          "default",
@@ -194,7 +300,7 @@ func TestWorkflowTaskSubmissionRequiresManagedRuntime(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := NewConnection(ConnectionOptions{Address: server.URL})
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
 	c := New(conn)
 	_, err := c.Task.Enqueue(context.Background(), EnqueueInput{
 		Queue: "default",
@@ -223,7 +329,7 @@ func TestWorkflowRuntimeSubmissionIsExternalPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "management"})
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "management"})
 	c := New(conn)
 	task, err := c.Task.WorkflowRuntime(context.Background(), WorkflowRuntimeInput{
 		Queue:   "default",
@@ -263,7 +369,7 @@ func TestWorkflowRuntimeSendsIsolationFloor(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "management"})
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "management"})
 	c := New(conn)
 	if _, err := c.Task.WorkflowRuntime(context.Background(), WorkflowRuntimeInput{
 		Queue:     "default",

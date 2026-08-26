@@ -49,9 +49,9 @@ workflow remains.
 
 | Artifact | Contents | Size | Direct runtime dependencies | Local build/inspection |
 | --- | ---: | ---: | --- | ---: |
-| Go module source | 102 files, 14 packages | 828,110 bytes | `github.com/coder/websocket` | 0.063 s inspection |
-| npm package | 127 files | 147,887 packed / 1,351,252 unpacked bytes | `ws` | 1.097 s build + 0.325 s inspection |
-| Python wheel | 35 files | 87,583 bytes | `cryptography>=42` | 0.412 s build |
+| Go module source | 102 files, 14 packages | 838,392 bytes | `github.com/coder/websocket` | 0.075 s inspection |
+| npm package | 131 files | 149,244 packed / 1,355,645 unpacked bytes | `ws` | 1.212 s build + 0.580 s inspection |
+| Python wheel | 36 files | 89,035 bytes | `cryptography>=42` | 0.459 s build |
 
 The npm tarball was installed into an empty project and imported through the
 root plus all singular subpaths. The Python wheel was installed into an empty
@@ -85,8 +85,8 @@ After these corrections, no unexplained Phase 5 design deviation remains.
 | `actionlint` 1.7.7 over every workflow | PASS |
 | `python3 scripts/check_release_artifacts.py --ecosystem all` | PASS — three artifacts |
 | Go `GOWORK=off` test, vet, and list | PASS — 14 packages |
-| TypeScript typecheck, test, build, pack, clean install/import | PASS — 112 tests |
-| Python wheel build and clean install/import | PASS — 35 wheel files |
+| TypeScript typecheck, test, build, pack, clean install/import | PASS — 120 tests |
+| Python wheel build and clean install/import | PASS — 36 wheel files |
 | Package layout guard | PASS — exactly three manifests |
 | Version parity | PASS — 0.13.0 in root, Go, npm, and PyPI metadata |
 | Contract digest parity | PASS — all nine plane/language bindings |
@@ -94,7 +94,8 @@ After these corrections, no unexplained Phase 5 design deviation remains.
 ## Remaining release controls
 
 No release tag was created. The protected `sdk-release`, `npm`, and `pypi`
-environments must not approve publication until the coordinated server PR is
-merged/deployed and authenticated registry owners record ownership evidence.
-This is an intentional external release control, not an unresolved repository
-implementation deviation.
+environments must not approve publication until Phase 4's disposable nightly
+and isolated pre-release live suites are implemented and pass, the coordinated
+server PR is merged/deployed, and authenticated registry owners record
+ownership evidence. The absent live suites are tracked as a blocking Phase 4
+design deviation in the final integration report.

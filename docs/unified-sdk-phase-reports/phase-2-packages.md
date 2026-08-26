@@ -46,7 +46,7 @@ Reviewer: Codex implementation conformance review
 | --- | --- | --- |
 | Exactly three artifacts | `go/go.mod`, `typescript/package.json`, `python/pyproject.toml`; obsolete roots removed | `scripts/check_package_layout.py` passes |
 | Agent is language-scoped | `go/agent`, `typescript/src/agent`, `python/src/postgrip/agent` | layout checker and native import tests |
-| One common token | all root facades resolve only `POSTGRIP_TOKEN` and validate `pgt_` | request-level tests send the same bearer to all three planes |
+| One common token | all root facades resolve only `POSTGRIP_TOKEN` and require a non-empty opaque value | request-level tests send the same bearer to all three planes |
 | Root and direct clients | root facades plus singular Go/npm/Python planes | compiler tests and installed-artifact smoke tests |
 | URL precedence | explicit, `POSTGRIP_<PLANE>_URL`, then `POSTGRIP_URL` | root and direct-plane regression tests in all languages |
 | Import isolation | direct planes do not import root facades; management imports do not load Agent/WebSocket code | Go static layout check, TypeScript dependency-graph test, Python subprocess test |

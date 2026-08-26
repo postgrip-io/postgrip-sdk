@@ -16,8 +16,8 @@ class ResolvedConfig:
 
 def validate_management_token(value: str) -> str:
     token = value.strip()
-    if not token.startswith("pgt_"):
-        raise ValueError("PostGrip token must use the pgt_ prefix")
+    if not token:
+        raise ValueError("PostGrip management token is required")
     return token
 
 

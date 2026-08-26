@@ -1,6 +1,6 @@
 # Phase 4 checkpoint: exhaustive endpoint tests
 
-Status: **PASS**
+Status: **BLOCKED**
 
 Completed: 2026-08-26
 
@@ -42,11 +42,12 @@ Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5d
 | **Total** | **130** | **130** | **130** | **130** | **121** | **9** |
 
 The recorded endpoint suite performs 390 language-operation ownership checks.
-Live cadence ownership is complete: 121 nightly disposable, seven isolated
-pre-release, and two production-safe smoke operations. External live jobs are
-credential- and environment-gated; the pull-request gate uses the complete
-recorded suite, while Phase 0's disposable PostgreSQL and isolated server
-integration tests supply the coordinated server-side authentication evidence.
+Live cadence *metadata* assigns 121 operations to nightly disposable runs,
+seven to isolated pre-release runs, and two to production-safe smoke runs.
+That metadata is not execution evidence: the repository has no live endpoint
+runner, disposable fixture manager, cleanup ledger, or scheduled/pre-release
+workflow. Phase 0's PostgreSQL integration tests validate common-token server
+authentication but do not exercise every SDK operation in a live environment.
 
 ## Requirement traceability
 
@@ -60,6 +61,7 @@ integration tests supply the coordinated server-side authentication evidence.
 | Signed runtime mutations retain protocol bytes | Ed25519 verification of `agent-task-v1` canonical payloads | Five signed operation recordings pass in every language |
 | Protocol exceptions remain explicit | Nine owner/reason/runner annotations | Coverage report: 9 exceptions, none counted as cURL |
 | Secure cURL remains executable | Real cURL recorder from Phase 3 rerun | 121/121 examples pass |
+| Required live suites execute | Disposable nightly and isolated pre-release runners | **BLOCKED** — ownership metadata exists, but runners and execution evidence do not |
 
 ## Design comparison and corrective actions
 
@@ -80,7 +82,12 @@ this checkpoint passed:
    directories. Each native runner now honors the selected plane, and all four
    selection modes pass.
 
-After these corrections, no unexplained Phase 4 design deviation remains.
+A pull-request conformance review found a fifth deviation after the original
+checkpoint: live-tier labels had been treated as if they proved live execution.
+This report now distinguishes recorded coverage from live evidence. Phase 4
+remains blocked until the fixture manager, destructive-operation safety gates,
+cleanup ledger, live runners, workflows, and successful disposable/isolated
+run evidence exist.
 
 ## Verification
 
@@ -92,13 +99,24 @@ After these corrections, no unexplained Phase 4 design deviation remains.
 | Focused Agent, Worker, and Service endpoint modes | PASS — 135, 36, and 219 checks |
 | `python3 scripts/test_curl_examples.py --plane all --mode recorded` | PASS — 121 cURL operations |
 | Go native suite and vet | PASS |
-| TypeScript typecheck, build, and native suite | PASS — 112 tests |
-| Python native suite | PASS — 121 tests, one opt-in live skip |
+| TypeScript typecheck, build, and native suite | PASS — 120 tests |
+| Python native suite | PASS — 127 tests, one opt-in live skip |
 | Documentation generation and static checks | PASS — 130 pages |
+| Nightly disposable live suite | **BLOCKED** — no executable suite or workflow exists |
+| Pre-release isolated live suite | **BLOCKED** — no executable suite or workflow exists |
 | `git diff --check` | PASS |
 
 ## Remaining risks
 
-Nightly and pre-release calls intentionally require configured disposable or
-isolated infrastructure and are never silently redirected to production.
-Their workflow safety gates and release cadence are finalized in Phase 5.
+Publication is blocked. Implementing and proving the live tiers requires
+configured disposable and isolated infrastructure plus explicit destructive
+operation authorization. Recorded fixtures must not be presented as a
+substitute, and live calls must never be silently redirected to production.
+
+The Agent task-event and workflow-history contracts return complete,
+unpaginated histories needed for deterministic replay. Successful responses
+for those operations are therefore exempt from the generic 4 MiB SDK response
+bound; applying the bound would permanently strand a valid long-running
+workflow. Error responses and every other ordinary response remain bounded.
+Adding contract/server pagination or a streaming replay protocol is required
+before the bounded-read design rule can cover those history operations.

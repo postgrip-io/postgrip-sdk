@@ -34,7 +34,7 @@ func TestNewRejectsUnsafeConfiguration(t *testing.T) {
 		{BaseURL: "https://example.test?query=yes", Token: "pgt_token"},
 		{BaseURL: "https://example.test?", Token: "pgt_token"},
 		{BaseURL: "https://example.test#", Token: "pgt_token"},
-		{BaseURL: "https://example.test", Token: "not-a-token"},
+		{BaseURL: "https://example.test", Token: "   "},
 		{BaseURL: "https://example.test", Token: "pgt_token", RetryMaxAttempts: 4},
 		{BaseURL: "https://example.test", Token: "pgt_token", RetryMaxDelay: 3 * time.Second},
 		{BaseURL: "https://example.test", Token: "pgt_token", RetryAfterMaxDelay: 31 * time.Second},
@@ -42,6 +42,12 @@ func TestNewRejectsUnsafeConfiguration(t *testing.T) {
 		if _, err := New(config); err == nil {
 			t.Fatalf("New(%+v) succeeded", config)
 		}
+	}
+}
+
+func TestNewAcceptsOpaqueManagementToken(t *testing.T) {
+	if _, err := New(Config{BaseURL: "https://example.test", Token: "opaque-token"}); err != nil {
+		t.Fatalf("New rejected an opaque token: %v", err)
 	}
 }
 

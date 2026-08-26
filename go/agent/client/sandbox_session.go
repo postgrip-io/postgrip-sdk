@@ -192,6 +192,9 @@ func (s *SandboxClient) OpenSandboxSession(ctx context.Context, sandboxID, kind 
 	if kind == protocol.SandboxSessionKindExec && len(opts.Command) == 0 {
 		return nil, &failure.SDKError{Message: "sandbox exec requires a command"}
 	}
+	if err := s.validateSandboxRelayAddress(opts.RelayAddress); err != nil {
+		return nil, err
+	}
 	session, err := s.conn.CreateSandboxSession(ctx, sandboxID, CreateSandboxSessionRequest{
 		Kind:    kind,
 		Command: opts.Command,
@@ -223,6 +226,9 @@ func (s *SandboxClient) OpenSandboxSession(ctx context.Context, sandboxID, kind 
 func (s *SandboxClient) OpenSandboxPort(ctx context.Context, sandboxID string, guestPort int, relayAddress string) (*SandboxPortStream, error) {
 	if guestPort < 1 || guestPort > 65535 {
 		return nil, &failure.SDKError{Message: "sandbox guest port must be between 1 and 65535"}
+	}
+	if err := s.validateSandboxRelayAddress(relayAddress); err != nil {
+		return nil, err
 	}
 	session, err := s.conn.CreateSandboxSession(ctx, sandboxID, CreateSandboxSessionRequest{
 		Kind: protocol.SandboxSessionKindPort,
@@ -257,7 +263,7 @@ func (s *SandboxClient) dialSandboxRelay(ctx context.Context, sessionID, ticket,
 	if address == "" {
 		address = s.conn.Address()
 	}
-	relay, err := sandboxRelayURL(address, sessionID, ticket)
+	relay, err := sandboxRelayURL(address, sessionID, ticket, s.conn.insecureDevelopment)
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +286,14 @@ func (s *SandboxClient) dialSandboxRelay(ctx context.Context, sessionID, ticket,
 		return nil, &failure.SDKError{Message: "dial sandbox session relay", Cause: err}
 	}
 	return conn, nil
+}
+
+func (s *SandboxClient) validateSandboxRelayAddress(address string) error {
+	if address == "" {
+		address = s.conn.Address()
+	}
+	_, err := sandboxRelayURL(address, "validation", "validation", s.conn.insecureDevelopment)
+	return err
 }
 
 type sandboxExecStdinOutcome struct {
@@ -361,17 +375,23 @@ func sandboxExecResult(outputErr error, stdin sandboxExecStdinOutcome) (int, err
 
 // sandboxRelayURL builds the ws:// or wss:// session URL from an http(s)
 // API address.
-func sandboxRelayURL(address, sessionID, ticket string) (string, error) {
-	base := strings.TrimSuffix(strings.TrimSpace(address), "/")
-	switch {
-	case strings.HasPrefix(base, "https://"):
-		base = "wss://" + strings.TrimPrefix(base, "https://")
-	case strings.HasPrefix(base, "http://"):
-		base = "ws://" + strings.TrimPrefix(base, "http://")
-	case strings.HasPrefix(base, "wss://"), strings.HasPrefix(base, "ws://"):
+func sandboxRelayURL(address, sessionID, ticket string, insecureDevelopment bool) (string, error) {
+	baseURL, err := url.Parse(strings.TrimSpace(address))
+	if err != nil || baseURL.Host == "" || baseURL.RawQuery != "" || baseURL.Fragment != "" {
+		return "", &failure.SDKError{Message: "sandbox relay address must be http(s) or ws(s): " + address}
+	}
+	switch strings.ToLower(baseURL.Scheme) {
+	case "https", "wss":
+		baseURL.Scheme = "wss"
+	case "http", "ws":
+		if !insecureDevelopment {
+			return "", &failure.SDKError{Message: "sandbox relay address must use WSS unless insecure development is enabled"}
+		}
+		baseURL.Scheme = "ws"
 	default:
 		return "", &failure.SDKError{Message: "sandbox relay address must be http(s) or ws(s): " + address}
 	}
+	base := strings.TrimSuffix(baseURL.String(), "/")
 	operation, err := resolveOpenAPIOperation(
 		openAPIConnectSandboxSession,
 		map[string]string{OpenAPIConnectSandboxSessionPathSessionId: sessionID},

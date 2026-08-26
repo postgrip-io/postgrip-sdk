@@ -302,6 +302,13 @@ export class SandboxClient {
     // Resolve the transport before creating the single-use server session. A
     // missing implementation must not burn a ticket or start an exec command.
     const createWebSocket = await resolveSandboxWebSocketFactory(options, relayHeaders);
+    const relayBaseUrl = options.relayBaseUrl ?? this.connection.baseUrl;
+    sandboxRelayUrl(
+      relayBaseUrl,
+      'validation',
+      'validation',
+      this.connection.insecureDevelopment,
+    );
     const session = await this.createSession(sandboxId, {
       kind,
       command: options.command,
@@ -309,9 +316,10 @@ export class SandboxClient {
       columns: options.columns,
     });
     const url = sandboxRelayUrl(
-      options.relayBaseUrl ?? this.connection.baseUrl,
+      relayBaseUrl,
       session.id!,
       session.ticket!,
+      this.connection.insecureDevelopment,
     );
     // The ticket selects and authorizes the session; the management credential
     // separately authenticates the request. Both are required by the contract.
@@ -424,12 +432,22 @@ async function resolveSandboxWebSocketFactory(
 }
 
 /** Builds the ws(s):// relay URL from an http(s) API base URL. */
-export function sandboxRelayUrl(baseUrl: string, sessionId: string, ticket: string): string {
+export function sandboxRelayUrl(
+  baseUrl: string,
+  sessionId: string,
+  ticket: string,
+  insecureDevelopment = false,
+): string {
   const base = baseUrl.trim().replace(/\/+$/, '');
   let origin: string;
   if (base.startsWith('https://')) origin = `wss://${base.slice('https://'.length)}`;
-  else if (base.startsWith('http://')) origin = `ws://${base.slice('http://'.length)}`;
-  else if (base.startsWith('wss://') || base.startsWith('ws://')) origin = base;
+  else if (base.startsWith('wss://')) origin = base;
+  else if (base.startsWith('http://') || base.startsWith('ws://')) {
+    if (!insecureDevelopment) {
+      throw new Error('postgrip-agent: sandbox relay base must use WSS unless insecureDevelopment is enabled');
+    }
+    origin = base.startsWith('http://') ? `ws://${base.slice('http://'.length)}` : base;
+  }
   else throw new Error(`postgrip-agent: sandbox relay base must be http(s) or ws(s): ${baseUrl}`);
   const operation = resolveOpenAPIOperation(
     'connectSandboxSession',

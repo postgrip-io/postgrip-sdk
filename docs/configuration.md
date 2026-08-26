@@ -24,7 +24,9 @@ export POSTGRIP_SERVICE_URL="https://services.example.com"
 
 Base URLs must use HTTPS, contain no query or fragment, and may include a
 reverse-proxy path. Plain HTTP requires the explicit insecure-development
-constructor option; it is not enabled by an environment variable.
+constructor option; it is not enabled by an environment variable. Sandbox
+relay overrides follow the same rule: use WSS by default, and permit WS only
+when that same insecure-development option is enabled explicitly.
 
 Direct plane clients use the same plane URL and `POSTGRIP_TOKEN` variables.
 They do not import or initialize the root facade or another plane.

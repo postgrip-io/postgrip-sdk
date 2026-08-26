@@ -253,11 +253,15 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.request_id, "request-header")
         self.assertNotIn("secret", str(raised.exception))
 
-    def test_requires_https_and_management_token(self) -> None:
+    def test_requires_https_and_non_empty_opaque_management_token(self) -> None:
         with self.assertRaises(ValueError):
             ServiceClient(base_url="http://example.test", token="pgt_token")
         with self.assertRaises(ValueError):
-            ServiceClient(base_url="https://example.test", token="pga_token")
+            ServiceClient(base_url="https://example.test", token="   ")
+        self.assertIsInstance(
+            ServiceClient(base_url="https://example.test", token="opaque-token"),
+            ServiceClient,
+        )
         for base_url in ("https://example.test?", "https://example.test#"):
             with self.assertRaises(ValueError):
                 ServiceClient(base_url=base_url, token="pgt_token")

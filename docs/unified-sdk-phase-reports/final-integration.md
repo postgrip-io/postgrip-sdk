@@ -1,6 +1,6 @@
 # Final integration gate
 
-Status: **PASS**
+Status: **BLOCKED**
 
 Completed: 2026-08-26
 
@@ -20,7 +20,7 @@ Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5d
 - Coordinated server common-auth/contracts commit:
   `be2b080161b58d9a294b6c5b144a8a188c162779`
 - Coordinated server final commit:
-  `a81fc23940882767e0cb76673e8047499c27f175`
+  `3441011198c237b74e24d775178e0a18f3103c8c`
 - Server module dependency:
   `github.com/postgrip-io/postgrip-agent-sdks/go@v0.12.4-0.20260826075702-c61a4bf40f53`
 
@@ -44,7 +44,7 @@ former standalone protocol module.
 | Detailed immutable docs | 130 digest-matched operation pages pass generation and static validation |
 | AI-agent-friendly cURL | 121 eligible operations execute a real cURL process with bearer material absent from argv; nine protocol exceptions remain explicit |
 | Exhaustive SDK endpoint tests | 130 operations × three languages = 390 strict recorded checks, plus native archive, signing, polling, refresh, and WebSocket adapters |
-| Live test policy | Every operation owns a nightly, pre-release, or production-safe tier; destructive/external runs require disposable or protected infrastructure |
+| Live test policy | **BLOCKED** — every operation has tier metadata, but nightly disposable and isolated pre-release runners, workflows, and passing run evidence are absent |
 | Three release paths | Only `publish-go`, `publish-typescript`, and `publish-python`; all call reusable full validation and protected owner/deployment gates |
 
 ## Phase gate results
@@ -55,7 +55,7 @@ former standalone protocol module.
 | 1 | Deterministic generation and inventory | PASS |
 | 2 | Language package consolidation | PASS |
 | 3 | Detailed API documentation and secure cURL | PASS |
-| 4 | Exhaustive endpoint tests and coverage | PASS |
+| 4 | Exhaustive endpoint tests and coverage | **BLOCKED** — live suites are not implemented or evidenced |
 | 5 | Unified CI and publishing cutover | PASS |
 
 Each phase compared its implementation to the design and recorded corrective
@@ -76,21 +76,45 @@ but asserted an independently asynchronous progress callback immediately. Its
 gate now waits for both observable outcomes; the focused race ran 100 times and
 the complete Worker test and vet suites pass.
 
+A later pull-request conformance review invalidated the Phase 4 and final PASS
+claims. `operation-tests.json` assigns live tiers, but the repository only
+executes recorded endpoint and cURL modes. There is no disposable fixture
+manager, cleanup ledger, live mode, scheduled nightly job, isolated
+pre-release job, or passing live-suite evidence. The source and recorded gates
+remain useful evidence, but the design explicitly requires the nightly and
+pre-release live suites to pass, so the final integration gate is blocked.
+
+The same review corrected the executable SDK paths before merge: direct Agent
+clients now enforce explicit HTTP opt-in, prevent cross-origin bearer
+redirects, bound ordinary response reads, load the common environment token,
+preserve explicit authorization headers, treat token syntax as opaque, and
+avoid a hard dependency on Node's `process` global. Cross-language regressions
+cover ordinary JSON requests, complete unpaginated history, archive upload,
+and sandbox relay paths.
+
+The coordinated server correction enforces concrete Agent scopes without
+treating a tenant management token as an organization administrator, assigns
+workflow timelines to `agent:logs:read`, removes the obsolete Agent-only token
+issuer, preserves successful authentication when best-effort usage metadata
+cannot be written, and surfaces the standardized error `message` in the Agent
+Console. Route, authorization, database-integration, and UI regressions cover
+those paths.
+
 ## Final evidence
 
 - Go: 14 packages pass `GOWORK=off go test ./...` and `go vet ./...`; all
   seven package coverage floors pass.
-- TypeScript: frozen install, typecheck, build, 112 native tests, coverage,
+- TypeScript: frozen install, typecheck, build, 120 native tests, coverage,
   pack inspection, and clean installed-subpath smoke pass.
-- Python: wheel build, 121 native tests with one opt-in external live skip,
+- Python: wheel build, 127 native tests with one opt-in external live skip,
   85% aggregate coverage, wheel inspection, and clean installed-submodule
   smoke pass.
 - Contracts and docs: runtime drift (67 total types), all 130 generated HTTP
   operations, 130 fixtures, 130 reference pages, and 121 cURL examples pass.
 - Recorded transport: 390 SDK requests validate route, query, header, body,
   auth lane, signing bytes, protocol ownership, and response decoding.
-- Artifacts: Go 102 files / 828,110 bytes; npm 127 files / 147,887 packed
-  bytes; Python 35 files / 87,583 bytes. All remain below reviewed limits.
+- Artifacts: Go 102 files / 838,392 bytes; npm 131 files / 149,244 packed
+  bytes; Python 36 files / 89,035 bytes. All remain below reviewed limits.
 - Coordinated server: shared, host Agent, and Agent Orchestrator full test and
   vet suites pass without an SDK replacement.
 - Workflow syntax: `actionlint` 1.7.7 passes every GitHub workflow.
@@ -100,10 +124,10 @@ the complete Worker test and vet suites pass.
 ## External release controls
 
 Opening the linked PRs does not publish a package. Release tags remain blocked
-by protected environments until the server change is merged and deployed and
-authenticated npm/PyPI owners record control of the designed registry names.
-Those are explicit publication approvals; there is no repository code
-deviation hidden behind them.
+until the Phase 4 live suites are implemented and pass, the server change is
+merged and deployed, and authenticated npm/PyPI owners record control of the
+designed registry names.
 
-No unresolved source, package-layout, authentication, documentation, endpoint
-coverage, CI, or release-automation deviation remains for merge review.
+The missing executable live tiers and the lack of paginated or streaming Agent
+history responses are unresolved design deviations and release blockers. They
+must be corrected and evidenced before this report can return to PASS.

@@ -15,7 +15,8 @@ func sandboxTestClient(t *testing.T, h http.HandlerFunc) (*Client, *httptest.Ser
 	t.Helper()
 	server := httptest.NewServer(h)
 	t.Cleanup(server.Close)
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -350,14 +351,46 @@ func TestUploadWorkspaceIsNotBoundedByTheRequestTimeout(t *testing.T) {
 	defer server.Close()
 
 	conn, err := NewConnection(ConnectionOptions{
-		Address:        server.URL,
-		AuthToken:      "mgmt",
-		RequestTimeout: 100 * time.Millisecond,
+		Address:             server.URL,
+		InsecureDevelopment: true,
+		AuthToken:           "mgmt",
+		RequestTimeout:      100 * time.Millisecond,
 	})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
 	if _, err := conn.UploadWorkspace(context.Background(), strings.NewReader("archive bytes"), "repo", "rev"); err != nil {
 		t.Fatalf("UploadWorkspace was cut off by the request timeout: %v", err)
+	}
+}
+
+func TestUploadWorkspaceDoesNotFollowCrossOriginRedirect(t *testing.T) {
+	t.Parallel()
+	targetCalled := make(chan string, 1)
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetCalled <- r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id":"wsp_target"}`))
+	}))
+	defer target.Close()
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", target.URL+"/api/v1/workspaces")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	}))
+	defer source.Close()
+
+	conn, err := NewConnection(ConnectionOptions{
+		Address:             source.URL,
+		InsecureDevelopment: true,
+		AuthToken:           "opaque-management-token",
+	})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	_, _ = conn.UploadWorkspace(context.Background(), strings.NewReader("archive"), "repo", "rev")
+	select {
+	case authorization := <-targetCalled:
+		t.Fatalf("redirect target received Authorization=%q, want no request", authorization)
+	default:
 	}
 }

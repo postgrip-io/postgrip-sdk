@@ -233,11 +233,15 @@ class WorkerClientTests(unittest.TestCase):
         self.assertNotIn("correlation_id", request.full_url)
         self.assertIn("since=2026-08-24T12%3A00%3A00Z", request.full_url)
 
-    def test_requires_https_and_worker_token(self) -> None:
+    def test_requires_https_and_non_empty_opaque_worker_token(self) -> None:
         with self.assertRaises(ValueError):
             WorkerClient(base_url="http://example.com", token="pgt_token")
         with self.assertRaises(ValueError):
-            WorkerClient(base_url="https://example.com", token="pga_token")
+            WorkerClient(base_url="https://example.com", token="   ")
+        self.assertIsInstance(
+            WorkerClient(base_url="https://example.com", token="opaque-token"),
+            WorkerClient,
+        )
 
     def test_sync_and_async_clients_load_unified_environment_variables(self) -> None:
         environment = {

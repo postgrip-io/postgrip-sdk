@@ -15,7 +15,7 @@ describe('PostGrip', () => {
 
     const client = new PostGrip({
       baseUrl: 'https://api.example.test',
-      token: 'pgt_one-token',
+      token: 'opaque-one-token',
       fetch: fetchImpl,
     });
 
@@ -23,10 +23,23 @@ describe('PostGrip', () => {
     await client.workers.list();
     await client.services.list();
     expect(authorizations).toEqual([
-      'Bearer pgt_one-token',
-      'Bearer pgt_one-token',
-      'Bearer pgt_one-token',
+      'Bearer opaque-one-token',
+      'Bearer opaque-one-token',
+      'Bearer opaque-one-token',
     ]);
+  });
+
+  it('supports explicit configuration when Node globals are unavailable', () => {
+    vi.stubGlobal('process', undefined);
+    try {
+      expect(() => new PostGrip({
+        baseUrl: 'https://api.example.test',
+        token: 'opaque-explicit-token',
+        fetch: globalThis.fetch,
+      })).not.toThrow();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('applies explicit, plane, then common URL precedence from the environment', async () => {

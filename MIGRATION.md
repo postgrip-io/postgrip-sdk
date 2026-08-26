@@ -18,6 +18,14 @@ Replace every plane-specific management credential with one
 `POSTGRIP_TOKEN`. Replace old orchestrator URL variables with
 `POSTGRIP_URL` or the appropriate `POSTGRIP_<PLANE>_URL` override.
 
+Legacy Worker `pgwm_` tokens and Agent management tokens are not accepted by
+the unified common-auth endpoint. Their raw values cannot be migrated because
+the server stores only token hashes. Before switching an application to the
+unified SDK, issue a new common tenant token from the shared token settings,
+grant its required Agent, Worker, and Service scopes, and install that value as
+`POSTGRIP_TOKEN`. Keep the old credential available only for rollback until
+the coordinated server deployment is complete, then revoke it.
+
 Runtime credentials injected by a host Agent are not migrated to the common
 token. Keep `POSTGRIP_AGENT_ACCESS_TOKEN`, refresh, expiry, and signing-key
 variables host-managed.
@@ -66,3 +74,7 @@ contract and common-token change deploys before clients are published.
 The immutable API reference path contains the exact contract-bundle digest
 embedded by the generated clients, so release documentation never silently
 tracks a later `main` contract.
+
+Do not publish the SDK artifacts until the disposable nightly and isolated
+pre-release live suites required by the design have passed for the coordinated
+server release.

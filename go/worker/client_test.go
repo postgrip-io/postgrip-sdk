@@ -251,11 +251,14 @@ func TestOperationalLogIteratorStopsBeforeBufferedEntryAfterCancel(t *testing.T)
 	}
 }
 
-func TestNewRequiresHTTPSAndWorkerToken(t *testing.T) {
+func TestNewRequiresHTTPSAndNonEmptyOpaqueWorkerToken(t *testing.T) {
 	if _, err := New(Config{BaseURL: "http://example.com", Token: "pgt_token"}); err == nil {
 		t.Fatal("New accepted HTTP without insecure development")
 	}
-	if _, err := New(Config{BaseURL: "https://example.com", Token: "pga_token"}); err == nil {
-		t.Fatal("New accepted a non-worker token")
+	if _, err := New(Config{BaseURL: "https://example.com", Token: "   "}); err == nil {
+		t.Fatal("New accepted an empty token")
+	}
+	if _, err := New(Config{BaseURL: "https://example.com", Token: "opaque-token"}); err != nil {
+		t.Fatalf("New rejected an opaque token: %v", err)
 	}
 }

@@ -22,11 +22,11 @@ func ParseBaseURL(plane, raw string, insecureDevelopment bool) (*url.URL, error)
 	return baseURL, nil
 }
 
-// ManagementToken validates the common developer-configured token class.
+// ManagementToken validates that the opaque common management token is set.
 func ManagementToken(plane, raw string) (string, error) {
 	token := strings.TrimSpace(raw)
-	if !strings.HasPrefix(token, "pgt_") {
-		return "", fmt.Errorf("postgrip-%s: token must use the pgt_ prefix", plane)
+	if token == "" {
+		return "", fmt.Errorf("postgrip-%s: management token is required", plane)
 	}
 	return token, nil
 }
@@ -44,7 +44,7 @@ func HTTPClient(source *http.Client) *http.Client {
 			return nil
 		}
 		origin := via[0].URL
-		if !strings.EqualFold(req.URL.Scheme, origin.Scheme) || !strings.EqualFold(req.URL.Host, origin.Host) {
+		if !sameOrigin(req.URL, origin) {
 			return http.ErrUseLastResponse
 		}
 		if priorRedirect != nil {
@@ -56,6 +56,26 @@ func HTTPClient(source *http.Client) *http.Client {
 		return nil
 	}
 	return &clientCopy
+}
+
+func sameOrigin(left, right *url.URL) bool {
+	return strings.EqualFold(left.Scheme, right.Scheme) &&
+		strings.EqualFold(left.Hostname(), right.Hostname()) &&
+		effectivePort(left) == effectivePort(right)
+}
+
+func effectivePort(value *url.URL) string {
+	if port := value.Port(); port != "" {
+		return port
+	}
+	switch strings.ToLower(value.Scheme) {
+	case "http":
+		return "80"
+	case "https":
+		return "443"
+	default:
+		return ""
+	}
 }
 
 // FirstNonEmpty returns the first trimmed non-empty string.

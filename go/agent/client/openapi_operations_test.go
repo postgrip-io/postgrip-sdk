@@ -68,7 +68,8 @@ func TestGeneratedOpenAPIClientCallsTypedOperation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	connection, err := NewConnection(ConnectionOptions{Address: server.URL})
+	connection, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,6 +151,7 @@ func TestOpenAPIMetadataControlsRequestSigning(t *testing.T) {
 
 	connection, err := NewConnection(ConnectionOptions{
 		Address:                server.URL,
+		InsecureDevelopment:    true,
 		AgentSigningPrivateKey: base64.StdEncoding.EncodeToString(privateKey),
 	})
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 )
 
 func TestUnifiedClientUsesOneTokenForEveryPlane(t *testing.T) {
-	const token = "pgt_one-token"
+	const token = "opaque-one-token"
 	seen := map[string]string{}
 	var mu sync.Mutex
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

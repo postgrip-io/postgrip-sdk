@@ -7,7 +7,7 @@ on:
       - ".github/workflows/docs.yml"
       - "docs/**"
       - "mkdocs.yml"
-      - "go/docs/**"
+      - "go/agent/docs/**"
       - "typescript/docs/**"
       - "typescript/mkdocs.yml"
       - "python/docs/**"

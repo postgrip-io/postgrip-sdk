@@ -28,6 +28,7 @@ def main() -> None:
     connection = Connection(
         args.base_url,
         auth_token=token,
+        insecure_development=True,
         agent_id="recorded-agent",
         agent_access_token=os.environ["POSTGRIP_AGENT_ACCESS_TOKEN"],
         agent_access_expires_at="2099-01-01T00:00:00Z",

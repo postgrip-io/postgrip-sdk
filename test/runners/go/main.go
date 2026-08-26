@@ -50,7 +50,7 @@ func main() {
 	accessToken := os.Getenv("POSTGRIP_AGENT_ACCESS_TOKEN")
 	seed := os.Getenv("POSTGRIP_AGENT_SIGNING_PRIVATE_KEY")
 	agentConnection, err := agent.NewConnection(agent.ConnectionOptions{
-		Address: *baseURL, AuthToken: token, AgentID: "recorded-agent",
+		Address: *baseURL, InsecureDevelopment: true, AuthToken: token, AgentID: "recorded-agent",
 		AgentAccessToken: accessToken, AgentAccessExpiresAt: time.Now().Add(time.Hour),
 		AgentSigningPrivateKey: seed,
 	})

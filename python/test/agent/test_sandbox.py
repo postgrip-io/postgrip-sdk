@@ -18,9 +18,10 @@ from postgrip.agent import (
 class FakeResponse:
     def __init__(self, payload):
         self._raw = json.dumps(payload).encode()
+        self._stream = io.BytesIO(self._raw)
 
-    def read(self):
-        return self._raw
+    def read(self, size=-1):
+        return self._stream.read(size)
 
     def __enter__(self):
         return self
@@ -155,6 +156,15 @@ class SandboxClientTests(unittest.TestCase):
         self.assertIsNone(request.get_header("X-postgrip-repository"))
         self.assertIsNone(request.get_header("X-postgrip-revision"))
 
+    def test_plaintext_relay_is_rejected_before_creating_ticket(self):
+        with patch.object(self.client.sandbox, "create_session") as create_session:
+            with self.assertRaisesRegex(ValueError, "WSS"):
+                self.client.sandbox.open_session(
+                    "sbx_1",
+                    relay_base_url="ws://relay.example.com",
+                )
+        create_session.assert_not_called()
+
     def test_upload_workspace_streams_file_like_inputs(self):
         class TrackingArchive(io.BytesIO):
             def __init__(self, value):
@@ -262,9 +272,16 @@ class SandboxRelayContractTests(unittest.TestCase):
             "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t",
         )
         self.assertEqual(
-            sandbox_relay_url("http://127.0.0.1:4100/", "ses_1", "pgss_t"),
+            sandbox_relay_url(
+                "http://127.0.0.1:4100/",
+                "ses_1",
+                "pgss_t",
+                insecure_development=True,
+            ),
             "ws://127.0.0.1:4100/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t",
         )
+        with self.assertRaisesRegex(ValueError, "WSS"):
+            sandbox_relay_url("ws://relay.example.com", "ses_1", "pgss_t")
         escaped = sandbox_relay_url("https://x.example", "ses/1", "a b&c=d")
         self.assertIn("ses%2F1", escaped)
         self.assertNotIn("a b&c=d", escaped)

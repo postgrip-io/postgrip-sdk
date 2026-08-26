@@ -14,7 +14,7 @@ from postgrip.agent import Client, Connection, Task, Agent, Worker, WorkflowExec
 
 class FakeConnection(Connection):
     def __init__(self):
-        super().__init__("http://agent.test")
+        super().__init__("http://agent.test", insecure_development=True)
         self.enqueued: list[dict] = []
         self.completed: list[tuple[str, dict]] = []
         self.failed: list[tuple[str, str, dict | None]] = []
@@ -102,12 +102,12 @@ class PythonSdkTests(unittest.TestCase):
         self.assertIs(Worker, Agent)
 
     def test_connection_accepts_agent_id_keyword(self):
-        connection = Connection("http://agent.test", agent_id="agent-1")
+        connection = Connection("http://agent.test", insecure_development=True, agent_id="agent-1")
 
         self.assertEqual(connection._agent_id, "agent-1")
 
     def test_configure_agent_auth_accepts_agent_id_keyword(self):
-        connection = Connection("http://agent.test")
+        connection = Connection("http://agent.test", insecure_development=True)
 
         connection.configure_agent_auth(agent_id="agent-1", namespace="tenant-a", queue="priority")
 
@@ -116,7 +116,7 @@ class PythonSdkTests(unittest.TestCase):
         self.assertEqual(connection._agent_queue, "priority")
 
     def test_ensure_agent_session_uses_agent_id(self):
-        connection = Connection("http://agent.test", agent_refresh_token="refresh-token")
+        connection = Connection("http://agent.test", insecure_development=True, agent_refresh_token="refresh-token")
         requests: list[tuple[str, str, dict | None, bool]] = []
 
         def fake_request(
@@ -142,7 +142,7 @@ class PythonSdkTests(unittest.TestCase):
         self.assertEqual(requests[0][2]["refreshToken"], "refresh-token")
 
     def test_worker_id_keyword_maps_to_canonical_agent_payload(self):
-        connection = Connection("http://agent.test", agent_refresh_token="refresh-token")
+        connection = Connection("http://agent.test", insecure_development=True, agent_refresh_token="refresh-token")
         requests: list[tuple[str, str, dict | None, bool]] = []
 
         def fake_request(
@@ -175,6 +175,7 @@ class PythonSdkTests(unittest.TestCase):
     def test_task_helpers_accept_agent_id_keyword(self):
         connection = Connection(
             "http://agent.test",
+            insecure_development=True,
             agent_access_token="access-token",
             agent_refresh_token="refresh-token",
             agent_access_expires_at="2999-01-01T00:00:00Z",
@@ -214,6 +215,7 @@ class PythonSdkTests(unittest.TestCase):
     def test_gone_poll_response_preserves_shutdown_directive(self):
         connection = Connection(
             "http://agent.test/orchestrator",
+            insecure_development=True,
             agent_id="agent-1",
             agent_access_token="access-token",
             agent_refresh_token="refresh-token",
@@ -235,7 +237,7 @@ class PythonSdkTests(unittest.TestCase):
         self.assertEqual(response["directive"], {"type": "shutdown", "subject": "agent"})
 
     def test_task_helpers_preserve_required_payload_arguments(self):
-        connection = Connection("http://agent.test")
+        connection = Connection("http://agent.test", insecure_development=True)
 
         with self.assertRaises(TypeError):
             connection.complete_task("task-1", agent_id="agent-1")
@@ -868,7 +870,9 @@ class SandboxClientDetailsTest(unittest.TestCase):
                 sandbox_relay_url(base, "ses_1", "t").startswith("wss://agents.example.com/"),
                 f"{base} did not map to wss://",
             )
-        self.assertTrue(sandbox_relay_url("HTTP://127.0.0.1:4100", "ses_1", "t").startswith("ws://"))
+        self.assertTrue(sandbox_relay_url(
+            "HTTP://127.0.0.1:4100", "ses_1", "t", insecure_development=True,
+        ).startswith("ws://"))
         self.assertTrue(sandbox_relay_url("WSS://agents.example.com", "ses_1", "t").startswith("wss://"))
         with self.assertRaises(ValueError):
             sandbox_relay_url("ftp://nope", "ses_1", "t")
@@ -888,7 +892,7 @@ class SandboxClientDetailsTest(unittest.TestCase):
         self.assertFalse(has_authorization_header({}))
 
     def test_explicit_lowercase_authorization_is_not_overridden(self):
-        conn = Connection("http://agent.test", auth_token="token-from-config",
+        conn = Connection("http://agent.test", insecure_development=True, auth_token="token-from-config",
                           headers={"authorization": "Bearer explicit"})
         headers = dict(conn.headers)
         from postgrip.agent.client import has_authorization_header
@@ -902,7 +906,7 @@ class SandboxClientDetailsTest(unittest.TestCase):
         ticket had already been spent."""
         from postgrip.agent.sandbox import SandboxClient
 
-        conn = Connection("http://agent.test", headers={
+        conn = Connection("http://agent.test", insecure_development=True, headers={
             "Authorization": "Bearer explicit",
             "X-Gateway-Token": "gw",
         })
@@ -935,7 +939,7 @@ class SandboxClientDetailsTest(unittest.TestCase):
         the one kept."""
         from postgrip.agent.sandbox import SandboxClient
 
-        conn = Connection("http://agent.test")
+        conn = Connection("http://agent.test", insecure_development=True)
         client = SandboxClient(conn)
         client.get = lambda sandbox_id: {  # type: ignore[method-assign]
             "id": sandbox_id, "observedState": "provisioning",

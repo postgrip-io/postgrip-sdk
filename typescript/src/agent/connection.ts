@@ -52,7 +52,8 @@ import {
   type OpenAPIRequestOptions,
   type OpenAPIResponseBody,
 } from './generated/openapi.js';
-import { validateBaseUrl } from '../internal/config.js';
+import { defaultPostGripEnvironment, validateBaseUrl } from '../internal/config.js';
+import { readBoundedResponseBody } from '../internal/http.js';
 
 export interface ConnectionOptions {
   baseUrl?: string;
@@ -61,7 +62,7 @@ export interface ConnectionOptions {
   insecureDevelopment?: boolean;
   /**
    * Common tenant-bound bearer sent on management requests. Treat it as an
-   * opaque `pgt_` value and load it from `POSTGRIP_TOKEN` at the root facade.
+   * opaque value loaded from `POSTGRIP_TOKEN` unless supplied explicitly.
    */
   authToken?: string;
   agentAuth?: AgentAuthOptions;
@@ -97,6 +98,7 @@ type AgentSessionResponse = OpenAPIComponents['AgentSessionResponse'];
 export class Connection {
   readonly baseUrl: string;
   readonly openapi: OpenAPIClient;
+  readonly insecureDevelopment: boolean;
   private readonly fetchImpl: typeof fetch;
   private readonly headers: HeadersInit | undefined;
   private readonly authToken: string | undefined;
@@ -107,6 +109,7 @@ export class Connection {
 
   private constructor(options: Required<Pick<ConnectionOptions, 'baseUrl'>> & Omit<ConnectionOptions, 'baseUrl'>) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
+    this.insecureDevelopment = options.insecureDevelopment === true;
     this.fetchImpl = options.fetch ?? fetch;
     this.headers = options.headers;
     this.authToken = options.authToken?.trim() || undefined;
@@ -122,9 +125,11 @@ export class Connection {
 
   /** Constructs a connection without issuing a network request. */
   static create(options: ConnectionOptions = {}): Connection {
-    const baseUrl = options.baseUrl ?? process.env.POSTGRIP_AGENT_URL ?? process.env.POSTGRIP_URL ?? DEFAULT_BASE_URL;
+    const environment = defaultPostGripEnvironment();
+    const baseUrl = options.baseUrl ?? environment.POSTGRIP_AGENT_URL ?? environment.POSTGRIP_URL ?? DEFAULT_BASE_URL;
+    const authToken = options.authToken ?? environment.POSTGRIP_TOKEN;
     validateBaseUrl('Agent', baseUrl, options.insecureDevelopment);
-    return new Connection({ ...options, baseUrl });
+    return new Connection({ ...options, baseUrl, authToken });
   }
 
   async health(): Promise<{ status: string }> {
@@ -508,16 +513,18 @@ export class Connection {
       method: operation.method,
       headers,
       body: archive,
+      redirect: 'manual',
       // Node's fetch requires this for a streaming request body.
       ...(typeof archive === 'object' && archive !== null && Symbol.asyncIterator in (archive as object)
         ? { duplex: 'half' }
         : {}),
     } as RequestInit);
+    const responseBody = await readBoundedResponseBody(response, 'Agent');
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: response.statusText }));
+      const payload = parseJSONRecord(responseBody);
       throw new Error(typeof payload.error === 'string' ? payload.error : response.statusText);
     }
-    return (await response.json()) as SandboxWorkspace;
+    return JSON.parse(responseBody) as SandboxWorkspace;
   }
 
   async listWorkspaces(): Promise<SandboxWorkspace[]> {
@@ -608,12 +615,17 @@ export class Connection {
       signal,
       headers,
       body: body == null ? undefined : bodyString,
+      redirect: 'manual',
     });
+    const text = await readBoundedResponseBody(
+      response,
+      'Agent',
+      !response.ok || !requiresCompleteHistoryResponse(method, path),
+    );
     if (!response.ok && !options.acceptedStatuses?.includes(response.status)) {
-      const payload = await response.json().catch(() => ({ error: response.statusText }));
+      const payload = parseJSONRecord(text);
       throw new Error(typeof payload.error === 'string' ? payload.error : response.statusText);
     }
-    const text = await response.text();
     const terminalGone = response.status === 410 && options.acceptedStatuses?.includes(410);
     if (text === '') {
       if (terminalGone) {
@@ -645,6 +657,25 @@ export class Connection {
   private hasAgentRuntimeCredentials(): boolean {
     return Boolean(this.agentAuth.accessToken || this.agentAuth.refreshToken);
   }
+}
+
+function parseJSONRecord(value: string): Record<string, unknown> {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function requiresCompleteHistoryResponse(method: string, requestPath: string): boolean {
+  if (method !== 'GET') return false;
+  const path = requestPath.split('?', 1)[0] ?? requestPath;
+  return path === '/api/v1/task-events'
+    || (path.startsWith('/api/v1/tasks/') && path.endsWith('/events'))
+    || (path.startsWith('/api/v1/workflows/') && path.endsWith('/history'));
 }
 
 function accessTokenIsFresh(expiresAt: string | undefined): boolean {

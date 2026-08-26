@@ -21,7 +21,7 @@ export function resolvePostGripConfig(options: {
   readonly token?: string;
   readonly environment?: PostGripEnvironment;
 }): ResolvedPostGripConfig {
-  const environment = options.environment ?? process.env;
+  const environment = options.environment ?? defaultPostGripEnvironment();
   const baseUrl = first(options.baseUrl, environment.POSTGRIP_URL);
   return {
     agentUrl: requiredUrl('Agent', first(options.agentUrl, environment.POSTGRIP_AGENT_URL, baseUrl)),
@@ -33,10 +33,14 @@ export function resolvePostGripConfig(options: {
 
 export function validateManagementToken(value: string | undefined): string {
   const token = value?.trim() ?? '';
-  if (!token.startsWith('pgt_')) {
-    throw new Error('PostGrip token must use the pgt_ prefix');
+  if (!token) {
+    throw new Error('PostGrip management token is required');
   }
   return token;
+}
+
+export function defaultPostGripEnvironment(): PostGripEnvironment {
+  return typeof process === 'undefined' ? {} : process.env;
 }
 
 export function validateBaseUrl(

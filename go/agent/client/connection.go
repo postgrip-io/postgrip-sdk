@@ -16,10 +16,13 @@ import (
 	"time"
 
 	"github.com/postgrip-io/postgrip-agent-sdks/go/agent/failure"
+	"github.com/postgrip-io/postgrip-agent-sdks/go/internal/transport"
 	"github.com/postgrip-io/postgrip-agent-sdks/go/protocol"
 )
 
 const DefaultAddress = "https://agentorchestrator1.postgrip.io"
+
+const maxResponseBytes = 4 << 20
 
 // ConnectionOptions configures the HTTP connection to the agent runtime
 // service. Address is the base URL (defaults to DefaultAddress).
@@ -35,6 +38,7 @@ type ConnectionOptions struct {
 	HTTPClient             *http.Client
 	Headers                map[string]string
 	RequestTimeout         time.Duration
+	InsecureDevelopment    bool
 	AgentID                string
 	AgentName              string
 	AgentHost              string
@@ -48,10 +52,11 @@ type ConnectionOptions struct {
 
 // Connection is the HTTP transport layer. It is safe for concurrent use.
 type Connection struct {
-	address    string
-	httpClient *http.Client
-	authHeader string
-	headers    map[string]string
+	address             string
+	httpClient          *http.Client
+	authHeader          string
+	headers             map[string]string
+	insecureDevelopment bool
 
 	// Agent (worker-side) auth state. Mutated by ensureAgentSession; reads
 	// must hold agentMu. Agent sessions must be delegated by a host agent and
@@ -73,20 +78,18 @@ type Connection struct {
 	agentSignPub  ed25519.PublicKey
 }
 
-// NewConnection constructs a Connection. URL validation is deferred to the
-// first request — there's no cost to sitting on a configured Connection.
+// NewConnection constructs a Connection after validating its base URL and
+// installing the shared redirect-safe HTTP policy.
 func NewConnection(opts ConnectionOptions) (*Connection, error) {
 	address := firstNonEmpty(opts.Address, os.Getenv("POSTGRIP_AGENT_URL"), os.Getenv("POSTGRIP_URL"))
 	if address == "" {
 		address = DefaultAddress
 	}
-	if !strings.Contains(address, "://") {
-		address = "http://" + address
+	baseURL, err := transport.ParseBaseURL("agent", address, opts.InsecureDevelopment)
+	if err != nil {
+		return nil, err
 	}
-	if _, err := url.Parse(address); err != nil {
-		return nil, fmt.Errorf("postgrip-agent: invalid address %q: %w", address, err)
-	}
-	address = strings.TrimRight(address, "/")
+	address = strings.TrimRight(baseURL.String(), "/")
 	httpClient := opts.HTTPClient
 	if httpClient == nil {
 		timeout := opts.RequestTimeout
@@ -95,6 +98,7 @@ func NewConnection(opts ConnectionOptions) (*Connection, error) {
 		}
 		httpClient = &http.Client{Timeout: timeout}
 	}
+	httpClient = transport.HTTPClient(httpClient)
 	agentID := firstNonEmpty(opts.AgentID, os.Getenv("POSTGRIP_AGENT_ID"))
 	namespace := firstNonEmpty(opts.AgentNamespace, os.Getenv("POSTGRIP_AGENT_NAMESPACE"), DefaultNamespace)
 	queue := firstNonEmpty(opts.AgentQueue, os.Getenv("POSTGRIP_AGENT_TASK_QUEUE"), DefaultQueue)
@@ -123,6 +127,7 @@ func NewConnection(opts ConnectionOptions) (*Connection, error) {
 		httpClient:             httpClient,
 		authHeader:             authHeader,
 		headers:                headers,
+		insecureDevelopment:    opts.InsecureDevelopment,
 		agentID:                agentID,
 		agentName:              opts.AgentName,
 		agentHost:              opts.AgentHost,
@@ -236,7 +241,7 @@ func (c *Connection) do(ctx context.Context, method, path string, body any, out 
 			req.Header.Set(protocol.HeaderAgentSignatureKeyID, protocol.AgentSigningKeyID(pub))
 			req.Header.Set(protocol.HeaderAgentSignature, protocol.SignAgentRequest(priv, payload))
 		}
-	} else if managementAuth && c.authHeader != "" {
+	} else if managementAuth && c.authHeader != "" && !hasAuthorizationHeader(req.Header) {
 		req.Header.Set("Authorization", c.authHeader)
 	}
 	resp, err := c.httpClient.Do(req)
@@ -244,7 +249,7 @@ func (c *Connection) do(ctx context.Context, method, path string, body any, out 
 		return &failure.SDKError{Message: "http request", Cause: err}
 	}
 	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := readResponseBody(resp.Body, responseBodyLimit(method, path, resp.StatusCode))
 	if err != nil {
 		return &failure.SDKError{Message: "read response body", Cause: err}
 	}
@@ -297,7 +302,7 @@ func (c *Connection) doStream(ctx context.Context, method, path string, body io.
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
-	if c.authHeader != "" {
+	if c.authHeader != "" && !hasAuthorizationHeader(req.Header) {
 		req.Header.Set("Authorization", c.authHeader)
 	}
 	// Not c.httpClient: its Timeout is a bound on the *whole* exchange, body
@@ -314,7 +319,7 @@ func (c *Connection) doStream(ctx context.Context, method, path string, body io.
 		return &failure.SDKError{Message: "http request", Cause: err}
 	}
 	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := readResponseBody(resp.Body, maxResponseBytes)
 	if err != nil {
 		return &failure.SDKError{Message: "read response body", Cause: err}
 	}
@@ -336,6 +341,45 @@ func (c *Connection) doStream(ctx context.Context, method, path string, body io.
 		return &failure.SDKError{Message: fmt.Sprintf("decode response from %s %s", method, path), Cause: err}
 	}
 	return nil
+}
+
+func readResponseBody(body io.Reader, limit int64) ([]byte, error) {
+	if limit <= 0 {
+		return io.ReadAll(body)
+	}
+	raw, err := io.ReadAll(io.LimitReader(body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(raw)) > limit {
+		return nil, errors.New("postgrip-agent: response is invalid or too large")
+	}
+	return raw, nil
+}
+
+func responseBodyLimit(method, requestPath string, statusCode int) int64 {
+	if method != http.MethodGet || statusCode >= http.StatusBadRequest {
+		return maxResponseBytes
+	}
+	path, _, _ := strings.Cut(requestPath, "?")
+	if path == "/api/v1/task-events" ||
+		(strings.HasPrefix(path, "/api/v1/tasks/") && strings.HasSuffix(path, "/events")) ||
+		(strings.HasPrefix(path, "/api/v1/workflows/") && strings.HasSuffix(path, "/history")) {
+		// These public contracts return complete, unpaginated histories used by
+		// workflow replay. Capping successful responses would permanently block
+		// a valid workflow after its history crosses the generic response limit.
+		return 0
+	}
+	return maxResponseBytes
+}
+
+func hasAuthorizationHeader(headers http.Header) bool {
+	for name := range headers {
+		if strings.EqualFold(name, "Authorization") {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Connection) doStreamOpenAPI(ctx context.Context, id openAPIOperationID, body io.Reader, headers map[string]string, out any) error {

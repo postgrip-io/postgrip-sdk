@@ -239,9 +239,20 @@ describe('WorkerClient', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it('requires HTTPS and the worker token family', () => {
+  it('requires HTTPS and a non-empty opaque worker token', () => {
     expect(() => new WorkerClient({ baseUrl: 'http://example.com', token: 'pgt_token' })).toThrow('HTTPS');
-    expect(() => new WorkerClient({ baseUrl: 'https://example.com', token: 'pga_token' })).toThrow('pgt_');
+    expect(() => new WorkerClient({ baseUrl: 'https://example.com', token: '   ' })).toThrow('required');
+    expect(() => new WorkerClient({ baseUrl: 'https://example.com', token: 'opaque-token' })).not.toThrow();
+  });
+
+  it('rejects an oversized response body', async () => {
+    const client = new WorkerClient({
+      baseUrl: 'https://example.com',
+      token: 'opaque-token',
+      fetch: vi.fn<typeof fetch>(async () => new Response('x'.repeat((4 << 20) + 1))),
+    });
+
+    await expect(client.list()).rejects.toThrow(/too large/);
   });
 
   it('executes every Worker facade through its canonical route', async () => {

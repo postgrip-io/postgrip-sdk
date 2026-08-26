@@ -11,10 +11,12 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from .._internal.config import validate_base_url
+from .._internal.http import read_bounded_response, redirect_safe_open as urlopen
 from . import _signing
 from .errors import TaskFailedError, TimeoutFailure
 from .openapi import (
@@ -45,6 +47,17 @@ def has_authorization_header(headers: dict[str, str]) -> bool:
     return any(name.lower() == "authorization" for name in headers)
 
 
+def _requires_complete_history_response(method: str, path: str) -> bool:
+    if method != "GET":
+        return False
+    path = path.split("?", 1)[0]
+    return (
+        path == "/api/v1/task-events"
+        or (path.startswith("/api/v1/tasks/") and path.endswith("/events"))
+        or (path.startswith("/api/v1/workflows/") and path.endswith("/history"))
+    )
+
+
 class Connection:
     def __init__(
         self,
@@ -53,6 +66,7 @@ class Connection:
         timeout: float = 30,
         headers: dict[str, str] | None = None,
         auth_token: str | None = None,
+        insecure_development: bool = False,
         agent_id: str | None = None,
         worker_id: str | None = None,
         agent_name: str | None = None,
@@ -66,15 +80,14 @@ class Connection:
     ):
         if not address:
             address = os.environ.get("POSTGRIP_AGENT_URL") or os.environ.get("POSTGRIP_URL") or DEFAULT_ADDRESS
-        if "://" not in address:
-            address = f"http://{address}"
+        address = validate_base_url("Agent", address, insecure_development=insecure_development)
         self.address = address.rstrip("/")
+        self.insecure_development = insecure_development
         self.timeout = timeout
         self.headers = dict(headers or {})
         # Management token, sent on every management-lane request. Required for
-        # the sandbox APIs, which reject agent tokens. Opaque: the console
-        # issues a bare hex string with no prefix, so there is nothing to
-        # validate.
+        # the sandbox APIs, which reject agent tokens. Its server-owned syntax
+        # is intentionally opaque to the SDK.
         self.auth_token = (auth_token or os.environ.get("POSTGRIP_TOKEN") or "").strip() or None
         self._agent_id = agent_id or worker_id or os.environ.get("POSTGRIP_AGENT_ID")
         self._agent_name = agent_name
@@ -209,9 +222,20 @@ class Connection:
         request = Request(self.address + path, data=(data or None) if body is not None else None, method=method, headers=headers)
         try:
             with urlopen(request, timeout=self.timeout) as response:
-                raw = response.read()
+                raw = read_bounded_response(
+                    response,
+                    "Agent",
+                    bounded=not _requires_complete_history_response(method, path),
+                )
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
         except HTTPError as exc:
-            raw = exc.read()
+            try:
+                raw = read_bounded_response(exc, "Agent")
+            except ValueError as read_error:
+                raise RuntimeError(str(read_error)) from exc
+            finally:
+                exc.close()
             if exc.code == 410 and urlsplit(path).path == "/api/v1/agent/poll":
                 # Gone is terminal even if an intermediary strips or corrupts
                 # the response body. Preserve valid directive fields while

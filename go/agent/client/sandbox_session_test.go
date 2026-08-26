@@ -18,14 +18,18 @@ import (
 
 func TestSandboxRelayURL(t *testing.T) {
 	t.Parallel()
-	cases := []struct{ address, want string }{
-		{"https://agents.example.com", "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
-		{"http://127.0.0.1:4100", "ws://127.0.0.1:4100/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
-		{"https://agents.example.com/", "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
-		{"wss://agents.example.com", "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+	cases := []struct {
+		address  string
+		insecure bool
+		want     string
+	}{
+		{"https://agents.example.com", false, "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+		{"http://127.0.0.1:4100", true, "ws://127.0.0.1:4100/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+		{"https://agents.example.com/", false, "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
+		{"wss://agents.example.com", false, "wss://agents.example.com/api/v1/sandbox-sessions/ses_1/connect?ticket=pgss_t"},
 	}
 	for _, tc := range cases {
-		got, err := sandboxRelayURL(tc.address, "ses_1", "pgss_t")
+		got, err := sandboxRelayURL(tc.address, "ses_1", "pgss_t", tc.insecure)
 		if err != nil {
 			t.Fatalf("sandboxRelayURL(%q): %v", tc.address, err)
 		}
@@ -33,15 +37,18 @@ func TestSandboxRelayURL(t *testing.T) {
 			t.Fatalf("sandboxRelayURL(%q) = %q, want %q", tc.address, got, tc.want)
 		}
 	}
-	if _, err := sandboxRelayURL("ftp://nope", "ses_1", "t"); err == nil {
+	if _, err := sandboxRelayURL("ftp://nope", "ses_1", "t", false); err == nil {
 		t.Fatal("accepted a non-http(s) relay address")
+	}
+	if _, err := sandboxRelayURL("ws://agents.example.com", "ses_1", "t", false); err == nil {
+		t.Fatal("accepted plaintext WebSocket without insecure development")
 	}
 }
 
 // The ticket must be escaped into the query, not concatenated raw.
 func TestSandboxRelayURLEscapesTheTicket(t *testing.T) {
 	t.Parallel()
-	got, err := sandboxRelayURL("https://x.example", "ses/1", "a b&c=d")
+	got, err := sandboxRelayURL("https://x.example", "ses/1", "a b&c=d", false)
 	if err != nil {
 		t.Fatalf("sandboxRelayURL: %v", err)
 	}
@@ -50,6 +57,26 @@ func TestSandboxRelayURLEscapesTheTicket(t *testing.T) {
 	}
 	if !strings.Contains(got, "ses%2F1") {
 		t.Fatalf("session id was not escaped: %s", got)
+	}
+}
+
+func TestOpenSandboxSessionRejectsPlaintextRelayBeforeCreatingTicket(t *testing.T) {
+	t.Parallel()
+	conn, err := NewConnection(ConnectionOptions{
+		Address:   "https://agents.example.com",
+		AuthToken: "opaque-management-token",
+	})
+	if err != nil {
+		t.Fatalf("NewConnection: %v", err)
+	}
+	_, err = New(conn).Sandbox.OpenSandboxSession(
+		context.Background(),
+		"sandbox-1",
+		protocol.SandboxSessionKindPTY,
+		SandboxSessionOptions{RelayAddress: "ws://relay.example.com"},
+	)
+	if err == nil || !strings.Contains(err.Error(), "WSS") {
+		t.Fatalf("OpenSandboxSession error = %v, want secure relay error", err)
 	}
 }
 
@@ -99,7 +126,8 @@ func TestOpenSandboxPortUsesSeparateBinaryProtocol(t *testing.T) {
 	}))
 	defer server.Close()
 
-	connection, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	connection, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +187,8 @@ func TestExecStreamsAndReportsTheExitCode(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -204,7 +233,8 @@ func TestExecSignalsEOFForNilStdin(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -257,7 +287,8 @@ func TestSandboxStreamCloseWriteIsIdempotentAndClosesOnlyInput(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	stream, err := New(conn).Sandbox.OpenSandboxSession(context.Background(), "sbx_1", protocol.SandboxSessionKindExec, SandboxSessionOptions{Command: []string{"cat"}})
 	if err != nil {
 		t.Fatalf("OpenSandboxSession: %v", err)
@@ -322,7 +353,8 @@ func TestExecRejectsAStreamThatEndsWithoutAnExitStatus(t *testing.T) {
 			}))
 			defer server.Close()
 
-			conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+			conn, err := NewConnection(ConnectionOptions{Address: server.URL,
+				InsecureDevelopment: true, AuthToken: "mgmt"})
 			if err != nil {
 				t.Fatalf("NewConnection: %v", err)
 			}
@@ -355,7 +387,8 @@ func TestExitCodeRejectsEOFWithoutAnExitStatus(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -391,7 +424,8 @@ func TestExecReportsAFailedStdinCopy(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -429,7 +463,8 @@ func TestSandboxStreamRejectsOversizedWrites(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, _ := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	c := New(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -472,7 +507,8 @@ func TestExitCodeHonoursItsOwnContext(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := NewConnection(ConnectionOptions{Address: server.URL, AuthToken: "mgmt"})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL,
+		InsecureDevelopment: true, AuthToken: "mgmt"})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}
@@ -516,9 +552,10 @@ func TestOpenSandboxSessionForwardsConfiguredHeaders(t *testing.T) {
 	defer server.Close()
 
 	conn, err := NewConnection(ConnectionOptions{
-		Address:   server.URL,
-		AuthToken: "mgmt",
-		Headers:   map[string]string{"X-Gateway-Token": "gw-secret"},
+		Address:             server.URL,
+		InsecureDevelopment: true,
+		AuthToken:           "mgmt",
+		Headers:             map[string]string{"X-Gateway-Token": "gw-secret"},
 	})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)

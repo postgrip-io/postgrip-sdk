@@ -22,7 +22,12 @@ class OpenAPIOperationTests(unittest.TestCase):
         captured = {}
 
         class Response:
-            def read(self):
+            _read = False
+
+            def read(self, _size: int = -1):
+                if self._read:
+                    return b""
+                self._read = True
                 return b"{}"
 
             def __enter__(self):
@@ -35,7 +40,7 @@ class OpenAPIOperationTests(unittest.TestCase):
             captured["authorization"] = request.get_header("Authorization")
             return Response()
 
-        connection = Connection("http://agent.test", auth_token="pgt-management")
+        connection = Connection("http://agent.test", insecure_development=True, auth_token="pgt-management")
         with patch("postgrip.agent.client.urlopen", fake_urlopen):
             connection.openapi.refresh_agent_session({"refreshToken": "pgr-runtime"})
 
@@ -105,7 +110,7 @@ class OpenAPIOperationTests(unittest.TestCase):
             calls.append((operation_id, kwargs.get("query") or {}))
             return {"count": 0} if operation_id is OperationId.COUNT_WORKFLOWS else []
 
-        connection = Connection("http://example.invalid")
+        connection = Connection("http://example.invalid", insecure_development=True)
         connection.openapi = OpenAPIClient(transport)
         connection.list_tasks(order_by="-created_at", page_token="20")
         connection.list_schedules(page_token="40")

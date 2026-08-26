@@ -33,7 +33,8 @@ describe('ServiceClient', () => {
     expect(() => new ServiceClient({ baseUrl: 'https://example.test?q=yes', token: 'pgt_token' })).toThrow(/query/);
     expect(() => new ServiceClient({ baseUrl: 'https://example.test?', token: 'pgt_token' })).toThrow(/query/);
     expect(() => new ServiceClient({ baseUrl: 'https://example.test#', token: 'pgt_token' })).toThrow(/query/);
-    expect(() => new ServiceClient({ baseUrl: 'https://example.test', token: 'bad' })).toThrow(/pgt_/);
+    expect(() => new ServiceClient({ baseUrl: 'https://example.test', token: '   ' })).toThrow(/required/);
+    expect(() => new ServiceClient({ baseUrl: 'https://example.test', token: 'opaque-token' })).not.toThrow();
     expect(() => new ServiceClient({
       baseUrl: 'https://example.test', token: 'pgt_token', retry: { maxAttempts: 4 },
     })).toThrow(/maxAttempts/);

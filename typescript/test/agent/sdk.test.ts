@@ -57,6 +57,62 @@ describe('PostGrip Agent TypeScript Connection', () => {
     expect(authorization).toBeNull();
   });
 
+  it('loads POSTGRIP_TOKEN for a directly constructed Agent connection', async () => {
+    vi.stubEnv('POSTGRIP_AGENT_URL', 'https://agent.example.test');
+    vi.stubEnv('POSTGRIP_TOKEN', 'opaque-direct-token');
+    try {
+      let authorization: string | null = null;
+      const connection = Connection.create({
+        fetch: vi.fn<typeof fetch>(async (_input, init) => {
+          authorization = new Headers(init?.headers).get('authorization');
+          return Response.json([]);
+        }),
+      });
+      await connection.listNamespaces();
+      expect(authorization).toBe('Bearer opaque-direct-token');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('requires manual redirect handling for JSON and archive requests', async () => {
+    const redirects: Array<RequestRedirect | undefined> = [];
+    const connection = Connection.create({
+      baseUrl: 'https://agent.example.test',
+      authToken: 'opaque-management-token',
+      fetch: vi.fn<typeof fetch>(async (input, init) => {
+        redirects.push(init?.redirect);
+        return String(input).endsWith('/api/v1/workspaces')
+          ? Response.json({ id: 'workspace-1' })
+          : Response.json([]);
+      }),
+    });
+
+    await connection.listNamespaces();
+    await connection.uploadWorkspace(new Uint8Array([1, 2, 3]));
+    expect(redirects).toEqual(['manual', 'manual']);
+  });
+
+  it('rejects an oversized response body', async () => {
+    const connection = Connection.create({
+      baseUrl: 'https://agent.example.test',
+      fetch: vi.fn<typeof fetch>(async () => new Response('x'.repeat((4 << 20) + 1))),
+    });
+
+    await expect(connection.listNamespaces()).rejects.toThrow(/too large/);
+  });
+
+  it('allows complete unpaginated workflow history above the generic response bound', async () => {
+    const connection = Connection.create({
+      baseUrl: 'https://agent.example.test',
+      fetch: vi.fn<typeof fetch>(async () => Response.json([
+        { type: 'event', attributes: { payload: 'x'.repeat(4 << 20) } },
+      ])),
+    });
+
+    await expect(connection.getWorkflowHistory('workflow-1')).resolves.toHaveLength(1);
+  });
+
   it('keeps deprecated Worker imports as Agent aliases', () => {
     expect(IndexWorker).toBe(Agent);
     expect(ModuleWorker).toBe(Agent);

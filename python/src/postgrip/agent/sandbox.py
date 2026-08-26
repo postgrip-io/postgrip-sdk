@@ -11,8 +11,9 @@ from __future__ import annotations
 import time
 from typing import IO, TYPE_CHECKING, Any, Iterable
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
+from .._internal.http import read_bounded_response, redirect_safe_open as urlopen
 from .client import has_authorization_header
 from .openapi import (
     CONNECT_SANDBOX_SESSION_PATH_SESSION_ID,
@@ -51,7 +52,13 @@ def sandbox_exec_exit_code(close_status: int) -> int | None:
     return close_status - SANDBOX_EXEC_CLOSE_STATUS_BASE
 
 
-def sandbox_relay_url(base_url: str, session_id: str, ticket: str) -> str:
+def sandbox_relay_url(
+    base_url: str,
+    session_id: str,
+    ticket: str,
+    *,
+    insecure_development: bool = False,
+) -> str:
     """Build the ``ws(s)://`` relay URL from an ``http(s)`` API base URL."""
     base = base_url.strip().rstrip("/")
     # URL schemes are case-insensitive (RFC 3986 §3.1), and urllib accepts
@@ -63,8 +70,14 @@ def sandbox_relay_url(base_url: str, session_id: str, ticket: str) -> str:
     if separator and scheme == "https":
         origin = "wss://" + remainder
     elif separator and scheme == "http":
+        if not insecure_development:
+            raise ValueError("postgrip-agent: sandbox relay base must use WSS unless insecure_development is enabled")
         origin = "ws://" + remainder
-    elif separator and scheme in ("wss", "ws"):
+    elif separator and scheme == "wss":
+        origin = f"{scheme}://{remainder}"
+    elif separator and scheme == "ws":
+        if not insecure_development:
+            raise ValueError("postgrip-agent: sandbox relay base must use WSS unless insecure_development is enabled")
         origin = f"{scheme}://{remainder}"
     else:
         raise ValueError(f"postgrip-agent: sandbox relay base must be http(s) or ws(s): {base_url}")
@@ -193,9 +206,17 @@ class SandboxClient:
         )
         try:
             with urlopen(request, timeout=self.connection.timeout) as response:
-                raw = response.read()
+                raw = read_bounded_response(response, "Agent")
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
         except HTTPError as exc:
-            raise RuntimeError(exc.read().decode() or str(exc)) from exc
+            try:
+                raw = read_bounded_response(exc, "Agent")
+            except ValueError as read_error:
+                raise RuntimeError(str(read_error)) from exc
+            finally:
+                exc.close()
+            raise RuntimeError(raw.decode() or str(exc)) from exc
         import json
 
         return json.loads(raw.decode()) if raw else {}
@@ -273,11 +294,22 @@ class SandboxClient:
 
             pip install "postgrip[sandbox]"
         """
+        relay_address = relay_base_url or self.connection.address
+        # Validate the transport before creating a single-use session ticket.
+        sandbox_relay_url(
+            relay_address,
+            "validation",
+            "validation",
+            insecure_development=self.connection.insecure_development,
+        )
         session = self.create_session(
             sandbox_id, kind=kind, command=command, rows=rows, columns=columns
         )
         url = sandbox_relay_url(
-            relay_base_url or self.connection.address, session["id"], session["ticket"]
+            relay_address,
+            session["id"],
+            session["ticket"],
+            insecure_development=self.connection.insecure_development,
         )
         # Start from the connection's configured headers rather than only its
         # auth_token. A caller authenticating through

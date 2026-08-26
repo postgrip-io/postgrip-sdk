@@ -71,7 +71,7 @@ func TestSleepSchedulesAndSuspendsWhenHistoryExhausted(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL})
+	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
 	conn.SeedAgentSession("agent-1", "tok", time.Now().Add(time.Hour))
 	wfctx := &workflowContext{
 		Context:    context.Background(),
@@ -101,7 +101,7 @@ func TestExecuteActivityReturnsHistoryResult(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL})
+	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
 	wfctx := &workflowContext{
 		Context: context.Background(),
 		logger:  slog.Default(),
@@ -127,7 +127,7 @@ func TestExecuteActivitySuspendsWhenActivityStillRunning(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL})
+	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true})
 	wfctx := &workflowContext{
 		Context: context.Background(),
 		logger:  slog.Default(),
@@ -276,7 +276,7 @@ func TestRunWorkflowBlocksWhenHistoryFetchFails(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL, AuthToken: "tok"})
+	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "tok"})
 	w, err := New(Options{
 		Connection: conn,
 		AgentID:    "agent-1",
@@ -319,7 +319,7 @@ func TestWorkflowQueryAndUpdateDispatchReplayRegisteredHandlers(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL, AuthToken: "management-token"})
+	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "management-token"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -407,7 +407,7 @@ func TestWorkflowUpdateCanScheduleDurableActivity(t *testing.T) {
 	}))
 	defer server.Close()
 
-	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL, AuthToken: "management-token"})
+	conn, err := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "management-token"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -450,7 +450,7 @@ func TestWorkflowUpdateCanScheduleDurableActivity(t *testing.T) {
 // HTTP call — tests that hit the network path build their own httptest.
 func newReplayCtx(t *testing.T, history []client.WorkflowHistoryEvent) *workflowContext {
 	t.Helper()
-	conn, err := client.NewConnection(client.ConnectionOptions{Address: "http://unused.test"})
+	conn, err := client.NewConnection(client.ConnectionOptions{Address: "http://unused.test", InsecureDevelopment: true})
 	if err != nil {
 		t.Fatalf("NewConnection: %v", err)
 	}

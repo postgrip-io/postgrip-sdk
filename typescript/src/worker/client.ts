@@ -19,6 +19,7 @@ import {
   type OpenAPIResponseBody,
 } from './generated/openapi.js';
 import { validateBaseUrl, validateManagementToken, type PostGripEnvironment } from '../internal/config.js';
+import { readBoundedResponseBody } from '../internal/http.js';
 
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
 
@@ -285,7 +286,9 @@ export class WorkerClient {
         }
         throw error;
       }
-      if (response.ok) return await response.json() as OpenAPIResponseBody<I>;
+      if (response.ok) {
+        return JSON.parse(await readBoundedResponseBody(response, 'Worker')) as OpenAPIResponseBody<I>;
+      }
       const apiError = await decodeError(response);
       if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
         const retryAfterMs = response.status === 429 || response.status === 503
@@ -320,7 +323,7 @@ function validateIdempotencyKey(key: string): void {
 async function decodeError(response: Response): Promise<WorkerAPIError> {
   let value: Record<string, unknown> = {};
   try {
-    const decoded: unknown = await response.json();
+    const decoded: unknown = JSON.parse(await readBoundedResponseBody(response, 'Worker'));
     if (typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)) {
       value = decoded as Record<string, unknown>;
     }
