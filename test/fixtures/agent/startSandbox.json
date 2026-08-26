@@ -1,0 +1,45 @@
+{
+  "operationId": "startSandbox",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "sandboxId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "backend": "auto",
+      "createdAt": "2026-01-01T00:00:00Z",
+      "createdBy": "string",
+      "desiredState": "running",
+      "generation": 1,
+      "id": "string",
+      "image": "string",
+      "isolationClass": "string",
+      "name": "string",
+      "networkPolicy": {
+        "denyHostAccess": true,
+        "internetEgress": true
+      },
+      "observedGeneration": 1,
+      "observedState": "requested",
+      "resourceLimits": {
+        "cpus": 1.0,
+        "diskBytes": 1,
+        "memoryBytes": 1
+      },
+      "tenantId": "string",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_startSandbox"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

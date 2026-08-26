@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://postgrip.io/schemas/unified-sdk-operation-inventory-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractBundleDigest", "contractDigests", "operations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractBundleDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "contractDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "worker", "service"],
+      "properties": {
+        "agent": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "worker": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "service": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/operation" }
+    }
+  },
+  "$defs": {
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId", "plane", "method", "path", "operationClass",
+        "authLane", "acceptedCredentials", "requiredScopes", "safety",
+        "protocol", "signing", "idempotency", "pagination", "retry",
+        "requestContentTypes", "responseContentTypes", "requestSchema",
+        "responseSchema", "pathParameters"
+      ],
+      "properties": {
+        "operationId": { "type": "string", "minLength": 1 },
+        "plane": { "enum": ["agent", "worker", "service"] },
+        "method": { "enum": ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "TRACE"] },
+        "path": { "type": "string", "pattern": "^/" },
+        "operationClass": { "enum": ["public", "tenant-api", "agent-runtime"] },
+        "authLane": { "type": "string" },
+        "acceptedCredentials": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "requiredScopes": {
+          "type": "array",
+          "items": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+        },
+        "safety": { "type": "string", "minLength": 1 },
+        "protocol": { "type": "string", "minLength": 1 },
+        "signing": { "type": ["string", "null"] },
+        "idempotency": { "type": "string", "minLength": 1 },
+        "pagination": { "type": "string", "minLength": 1 },
+        "retry": { "type": "string", "minLength": 1 },
+        "requestContentTypes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "responseContentTypes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "requestSchema": { "type": ["string", "null"] },
+        "responseSchema": { "type": ["string", "null"] },
+        "pathParameters": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    }
+  }
+}

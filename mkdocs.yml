@@ -1,0 +1,25 @@
+site_name: PostGrip SDKs
+site_description: Unified Agent, Worker, and Service SDK documentation
+repo_url: https://github.com/postgrip-io/postgrip-sdks
+docs_dir: docs
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+nav:
+  - Home: index.md
+  - Authentication: authentication.md
+  - Configuration: configuration.md
+  - Secure cURL: curl.md
+  - Live testing: live-testing.md
+  - Releasing: releasing.md
+  - API reference: reference/README.md
+  - Architecture:
+      - Design: unified-sdk-design.md
+      - Implementation plan: unified-sdk-implementation-plan.md
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences

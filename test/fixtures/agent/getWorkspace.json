@@ -1,0 +1,31 @@
+{
+  "operationId": "getWorkspace",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "workspaceId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "createdAt": "2026-01-01T00:00:00Z",
+      "createdBy": "string",
+      "expiresAt": "2026-01-01T00:00:00Z",
+      "id": "string",
+      "repositoryName": "string",
+      "sha256": "string",
+      "sizeBytes": 1,
+      "tenantId": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getWorkspace"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,22 @@
+{
+  "operationId": "health",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "status": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_health"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

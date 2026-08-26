@@ -1,0 +1,4128 @@
+{
+  "contractBundleDigest": "5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd",
+  "contractDigests": {
+    "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
+    "service": "2dd219d428083e4416f141676dcfed63fe23f5d4d729aaadb3a574c2cb2b1ec5",
+    "worker": "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
+  },
+  "operations": [
+    {
+      "acceptedCredentials": [
+        "agent-session"
+      ],
+      "authLane": "agent",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "agent-runtime",
+      "operationId": "appendAgentTaskEvent",
+      "pagination": "none",
+      "path": "/api/v1/agent/tasks/{taskId}/events",
+      "pathParameters": [
+        "taskId"
+      ],
+      "plane": "agent",
+      "protocol": "signed-agent-task-v1",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "AppendTaskEventRequest",
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "TaskEvent",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": "agent-task-v1"
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "backfillSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules/{scheduleId}/backfill",
+      "pathParameters": [
+        "scheduleId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "BackfillScheduleRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "BackfillScheduleResponse",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "agent-session"
+      ],
+      "authLane": "agent",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "agent-runtime",
+      "operationId": "blockAgentTask",
+      "pagination": "none",
+      "path": "/api/v1/agent/tasks/{taskId}/block",
+      "pathParameters": [
+        "taskId"
+      ],
+      "plane": "agent",
+      "protocol": "signed-agent-task-v1",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "BlockTaskRequest",
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Task",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": "agent-task-v1"
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "cancelWorkflow",
+      "pagination": "none",
+      "path": "/api/v1/workflows/{workflowId}/cancel",
+      "pathParameters": [
+        "workflowId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CancelWorkflowRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkflowHistoryEvent",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "agent-session"
+      ],
+      "authLane": "agent",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "agent-runtime",
+      "operationId": "completeAgentTask",
+      "pagination": "none",
+      "path": "/api/v1/agent/tasks/{taskId}/complete",
+      "pathParameters": [
+        "taskId"
+      ],
+      "plane": "agent",
+      "protocol": "signed-agent-task-v1",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CompleteTaskRequest",
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Task",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": "agent-task-v1"
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "connectSandboxSession",
+      "pagination": "none",
+      "path": "/api/v1/sandbox-sessions/{sessionId}/connect",
+      "pathParameters": [
+        "sessionId"
+      ],
+      "plane": "agent",
+      "protocol": "websocket",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": null,
+      "retry": "none",
+      "safety": "protocol",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "countWorkflows",
+      "pagination": "none",
+      "path": "/api/v1/workflows/count",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkflowCountResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createNamespace",
+      "pagination": "none",
+      "path": "/api/v1/namespaces",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateNamespaceRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Namespace",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createSandbox",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "SandboxCreateRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Sandbox",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createSandboxSession",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes/{sandboxId}/sessions",
+      "pathParameters": [
+        "sandboxId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateSandboxSessionRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "CreateSandboxSessionResponse",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateScheduleRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Schedule",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "deleteSandbox",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes/{sandboxId}",
+      "pathParameters": [
+        "sandboxId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Sandbox",
+      "retry": "none",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "deleteSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules/{scheduleId}",
+      "pathParameters": [
+        "scheduleId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Schedule",
+      "retry": "none",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "deleteWorkspace",
+      "pagination": "none",
+      "path": "/api/v1/workspaces/{workspaceId}",
+      "pathParameters": [
+        "workspaceId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": null,
+      "retry": "none",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "enqueueTask",
+      "pagination": "none",
+      "path": "/api/v1/tasks",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "EnqueueTaskRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Task",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "agent-session"
+      ],
+      "authLane": "agent",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "agent-runtime",
+      "operationId": "failAgentTask",
+      "pagination": "none",
+      "path": "/api/v1/agent/tasks/{taskId}/fail",
+      "pathParameters": [
+        "taskId"
+      ],
+      "plane": "agent",
+      "protocol": "signed-agent-task-v1",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "FailTaskRequest",
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Task",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": "agent-task-v1"
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getSandbox",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes/{sandboxId}",
+      "pathParameters": [
+        "sandboxId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Sandbox",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules/{scheduleId}",
+      "pathParameters": [
+        "scheduleId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Schedule",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getTask",
+      "pagination": "none",
+      "path": "/api/v1/tasks/{taskId}",
+      "pathParameters": [
+        "taskId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Task",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getWorkflow",
+      "pagination": "none",
+      "path": "/api/v1/workflows/{workflowId}",
+      "pathParameters": [
+        "workflowId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkflowExecution",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getWorkspace",
+      "pagination": "none",
+      "path": "/api/v1/workspaces/{workspaceId}",
+      "pathParameters": [
+        "workspaceId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "SandboxWorkspace",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [],
+      "authLane": "public",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "public",
+      "operationId": "health",
+      "pagination": "none",
+      "path": "/healthz",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "HealthResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "agent-session"
+      ],
+      "authLane": "agent",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "agent-runtime",
+      "operationId": "heartbeatAgentTask",
+      "pagination": "none",
+      "path": "/api/v1/agent/tasks/{taskId}/heartbeat",
+      "pathParameters": [
+        "taskId"
+      ],
+      "plane": "agent",
+      "protocol": "signed-agent-task-v1",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "HeartbeatTaskRequest",
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Task",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": "agent-task-v1"
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listNamespaces",
+      "pagination": "none",
+      "path": "/api/v1/namespaces",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listSandboxes",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "SandboxListResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listSchedules",
+      "pagination": "none",
+      "path": "/api/v1/schedules",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listTaskEvents",
+      "pagination": "cursor",
+      "path": "/api/v1/tasks/{taskId}/events",
+      "pathParameters": [
+        "taskId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "TaskEventPage",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listTaskEventsBatch",
+      "pagination": "none",
+      "path": "/api/v1/task-events",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "TaskEventBatchResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listTasks",
+      "pagination": "none",
+      "path": "/api/v1/tasks",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkflowHistory",
+      "pagination": "cursor",
+      "path": "/api/v1/workflows/{workflowId}/history",
+      "pathParameters": [
+        "workflowId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkflowHistoryPage",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkflows",
+      "pagination": "none",
+      "path": "/api/v1/workflows",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkspaces",
+      "pagination": "none",
+      "path": "/api/v1/workspaces",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "SandboxWorkspaceListResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "pauseSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules/{scheduleId}/pause",
+      "pathParameters": [
+        "scheduleId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "PauseScheduleRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Schedule",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "agent-session"
+      ],
+      "authLane": "agent",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "agent-runtime",
+      "operationId": "pollAgentTask",
+      "pagination": "none",
+      "path": "/api/v1/agent/poll",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PollTaskResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "ready",
+      "pagination": "none",
+      "path": "/readyz",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ReadyResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "agent-refresh-token"
+      ],
+      "authLane": "public",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "agent-runtime",
+      "operationId": "refreshAgentSession",
+      "pagination": "none",
+      "path": "/api/v1/agent/session/refresh",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "RefreshAgentSessionRequest",
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "AgentSessionResponse",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "signalWithStartWorkflow",
+      "pagination": "none",
+      "path": "/api/v1/workflows/{workflowId}/signal-with-start",
+      "pathParameters": [
+        "workflowId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "SignalWithStartWorkflowRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "SignalWithStartWorkflowResponse",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "signalWorkflow",
+      "pagination": "none",
+      "path": "/api/v1/workflows/{workflowId}/signal",
+      "pathParameters": [
+        "workflowId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "SignalWorkflowRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkflowHistoryEvent",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "startSandbox",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes/{sandboxId}/start",
+      "pathParameters": [
+        "sandboxId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Sandbox",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "stopSandbox",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes/{sandboxId}/stop",
+      "pathParameters": [
+        "sandboxId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Sandbox",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token",
+        "agent-session"
+      ],
+      "authLane": "either",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "terminateWorkflow",
+      "pagination": "none",
+      "path": "/api/v1/workflows/{workflowId}/terminate",
+      "pathParameters": [
+        "workflowId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "TerminateWorkflowRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkflowHistoryEvent",
+      "retry": "none",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "triggerSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules/{scheduleId}/trigger",
+      "pathParameters": [
+        "scheduleId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "TriggerScheduleRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "TriggerScheduleResponse",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "unpauseSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules/{scheduleId}/unpause",
+      "pathParameters": [
+        "scheduleId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UnpauseScheduleRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Schedule",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateSchedule",
+      "pagination": "none",
+      "path": "/api/v1/schedules/{scheduleId}",
+      "pathParameters": [
+        "scheduleId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateScheduleRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Schedule",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "uploadWorkspace",
+      "pagination": "none",
+      "path": "/api/v1/workspaces",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "archive-stream",
+      "requestContentTypes": [
+        "application/gzip"
+      ],
+      "requestSchema": "inline",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "SandboxWorkspace",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "applyServiceVariables",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/variables/apply",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ApplyServiceVariablesRequest",
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVariablesApplyResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "attachTargetService",
+      "pagination": "none",
+      "path": "/api/v1/services/targets",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "AttachTargetServiceRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTargetMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "bindServiceVolume",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "BindServiceVolumeRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVolumeBindingMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "cancelServiceDeployment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/cancel",
+      "pathParameters": [
+        "serviceId",
+        "deploymentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeploymentOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "checkService",
+      "pagination": "none",
+      "path": "/api/v1/services/{source}/{serviceId}/check",
+      "pathParameters": [
+        "source",
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CheckServiceRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "clearServiceRepositoryCredential",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}",
+      "pathParameters": [
+        "serviceId",
+        "credentialKind"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRepositoryMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "clearServiceVariableValue",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "variableId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVariableMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "clearTargetServiceConnection",
+      "pagination": "none",
+      "path": "/api/v1/services/target/{serviceId}/connection",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTargetMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createServiceDomain",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceDomainRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDomainMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createServiceEnvironment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceEnvironmentRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceEnvironmentMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createServiceProject",
+      "pagination": "none",
+      "path": "/api/v1/services/projects",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceProjectRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceProjectMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createServiceVariable",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceVariableRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVariableMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createServiceVolume",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/volumes",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceVolumeRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVolumeMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "deleteServiceDomain",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDomainMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "deleteServiceEnvironment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/delete",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ConfirmedDeletionRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDeletionResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "deleteServiceProject",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/delete",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ConfirmedDeletionRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDeletionResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "deleteServiceVariable",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "variableId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVariableMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "deleteServiceVolume",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/volumes/{volumeRef}/delete",
+      "pathParameters": [
+        "serviceId",
+        "volumeRef"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ConfirmedDeletionRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDeletionResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "deployService",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/deploy",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "DeployServiceRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeploymentOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "detachTargetService",
+      "pagination": "none",
+      "path": "/api/v1/services/target/{serviceId}/delete",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ConfirmedDeletionRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDeletionResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "flushServiceBuildLogs",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/build/flush",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceBuildLogMaintenanceResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "flushServiceRuntimeLogs",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/runtime/flush",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRuntimeLogMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getService",
+      "pagination": "none",
+      "path": "/api/v1/services/{source}/{serviceId}",
+      "pathParameters": [
+        "source",
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Service",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceBuildLogSettings",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/build/settings",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceBuildLogStatus",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceConfigurationOperation",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-operations/{operationId}",
+      "pathParameters": [
+        "operationId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceConfigurationOperation",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceDeployment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/deployments/{deploymentId}",
+      "pathParameters": [
+        "serviceId",
+        "deploymentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Deployment",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceEnvironment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceEnvironmentConfiguration",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceEnvironmentRemovalImpact",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/removal-impact",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRemovalImpact",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceProjectRemovalImpact",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/removal-impact",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRemovalImpact",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceRepository",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRepository",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceRuntimeLogSettings",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/runtime/settings",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRuntimeLogStatus",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceStatus",
+      "pagination": "none",
+      "path": "/api/v1/services/{source}/{serviceId}/status",
+      "pathParameters": [
+        "source",
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceStatus",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceVolume",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/volumes/{volumeRef}",
+      "pathParameters": [
+        "serviceId",
+        "volumeRef"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVolume",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceVolumeRemovalImpact",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/volumes/{volumeRef}/removal-impact",
+      "pathParameters": [
+        "serviceId",
+        "volumeRef"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRemovalImpact",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getTargetServiceRemovalImpact",
+      "pagination": "none",
+      "path": "/api/v1/services/target/{serviceId}/removal-impact",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRemovalImpact",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceConfigurationOperations",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-operations",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceConfigurationOperationList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceDeployments",
+      "pagination": "none",
+      "path": "/api/v1/services/{source}/{serviceId}/deployments",
+      "pathParameters": [
+        "source",
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeploymentList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceDomains",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDomainList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceEnvironments",
+      "pagination": "none",
+      "path": "/api/v1/services/{source}/{serviceId}/environments",
+      "pathParameters": [
+        "source",
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "EnvironmentList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceLogs",
+      "pagination": "none",
+      "path": "/api/v1/services/{source}/{serviceId}/logs",
+      "pathParameters": [
+        "source",
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "LogList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServicePromotions",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/promotions",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeploymentList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceVariables",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVariableList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceVolumes",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/volumes",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVolumeList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServices",
+      "pagination": "none",
+      "path": "/api/v1/services",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "previewServiceDeploy",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/deploy/preview",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeployPreview",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "previewServiceEnvironmentReassignment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/reassignment-preview",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ServiceEnvironmentReassignmentPreviewRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceEnvironmentReassignmentPreview",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "previewServicePromotion",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/promotions/preview",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServicePromotionPreview",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "promoteServiceDeployment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/promotions",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "PromoteServiceDeploymentRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeploymentOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "putServiceRepositoryCredential",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}",
+      "pathParameters": [
+        "serviceId",
+        "credentialKind"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ServiceRepositoryCredentialRequest",
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRepositoryMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "putServiceVariableValue",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "variableId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ServiceVariableValueRequest",
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVariableMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "putTargetServiceConnection",
+      "pagination": "none",
+      "path": "/api/v1/services/target/{serviceId}/connection",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "TargetServiceConnectionRequest",
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTargetMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "reassignServiceEnvironment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/reassign",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ServiceEnvironmentReassignmentRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceEnvironmentMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "redeployService",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/redeploy",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "RedeployServiceRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeploymentOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "refreshServiceRepositoryCredential",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}/refresh",
+      "pathParameters": [
+        "serviceId",
+        "credentialKind"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRepositoryMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "resolveService",
+      "pagination": "none",
+      "path": "/api/v1/services/resolve",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Service",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "resolveServiceEnvironment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/resolve",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Environment",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "restartServiceRuntime",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/restart",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "RuntimeOperationRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "retryServiceConfigurationOperation",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-operations/{operationId}/retry",
+      "pathParameters": [
+        "operationId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceConfigurationOperation",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "rollbackServiceDeployment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback",
+      "pathParameters": [
+        "serviceId",
+        "deploymentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "DeploymentOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "startServiceRuntime",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/start",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "RuntimeOperationRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "stopServiceRuntime",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/stop",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "RuntimeOperationRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "trimServiceBuildLogs",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/build/trim",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceBuildLogMaintenanceResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "trimServiceRuntimeLogs",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/runtime/trim",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRuntimeLogMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "unbindServiceVolume",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "volumeRef"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVolumeBindingMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceBuildLogSettings",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/build/settings",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ServiceBuildLogSettingsRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceBuildLogSettingsMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceDomain",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceDomainRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDomainMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceEnvironment",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceEnvironmentRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceEnvironmentMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceProject",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceProjectRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceProjectMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceRepository",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceRepositoryRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRepositoryMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceRuntimeLogSettings",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/logs/runtime/settings",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ServiceRuntimeLogSettingsRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRuntimeLogMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceVariable",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "variableId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceVariableRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVariableMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceVolumeBinding",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "volumeRef"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceVolumeBindingRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceVolumeBindingMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateTargetService",
+      "pagination": "none",
+      "path": "/api/v1/services/target/{serviceId}",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateTargetServiceRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTargetMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "checkWorker",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/check",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "CheckWorkerResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getWorker",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Worker",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getWorkerJob",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/jobs/{jobId}",
+      "pathParameters": [
+        "workerId",
+        "jobId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Job",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkerAssignments",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/assignments",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "AssignmentList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkerJobs",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/jobs",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "JobList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkerOperationalLogs",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/operational-logs",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "OperationalLogList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkerSecurityLogs",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/security-logs",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "SecurityLogList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listWorkers",
+      "pagination": "none",
+      "path": "/api/v1/workers",
+      "pathParameters": [],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkerList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "placeWorkerInMaintenance",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/maintenance",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkerOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "resumeWorkerFromMaintenance",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/maintenance/resume",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "WorkerOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "upgradeWorker",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}/upgrade",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "workers:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "UpgradeWorkerResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [],
+      "authLane": "public",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "public",
+      "operationId": "workerOrchestratorHealth",
+      "pagination": "none",
+      "path": "/health",
+      "pathParameters": [],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "HealthResponse",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    }
+  ],
+  "schemaVersion": 1
+}

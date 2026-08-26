@@ -1,0 +1,43 @@
+{
+  "operationId": "resumeWorkerFromMaintenance",
+  "plane": "worker",
+  "request": {
+    "body": null,
+    "headers": {
+      "Idempotency-Key": "recorded-resumeWorkerFromMaintenance"
+    },
+    "pathParameters": {
+      "workerId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "worker": {
+        "autoShutdownOnRemoval": true,
+        "capabilities": [
+          "string"
+        ],
+        "createdAt": "2026-01-01T00:00:00Z",
+        "id": "11111111-1111-4111-8111-111111111111",
+        "name": "string",
+        "previewSubdomainEnabled": true,
+        "status": "string",
+        "trustState": "string",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_resumeWorkerFromMaintenance"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

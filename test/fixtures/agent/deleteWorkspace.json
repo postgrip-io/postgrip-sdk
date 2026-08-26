@@ -1,0 +1,21 @@
+{
+  "operationId": "deleteWorkspace",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "workspaceId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": null,
+    "headers": {
+      "X-Request-Id": "req_deleteWorkspace"
+    },
+    "status": 204
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,36 @@
+{
+  "operationId": "deleteServiceProject",
+  "plane": "service",
+  "request": {
+    "body": {
+      "impactHash": "string"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-deleteServiceProject",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configurationOperationId": "11111111-1111-4111-8111-111111111111",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "resourceRef": "string",
+      "state": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_deleteServiceProject"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

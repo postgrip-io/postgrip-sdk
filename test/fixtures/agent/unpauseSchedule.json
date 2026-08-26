@@ -1,0 +1,38 @@
+{
+  "operationId": "unpauseSchedule",
+  "plane": "agent",
+  "request": {
+    "body": {
+      "reason": "string"
+    },
+    "headers": {},
+    "pathParameters": {
+      "scheduleId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "action": {
+        "workflowType": "string"
+      },
+      "created_at": "2026-01-01T00:00:00Z",
+      "id": "string",
+      "namespace": "string",
+      "next_run_at": "2026-01-01T00:00:00Z",
+      "spec": {
+        "cron": "0 2 * * *",
+        "timezone": "UTC"
+      },
+      "state": "active",
+      "updated_at": "2026-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_unpauseSchedule"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

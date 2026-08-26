@@ -4,9 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Python SDK for the PostGrip Agent runtime service. Mirrors `../go` and `../typescript`; the wire-shape source of truth lives in `../protocol` and is hand-mirrored into `src/postgrip_agent/types.py`. Root CI compares the local definitions atomically.
+Unified Python SDK for PostGrip Agent, Worker-management, and
+Service-management APIs. Agent runtime wire shapes come from `../go/protocol`
+and are mirrored into `src/postgrip/agent/types.py`. Root CI compares the
+definitions atomically.
 
-The package is `postgrip_agent` (importable name; PyPI distribution is `postgrip-agent`). API shape follows the Temporal Python SDK: `Client.connect`, `Agent`, `@workflow.defn` / `@activity.defn`, `await ctx.execute_activity(...)`.
+The PyPI distribution and root module are `postgrip`; `postgrip.agent` is its
+Agent submodule. The Agent API follows the Temporal Python SDK:
+`Client.connect`, `Agent`, `@workflow.defn` / `@activity.defn`, and workflow
+execution helpers.
 
 ## Commands
 
@@ -32,8 +38,19 @@ Root CI (`../.github/workflows/ci.yml`) runs the wheel build, tests on Python 3.
 ### Module layout
 
 ```
-src/postgrip_agent/
-├─ __init__.py        Re-exports the public surface; this is the customer-facing namespace.
+src/postgrip/
+├─ __init__.py        Lazy root facade and public root exports.
+├─ client.py          PostGrip and AsyncPostGrip root facades.
+├─ agent/             Agent runtime and management surface.
+├─ worker/            Worker-management client and generated contract.
+├─ service/           Service-management client and generated contract.
+└─ _internal/         Shared configuration and transport mechanics.
+```
+
+Within `src/postgrip/agent/`:
+
+```
+├─ __init__.py        Re-exports the Agent public surface.
 ├─ client.py          Client, Connection, TaskClient, WorkflowClient, ScheduleClient, WorkflowHandle
 ├─ agent.py           Agent — the polling worker. (Equivalent of Go's worker.Worker.)
 ├─ worker.py          Backwards-compat alias to Agent (Worker = Agent). Legacy import name.
@@ -79,18 +96,22 @@ Unlike `Suspended`, `ContinueAsNew` *is* a sentinel exception (`workflow.Continu
 
 ## Polyglot mirror
 
-This is one of four packages sharing the runtime contract:
+This is one of three language packages sharing the Agent runtime contract:
 
-- `../protocol` — wire-shape source of truth (Go).
-- `../go` — Go SDK; imports protocol directly.
-- `../typescript` — TypeScript SDK; mirrors types in `src/types.ts`.
-- `python/` — this package; mirrors types in `src/postgrip_agent/types.py`.
+- `../go/protocol` — wire-shape source of truth (Go).
+- `../go` — unified Go SDK; imports protocol directly.
+- `../typescript` — TypeScript SDK; mirrors types in `src/agent/types.ts`.
+- `python/` — this package; mirrors types in `src/postgrip/agent/types.py`.
 
 Wire-shape changes must update protocol and each mirror in one commit. The drift guard catches name-level disagreement; it does **not** catch type-level drift (int vs str, optional vs required) — those need human review.
 
 ## Distribution
 
-PyPI package is `postgrip-agent` (note the dash; the Python module name `postgrip_agent` uses an underscore per PEP 8). Releases are gated on a `python/v*` tag which fires `../.github/workflows/publish-python.yml`. Configure PyPI trusted publishing for repository `postgrip-agent-sdks`, workflow `publish-python.yml`, and environment `pypi`.
+The PyPI package and Python root module are both `postgrip`. Releases are
+gated on a `python/v*` tag which fires
+`../.github/workflows/publish-python.yml`. Configure PyPI trusted publishing
+for repository `postgrip-sdks`, workflow `publish-python.yml`, and environment
+`pypi`.
 
 To cut a release:
 

@@ -13,7 +13,7 @@ runtime process and injects delegated credentials.
 ```python
 import asyncio
 import os
-from postgrip_agent import Client
+from postgrip.agent import Client
 
 
 async def main() -> None:
@@ -48,7 +48,7 @@ functions, then polls for workflow/activity tasks using delegated credentials.
 import asyncio
 from datetime import timedelta
 
-from postgrip_agent import Client, Agent, activity, workflow
+from postgrip.agent import Client, Agent, activity, workflow
 
 
 # Activities are plain async functions. Use any standard Python; the
@@ -135,4 +135,4 @@ The async generator closes when the task reaches a terminal state.
 ## Where to next
 
 - [Workflow runtime](workflow-runtime.md) — the durable replay model: how `execute_activity` / `sleep` work under the hood, what determinism means, the sandbox, signals and queries, ContinueAsNew.
-- [API](api.md) — the public surface re-exported from `postgrip_agent`.
+- [API](api.md) — the public surface re-exported from `postgrip.agent`.

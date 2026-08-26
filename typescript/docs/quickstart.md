@@ -11,7 +11,7 @@ and submits a `workflow.runtime` task. The host PostGrip agent launches the
 runtime process and injects delegated credentials.
 
 ```ts
-import { Client, Connection } from '@postgrip/agent';
+import { Client, Connection } from '@postgrip/sdk/agent';
 
 const connection = await Connection.connect({
   // Agent token from Settings > Organization > Agent tokens.
@@ -47,7 +47,7 @@ import {
   Client,
   Connection,
   proxyActivities,
-} from '@postgrip/agent';
+} from '@postgrip/sdk/agent';
 
 // Activities are plain async functions. Inside the body, activity helpers
 // (heartbeat, activityMilestone, activityStdout, activityInfo) work via
@@ -131,4 +131,4 @@ The async iterator closes when the task reaches a terminal state.
 ## Where to next
 
 - [Workflow runtime](workflow-runtime.md) — the durable replay model: how `sleep` / proxy-activity calls work under the hood, what determinism means, the sandbox, signals and queries, ContinueAsNew.
-- [API](api.md) — the public surface re-exported from `@postgrip/agent`.
+- [API](api.md) — the public surface re-exported from `@postgrip/sdk/agent`.

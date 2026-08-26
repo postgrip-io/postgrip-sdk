@@ -1,5 +1,5 @@
-// Package sdk is a placeholder for the PostGrip Agent Go SDK module. The
-// real entry points live in sub-packages — pick the ones your code needs:
+// Package postgrip provides the unified PostGrip SDK facade. Direct Agent,
+// Worker, Service, and protocol packages remain available below this module.
 //
 //   - [client] — Connection, Client, Task / Workflow / Schedule sub-clients,
 //     and the input shapes for enqueueing tasks and starting workflows.
@@ -14,14 +14,14 @@
 //     TaskFailed) and the FromInfo / ToInfo wire converters.
 //
 // Mirrors the [TypeScript SDK] and [Python SDK]; wire shapes come from the
-// shared [protocol package] so all four packages agree on the
+// shared [protocol package] so all three language SDKs agree on the
 // runtime contract.
 //
 // Quick start — submit a workflow runtime:
 //
 //	import (
 //	    "context"
-//	    "github.com/postgrip-io/postgrip-agent-sdks/go/client"
+//	    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/client"
 //	)
 //
 //	conn, _ := client.NewConnection(client.ConnectionOptions{Address: "http://127.0.0.1:4100", AuthToken: token})
@@ -34,8 +34,8 @@
 //
 //	import (
 //	    "context"
-//	    "github.com/postgrip-io/postgrip-agent-sdks/go/activity"
-//	    "github.com/postgrip-io/postgrip-agent-sdks/go/worker"
+//	    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/activity"
+//	    "github.com/postgrip-io/postgrip-agent-sdks/go/agent/worker"
 //	)
 //
 //	w, _ := worker.New(worker.Options{
@@ -49,7 +49,7 @@
 //	})
 //	_ = w.Run(ctx)
 //
-// [TypeScript SDK]: https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/typescript
-// [Python SDK]: https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/python
-// [protocol package]: https://github.com/postgrip-io/postgrip-agent-sdks/tree/main/protocol
-package sdk
+// [TypeScript SDK]: https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript
+// [Python SDK]: https://github.com/postgrip-io/postgrip-sdks/tree/main/python
+// [protocol package]: https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol
+package postgrip

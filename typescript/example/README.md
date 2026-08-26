@@ -33,7 +33,6 @@ agents.
 
 ## In-repo development
 
-The example imports from the published package name `@postgrip/agent`. To run
-it directly out of this repo without installing from npm, run `bun link` from
-the repo root once and `bun link @postgrip/agent` from your example workspace,
-or replace the import path with `../src/index.ts`.
+The example imports the Agent entry point from the published `@postgrip/sdk`
+package. From this repository, `bun run example/greeting.ts` resolves that
+entry point through the local package without a separate link step.

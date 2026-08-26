@@ -1,0 +1,23 @@
+{
+  "operationId": "connectSandboxSession",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "sessionId": "string"
+    },
+    "query": {
+      "ticket": "string"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": null,
+    "headers": {
+      "X-Request-Id": "req_connectSandboxSession"
+    },
+    "status": 101
+  },
+  "schemaVersion": 1
+}

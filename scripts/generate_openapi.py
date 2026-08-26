@@ -15,16 +15,16 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATHS = {
-    "agent": ROOT / "openapi.json",
-    "worker": ROOT / "worker-openapi.json",
-    "service": ROOT / "service-openapi.json",
+    "agent": ROOT / "contracts" / "agent-openapi.json",
+    "worker": ROOT / "contracts" / "worker-openapi.json",
+    "service": ROOT / "contracts" / "service-openapi.json",
 }
 HTTP_METHODS = {"delete", "get", "head", "options", "patch", "post", "put", "trace"}
 GO_PROTOCOL_SCHEMAS = {
     "TaskState", "TaskEventKind", "WorkflowState", "WorkflowIdReusePolicy",
     "ScheduleState", "ScheduleOverlapPolicy", "ScheduleMissedRunPolicy",
     "SandboxBackend", "SandboxDesiredState", "SandboxObservedState",
-    "Namespace", "CreateNamespaceRequest", "CompactRequest", "CompactResponse",
+    "Namespace", "CreateNamespaceRequest",
     "EnqueueTaskRequest", "Task", "TaskResult", "FailureInfo", "ContinueAsNewResult",
     "TaskEventInput", "TaskEvent", "RetryPolicy", "ScheduleCalendarSpec", "ScheduleSpec",
     "ScheduleAction", "Schedule", "CreateScheduleRequest", "UpdateScheduleRequest",
@@ -91,6 +91,18 @@ def load_contract(spec_path: Path) -> tuple[dict[str, Any], str]:
     return spec, hashlib.sha256(raw).hexdigest()
 
 
+def contract_bundle_digest() -> str:
+    """Hash the exact deployed public contracts using the documented framing."""
+    digest = hashlib.sha256()
+    for plane in ("agent", "service", "worker"):
+        path = SPEC_PATHS[plane]
+        digest.update(path.name.encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def resolve_ref(spec: dict[str, Any], value: dict[str, Any]) -> dict[str, Any]:
     """Resolve a local OpenAPI reference used outside a schema."""
     while "$ref" in value:
@@ -133,6 +145,36 @@ def successful_response_schema(spec: dict[str, Any], operation: dict[str, Any]) 
     if not successful:
         return None
     return content_schema(spec, successful[0][1])
+
+
+def declared_content_types(spec: dict[str, Any], value: dict[str, Any] | None) -> list[str]:
+    if not value:
+        return []
+    return sorted(resolve_ref(spec, value).get("content", {}))
+
+
+def response_content_types(spec: dict[str, Any], operation: dict[str, Any]) -> list[str]:
+    content_types: set[str] = set()
+    for response in operation.get("responses", {}).values():
+        content_types.update(declared_content_types(spec, response))
+    return sorted(content_types)
+
+
+def validate_operation_metadata(operation_id: str, operation: dict[str, Any]) -> None:
+    required = {
+        "x-postgrip-operation-class": str,
+        "x-postgrip-accepted-credentials": list,
+        "x-postgrip-safety": str,
+        "x-postgrip-protocol": str,
+        "x-postgrip-idempotency": str,
+        "x-postgrip-pagination": str,
+        "x-postgrip-retry": str,
+    }
+    for name, expected_type in required.items():
+        if not isinstance(operation.get(name), expected_type):
+            raise ValueError(f"operation {operation_id} has invalid or missing {name}")
+    if operation["x-postgrip-operation-class"] == "global-admin":
+        raise ValueError(f"public contract operation {operation_id} must not be global administration")
 
 
 def operation_parameters(
@@ -180,6 +222,7 @@ def operation_rows(spec: dict[str, Any]) -> list[dict[str, Any]]:
             operation_id = operation.get("operationId")
             if not operation_id or operation_id in seen:
                 raise ValueError(f"missing or duplicate operationId: {operation_id!r}")
+            validate_operation_metadata(operation_id, operation)
             seen.add(operation_id)
             request_body = operation.get("requestBody")
             path_parameters = operation_parameters(spec, path_item, operation, "path")
@@ -197,6 +240,14 @@ def operation_rows(spec: dict[str, Any]) -> list[dict[str, Any]]:
                     "method": method.upper(),
                     "path": route_path,
                     "auth": operation.get("x-postgrip-auth-lane", ""),
+                    "operation_class": operation["x-postgrip-operation-class"],
+                    "accepted_credentials": operation["x-postgrip-accepted-credentials"],
+                    "required_scopes": operation.get("x-postgrip-required-scopes", []),
+                    "safety": operation["x-postgrip-safety"],
+                    "protocol": operation["x-postgrip-protocol"],
+                    "idempotency": operation["x-postgrip-idempotency"],
+                    "pagination": operation["x-postgrip-pagination"],
+                    "retry": operation["x-postgrip-retry"],
                     "signing": operation.get("x-postgrip-request-signing", ""),
                     "streaming": bool(operation.get("x-postgrip-streaming-request")),
                     "websocket": bool(operation.get("x-postgrip-websocket")),
@@ -205,12 +256,14 @@ def operation_rows(spec: dict[str, Any]) -> list[dict[str, Any]]:
                     "query_parameter_schemas": query_parameters,
                     "header_parameter_schemas": header_parameters,
                     "request_schema": content_schema(spec, request_body) if request_body else None,
+                    "request_content_types": declared_content_types(spec, request_body),
                     "request_required": bool(request_body and resolve_ref(spec, request_body).get("required")),
                     "response_schema": successful_response_schema(spec, operation),
+                    "response_content_types": response_content_types(spec, operation),
                 }
             )
     if not rows:
-        raise ValueError("openapi.json contains no generated operations")
+        raise ValueError("the selected public contract contains no generated operations")
     return sorted(rows, key=lambda row: row["id"])
 
 
@@ -335,7 +388,7 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
     declarations_source = chr(10).join(declarations)
     imports = []
     if "protocol." in declarations_source:
-        imports.append('protocol "github.com/postgrip-io/postgrip-agent-sdks/protocol"')
+        imports.append('protocol "github.com/postgrip-io/postgrip-agent-sdks/go/protocol"')
     if "time.Time" in declarations_source:
         imports.append('"time"')
     import_source = "\n".join(f"\t{value}" for value in imports)
@@ -521,7 +574,13 @@ def go_openapi_client_source(rows: list[dict[str, Any]], digest: str, include_he
 \treturn {call}nil)
 }}'''
             )
-    http_import = '\t"net/http"\n' if include_headers else ""
+    dynamic_headers = (
+        "\tctx = withOpenAPIHeaders(ctx, headers)"
+        if include_headers
+        else '''\tif len(headers) != 0 {
+\t\treturn fmt.Errorf("postgrip-agent: operation %q does not accept generated header parameters", operationID)
+\t}'''
+    )
     declarations_source = "\n".join(query_types + header_types)
     time_import = '\t"time"\n' if "time.Time" in declarations_source else ""
     source = f'''// Code generated by scripts/generate_openapi.py; DO NOT EDIT.
@@ -531,7 +590,8 @@ package client
 import (
 \t"context"
 \t"fmt"
-{http_import}\t"net/url"
+\t"net/http"
+\t"net/url"
 {time_import})
 
 // OpenAPIClient is the generated low-level JSON API. Streaming workspace
@@ -543,6 +603,21 @@ type OpenAPIClient struct {{
 // OpenAPI returns the generated low-level client bound to this connection.
 func (c *Connection) OpenAPI() *OpenAPIClient {{
 \treturn &OpenAPIClient{{connection: c}}
+}}
+
+// Do executes an ordinary generated JSON operation by stable operation ID.
+// Archive streaming and WebSocket operations require their dedicated adapters.
+func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParameters map[string]string, query url.Values, headers http.Header, body, out any) error {{
+\tid := openAPIOperationID(operationID)
+\toperation, ok := openAPIOperationTable[id]
+\tif !ok {{
+\t\treturn fmt.Errorf("postgrip-agent: unknown OpenAPI operation %q", operationID)
+\t}}
+\tif operation.StreamingRequest || operation.WebSocket {{
+\t\treturn fmt.Errorf("postgrip-agent: operation %q requires its protocol adapter", operationID)
+\t}}
+{dynamic_headers}
+\treturn c.connection.doOpenAPI(ctx, id, pathParameters, query, body, out)
 }}
 
 {chr(10).join(query_types)}
@@ -800,6 +875,29 @@ class OpenAPIClient:
     def __init__(self, transport: OpenAPITransport):
         self._transport = transport
 
+    def request(
+        self,
+        operation_id: OperationId,
+        body: Any = None,
+        *,
+        path_parameters: dict[str, str] | None = None,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> Any:
+        """Execute an ordinary generated operation by stable operation ID."""
+        operation = _OPERATION_TABLE[operation_id]
+        if operation.streaming_request or operation.websocket:
+            raise ValueError(
+                f"postgrip-agent: operation {operation_id.value!r} requires its protocol adapter"
+            )
+        return self._transport(
+            operation_id,
+            body,
+            path_parameters=path_parameters,
+            query=query,
+            headers=headers,
+        )
+
 ''' + "\n\n".join(methods) + "\n"
 
 
@@ -848,7 +946,7 @@ from .openapi import *  # noqa: F401,F403
 ''' + "\n\n".join(declarations) + "\n"
 
 
-def go_source(rows: list[dict[str, Any]], digest: str) -> str:
+def go_source(rows: list[dict[str, Any]], digest: str, bundle_digest: str) -> str:
     constants = "\n".join(
         f'\topenAPI{go_name(row["id"])} openAPIOperationID = {json.dumps(row["id"])}'
         for row in rows
@@ -886,6 +984,7 @@ import (
 
 const (
 	OpenAPISpecSHA256 = "{digest}"
+	OpenAPIContractBundleSHA256 = "{bundle_digest}"
 	OpenAPIOperationCount = {len(rows)}
 )
 
@@ -943,7 +1042,9 @@ func resolveOpenAPIOperation(id openAPIOperationID, pathParameters map[string]st
     return formatted.stdout
 
 
-def typescript_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: str) -> str:
+def typescript_source(
+    spec: dict[str, Any], rows: list[dict[str, Any]], digest: str, bundle_digest: str
+) -> str:
     auth_lane_union = " | ".join(json.dumps(lane) for lane in sorted({row["auth"] for row in rows}))
     entries = []
     for row in rows:
@@ -1023,6 +1124,7 @@ def typescript_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: 
     return f'''// Code generated by scripts/generate_openapi.py; DO NOT EDIT.
 
 export const OPENAPI_SPEC_SHA256 = '{digest}';
+export const OPENAPI_CONTRACT_BUNDLE_SHA256 = '{bundle_digest}';
 export const OPENAPI_OPERATION_COUNT = {len(rows)};
 export const OPENAPI_CLIENT_OPERATION_COUNT = {sum(not row['streaming'] and not row['websocket'] for row in rows)};
 
@@ -1077,6 +1179,17 @@ export type OpenAPITransport = <I extends OpenAPIOperationId>(
 /** Generated JSON operation facade. Streaming uploads and WebSockets use the SDK's custom adapters. */
 export class OpenAPIClient {{
   constructor(private readonly transport: OpenAPITransport) {{}}
+
+  request<I extends OpenAPIOperationId>(
+    id: I,
+    options: OpenAPIRequestOptions<I>,
+  ): Promise<OpenAPIResponseBody<I>> {{
+    const operation = operationTable[id];
+    if (operation.streamingRequest || operation.webSocket) {{
+      throw new Error(`postgrip-agent: operation ${{id}} requires its protocol adapter`);
+    }}
+    return this.transport(id, options);
+  }}
 
 {chr(10).join(client_methods)}
 }}
@@ -1144,7 +1257,9 @@ export function resolveOpenAPIOperation(
 '''
 
 
-def python_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: str) -> str:
+def python_source(
+    spec: dict[str, Any], rows: list[dict[str, Any]], digest: str, bundle_digest: str
+) -> str:
     enum_rows = "\n".join(f'    {snake_name(row["id"])} = {row["id"]!r}' for row in rows)
     table_rows = []
     for row in rows:
@@ -1172,7 +1287,7 @@ def python_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: str)
         for name in parameters
     ]
     exports = [
-        "OPENAPI_SPEC_SHA256", "OPENAPI_OPERATION_COUNT", "OPENAPI_CLIENT_OPERATION_COUNT",
+        "OPENAPI_SPEC_SHA256", "OPENAPI_CONTRACT_BUNDLE_SHA256", "OPENAPI_OPERATION_COUNT", "OPENAPI_CLIENT_OPERATION_COUNT",
         "OPENAPI_OPERATION_TYPES", "OperationId", "OpenAPIClient",
         "OpenAPIOperation", "ResolvedOpenAPIOperation", "openapi_auth_lane_for_request",
         "resolve_openapi_operation",
@@ -1198,6 +1313,7 @@ from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDi
 from urllib.parse import quote, urlencode
 
 OPENAPI_SPEC_SHA256 = {digest!r}
+OPENAPI_CONTRACT_BUNDLE_SHA256 = {bundle_digest!r}
 OPENAPI_OPERATION_COUNT = {len(rows)}
 OPENAPI_CLIENT_OPERATION_COUNT = {sum(not row['streaming'] and not row['websocket'] for row in rows)}
 {chr(10).join(f'{name} = {value!r}' for name, value in custom_parameter_constants)}
@@ -1301,58 +1417,121 @@ __all__ = {exports!r}
 '''
 
 
-def generated_files(spec: dict[str, Any], digest: str, plane: str) -> dict[Path, str]:
+def operation_inventory_source(bundle_digest: str) -> str:
+    operations: list[dict[str, Any]] = []
+    contract_digests: dict[str, str] = {}
+    for plane in ("agent", "worker", "service"):
+        spec, digest = load_contract(SPEC_PATHS[plane])
+        validate_schema_references(spec)
+        contract_digests[plane] = digest
+        for row in operation_rows(spec):
+            operations.append({
+                "operationId": row["id"],
+                "plane": plane,
+                "method": row["method"],
+                "path": row["path"],
+                "operationClass": row["operation_class"],
+                "authLane": row["auth"],
+                "acceptedCredentials": row["accepted_credentials"],
+                "requiredScopes": row["required_scopes"],
+                "safety": row["safety"],
+                "protocol": row["protocol"],
+                "signing": row["signing"] or None,
+                "idempotency": row["idempotency"],
+                "pagination": row["pagination"],
+                "retry": row["retry"],
+                "requestContentTypes": row["request_content_types"],
+                "responseContentTypes": row["response_content_types"],
+                "requestSchema": schema_label(row["request_schema"]) or None,
+                "responseSchema": schema_label(row["response_schema"]) or None,
+                "pathParameters": row["parameters"],
+            })
+    operations.sort(key=lambda item: (item["plane"], item["operationId"]))
+    return json.dumps({
+        "schemaVersion": 1,
+        "contractBundleDigest": bundle_digest,
+        "contractDigests": contract_digests,
+        "operations": operations,
+    }, indent=2, sort_keys=True) + "\n"
+
+
+def generated_files(
+    spec: dict[str, Any], digest: str, bundle_digest: str, plane: str
+) -> dict[Path, str]:
     rows = operation_rows(spec)
+    inventory = {ROOT / "test" / "operation-inventory.json": operation_inventory_source(bundle_digest)}
     if plane == "service":
-        go_operations = go_source(rows, digest).replace("package client", "package serviceclient", 1).replace("postgrip-agent:", "postgrip-service:")
-        go_types = go_types_source(spec, rows, digest).replace("package client", "package serviceclient", 1)
-        go_client = go_openapi_client_source(rows, digest, include_headers=True).replace("package client", "package serviceclient", 1)
-        return {
-            ROOT / "go" / "serviceclient" / "openapi_operations.gen.go": go_operations,
-            ROOT / "go" / "serviceclient" / "openapi_types.gen.go": go_types,
-            ROOT / "go" / "serviceclient" / "openapi_client.gen.go": go_client,
-            ROOT / "typescript-service" / "src" / "generated" / "openapi.ts":
-                typescript_source(spec, rows, digest).replace("postgrip-agent:", "postgrip-service:"),
-            ROOT / "python-service" / "src" / "postgrip_service" / "generated" / "__init__.py":
+        go_operations = go_source(rows, digest, bundle_digest).replace("package client", "package service", 1).replace("postgrip-agent:", "postgrip-service:")
+        go_types = go_types_source(spec, rows, digest).replace("package client", "package service", 1)
+        go_client = go_openapi_client_source(rows, digest, include_headers=True).replace("package client", "package service", 1)
+        return inventory | {
+            ROOT / "go" / "service" / "openapi_operations.gen.go": go_operations,
+            ROOT / "go" / "service" / "openapi_types.gen.go": go_types,
+            ROOT / "go" / "service" / "openapi_client.gen.go": go_client,
+            ROOT / "typescript" / "src" / "service" / "generated" / "openapi.ts":
+                typescript_source(spec, rows, digest, bundle_digest).replace("postgrip-agent:", "postgrip-service:"),
+            ROOT / "python" / "src" / "postgrip" / "service" / "generated" / "__init__.py":
                 "# Internal generated OpenAPI bindings.\n",
-            ROOT / "python-service" / "src" / "postgrip_service" / "generated" / "openapi.py":
+            ROOT / "python" / "src" / "postgrip" / "service" / "generated" / "openapi.py":
                 "# Code generated by scripts/generate_openapi.py; DO NOT EDIT.\n"
                 "from ..openapi import *  # noqa: F401,F403\n",
-            ROOT / "python-service" / "src" / "postgrip_service" / "openapi.py":
-                python_source(spec, rows, digest).replace("postgrip-agent:", "postgrip-service:"),
-            ROOT / "python-service" / "src" / "postgrip_service" / "administration_types.py":
+            ROOT / "python" / "src" / "postgrip" / "service" / "openapi.py":
+                python_source(spec, rows, digest, bundle_digest).replace("postgrip-agent:", "postgrip-service:"),
+            ROOT / "python" / "src" / "postgrip" / "service" / "administration_types.py":
                 python_administration_types_source(rows),
         }
     if plane == "worker":
-        go_operations = go_source(rows, digest).replace("package client", "package workerclient", 1).replace("postgrip-agent:", "postgrip-worker:")
-        go_types = go_types_source(spec, rows, digest).replace("package client", "package workerclient", 1)
-        go_client = go_openapi_client_source(rows, digest, include_headers=True).replace("package client", "package workerclient", 1)
-        return {
-            ROOT / "go" / "workerclient" / "openapi_operations.gen.go": go_operations,
-            ROOT / "go" / "workerclient" / "openapi_types.gen.go": go_types,
-            ROOT / "go" / "workerclient" / "openapi_client.gen.go": go_client,
-            ROOT / "typescript-worker" / "src" / "generated" / "openapi.ts":
-                typescript_source(spec, rows, digest).replace("postgrip-agent:", "postgrip-worker:"),
-            ROOT / "python-worker" / "src" / "postgrip_worker" / "generated" / "__init__.py":
+        go_operations = go_source(rows, digest, bundle_digest).replace("package client", "package worker", 1).replace("postgrip-agent:", "postgrip-worker:")
+        go_types = go_types_source(spec, rows, digest).replace("package client", "package worker", 1)
+        go_client = go_openapi_client_source(rows, digest, include_headers=True).replace("package client", "package worker", 1)
+        return inventory | {
+            ROOT / "go" / "worker" / "openapi_operations.gen.go": go_operations,
+            ROOT / "go" / "worker" / "openapi_types.gen.go": go_types,
+            ROOT / "go" / "worker" / "openapi_client.gen.go": go_client,
+            ROOT / "typescript" / "src" / "worker" / "generated" / "openapi.ts":
+                typescript_source(spec, rows, digest, bundle_digest).replace("postgrip-agent:", "postgrip-worker:"),
+            ROOT / "python" / "src" / "postgrip" / "worker" / "generated" / "__init__.py":
                 "# Internal generated OpenAPI bindings.\n",
-            ROOT / "python-worker" / "src" / "postgrip_worker" / "generated" / "openapi.py":
+            ROOT / "python" / "src" / "postgrip" / "worker" / "generated" / "openapi.py":
                 "# Code generated by scripts/generate_openapi.py; DO NOT EDIT.\n"
                 "from ..openapi import *  # noqa: F401,F403\n",
-            ROOT / "python-worker" / "src" / "postgrip_worker" / "openapi.py":
-                python_source(spec, rows, digest).replace("postgrip-agent:", "postgrip-worker:"),
+            ROOT / "python" / "src" / "postgrip" / "worker" / "openapi.py":
+                python_source(spec, rows, digest, bundle_digest).replace("postgrip-agent:", "postgrip-worker:"),
         }
-    return {
-        ROOT / "go" / "client" / "openapi_operations.gen.go": go_source(rows, digest),
-        ROOT / "go" / "client" / "openapi_types.gen.go": go_types_source(spec, rows, digest),
-        ROOT / "go" / "client" / "openapi_client.gen.go": go_openapi_client_source(rows, digest),
-        ROOT / "typescript" / "src" / "generated" / "openapi.ts": typescript_source(spec, rows, digest),
-        ROOT / "python" / "src" / "postgrip_agent" / "generated" / "__init__.py":
+    return inventory | {
+        ROOT / "go" / "agent" / "client" / "openapi_operations.gen.go": go_source(rows, digest, bundle_digest),
+        ROOT / "go" / "agent" / "client" / "openapi_types.gen.go": go_types_source(spec, rows, digest),
+        ROOT / "go" / "agent" / "client" / "openapi_client.gen.go": go_openapi_client_source(rows, digest),
+        ROOT / "typescript" / "src" / "agent" / "generated" / "openapi.ts": typescript_source(spec, rows, digest, bundle_digest),
+        ROOT / "python" / "src" / "postgrip" / "agent" / "generated" / "__init__.py":
             "# Internal generated OpenAPI bindings.\n",
-        ROOT / "python" / "src" / "postgrip_agent" / "generated" / "openapi.py":
+        ROOT / "python" / "src" / "postgrip" / "agent" / "generated" / "openapi.py":
             "# Code generated by scripts/generate_openapi.py; DO NOT EDIT.\n"
             "from ..openapi import *  # noqa: F401,F403\n",
-        ROOT / "python" / "src" / "postgrip_agent" / "openapi.py": python_source(spec, rows, digest),
+        ROOT / "python" / "src" / "postgrip" / "agent" / "openapi.py": python_source(spec, rows, digest, bundle_digest),
     }
+
+
+def output_language(path: Path) -> str:
+    first = path.relative_to(ROOT).parts[0]
+    if first == "go":
+        return "go"
+    if first.startswith("typescript"):
+        return "typescript"
+    if first.startswith("python"):
+        return "python"
+    return "inventory"
+
+
+def select_outputs(
+    outputs: dict[Path, str], language: str, output_dir: Path | None
+) -> dict[Path, str]:
+    if language != "all":
+        outputs = {path: value for path, value in outputs.items() if output_language(path) == language}
+    if output_dir is None:
+        return outputs
+    destination = output_dir.resolve()
+    return {destination / path.relative_to(ROOT): value for path, value in outputs.items()}
 
 
 def write_or_check(outputs: dict[Path, str], check: bool, plane: str) -> bool:
@@ -1376,24 +1555,61 @@ def write_or_check(outputs: dict[Path, str], check: bool, plane: str) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--plane", choices=sorted(SPEC_PATHS), default="agent")
+    parser.add_argument("--plane", choices=("all", *sorted(SPEC_PATHS)), default="agent")
+    parser.add_argument(
+        "--language",
+        choices=("all", "go", "typescript", "python", "inventory"),
+        default="all",
+        help="generate only one language surface or the shared operation inventory",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="write/check beneath this root while preserving repository-relative paths",
+    )
     parser.add_argument("--check", action="store_true", help="fail instead of rewriting stale output")
-    parser.add_argument("--check-source", type=Path, help="verify openapi.json matches the canonical source")
+    parser.add_argument("--check-source", type=Path, help="verify the mirrored plane contract matches the canonical source")
     args = parser.parse_args()
 
-    spec_path = SPEC_PATHS[args.plane]
-
-    if args.check_source and spec_path.read_bytes() != args.check_source.resolve().read_bytes():
-        print(f"{spec_path.name} differs from canonical source {args.check_source}", file=sys.stderr)
-        return 1
-
-    spec, digest = load_contract(spec_path)
-    validate_schema_references(spec)
-    outputs = generated_files(spec, digest, args.plane)
+    if args.plane == "all" and args.check_source:
+        parser.error("--check-source requires one concrete --plane")
+    selected_planes = sorted(SPEC_PATHS) if args.plane == "all" else [args.plane]
+    bundle_digest = contract_bundle_digest()
+    outputs: dict[Path, str] = {}
+    counts: dict[str, int] = {}
+    digests: dict[str, str] = {}
+    for plane in selected_planes:
+        spec_path = SPEC_PATHS[plane]
+        if args.check_source and spec_path.read_bytes() != args.check_source.resolve().read_bytes():
+            print(f"{spec_path.name} differs from canonical source {args.check_source}", file=sys.stderr)
+            return 1
+        spec, digest = load_contract(spec_path)
+        validate_schema_references(spec)
+        outputs.update(
+            select_outputs(
+                generated_files(spec, digest, bundle_digest, plane),
+                args.language,
+                args.output_dir,
+            )
+        )
+        counts[plane] = len(operation_rows(spec))
+        digests[plane] = digest
     if not write_or_check(outputs, args.check, args.plane):
         return 1
     action = "verified" if args.check else "generated"
-    print(f"{args.plane.title()} OpenAPI bindings {action}: {len(operation_rows(spec))} operations ({digest[:12]})")
+    if args.plane == "all":
+        details = ", ".join(
+            f"{plane}={counts[plane]} ({digests[plane][:12]})" for plane in selected_planes
+        )
+        print(
+            f"All OpenAPI bindings {action}: {sum(counts.values())} operations "
+            f"({details}; bundle {bundle_digest[:12]})"
+        )
+        return 0
+    print(
+        f"{args.plane.title()} OpenAPI bindings {action}: {counts[args.plane]} "
+        f"operations ({digests[args.plane][:12]}, bundle {bundle_digest[:12]})"
+    )
     return 0
 
 

@@ -1,0 +1,44 @@
+{
+  "operationId": "bindServiceVolume",
+  "plane": "service",
+  "request": {
+    "body": {
+      "containerPath": "string",
+      "expectedEnvironmentVersion": 1,
+      "expectedVolumeVersion": 1,
+      "readOnly": true,
+      "volumeRef": "11111111-1111-4111-8111-111111111111"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-bindServiceVolume",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "environmentId": "11111111-1111-4111-8111-111111111111",
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configurationOperationId": "11111111-1111-4111-8111-111111111111",
+      "effect": "string",
+      "environmentEtag": "string",
+      "environmentVersion": 1,
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "volumeEtag": "string",
+      "volumeVersion": 1
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_bindServiceVolume"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

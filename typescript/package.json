@@ -1,11 +1,11 @@
 {
-  "name": "@postgrip/agent",
-  "version": "0.12.3",
-  "description": "Temporal-style TypeScript SDK for PostGrip Agent",
+  "name": "@postgrip/sdk",
+  "version": "0.13.0",
+  "description": "Unified TypeScript SDK for PostGrip Agent, Worker, and Service APIs",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/postgrip-io/postgrip-agent-sdks.git",
+    "url": "https://github.com/postgrip-io/postgrip-sdks.git",
     "directory": "typescript"
   },
   "type": "module",
@@ -15,16 +15,30 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "default": "./dist/agent/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker/index.d.ts",
+      "default": "./dist/worker/index.js"
+    },
+    "./service": {
+      "types": "./dist/service/index.d.ts",
+      "default": "./dist/service/index.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "bun run clean && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --config vitest.config.ts",
-    "test:coverage": "vitest run --config vitest.config.ts --coverage"
+    "test:coverage": "vitest run --config vitest.config.ts --coverage",
+    "test:package": "bun run build && npm pack --dry-run --json"
   },
   "dependencies": {
     "ws": "^8.18.3"

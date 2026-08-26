@@ -1,0 +1,27 @@
+{
+  "operationId": "listTaskEventsBatch",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {
+      "limit_per_task": 1,
+      "task_id": [
+        "string"
+      ]
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "eventsByTaskId": {}
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listTaskEventsBatch"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

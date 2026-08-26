@@ -1,0 +1,56 @@
+{
+  "operationId": "signalWithStartWorkflow",
+  "plane": "agent",
+  "request": {
+    "body": {
+      "signal": {
+        "name": "string"
+      },
+      "workflowType": "string"
+    },
+    "headers": {},
+    "pathParameters": {
+      "workflowId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "signal": {
+        "created_at": "2026-01-01T00:00:00Z",
+        "id": "string",
+        "type": "string",
+        "workflow_id": "string"
+      },
+      "task": {
+        "attempt": 1,
+        "created_at": "2026-01-01T00:00:00Z",
+        "id": "string",
+        "lease_timeout_seconds": 1,
+        "namespace": "string",
+        "queue": "string",
+        "state": "queued",
+        "type": "string",
+        "updated_at": "2026-01-01T00:00:00Z"
+      },
+      "workflow": {
+        "created_at": "2026-01-01T00:00:00Z",
+        "id": "string",
+        "namespace": "string",
+        "queue": "string",
+        "run_id": "string",
+        "state": "running",
+        "task_id": "string",
+        "type": "string",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_signalWithStartWorkflow"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

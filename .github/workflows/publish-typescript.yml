@@ -10,11 +10,19 @@ permissions:
   id-token: write
 
 jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
+  pre-release-live:
+    uses: ./.github/workflows/live-pre-release.yml
+    secrets: inherit
+
   publish:
+    needs: [validate, pre-release-live]
     runs-on: ubuntu-latest
     environment:
       name: npm
-      url: https://www.npmjs.com/package/@postgrip/agent
+      url: https://www.npmjs.com/package/@postgrip/sdk
     defaults:
       run:
         working-directory: typescript
@@ -22,23 +30,40 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
-      - name: Verify tag matches package version
-        run: |
-          package_version=$(node -p "require('./package.json').version")
-          test "$GITHUB_REF_NAME" = "typescript/v${package_version}"
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun run test
-      - run: bun run build
+          bun-version: "1.4.0"
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           registry-url: https://registry.npmjs.org
-      - name: Install an npm version with trusted publishing support
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify coordinated version and tag
+        run: |
+          version=$(tr -d '\n' < ../VERSION)
+          package_version=$(node -p "require('./package.json').version")
+          test "$version" = "$package_version"
+          test "$GITHUB_REF_NAME" = "typescript/v${version}"
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck && bun run test && bun run build
+      - name: Install npm with trusted-publishing support
         run: npm install --global "npm@^11.5.1"
-      - run: npm publish --access public
-      - name: Create GitHub release
+      - name: Inspect and smoke packed package
+        run: |
+          python3 ../scripts/check_release_artifacts.py --ecosystem typescript --report /tmp/typescript-release-artifact.json
+          package=$(npm pack --pack-destination "$RUNNER_TEMP" --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s)[0].filename))")
+          smoke=$(mktemp -d)
+          cd "$smoke"
+          npm init -y >/dev/null
+          npm install "$RUNNER_TEMP/$package" >/dev/null
+          node --input-type=module -e "import {PostGrip} from '@postgrip/sdk'; import * as a from '@postgrip/sdk/agent'; import * as w from '@postgrip/sdk/worker'; import * as s from '@postgrip/sdk/service'; if (!PostGrip || !a.OPENAPI_CONTRACT_BUNDLE_SHA256 || a.OPENAPI_CONTRACT_BUNDLE_SHA256 !== w.OPENAPI_CONTRACT_BUNDLE_SHA256 || w.OPENAPI_CONTRACT_BUNDLE_SHA256 !== s.OPENAPI_CONTRACT_BUNDLE_SHA256) process.exit(1)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: typescript-release-artifact
+          path: /tmp/typescript-release-artifact.json
+      - name: Publish unified npm package
+        run: npm publish --access public --provenance
+      - name: Create TypeScript SDK release
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"

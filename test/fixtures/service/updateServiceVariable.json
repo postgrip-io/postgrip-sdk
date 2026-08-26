@@ -1,0 +1,40 @@
+{
+  "operationId": "updateServiceVariable",
+  "plane": "service",
+  "request": {
+    "body": {
+      "isSecret": true,
+      "name": "string"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-updateServiceVariable",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "environmentId": "11111111-1111-4111-8111-111111111111",
+      "serviceId": "11111111-1111-4111-8111-111111111111",
+      "variableId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "collectionVersion": 1,
+      "configurationOperationId": "11111111-1111-4111-8111-111111111111",
+      "configurationRevision": 1,
+      "effect": "string",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_updateServiceVariable"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

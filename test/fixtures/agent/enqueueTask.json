@@ -1,0 +1,32 @@
+{
+  "operationId": "enqueueTask",
+  "plane": "agent",
+  "request": {
+    "body": {
+      "type": "string"
+    },
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "attempt": 1,
+      "created_at": "2026-01-01T00:00:00Z",
+      "id": "string",
+      "lease_timeout_seconds": 1,
+      "namespace": "string",
+      "queue": "string",
+      "state": "queued",
+      "type": "string",
+      "updated_at": "2026-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_enqueueTask"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

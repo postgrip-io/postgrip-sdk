@@ -1,0 +1,53 @@
+{
+  "operationId": "putTargetServiceConnection",
+  "plane": "service",
+  "request": {
+    "body": {
+      "password": "string"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-putTargetServiceConnection",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configurationOperationId": "11111111-1111-4111-8111-111111111111",
+      "configurationRevision": 1,
+      "effect": "string",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "target": {
+        "createdAt": "2026-01-01T00:00:00Z",
+        "databaseName": "string",
+        "etag": "string",
+        "hasConnectionSecret": true,
+        "host": "string",
+        "id": "11111111-1111-4111-8111-111111111111",
+        "managed": true,
+        "name": "string",
+        "port": 1,
+        "ref": "string",
+        "slug": "string",
+        "ssl": true,
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "version": 1,
+        "workerId": "11111111-1111-4111-8111-111111111111"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_putTargetServiceConnection"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

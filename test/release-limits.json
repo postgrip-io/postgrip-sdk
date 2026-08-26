@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "go": {
+    "maximumFiles": 500,
+    "maximumSourceBytes": 5000000
+  },
+  "typescript": {
+    "maximumFiles": 500,
+    "maximumUnpackedBytes": 5000000
+  },
+  "python": {
+    "maximumFiles": 500,
+    "maximumWheelBytes": 2000000
+  }
+}

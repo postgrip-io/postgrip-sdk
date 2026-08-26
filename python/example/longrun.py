@@ -24,7 +24,7 @@ import time
 import uuid
 from datetime import timedelta
 
-from postgrip_agent import Agent, Client, activity, workflow
+from postgrip.agent import Agent, Client, activity, workflow
 
 from example.env import load_example_env
 
@@ -83,7 +83,7 @@ DEFAULT_RUNTIME_COMMAND = "sh"
 DEFAULT_RUNTIME_REF = "da9cb81c9dc6f05efaf5e856248224d2ae06d173"
 DEFAULT_RUNTIME_ARGS = [
     "-lc",
-    "python -m pip install cryptography >/dev/null && python -c \"import os,urllib.request,zipfile,io; ref=os.environ.get('SDK_EXAMPLE_RUNTIME_REF','main'); data=urllib.request.urlopen(f'https://github.com/postgrip-io/postgrip-agent-sdks/archive/{ref}.zip').read(); zipfile.ZipFile(io.BytesIO(data)).extractall('/tmp')\" && cd /tmp/postgrip-agent-sdks-*/python && PYTHONPATH=src python -m example.longrun",
+    "python -m pip install cryptography >/dev/null && python -c \"import os,urllib.request,zipfile,io; ref=os.environ.get('SDK_EXAMPLE_RUNTIME_REF','main'); data=urllib.request.urlopen(f'https://github.com/postgrip-io/postgrip-sdks/archive/{ref}.zip').read(); zipfile.ZipFile(io.BytesIO(data)).extractall('/tmp')\" && cd /tmp/postgrip-sdks-*/python && PYTHONPATH=src python -m example.longrun",
 ]
 
 
@@ -110,7 +110,7 @@ async def main() -> None:
         return
 
     address = (
-        os.environ.get("POSTGRIP_AGENTORCHESTRATOR_URL")
+        os.environ.get("POSTGRIP_AGENT_URL")
         or os.environ.get("POSTGRIP_AGENT_LIVE_SERVER_URL")
         or "https://agentorchestrator1.postgrip.io"
     )
@@ -160,7 +160,7 @@ async def main() -> None:
 
 async def submit_managed_runtime() -> None:
     address = (
-        os.environ.get("POSTGRIP_AGENTORCHESTRATOR_URL")
+        os.environ.get("POSTGRIP_AGENT_URL")
         or os.environ.get("POSTGRIP_AGENT_LIVE_SERVER_URL")
         or "https://agentorchestrator1.postgrip.io"
     )

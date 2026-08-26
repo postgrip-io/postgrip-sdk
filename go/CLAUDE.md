@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Go SDK for the PostGrip Agent runtime service. Mirrors `../typescript` and `../python`; wire shapes come from the local `../protocol` module through the repository's `go.work`. The root package (`package sdk`) holds only `doc.go` — customers import the sub-packages they need (`client`, `worker`, `workflow`, `activity`, `failure`).
+Unified Go SDK for PostGrip Agent, Worker-management, and Service-management.
+It mirrors `../typescript` and `../python`; Agent runtime wire shapes live in
+the local `protocol` package. The root `postgrip` package provides the one-token
+facade, while direct Agent, Worker, Service, and protocol packages remain
+available below the same module.
 
 The module path is `github.com/postgrip-io/postgrip-agent-sdks/go`. Release it from this monorepo with `go/v*` tags; the former `go.postgrip.io/sdk` vanity path is retired.
 
@@ -12,34 +16,46 @@ The module path is `github.com/postgrip-io/postgrip-agent-sdks/go`. Release it f
 
 ```sh
 go test ./...                                  # all tests across all packages
-go test ./worker -run TestSleep -v             # single test or pattern in one package
+go test ./agent/worker -run TestSleep -v       # single test or pattern in one package
 go vet ./...
 gofmt -l .                                     # CI fails if non-empty
 ```
 
-Root CI runs `gofmt -l`, `go vet ./go/...`, `go test ./go/...`, and cross-language drift validation (see `../.github/workflows/ci.yml`). The workspace uses the local protocol module; keep the version in `go.mod` valid for standalone consumers.
+Root CI runs formatting, vet, tests, recorded endpoint conformance, release
+artifact inspection, and cross-language drift validation. Keep `GOWORK=off go
+test ./...` passing so the published module remains standalone.
 
 ## Architecture
 
 ### Package DAG (acyclic — keep it that way)
 
 ```
-failure ─┐
-workflow ┼─→ client ─→ worker
-activity ┘            ↑
-internal/replay ──────┘
-internal/jsonenv ──→ client, worker
+agent/failure ─┐
+agent/workflow ┼─→ agent/client ─→ agent/worker
+agent/activity ┘                  ↑
+agent/internal/replay ────────────┘
+agent/internal/jsonenv ──→ agent/client, agent/worker
+
+internal/transport ──→ root facade, agent, worker, service
+protocol ──→ agent runtime packages
 ```
 
-`failure`, `workflow`, `activity`, `internal/replay`, `internal/jsonenv` are leaves (depend only on the shared `protocol` module). `client` adds `failure` and `workflow`. `worker` depends on all of them. Adding an import that creates a cycle (e.g., `workflow` reaching for `client`) is a sign you've put logic in the wrong package — see "Sentinel translation" below.
+The Agent leaves depend only on `protocol`; `agent/client` adds failure and
+workflow behavior, and `agent/worker` depends on them. Generated plane clients
+depend on their plane transport, never on the root facade. Adding an import
+that creates a cycle is a sign the logic belongs at a different layer.
 
-### Interface in `/workflow`, implementation in `/worker`
+### Interface in `agent/workflow`, implementation in `agent/worker`
 
-`workflow.Context` is the *interface* customer workflow bodies receive (`workflow/workflow.go`). It cannot import `client` (would cycle). The *implementation* `workflowContext` lives in `worker/workflow_context.go` because it ties together a `*client.Connection`, a `*replay.Replay`, and the customer's `workflow.Func`. The compile-time assertion `var _ workflow.Context = (*workflowContext)(nil)` at the bottom of that file ensures the impl never silently drifts from the interface.
+`workflow.Context` is the interface customer workflow bodies receive
+(`agent/workflow/workflow.go`). It cannot import `agent/client` (would cycle).
+The implementation lives in `agent/worker/workflow_context.go`.
 
-When adding a method to the workflow surface: declare it on the interface in `/workflow`, implement it on `workflowContext` in `/worker`. Don't put implementation logic in `/workflow` itself.
+When adding a method to the workflow surface, declare it on the interface in
+`agent/workflow` and implement it on `workflowContext` in `agent/worker`.
 
-Tests for workflow-context behavior live in `/worker` for the same reason — they exercise the impl. Tests for the *interface contract* (sentinels, options, `IsContinueAsNew` / `IsSuspended` predicates) live in `/workflow`.
+Tests for workflow-context behavior live in `agent/worker`; interface-contract
+tests live in `agent/workflow`.
 
 ### Workflow execution model
 
@@ -63,14 +79,17 @@ Each leased workflow task goes through:
 
 The boundary translation happens in `worker/workflow_context.go` via `checkReplayCancellation` and `translateReplayError`. **Don't bypass them.** If you add a new replay sentinel kind, add the translation in those two helpers and keep replay's API typed in its own error vocabulary.
 
-### Connection auth dual-mode
+### Connection authentication lanes
 
-`client.Connection` handles two auth flows in one type:
+`agent/client.Connection` handles three contract-owned lanes:
 
 - **Management endpoints** (Task / Workflow / Schedule / namespace CRUD): `Authorization: Bearer <ConnectionOptions.AuthToken>`.
 - **Agent endpoints** (`/api/v1/agent/*` and `/api/v1/agents/*/poll`): a delegated refreshable access token injected by the host agent. `ensureAgentSession` runs implicitly before every agent-authenticated request (poll, heartbeat, complete/fail/block, emit-event), refreshing via the stored refresh token as needed. The SDK must not enroll standalone agents.
+- **Public bootstrap endpoints**: no management or delegated bearer.
 
-The `do(ctx, method, path, body, out, agentAuth bool)` method picks the auth header based on the boolean. Preserve that contract when changing transport. For tests against a stub server, use `Connection.SeedAgentSession(agentID, accessToken, expiresAt)` to install delegated runtime credentials.
+Generated operation metadata selects the lane and signing protocol. Preserve
+that separation when changing transport; especially do not send the common
+management token to public refresh or delegated runtime routes.
 
 ### Activity runtime
 

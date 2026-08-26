@@ -1,0 +1,41 @@
+{
+  "operationId": "listWorkerSecurityLogs",
+  "plane": "worker",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "workerId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {
+      "correlationId": "string",
+      "cursor": "string",
+      "focus": "string",
+      "limit": 1,
+      "severity": "debug",
+      "since": "2026-01-01T00:00:00Z",
+      "window": "string"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "items": [
+        {
+          "component": "string",
+          "event": "string",
+          "id": 1,
+          "loggedAt": "2026-01-01T00:00:00Z",
+          "severity": "string"
+        }
+      ],
+      "nextCursor": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listWorkerSecurityLogs"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

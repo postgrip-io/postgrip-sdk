@@ -1,13 +1,13 @@
 # Installation
 
 ```sh
-pip install postgrip-agent
+pip install postgrip
 ```
 
 To pin a specific version:
 
 ```sh
-pip install postgrip-agent==0.12.3
+pip install postgrip==0.13.0
 ```
 
 ## Requirements
@@ -17,20 +17,23 @@ pip install postgrip-agent==0.12.3
 
 ## Importing
 
-The PyPI distribution name (`postgrip-agent`) uses a dash; the importable Python module name (`postgrip_agent`) uses an underscore — that's the standard PEP 8 mapping.
+The PyPI distribution and importable root module are both named `postgrip`.
+The Agent, Worker, and Service APIs live under singular submodules:
 
 ```python
-import postgrip_agent
-from postgrip_agent import Client, Agent, activity, workflow
+import postgrip.agent
+from postgrip.agent import Client, Agent, activity, workflow
+from postgrip.worker import WorkerClient
+from postgrip.service import ServiceClient
 ```
 
-The package re-exports its public surface from `postgrip_agent.__init__`, so most code will reach for the top-level names. The lower-level `Connection`, sub-clients (`TaskClient`, `WorkflowClient`, `ScheduleClient`), and wire types (`Task`, `WorkflowExecution`, etc.) are also available there.
+The package re-exports its public surface from `postgrip.agent.__init__`, so most code will reach for the top-level names. The lower-level `Connection`, sub-clients (`TaskClient`, `WorkflowClient`, `ScheduleClient`), and wire types (`Task`, `WorkflowExecution`, etc.) are also available there.
 
 ## Local development from a clone
 
 ```sh
-git clone https://github.com/postgrip-io/postgrip-agent-sdks.git
-cd postgrip-agent-sdks/python
+git clone https://github.com/postgrip-io/postgrip-sdks.git
+cd postgrip-sdks/python
 pip install -e .
 PYTHONPATH=src python -m unittest discover -s test
 ```
@@ -47,7 +50,7 @@ For local development, point the SDK at a runtime service running on your machin
 
 ```python
 import os
-from postgrip_agent import Client
+from postgrip.agent import Client
 
 client = await Client.connect(
     "http://127.0.0.1:4100",
@@ -56,4 +59,4 @@ client = await Client.connect(
 )
 ```
 
-`Client.connect` defaults to PostGrip Cloud if the address is omitted. For local or self-hosted development, pass the address explicitly as shown above or set `POSTGRIP_AGENTORCHESTRATOR_URL`.
+`Client.connect` defaults to PostGrip Cloud if the address is omitted. For local or self-hosted development, pass the address explicitly as shown above or set `POSTGRIP_AGENT_URL`.

@@ -1,0 +1,32 @@
+{
+  "operationId": "uploadWorkspace",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {
+      "X-PostGrip-Repository": "my-repo",
+      "X-PostGrip-Revision": "9f1c2d4"
+    },
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": "cmVjb3JkZWQtd29ya3NwYWNlLWFyY2hpdmU="
+  },
+  "response": {
+    "body": {
+      "createdAt": "2026-01-01T00:00:00Z",
+      "createdBy": "string",
+      "expiresAt": "2026-01-01T00:00:00Z",
+      "id": "string",
+      "repositoryName": "string",
+      "sha256": "string",
+      "sizeBytes": 1,
+      "tenantId": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_uploadWorkspace"
+    },
+    "status": 201
+  },
+  "schemaVersion": 1
+}

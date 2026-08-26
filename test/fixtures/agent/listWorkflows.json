@@ -1,0 +1,48 @@
+{
+  "operationId": "listWorkflows",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {
+      "agent_id": "string",
+      "id": "string",
+      "limit": 1,
+      "namespace": "string",
+      "offset": 1,
+      "order": "string",
+      "order_by": "string",
+      "page_token": "string",
+      "q": "string",
+      "query": "string",
+      "queue": "string",
+      "run_id": "string",
+      "search.*": "string",
+      "state": "running",
+      "type": "string"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": [
+      {
+        "created_at": "2026-01-01T00:00:00Z",
+        "id": "string",
+        "namespace": "string",
+        "queue": "string",
+        "run_id": "string",
+        "state": "running",
+        "task_id": "string",
+        "type": "string",
+        "updated_at": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listWorkflows"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

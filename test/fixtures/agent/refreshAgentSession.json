@@ -1,0 +1,32 @@
+{
+  "operationId": "refreshAgentSession",
+  "plane": "agent",
+  "request": {
+    "body": {
+      "refreshToken": "string"
+    },
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "accessExpiresAt": "2026-01-01T00:00:00Z",
+      "accessToken": "string",
+      "agentId": "string",
+      "refreshExpiresAt": "2026-01-01T00:00:00Z",
+      "refreshToken": "string",
+      "status": "string",
+      "tenantId": "string",
+      "tokenFamilyId": "string",
+      "trustState": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_refreshAgentSession"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

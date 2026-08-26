@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://postgrip.io/schemas/unified-sdk-operation-fixture-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "operationId", "plane", "request", "response"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "operationId": { "type": "string", "minLength": 1 },
+    "plane": { "enum": ["agent", "worker", "service"] },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathParameters", "query", "headers", "body", "streamBodyBase64"],
+      "properties": {
+        "pathParameters": { "type": "object", "additionalProperties": { "type": "string" } },
+        "query": { "type": "object" },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "body": true,
+        "streamBodyBase64": { "type": ["string", "null"] }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "headers", "body"],
+      "properties": {
+        "status": { "type": "integer", "minimum": 100, "maximum": 599 },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "body": true
+      }
+    }
+  }
+}

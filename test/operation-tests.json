@@ -1,0 +1,1211 @@
+{
+  "operations": {
+    "appendAgentTaskEvent": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": false,
+      "fixture": "agent/appendAgentTaskEvent.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-signed-agent-runtime",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "Delegated Agent runtime requests require session claims and request signing.",
+        "runner": "signed-agent-runtime"
+      }
+    },
+    "applyServiceVariables": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/applyServiceVariables.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "attachTargetService": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/attachTargetService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "backfillSchedule": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/backfillSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "bindServiceVolume": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/bindServiceVolume.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "blockAgentTask": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": false,
+      "fixture": "agent/blockAgentTask.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-signed-agent-runtime",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "Delegated Agent runtime requests require session claims and request signing.",
+        "runner": "signed-agent-runtime"
+      }
+    },
+    "cancelServiceDeployment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/cancelServiceDeployment.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "cancelWorkflow": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/cancelWorkflow.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "checkService": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/checkService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "checkWorker": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/checkWorker.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "clearServiceRepositoryCredential": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/clearServiceRepositoryCredential.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "clearServiceVariableValue": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/clearServiceVariableValue.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "clearTargetServiceConnection": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/clearTargetServiceConnection.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "completeAgentTask": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": false,
+      "fixture": "agent/completeAgentTask.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-signed-agent-runtime",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "Delegated Agent runtime requests require session claims and request signing.",
+        "runner": "signed-agent-runtime"
+      }
+    },
+    "connectSandboxSession": {
+      "cleanup": "none",
+      "curlEligible": false,
+      "fixture": "agent/connectSandboxSession.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-websocket-protocol",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "The operation upgrades to WebSocket and is exercised by the protocol runner.",
+        "runner": "websocket-protocol"
+      }
+    },
+    "countWorkflows": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/countWorkflows.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "createNamespace": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/createNamespace.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "createSandbox": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/createSandbox.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "createSandboxSession": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/createSandboxSession.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "createSchedule": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/createSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "createServiceDomain": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceDomain.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "createServiceEnvironment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceEnvironment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "createServiceProject": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceProject.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "createServiceVariable": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceVariable.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "createServiceVolume": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceVolume.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "deleteSandbox": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/deleteSandbox.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "deleteSchedule": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/deleteSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "deleteServiceDomain": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deleteServiceDomain.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "deleteServiceEnvironment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deleteServiceEnvironment.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "deleteServiceProject": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deleteServiceProject.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "deleteServiceVariable": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deleteServiceVariable.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "deleteServiceVolume": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deleteServiceVolume.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "deleteWorkspace": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/deleteWorkspace.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "deployService": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deployService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "detachTargetService": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/detachTargetService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "enqueueTask": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/enqueueTask.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "failAgentTask": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": false,
+      "fixture": "agent/failAgentTask.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-signed-agent-runtime",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "Delegated Agent runtime requests require session claims and request signing.",
+        "runner": "signed-agent-runtime"
+      }
+    },
+    "flushServiceBuildLogs": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/flushServiceBuildLogs.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "flushServiceRuntimeLogs": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/flushServiceRuntimeLogs.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getSandbox": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/getSandbox.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "getSchedule": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/getSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "getService": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceBuildLogSettings": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceBuildLogSettings.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceConfigurationOperation": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceConfigurationOperation.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceDeployment": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceDeployment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceEnvironment": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceEnvironment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceEnvironmentRemovalImpact": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceEnvironmentRemovalImpact.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceProjectRemovalImpact": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceProjectRemovalImpact.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceRepository": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceRepository.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceRuntimeLogSettings": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceRuntimeLogSettings.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceStatus": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceStatus.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceVolume": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceVolume.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceVolumeRemovalImpact": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceVolumeRemovalImpact.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getTargetServiceRemovalImpact": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getTargetServiceRemovalImpact.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getTask": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/getTask.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "getWorker": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/getWorker.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "getWorkerJob": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/getWorkerJob.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "getWorkflow": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/getWorkflow.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "getWorkspace": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/getWorkspace.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "health": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/health.json",
+      "liveTest": "production-smoke",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "heartbeatAgentTask": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": false,
+      "fixture": "agent/heartbeatAgentTask.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-signed-agent-runtime",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "Delegated Agent runtime requests require session claims and request signing.",
+        "runner": "signed-agent-runtime"
+      }
+    },
+    "listNamespaces": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listNamespaces.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listSandboxes": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listSandboxes.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listSchedules": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listSchedules.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listServiceConfigurationOperations": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceConfigurationOperations.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceDeployments": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceDeployments.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceDomains": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceDomains.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceEnvironments": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceEnvironments.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceLogs": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceLogs.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServicePromotions": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServicePromotions.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceVariables": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceVariables.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceVolumes": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceVolumes.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServices": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServices.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listTaskEvents": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listTaskEvents.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listTaskEventsBatch": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listTaskEventsBatch.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listTasks": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listTasks.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listWorkerAssignments": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/listWorkerAssignments.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "listWorkerJobs": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/listWorkerJobs.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "listWorkerOperationalLogs": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/listWorkerOperationalLogs.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "listWorkerSecurityLogs": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/listWorkerSecurityLogs.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "listWorkers": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/listWorkers.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "listWorkflowHistory": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listWorkflowHistory.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listWorkflows": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listWorkflows.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listWorkspaces": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listWorkspaces.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "pauseSchedule": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/pauseSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "placeWorkerInMaintenance": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/placeWorkerInMaintenance.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "pollAgentTask": {
+      "cleanup": "none",
+      "curlEligible": false,
+      "fixture": "agent/pollAgentTask.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "Delegated Agent runtime requests require session claims and request signing.",
+        "runner": "signed-agent-runtime"
+      }
+    },
+    "previewServiceDeploy": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/previewServiceDeploy.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "previewServiceEnvironmentReassignment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/previewServiceEnvironmentReassignment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "previewServicePromotion": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/previewServicePromotion.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "promoteServiceDeployment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/promoteServiceDeployment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "putServiceRepositoryCredential": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/putServiceRepositoryCredential.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "putServiceVariableValue": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/putServiceVariableValue.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "putTargetServiceConnection": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/putTargetServiceConnection.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "ready": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/ready.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "reassignServiceEnvironment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/reassignServiceEnvironment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "redeployService": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/redeployService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "refreshAgentSession": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": false,
+      "fixture": "agent/refreshAgentSession.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "Delegated Agent runtime requests require session claims and request signing.",
+        "runner": "signed-agent-runtime"
+      }
+    },
+    "refreshServiceRepositoryCredential": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/refreshServiceRepositoryCredential.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "resolveService": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/resolveService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "resolveServiceEnvironment": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/resolveServiceEnvironment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "restartServiceRuntime": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/restartServiceRuntime.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "resumeWorkerFromMaintenance": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/resumeWorkerFromMaintenance.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "retryServiceConfigurationOperation": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/retryServiceConfigurationOperation.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "rollbackServiceDeployment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/rollbackServiceDeployment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "signalWithStartWorkflow": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/signalWithStartWorkflow.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "signalWorkflow": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/signalWorkflow.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "startSandbox": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/startSandbox.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "startServiceRuntime": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/startServiceRuntime.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "stopSandbox": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/stopSandbox.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "stopServiceRuntime": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/stopServiceRuntime.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "terminateWorkflow": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/terminateWorkflow.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "triggerSchedule": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/triggerSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "trimServiceBuildLogs": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/trimServiceBuildLogs.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "trimServiceRuntimeLogs": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/trimServiceRuntimeLogs.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "unbindServiceVolume": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/unbindServiceVolume.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "unpauseSchedule": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/unpauseSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "updateSchedule": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/updateSchedule.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "updateServiceBuildLogSettings": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceBuildLogSettings.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceDomain": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceDomain.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceEnvironment": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceEnvironment.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceProject": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceProject.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceRepository": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceRepository.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceRuntimeLogSettings": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceRuntimeLogSettings.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceVariable": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceVariable.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceVolumeBinding": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceVolumeBinding.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateTargetService": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateTargetService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "upgradeWorker": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/upgradeWorker.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "uploadWorkspace": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": false,
+      "fixture": "agent/uploadWorkspace.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-streaming-protocol",
+      "plane": "agent",
+      "protocolException": {
+        "owner": "sdk-maintainers",
+        "reason": "The operation transfers a stream or archive and is exercised by the streaming runner.",
+        "runner": "streaming-protocol"
+      }
+    },
+    "workerOrchestratorHealth": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/workerOrchestratorHealth.json",
+      "liveTest": "production-smoke",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    }
+  },
+  "schemaVersion": 1
+}

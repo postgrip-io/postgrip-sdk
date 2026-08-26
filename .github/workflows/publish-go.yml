@@ -1,0 +1,52 @@
+name: Publish Go SDK
+
+on:
+  push:
+    tags:
+      - "go/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
+  pre-release-live:
+    uses: ./.github/workflows/live-pre-release.yml
+    secrets: inherit
+
+  publish:
+    needs: [validate, pre-release-live]
+    runs-on: ubuntu-latest
+    environment:
+      name: sdk-release
+      url: https://github.com/postgrip-io/postgrip-sdks/releases
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify coordinated version and tag
+        run: |
+          version=$(tr -d '\n' < VERSION)
+          test "$GITHUB_REF_NAME" = "go/v${version}"
+          grep -Fq "const Version = \"${version}\"" go/version.go
+      - name: Verify standalone module and release artifact
+        run: |
+          cd go
+          GOWORK=off go test ./...
+          GOWORK=off go vet ./...
+          cd ..
+          python3 scripts/check_release_artifacts.py --ecosystem go --report /tmp/go-release-artifact.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: go-release-artifact
+          path: /tmp/go-release-artifact.json
+      - name: Create Go SDK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"

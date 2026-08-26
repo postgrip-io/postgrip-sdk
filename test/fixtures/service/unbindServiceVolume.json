@@ -1,0 +1,39 @@
+{
+  "operationId": "unbindServiceVolume",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {
+      "Idempotency-Key": "recorded-unbindServiceVolume",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "environmentId": "11111111-1111-4111-8111-111111111111",
+      "serviceId": "11111111-1111-4111-8111-111111111111",
+      "volumeRef": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "configurationOperationId": "11111111-1111-4111-8111-111111111111",
+      "effect": "string",
+      "environmentEtag": "string",
+      "environmentVersion": 1,
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "volumeEtag": "string",
+      "volumeVersion": 1
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_unbindServiceVolume"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}
