@@ -19,8 +19,8 @@ Contract-bundle SHA-256: `b728fee5bceb4d246fe7ce81c1583d228d4f16d8f530179950fd5d
   `c61a4bf40f536801e62cb085882feaebdb3d3120`
 - Coordinated server common-auth/contracts commit:
   `be2b080161b58d9a294b6c5b144a8a188c162779`
-- Coordinated server protocol-consumer commit:
-  `c158b67a`
+- Coordinated server final commit:
+  `4b2f2aa8f7d446798e516644b74a1dfe584a68f1`
 - Server module dependency:
   `github.com/postgrip-io/postgrip-agent-sdks/go@v0.12.4-0.20260826075702-c61a4bf40f53`
 
@@ -62,7 +62,11 @@ Each phase compared its implementation to the design and recorded corrective
 actions before work continued. The final upstream merge added Worker signer
 visibility; the contract already contained those fields, generated files were
 regenerated, the upstream regression tests were migrated to the common `pgt_`
-token, and all final suites passed.
+token, and all final suites passed. The first linked-server PR run then exposed
+stale Agent API reference assertions and coverage prose for the removed public
+global-admin operation. The server reference, consolidated install examples,
+coverage counts, and regression tests were corrected in `4b2f2aa8`; its Agent
+reference suite now passes all 110 tests.
 
 ## Final evidence
 
