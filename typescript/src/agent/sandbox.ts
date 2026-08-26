@@ -439,14 +439,17 @@ export function sandboxRelayUrl(
   insecureDevelopment = false,
 ): string {
   const base = baseUrl.trim().replace(/\/+$/, '');
+  const separator = base.indexOf('://');
+  const scheme = separator === -1 ? '' : base.slice(0, separator).toLowerCase();
+  const remainder = separator === -1 ? '' : base.slice(separator + 3);
   let origin: string;
-  if (base.startsWith('https://')) origin = `wss://${base.slice('https://'.length)}`;
-  else if (base.startsWith('wss://')) origin = base;
-  else if (base.startsWith('http://') || base.startsWith('ws://')) {
+  if (scheme === 'https') origin = `wss://${remainder}`;
+  else if (scheme === 'wss') origin = `wss://${remainder}`;
+  else if (scheme === 'http' || scheme === 'ws') {
     if (!insecureDevelopment) {
       throw new Error('postgrip-agent: sandbox relay base must use WSS unless insecureDevelopment is enabled');
     }
-    origin = base.startsWith('http://') ? `ws://${base.slice('http://'.length)}` : base;
+    origin = `ws://${remainder}`;
   }
   else throw new Error(`postgrip-agent: sandbox relay base must be http(s) or ws(s): ${baseUrl}`);
   const operation = resolveOpenAPIOperation(

@@ -561,7 +561,7 @@ export class Connection {
     const responseBody = await readBoundedResponseBody(response, 'Agent', AGENT_MAX_RESPONSE_BYTES);
     if (!response.ok) {
       const payload = parseJSONRecord(responseBody);
-      throw new Error(typeof payload.error === 'string' ? payload.error : response.statusText);
+      throw new Error(agentErrorMessage(payload, response.statusText));
     }
     return JSON.parse(responseBody) as SandboxWorkspace;
   }
@@ -641,23 +641,21 @@ export class Connection {
     const signing = useAgentAuth && options.signing === 'agent-task-v1'
       ? await this.loadAgentSigningKey()
       : undefined;
+    const requestUrl = new URL(`${this.baseUrl}${path}`);
     if (signing) {
-      const queryStart = path.indexOf('?');
-      const reqPath = queryStart === -1 ? path : path.slice(0, queryStart);
-      const reqQuery = queryStart === -1 ? '' : path.slice(queryStart + 1);
       const ts = Math.floor(Date.now() / 1000);
       headers.set(HEADER_AGENT_SIGNATURE_TIMESTAMP, String(ts));
       headers.set(HEADER_AGENT_SIGNATURE_KEY_ID, signing.key.keyId);
       headers.set(HEADER_AGENT_SIGNATURE, await signing.module.signRequest(
         signing.key.privateKey,
         method,
-        reqPath,
-        reqQuery,
+        requestUrl.pathname,
+        requestUrl.search.slice(1),
         ts,
         new TextEncoder().encode(bodyString),
       ));
     }
-    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+    const response = await this.fetchImpl(requestUrl.toString(), {
       method,
       signal,
       headers,
@@ -667,7 +665,7 @@ export class Connection {
     const text = await readBoundedResponseBody(response, 'Agent', AGENT_MAX_RESPONSE_BYTES);
     if (!response.ok && !options.acceptedStatuses?.includes(response.status)) {
       const payload = parseJSONRecord(text);
-      throw new Error(typeof payload.error === 'string' ? payload.error : response.statusText);
+      throw new Error(agentErrorMessage(payload, response.statusText));
     }
     const terminalGone = response.status === 410 && options.acceptedStatuses?.includes(410);
     if (text === '') {
@@ -752,6 +750,12 @@ function accessTokenIsFresh(expiresAt: string | undefined): boolean {
   if (!expiresAt) return false;
   const expiresAtMs = Date.parse(expiresAt);
   return Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() + 30_000;
+}
+
+function agentErrorMessage(payload: Readonly<Record<string, unknown>>, fallback: string): string {
+  if (typeof payload.message === 'string') return payload.message;
+  if (typeof payload.error === 'string') return payload.error;
+  return fallback;
 }
 
 function normalizeAgentAuthOptions(options: AgentAuthOptions): AgentAuthOptions {

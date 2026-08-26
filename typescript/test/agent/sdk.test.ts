@@ -1,6 +1,8 @@
+import { verify } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { Client } from '../../src/agent/client.js';
 import { Connection } from '../../src/agent/connection.js';
+import { canonicalRequest, importSigningKeyFromBase64 } from '../../src/agent/_signing.js';
 import { Agent } from '../../src/agent/agent.js';
 import { activityStderr, activityStdout, Worker as IndexWorker } from '../../src/agent/index.js';
 import { Worker as ModuleWorker } from '../../src/agent/worker.js';
@@ -222,6 +224,63 @@ describe('PostGrip Agent TypeScript Connection', () => {
 
     expect(seenAuth['/api/v1/tasks']).toBe('Bearer agent-access-token');
     expect(seenAuth['/api/v1/agent/poll']).toBe('Bearer agent-access-token');
+  });
+
+  it('signs the final request path including a configured reverse-proxy prefix', async () => {
+    const privateSeed = Buffer.alloc(32, 9).toString('base64');
+    const signingKey = await importSigningKeyFromBase64(privateSeed);
+    let verified = false;
+    const connection = Connection.create({
+      baseUrl: 'http://agent.test/postgrip-proxy',
+      insecureDevelopment: true,
+      agentAuth: {
+        agentId: 'agent-1',
+        accessToken: 'agent-access-token',
+        refreshToken: 'agent-refresh-token',
+        accessExpiresAt: '2999-01-01T00:00:00Z',
+        signingPrivateKey: privateSeed,
+      },
+      fetch: vi.fn<typeof fetch>(async (input, init) => {
+        const url = new URL(String(input));
+        const headers = new Headers(init?.headers);
+        const timestamp = Number(headers.get('x-agent-signature-timestamp'));
+        const body = new TextEncoder().encode(String(init?.body ?? ''));
+        const canonical = await canonicalRequest(
+          init?.method ?? 'GET',
+          url.pathname,
+          url.search.slice(1),
+          timestamp,
+          body,
+        );
+        verified = verify(
+          null,
+          canonical,
+          signingKey.publicKey,
+          Buffer.from(headers.get('x-agent-signature') ?? '', 'base64'),
+        );
+        expect(url.pathname).toBe('/postgrip-proxy/api/v1/agent/tasks/task-1/complete');
+        return Response.json(workflowTask({ id: 'task-1' }));
+      }),
+    });
+
+    await connection.completeTask('task-1', 'agent-1', { message: 'done' });
+    expect(verified).toBe(true);
+  });
+
+  it('uses the standard Agent error message with legacy fallback', async () => {
+    const responses = [
+      Response.json({ code: 'FORBIDDEN', message: 'standard message', requestId: 'req-1', error: 'legacy message' }, { status: 403 }),
+      Response.json({ error: 'legacy message' }, { status: 400 }),
+    ];
+    const connection = Connection.create({
+      baseUrl: 'http://agent.test',
+      insecureDevelopment: true,
+      authToken: 'management-token',
+      fetch: vi.fn<typeof fetch>(async () => responses.shift()!),
+    });
+
+    await expect(connection.listNamespaces()).rejects.toThrow('standard message');
+    await expect(connection.listNamespaces()).rejects.toThrow('legacy message');
   });
 
   it('uses canonical agentId auth and poll options', async () => {

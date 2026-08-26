@@ -373,6 +373,13 @@ describe('sandbox relay contract', () => {
     expect(() => sandboxRelayUrl('ftp://nope', 'ses_1', 't')).toThrow(/http\(s\) or ws\(s\)/);
   });
 
+  it('accepts mixed-case relay schemes', () => {
+    expect(sandboxRelayUrl('HTTPS://agents.example.com', 'ses_1', 't')).toMatch(/^wss:\/\//);
+    expect(sandboxRelayUrl('Wss://agents.example.com', 'ses_1', 't')).toMatch(/^wss:\/\//);
+    expect(sandboxRelayUrl('HTTP://127.0.0.1:4100', 'ses_1', 't', true)).toMatch(/^ws:\/\//);
+    expect(sandboxRelayUrl('Ws://127.0.0.1:4100', 'ses_1', 't', true)).toMatch(/^ws:\/\//);
+  });
+
   // Exit codes ride in the close status. Reading a transport close as an exit
   // code would report a network fault as a successful run.
   it('decodes exit codes only inside the reserved close-status range', () => {

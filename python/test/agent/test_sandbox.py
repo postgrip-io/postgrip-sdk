@@ -13,6 +13,7 @@ from postgrip.agent import (
     sandbox_is_ready,
     sandbox_relay_url,
 )
+from postgrip.agent.sandbox import _same_origin_websocket_connection_factory
 
 
 class FakeResponse:
@@ -311,6 +312,35 @@ class SandboxRelayContractTests(unittest.TestCase):
 
     def test_relay_frame_bound_is_stated(self):
         self.assertEqual(SANDBOX_RELAY_MAX_FRAME_BYTES, 1 << 20)
+
+    def test_relay_connection_factory_rejects_redirected_origin_before_handshake(self):
+        class FakeURI:
+            def __init__(self, secure, host, port):
+                self.secure = secure
+                self.host = host
+                self.port = port
+
+        trusted = FakeURI(True, "relay.example.com", 443)
+
+        class FakeConnection:
+            def __init__(self, _sock, protocol, **_kwargs):
+                self.protocol = protocol
+
+        factory = _same_origin_websocket_connection_factory(
+            "wss://relay.example.com/session",
+            FakeConnection,
+            lambda _url: trusted,
+        )
+        same_origin_protocol = type("Protocol", (), {"uri": trusted})()
+        self.assertIsInstance(factory(object(), same_origin_protocol), FakeConnection)
+
+        legacy_protocol = type("Protocol", (), {"wsuri": trusted})()
+        self.assertIsInstance(factory(object(), legacy_protocol), FakeConnection)
+
+        redirected = FakeURI(True, "attacker.example.com", 443)
+        redirected_protocol = type("Protocol", (), {"uri": redirected})()
+        with self.assertRaisesRegex(RuntimeError, "cross-origin sandbox relay redirect"):
+            factory(object(), redirected_protocol)
 
     def test_empty_binary_message_is_reserved_for_close_input(self):
         class FakeSocket:

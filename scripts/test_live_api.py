@@ -561,6 +561,17 @@ class FixtureManager:
         self._require_safe_target(operation, step)
         request = self._resolve(step["request"])
         self._validate_explicit_paths(request, operation["operationId"])
+        resource_key = step["resourceKey"]
+        if (
+            operation["safety"] in {"mutation", "destructive", "protocol"}
+            and resource_key is not None
+        ):
+            resource = self._resource(resource_key)
+            if not contains_scalar(request, resource.identifier):
+                raise LiveSuiteError(
+                    f"{operation['operationId']} request does not contain the recorded "
+                    f"identifier {resource.identifier!r} for resource {resource_key!r}"
+                )
         if step["createsResource"] is not None:
             resource_name = str(self._resolve(step["createsResource"]["name"]))
             if not contains_scalar(request, resource_name):
@@ -799,7 +810,7 @@ def self_test() -> None:
         {
             "operationId": "inspect",
             "plane": "agent",
-            "safety": "read-only",
+            "safety": "mutation",
             "authLane": "management",
         },
         {
@@ -868,7 +879,10 @@ def self_test() -> None:
             },
             {
                 "operationId": "inspect",
-                "request": empty_request,
+                "request": {
+                    **empty_request,
+                    "pathParameters": {"id": "${var.b}"},
+                },
                 "capture": {},
                 "resourceKey": "b",
                 "createsResource": None,
@@ -897,6 +911,31 @@ def self_test() -> None:
         ledger = load_json(Path(directory) / "ledger.json")
         if ledger["status"] != "passed" or ledger["remainingIdentifiers"]:
             raise AssertionError("successful cleanup ledger is incomplete")
+
+        mismatched_scenario = json.loads(json.dumps(scenario))
+        mismatched_scenario["steps"][2]["request"]["pathParameters"]["id"] = "${var.a}"
+        mismatched = FixtureManager(
+            scenario=mismatched_scenario,
+            inventory=inventory,
+            ownership=ownership,
+            tier="nightly",
+            adapter=FakeAdapter(
+                {"createA": {"id": "id-a"}, "createB": {"id": "id-b"}}
+            ),
+            environ={"POSTGRIP_LIVE_DISPOSABLE": "true"},
+            ledger_path=Path(directory) / "mismatched.json",
+            allow_destructive=True,
+            run_id="0011223344556677",
+        )
+        try:
+            mismatched.run()
+        except LiveSuiteError as exc:
+            if "does not contain the recorded identifier 'id-b'" not in str(exc):
+                raise AssertionError(
+                    "target mismatch did not identify the recorded resource"
+                ) from exc
+        else:
+            raise AssertionError("targeted mutation accepted another resource identifier")
 
         guarded = FixtureManager(
             scenario=scenario,

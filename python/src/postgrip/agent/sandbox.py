@@ -365,13 +365,24 @@ class SandboxSession:
 
     def __init__(self, url: str, headers: dict[str, str]):
         try:
-            from websockets.sync.client import connect  # type: ignore[import-not-found]
+            from websockets.sync.client import (  # type: ignore[import-not-found]
+                ClientConnection,
+                connect,
+            )
+            from websockets.uri import parse_uri  # type: ignore[import-not-found]
         except ImportError as exc:  # pragma: no cover - dependency guard
             raise RuntimeError(
                 "postgrip-agent: sandbox sessions need the 'websockets' package; "
                 'install with pip install "postgrip[sandbox]"'
             ) from exc
-        self._socket = connect(url, additional_headers=headers, max_size=None)
+        self._socket = connect(
+            url,
+            additional_headers=headers,
+            max_size=None,
+            create_connection=_same_origin_websocket_connection_factory(
+                url, ClientConnection, parse_uri
+            ),
+        )
         self.exit_code: int | None = None
         self._input_closed = False
 
@@ -433,6 +444,41 @@ class SandboxSession:
 
     def __exit__(self, *exc_info: object) -> None:
         self.close()
+
+
+def _same_origin_websocket_connection_factory(
+    trusted_url: str,
+    connection_type: type[Any],
+    parse_uri: Any,
+) -> Any:
+    """Reject a relay redirect before its handshake can send credentials.
+
+    websockets 15+ follows handshake redirects. Its default cross-origin
+    handling strips a small set of standard credentials, but arbitrary
+    configured gateway headers remain attached. The connection factory is
+    invoked after the destination URI is parsed and before the handshake is
+    written, which makes it the earliest version-compatible enforcement point
+    across the supported websockets>=13 range.
+    """
+    trusted = parse_uri(trusted_url)
+    trusted_origin = (trusted.secure, trusted.host, trusted.port)
+
+    def create_connection(sock: Any, protocol: Any, **kwargs: Any) -> Any:
+        candidate = getattr(protocol, "uri", None)
+        if candidate is None:
+            candidate = getattr(protocol, "wsuri", None)
+        candidate_origin = (
+            getattr(candidate, "secure", None),
+            getattr(candidate, "host", None),
+            getattr(candidate, "port", None),
+        )
+        if candidate_origin != trusted_origin:
+            raise RuntimeError(
+                "postgrip-agent: refusing cross-origin sandbox relay redirect"
+            )
+        return connection_type(sock, protocol, **kwargs)
+
+    return create_connection
 
 
 def _require_sandbox_id(sandbox_id: str) -> None:
