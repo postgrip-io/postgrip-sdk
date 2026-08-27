@@ -10,16 +10,16 @@ from http.client import HTTPConnection, HTTPSConnection
 import json
 import os
 import random
-import re
 import socket
 from threading import Event, Thread
 import time
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Literal, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import HTTPHandler, HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
 
-from .._internal.config import validate_base_url, validate_management_token
+from .._internal.config import validate_base_url, validate_idempotency_key, validate_management_token
+from .._internal.pagination import iterate_pages, iterate_pages_async
 
 from .openapi import (
     CheckWorkerResponseBody,
@@ -41,7 +41,6 @@ from .openapi import (
     resolve_openapi_operation,
 )
 
-T = TypeVar("T")
 _RETRYABLE_STATUS = {408, 429, 502, 503, 504}
 _MAX_RESPONSE_BYTES = 4 << 20
 _REQUEST_CANCEL_EVENT: ContextVar[Event | None] = ContextVar("postgrip_worker_request_cancel", default=None)
@@ -234,8 +233,8 @@ class WorkerClient:
     ) -> Any:
         request_headers = headers or {}
         idempotency_key = request_headers.get("Idempotency-Key")
-        if idempotency_key is not None and re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
-            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        if idempotency_key is not None:
+            validate_idempotency_key(idempotency_key)
         return self._request(
             operation_id,
             body=body,
@@ -252,12 +251,9 @@ class WorkerClient:
 
     def pages(self, **options: Any) -> Iterator[ListWorkersResponseBody]:
         page_token = options.pop("page_token", None)
-        while True:
-            page = self.list(page_token=page_token, **options)
-            yield page
-            page_token = page.get("nextPageToken")
-            if not page_token:
-                return
+        yield from iterate_pages(
+            lambda next_token: self.list(page_token=next_token, **options), "nextPageToken", page_token,
+        )
 
     def get(self, worker_id: str) -> GetWorkerResponseBody:
         return cast(GetWorkerResponseBody, self._request(OperationId.GET_WORKER, path={"workerId": worker_id}))
@@ -269,8 +265,7 @@ class WorkerClient:
         idempotency_key: str,
     ) -> CreateWorkerResponseBody:
         """Create a pending Worker from durably persisted caller-owned values."""
-        if re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
-            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        validate_idempotency_key(idempotency_key)
         return cast(CreateWorkerResponseBody, self._request(
             OperationId.CREATE_WORKER, body=body, idempotency_key=idempotency_key,
         ))
@@ -285,12 +280,9 @@ class WorkerClient:
 
     def job_pages(self, worker_id: str, **options: Any) -> Iterator[ListWorkerJobsResponseBody]:
         page_token = options.pop("page_token", None)
-        while True:
-            page = self.jobs(worker_id, page_token=page_token, **options)
-            yield page
-            page_token = page.get("nextPageToken")
-            if not page_token:
-                return
+        yield from iterate_pages(
+            lambda next_token: self.jobs(worker_id, page_token=next_token, **options), "nextPageToken", page_token,
+        )
 
     def job(self, worker_id: str, job_id: str) -> GetWorkerJobResponseBody:
         return cast(GetWorkerJobResponseBody, self._request(OperationId.GET_WORKER_JOB,
@@ -407,8 +399,7 @@ class WorkerClient:
                     time.sleep(self._follow_interval)
 
     def _mutation(self, operation: OperationId, worker_id: str, idempotency_key: str) -> Any:
-        if re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
-            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        validate_idempotency_key(idempotency_key)
         return self._request(operation, path={"workerId": worker_id}, idempotency_key=idempotency_key)
 
     def _request(self, operation_id: OperationId, *, body: Any = None, path: Mapping[str, str] | None = None,
@@ -499,12 +490,10 @@ class AsyncWorkerClient:
 
     async def pages(self, **options: Any) -> AsyncIterator[ListWorkersResponseBody]:
         page_token = options.pop("page_token", None)
-        while True:
-            page = await self.list(page_token=page_token, **options)
+        async for page in iterate_pages_async(
+            lambda next_token: self.list(page_token=next_token, **options), "nextPageToken", page_token,
+        ):
             yield page
-            page_token = page.get("nextPageToken")
-            if not page_token:
-                return
 
     async def get(self, worker_id: str) -> GetWorkerResponseBody:
         return await self._run(self._sync.get, worker_id)
@@ -525,12 +514,10 @@ class AsyncWorkerClient:
 
     async def job_pages(self, worker_id: str, **options: Any) -> AsyncIterator[ListWorkerJobsResponseBody]:
         page_token = options.pop("page_token", None)
-        while True:
-            page = await self.jobs(worker_id, page_token=page_token, **options)
+        async for page in iterate_pages_async(
+            lambda next_token: self.jobs(worker_id, page_token=next_token, **options), "nextPageToken", page_token,
+        ):
             yield page
-            page_token = page.get("nextPageToken")
-            if not page_token:
-                return
 
     async def job(self, worker_id: str, job_id: str) -> GetWorkerJobResponseBody:
         return await self._run(self._sync.job, worker_id, job_id)

@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+import { milestoneEvent } from './_events.js';
 import { ApplicationFailure, CancelledFailure } from './errors.js';
 import type {
   ActivityFunction,
@@ -48,7 +49,14 @@ export class CancellationScope {
   }
 }
 
-export function workflowInfo(): Omit<WorkflowRuntime, 'cancellationScopes' | 'executeActivity' | 'executeChild' | 'continueAsNew' | 'sleep' | 'condition' | 'cancellationRequested' | 'setSignalHandler' | 'setQueryHandler' | 'setUpdateHandler' | 'emit'> {
+export interface WorkflowInfo {
+  workflowId: string;
+  workflowRunId: string;
+  taskQueue: string;
+  workflowType: string;
+}
+
+export function workflowInfo(): WorkflowInfo {
   const runtime = currentRuntime();
   return {
     workflowId: runtime.workflowId,
@@ -67,19 +75,7 @@ export interface WorkflowMilestoneOptions {
 
 export async function milestone(name: string, options: WorkflowMilestoneOptions = {}): Promise<void> {
   const runtime = currentRuntime();
-  await runtime.emit({
-    kind: 'milestone',
-    stage: 'milestone',
-    message: milestoneMessage(name, options),
-    details: {
-      ...(options.details ?? {}),
-      milestone: true,
-      name,
-      status: options.status ?? 'completed',
-      ...(options.index == null ? {} : { index: options.index }),
-      ...(options.total == null ? {} : { total: options.total }),
-    },
-  });
+  await runtime.emit(milestoneEvent(name, options));
 }
 
 export function sleep(ms: number): Promise<void> {
@@ -218,14 +214,6 @@ async function executeActivity(name: string, args: unknown[], options: ActivityO
   return runtime.executeActivity(name, args, { ...options, cancellationScope: currentCancellationScope() });
 }
 
-function milestoneMessage(name: string, options: WorkflowMilestoneOptions): string {
-  const status = options.status ?? 'completed';
-  const prefix = options.index == null || options.total == null
-    ? ''
-    : `step ${options.index}/${options.total} `;
-  return `${prefix}${status} ${name}`.trim();
-}
-
 async function runInCancellationScope<R>(scope: CancellationScopeType, fn: () => Promise<R> | R): Promise<R> {
   const scopes = currentCancellationScopeStack();
   scopes.push(scope);
@@ -275,11 +263,4 @@ export function withTimeout<T>(promise: Promise<T>, timeoutMs: number | undefine
       },
     );
   });
-}
-
-export function nextRetryDelayMs(attempt: number, options: ActivityOptions): number {
-  const initial = options.retry?.initialIntervalMs ?? 1000;
-  const coefficient = options.retry?.backoffCoefficient ?? 2;
-  const max = options.retry?.maximumIntervalMs ?? 30_000;
-  return Math.min(max, Math.round(initial * coefficient ** (attempt - 1)));
 }

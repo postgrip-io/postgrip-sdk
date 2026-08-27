@@ -5,7 +5,7 @@ import io
 import os
 import time
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from urllib.error import HTTPError
 
@@ -677,6 +677,29 @@ class PythonSdkTests(unittest.TestCase):
         self.assertEqual(connection.failed[0][0], "task-1")
         self.assertIn("not supported", connection.failed[0][1])
 
+    def test_non_object_query_and_update_payloads_are_failed(self):
+        for kind, failure_type in (
+            ("query", "InvalidWorkflowQueryPayload"),
+            ("update", "InvalidWorkflowUpdatePayload"),
+        ):
+            with self.subTest(kind=kind):
+                connection = FakeConnection()
+                agent = Agent(connection=connection, task_queue="default", workflows={}, activities={})
+                task_id = f"{kind}-task-1"
+
+                asyncio.run(agent._execute({
+                    "id": task_id,
+                    "queue": "default",
+                    "type": f"{kind}:MalformedWorkflow",
+                    "payload": ["not", "an", "object"],
+                    "lease_timeout_seconds": 30,
+                }))
+
+                self.assertEqual(len(connection.failed), 1)
+                self.assertEqual(connection.failed[0][0], task_id)
+                self.assertEqual(connection.failed[0][2]["failure"]["type"], failure_type)
+                self.assertIn(f"invalid workflow {kind} payload", connection.failed[0][1])
+
     def test_agent_stops_when_poll_directs_shutdown(self):
         connection = FakeConnection()
         polls = 0
@@ -814,10 +837,6 @@ class PythonSdkTests(unittest.TestCase):
         self.assertIn("workflow sandbox rejected", connection.failed[0][1])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TypesExportSurfaceTest(unittest.TestCase):
     """``types.__all__`` is a ``globals()`` comprehension, so it only sees what
     is defined above it. It used to sit above the sandbox section, which left
@@ -856,6 +875,21 @@ class TypesExportSurfaceTest(unittest.TestCase):
         exec("from postgrip.agent.types import *", namespace)
         self.assertIn("Sandbox", namespace)
         self.assertIn("SandboxCreateRequest", namespace)
+
+
+class TimestampParsingTest(unittest.TestCase):
+    def test_accepts_z_and_long_fractional_seconds(self):
+        from postgrip.agent.client import _parse_timestamp
+
+        expected = datetime(2026, 8, 27, 12, 34, 56, 123456, tzinfo=timezone.utc).timestamp()
+        self.assertEqual(_parse_timestamp("2026-08-27T12:34:56.123456789Z"), expected)
+
+    def test_treats_naive_values_as_utc_and_invalid_values_as_zero(self):
+        from postgrip.agent.client import _parse_timestamp
+
+        expected = datetime(2026, 8, 27, 12, 34, 56, tzinfo=timezone.utc).timestamp()
+        self.assertEqual(_parse_timestamp("2026-08-27T12:34:56"), expected)
+        self.assertEqual(_parse_timestamp("not-a-timestamp"), 0.0)
 
 
 class SandboxClientDetailsTest(unittest.TestCase):
@@ -949,3 +983,7 @@ class SandboxClientDetailsTest(unittest.TestCase):
         with self.assertRaises(TimeoutError):
             client.wait_until_running("sbx_1", timeout=0.2, poll_interval=30.0)
         self.assertLess(time.monotonic() - started, 5.0, "slept the poll interval instead of the timeout")
+
+
+if __name__ == "__main__":
+    unittest.main()

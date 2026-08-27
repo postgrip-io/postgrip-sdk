@@ -28,11 +28,6 @@ HEADER_AGENT_SIGNATURE_TIMESTAMP = "X-Agent-Signature-Timestamp"
 AGENT_SIGNATURE_CONTEXT = "agent-task-v1"
 
 
-def encode_public_key(pub: Ed25519PublicKey) -> str:
-    raw = pub.public_bytes(Encoding.Raw, PublicFormat.Raw)
-    return base64.b64encode(raw).decode("ascii")
-
-
 def decode_private_key(encoded: str) -> Ed25519PrivateKey:
     raw = base64.b64decode(encoded)
     if len(raw) == 64:

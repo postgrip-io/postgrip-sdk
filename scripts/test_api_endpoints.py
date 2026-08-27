@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 from dataclasses import dataclass
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 import hashlib
 import json
 import os
@@ -15,13 +15,15 @@ import queue
 import re
 import subprocess
 import sys
-import threading
 import time
 from typing import Any
 from urllib.parse import parse_qs, quote, urlsplit
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+from _contracts import PLANES
+from _recording_server import RecordingServerLifecycle
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,7 +32,6 @@ TOKEN = "pgt_recorded_sdk_token"
 ACCESS_TOKEN = "pga_recorded_agent_access"
 SIGNING_SEED = bytes(range(32))
 SIGNING_KEY = base64.b64encode(SIGNING_SEED).decode("ascii")
-PLANES = ("agent", "worker", "service")
 LANGUAGES = ("go", "typescript", "python")
 
 
@@ -53,7 +54,7 @@ class Case:
         return value
 
 
-class Recorder:
+class Recorder(RecordingServerLifecycle):
     def __init__(self, cases: list[Case]) -> None:
         self.cases = sorted(cases, key=lambda case: case.path_template.count("{"))
         self.failures: queue.Queue[str] = queue.Queue()
@@ -131,22 +132,7 @@ class Recorder:
             def log_message(self, _format: str, *args: object) -> None:
                 return None
 
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-
-    @property
-    def url(self) -> str:
-        host, port = self.server.server_address
-        return f"http://{host}:{port}"
-
-    def __enter__(self) -> Recorder:
-        self.thread.start()
-        return self
-
-    def __exit__(self, *_exc: object) -> None:
-        self.server.shutdown()
-        self.server.server_close()
-        self.thread.join(timeout=5)
+        super().__init__(Handler)
 
     def match(self, method: str, path: str) -> Case | None:
         for case in self.cases:
@@ -286,7 +272,6 @@ def run(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--plane", choices=("all", *PLANES), default="all")
-    parser.add_argument("--mode", choices=("recorded",), default="recorded")
     args = parser.parse_args()
     selected_planes = PLANES if args.plane == "all" else (args.plane,)
     cases = load_cases(selected_planes)

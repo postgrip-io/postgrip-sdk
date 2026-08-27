@@ -27,6 +27,7 @@ import {
 } from './generated/openapi.js';
 import { validateBaseUrl, validateManagementToken, type PostGripEnvironment } from '../internal/config.js';
 import { readBoundedResponseBody } from '../internal/http.js';
+import { abortableDelay, followPages } from '../internal/polling.js';
 
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
 const DEFAULT_RETRY_MAX_ATTEMPTS = 3;
@@ -514,19 +515,14 @@ export class ServiceClient {
   }
 
   private async *followLogs(service: ServiceReference, options: ServiceLogOptions): AsyncGenerator<OpenAPILogEntry> {
-    let cursor = options.cursor;
-    while (true) {
-      options.signal?.throwIfAborted();
-      const page = await this.listLogs(service, { ...options, cursor, follow: true });
-      cursor = page.nextCursor;
-      for (const entry of page.items) {
-        options.signal?.throwIfAborted();
-        yield entry;
-      }
-      if (page.items.length === 0) {
-        await abortableDelay(Math.max(1, page.pollAfterMs || this.followIntervalMs), options.signal);
-      }
-    }
+    yield* followPages(
+      (cursor) => this.listLogs(service, { ...options, cursor, follow: true }),
+      {
+        cursor: options.cursor,
+        signal: options.signal,
+        emptyPageDelayMs: (page) => Math.max(1, page.pollAfterMs || this.followIntervalMs),
+      },
+    );
   }
 
   private mutate<I extends Exclude<OpenAPIOperationId, 'getService' | 'getServiceDeployment' | 'getServiceStatus' | 'listServiceDeployments' | 'listServiceEnvironments' | 'listServiceLogs' | 'listServices' | 'previewServiceDeploy' | 'resolveService' | 'resolveServiceEnvironment'>>(
@@ -707,20 +703,4 @@ function configuredRetryPolicy(config: ServiceRetryConfig = {}): RetryPolicy {
     throw new Error(`PostGrip Service retry retryAfterMaxDelayMs must be greater than 0 and at most ${MAXIMUM_RETRY_AFTER_MAX_DELAY_MS}`);
   }
   return { maxAttempts, maxDelayMs, retryAfterMaxDelayMs };
-}
-
-function abortableDelay(milliseconds: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const complete = () => {
-      signal?.removeEventListener('abort', abort);
-      resolve();
-    };
-    const abort = () => {
-      clearTimeout(timer);
-      reject(signal?.reason ?? new DOMException('Aborted', 'AbortError'));
-    };
-    const timer = setTimeout(complete, milliseconds);
-    if (signal?.aborted) abort();
-    else signal?.addEventListener('abort', abort, { once: true });
-  });
 }

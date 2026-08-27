@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 import os
+import re
 from urllib.parse import urlparse
 
 
@@ -19,6 +20,12 @@ def validate_management_token(value: str) -> str:
     if not token:
         raise ValueError("PostGrip management token is required")
     return token
+
+
+def validate_idempotency_key(value: str) -> str:
+    if re.fullmatch(r"[!-~]{1,128}", value) is None:
+        raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+    return value
 
 
 def validate_base_url(plane: str, value: str, *, insecure_development: bool = False) -> str:

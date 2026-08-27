@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 from urllib.request import Request
 from unittest.mock import patch
 
+from _http_fakes import FakeOpener, FakeResponse
 from postgrip.service import AsyncServiceClient, ServiceAPIError, ServiceClient, ServiceReference
 from postgrip.service.administration_types import (
     ConfigurationOperationsAdministration,
@@ -41,42 +42,11 @@ SERVICE = {
 }
 
 
-class FakeResponse:
-    def __init__(self, value: object):
-        self.body = value if isinstance(value, bytes) else json.dumps(value).encode()
-
-    def __enter__(self) -> FakeResponse:
-        return self
-
-    def __exit__(self, *_args: object) -> None:
-        return None
-
-    def read(self, limit: int = -1) -> bytes:
-        return self.body[:limit]
-
-
 class AdministrationTypeTests(unittest.TestCase):
     def test_runtime_type_hints_resolve_closed_literals(self) -> None:
         get_type_hints(RepositoriesAdministration.put_service_repository_credential)
         get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
         get_type_hints(DeclarativeConfigurationAdministration.create_post_grip_configuration_plan)
-
-
-class FakeOpener:
-    def __init__(self, responses: list[object]):
-        self.responses = responses
-        self.requests = []
-        self.handlers = []
-
-    def add_handler(self, handler: object) -> None:
-        self.handlers.append(handler)
-
-    def open(self, request: object, timeout: float = 0) -> FakeResponse:
-        self.requests.append(request)
-        value = self.responses.pop(0)
-        if isinstance(value, BaseException):
-            raise value
-        return FakeResponse(value)
 
 
 def api_error(status: int, code: str = "BUSY", retry_after: str = "0") -> HTTPError:

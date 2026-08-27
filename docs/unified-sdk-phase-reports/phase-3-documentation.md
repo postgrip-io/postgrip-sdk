@@ -83,7 +83,7 @@ After those corrections, no unexplained Phase 3 design deviation remains.
 | --- | --- |
 | `python3 scripts/generate_api_docs.py --check` | PASS — 130 operations |
 | `python3 scripts/check_api_docs.py` | PASS — 130 pages, 121 cURL examples |
-| `python3 scripts/test_curl_examples.py --plane all --mode recorded` | PASS — Agent 36, Worker 12, Service 73 |
+| `python3 scripts/test_curl_examples.py --plane all` | PASS — Agent 36, Worker 12, Service 73 |
 | Root `mkdocs build --strict` | PASS |
 | TypeScript `mkdocs build --strict` | PASS |
 | Python `mkdocs build --strict` | PASS |

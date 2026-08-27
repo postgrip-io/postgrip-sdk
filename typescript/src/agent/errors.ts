@@ -61,3 +61,12 @@ export class TaskFailedError extends PostGripAgentError {
     this.taskId = taskId;
   }
 }
+
+export function isTerminalTaskMutation(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('terminal') || message.includes('not leased');
+}
+
+export function ignoreTerminalTaskMutation(error: unknown): void {
+  if (!isTerminalTaskMutation(error)) throw error;
+}

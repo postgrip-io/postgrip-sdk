@@ -349,50 +349,38 @@ class Connection:
         return list(self.iter_task_events(task_id))
 
     def complete_task(self, task_id: str, agent_id: str | None = None, result: dict[str, Any] | object = _MISSING, *, worker_id: str | None = None) -> dict[str, Any]:
-        resolved_agent_id = agent_id or worker_id
-        if not resolved_agent_id:
-            raise TypeError("agent_id is required")
+        resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if result is _MISSING:
             raise TypeError("result is required")
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.complete_agent_task(task_id, {"result": result}, agent_id=resolved_agent_id)
 
     def block_task(self, task_id: str, agent_id: str | None = None, reason: str | None = None, *, worker_id: str | None = None) -> dict[str, Any]:
-        resolved_agent_id = agent_id or worker_id
-        if not resolved_agent_id:
-            raise TypeError("agent_id is required")
+        resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.block_agent_task(task_id, {"reason": reason}, agent_id=resolved_agent_id)
 
     def fail_task(self, task_id: str, agent_id: str | None = None, error: str | object = _MISSING, result: dict[str, Any] | None = None, *, worker_id: str | None = None) -> dict[str, Any]:
-        resolved_agent_id = agent_id or worker_id
-        if not resolved_agent_id:
-            raise TypeError("agent_id is required")
+        resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if error is _MISSING:
             raise TypeError("error is required")
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.fail_agent_task(task_id, {"error": error, "result": result}, agent_id=resolved_agent_id)
 
     def heartbeat_task(self, task_id: str, agent_id: str | None = None, event: dict[str, Any] | None = None, *, worker_id: str | None = None) -> dict[str, Any]:
-        resolved_agent_id = agent_id or worker_id
-        if not resolved_agent_id:
-            raise TypeError("agent_id is required")
+        resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.heartbeat_agent_task(task_id, {"event": event}, agent_id=resolved_agent_id)
 
     def append_task_event(self, task_id: str, agent_id: str | None = None, event: dict[str, Any] | object = _MISSING, *, worker_id: str | None = None) -> dict[str, Any]:
-        resolved_agent_id = agent_id or worker_id
-        if not resolved_agent_id:
-            raise TypeError("agent_id is required")
+        resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if event is _MISSING:
             raise TypeError("event is required")
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.append_agent_task_event(task_id, {"event": event}, agent_id=resolved_agent_id)
 
     def poll_task_response(self, *, namespace: str, queue: str, agent_id: str | None = None, worker_id: str | None = None, wait_seconds: int = 20, task_types: list[str] | tuple[str, ...] | None = None) -> dict[str, Any]:
-        resolved_agent_id = agent_id or worker_id
-        if not resolved_agent_id:
-            raise TypeError("agent_id is required")
+        resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         self.ensure_agent_session(namespace=namespace, queue=queue, agent_id=resolved_agent_id)
         return self.openapi.poll_agent_task(
             namespace=namespace,
@@ -556,7 +544,7 @@ class WorkflowClient:
         if not workflow_type:
             raise ValueError("workflow type is required")
         workflow_id = workflow_id or str(uuid.uuid4())
-        signal_name = signal if isinstance(signal, str) else signal.name
+        signal_name = _definition_name(signal)
         response = self.connection.signal_with_start_workflow(workflow_id, {
             "namespace": namespace,
             "queue": task_queue,
@@ -654,7 +642,7 @@ class WorkflowHandle:
         await asyncio.to_thread(self.signal_sync, name, *args)
 
     def signal_sync(self, name: str | Any, *args: Any) -> None:
-        signal_name = name if isinstance(name, str) else name.name
+        signal_name = _definition_name(name)
         self.connection.signal_workflow(self.run_id or self.workflow_id, signal_name, list(args))
 
     async def cancel(self, reason: str | None = None) -> None:
@@ -664,7 +652,7 @@ class WorkflowHandle:
         await asyncio.to_thread(self.connection.terminate_workflow, self.run_id or self.workflow_id, reason)
 
     async def query(self, name: str | Any, *args: Any, timeout: float | None = None) -> Any:
-        query_name = name if isinstance(name, str) else name.name
+        query_name = _definition_name(name)
         workflow = await self.describe()
         task = await asyncio.to_thread(self.connection.enqueue_task, {
             "namespace": workflow["namespace"],
@@ -685,7 +673,7 @@ class WorkflowHandle:
         return await handle.result(timeout=timeout)
 
     async def start_update(self, name: str | Any, *args: Any) -> "WorkflowUpdateHandle":
-        update_name = name if isinstance(name, str) else name.name
+        update_name = _definition_name(name)
         workflow = await self.describe()
         task = await asyncio.to_thread(self.connection.enqueue_task, {
             "namespace": workflow["namespace"],
@@ -973,14 +961,13 @@ def _query_options(options: dict[str, Any]) -> dict[str, Any]:
 
 
 def _generated_workflow_query(options: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    query = _query_options(options)
-    search = {
-        key.removeprefix("search."): value
-        for key, value in list(query.items())
-        if key.startswith("search.")
+    query = {
+        key: value
+        for key, value in options.items()
+        if key != "search_attributes" and value is not None
     }
-    for key in search:
-        query.pop(f"search.{key}", None)
+    search_attributes = options.get("search_attributes")
+    search = dict(search_attributes.items()) if search_attributes else {}
     return query, search or None
 
 
@@ -1042,6 +1029,17 @@ def _normalize_temporal_start_options(options: dict[str, Any]) -> dict[str, Any]
     return normalized
 
 
+def _resolve_agent_id(agent_id: str | None, worker_id: str | None) -> str:
+    resolved = agent_id or worker_id
+    if not resolved:
+        raise TypeError("agent_id is required")
+    return resolved
+
+
+def _definition_name(value: Any) -> str:
+    return value if isinstance(value, str) else value.name
+
+
 def _duration_ms(value: Any) -> int | None:
     if value is None:
         return None
@@ -1058,21 +1056,8 @@ def _parse_timestamp(value: Any) -> float:
         return parsed.timestamp()
     if not isinstance(value, str) or not value:
         return 0.0
-    timestamp = value
-    if timestamp.endswith("Z"):
-        timestamp = timestamp[:-1] + "+00:00"
-    if "." in timestamp:
-        prefix, suffix = timestamp.split(".", 1)
-        offset = ""
-        for marker in ("+", "-"):
-            marker_index = suffix.find(marker)
-            if marker_index > 0:
-                offset = suffix[marker_index:]
-                suffix = suffix[:marker_index]
-                break
-        timestamp = f"{prefix}.{suffix[:6]}{offset}"
     try:
-        parsed = datetime.fromisoformat(timestamp)
+        parsed = datetime.fromisoformat(value)
     except ValueError:
         return 0.0
     if parsed.tzinfo is None:

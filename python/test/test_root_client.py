@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 from pathlib import Path
 import subprocess
@@ -9,39 +8,8 @@ import sys
 import unittest
 from unittest.mock import patch
 
+from _http_fakes import FakeOpener, FakeResponse
 from postgrip import AsyncPostGrip, PostGrip
-
-
-class FakeResponse:
-    def __init__(self, value: object):
-        self.body = json.dumps(value).encode()
-        self.offset = 0
-
-    def __enter__(self) -> FakeResponse:
-        return self
-
-    def __exit__(self, *_args: object) -> None:
-        return None
-
-    def read(self, limit: int = -1) -> bytes:
-        end = len(self.body) if limit < 0 else min(self.offset + limit, len(self.body))
-        chunk = self.body[self.offset:end]
-        self.offset = end
-        return chunk
-
-
-class FakeOpener:
-    def __init__(self, responses: list[object]):
-        self.responses = responses
-        self.requests = []
-        self.handlers = []
-
-    def add_handler(self, handler: object) -> None:
-        self.handlers.append(handler)
-
-    def open(self, request: object, timeout: float = 0) -> FakeResponse:
-        self.requests.append(request)
-        return FakeResponse(self.responses.pop(0))
 
 
 class RootClientTests(unittest.TestCase):

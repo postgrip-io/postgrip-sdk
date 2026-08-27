@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Generic, TypeVar, overload
 
+from ._events import milestone_event
 from .errors import CancelledFailure
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -171,22 +172,9 @@ async def milestone(
     details: dict[str, Any] | None = None,
 ) -> None:
     runtime = _current_runtime()
-    event_details = {
-        **(details or {}),
-        "milestone": True,
-        "name": name,
-        "status": status,
-    }
-    if index is not None:
-        event_details["index"] = index
-    if total is not None:
-        event_details["total"] = total
-    await runtime.emit({
-        "kind": "milestone",
-        "stage": "milestone",
-        "message": _milestone_message(name, index=index, total=total, status=status),
-        "details": event_details,
-    })
+    await runtime.emit(milestone_event(
+        name, index=index, total=total, status=status, details=details,
+    ))
 
 
 async def execute_activity(activity: Callable[..., R] | str, *args: Any, **options: Any) -> R:
@@ -329,11 +317,6 @@ def _duration_ms(value: float | int | timedelta) -> int:
     if hasattr(value, "total_seconds"):
         return max(0, round(value.total_seconds() * 1000))
     return max(0, round(float(value) * 1000))
-
-
-def _milestone_message(name: str, *, index: int | None, total: int | None, status: str) -> str:
-    prefix = f"step {index}/{total} " if index is not None and total is not None else ""
-    return f"{prefix}{status} {name}".strip()
 
 
 workflow_info = info

@@ -47,7 +47,7 @@ export class PostGrip {
     });
   }
 
-  static fromEnv(config: Omit<PostGripConfig, 'environment'> & { readonly environment?: PostGripEnvironment } = {}): PostGrip {
+  static fromEnv(config: PostGripConfig = {}): PostGrip {
     return new PostGrip(config);
   }
 }

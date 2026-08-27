@@ -13,12 +13,12 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, RefResolver
 
+from _contracts import PLANES
 from generate_api_docs import load_inputs, operations, request_body, resolve, sample
 
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "test" / "fixtures"
-PLANES = ("agent", "worker", "service")
 
 
 def parameter_value(document: dict[str, Any], parameter: dict[str, Any], operation_id: str) -> Any:
