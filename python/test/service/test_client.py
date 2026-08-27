@@ -432,7 +432,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 65)
+        self.assertEqual(len(exposed), 68)
 
         client.administration.target_services.attach_target_service(
             {
@@ -450,7 +450,7 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
 
     def test_every_administration_facade_executes_through_the_transport(self) -> None:
-        opener = FakeOpener([{} for _ in range(65)])
+        opener = FakeOpener([{} for _ in range(68)])
         client = ServiceClient(
             base_url="https://services.example.test", token="pgt_test-token", opener=opener,
         )  # type: ignore[arg-type]
@@ -474,7 +474,7 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 65)
+        self.assertEqual(len(opener.requests), 68)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
@@ -629,7 +629,7 @@ class ServiceClientTests(unittest.TestCase):
 
     def test_async_administration_facades_execute_through_the_transport(self) -> None:
         async def run() -> None:
-            opener = FakeOpener([{} for _ in range(65)])
+            opener = FakeOpener([{} for _ in range(68)])
             client = AsyncServiceClient(
                 base_url="https://services.example.test", token="pgt_test-token", opener=opener,
             )  # type: ignore[arg-type]
@@ -658,7 +658,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 65)
+            self.assertEqual(len(opener.requests), 68)
 
         asyncio.run(run())
 

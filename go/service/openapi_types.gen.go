@@ -369,6 +369,52 @@ type OpenAPIServiceTarget struct {
 	UpdatedAt           time.Time `json:"updatedAt"`
 	Etag                string    `json:"etag"`
 }
+type OpenAPIGitHubRepositoryPermission struct {
+	Contents string `json:"contents"`
+}
+type OpenAPIGitHubRepository struct {
+	Id                 int64                             `json:"id"`
+	Owner              string                            `json:"owner"`
+	Name               string                            `json:"name"`
+	FullName           string                            `json:"fullName"`
+	DefaultBranch      string                            `json:"defaultBranch"`
+	Private            bool                              `json:"private"`
+	InstallationRef    string                            `json:"installationRef"`
+	AdoptionState      string                            `json:"adoptionState"`
+	AdoptedProjectId   *string                           `json:"adoptedProjectId,omitempty"`
+	Permissions        OpenAPIGitHubRepositoryPermission `json:"permissions"`
+	MissingPermissions []string                          `json:"missingPermissions"`
+}
+type OpenAPIGitHubRepositoryList struct {
+	Items      []OpenAPIGitHubRepository `json:"items"`
+	NextCursor string                    `json:"nextCursor"`
+}
+type OpenAPIGitHubRepositoryAdoptionPreviewRequest struct {
+	RepositoryId         *int64  `json:"repositoryId,omitempty"`
+	Repository           *string `json:"repository,omitempty"`
+	AutomaticDeployments bool    `json:"automaticDeployments"`
+}
+type OpenAPIGitHubRepositoryAdoptionPreview struct {
+	Id                   string                  `json:"id"`
+	Digest               string                  `json:"digest"`
+	ProjectId            string                  `json:"projectId"`
+	RepositoryEtag       string                  `json:"repositoryEtag"`
+	Repository           OpenAPIGitHubRepository `json:"repository"`
+	TargetWorkerIds      []string                `json:"targetWorkerIds"`
+	AutomaticDeployments bool                    `json:"automaticDeployments"`
+	RequiredPermissions  []string                `json:"requiredPermissions"`
+	MissingPermissions   []string                `json:"missingPermissions"`
+	WebhookChange        string                  `json:"webhookChange"`
+	Changes              []string                `json:"changes"`
+	State                string                  `json:"state"`
+	ExpiresAt            time.Time               `json:"expiresAt"`
+	Receipt              OpenAPIOperationReceipt `json:"receipt"`
+}
+type OpenAPIGitHubRepositoryAdoptionRequest struct {
+	PreviewId      string `json:"previewId"`
+	PreviewDigest  string `json:"previewDigest"`
+	RepositoryEtag string `json:"repositoryEtag"`
+}
 type OpenAPIServiceRepository struct {
 	Provider                   string     `json:"provider"`
 	RepoOwner                  string     `json:"repoOwner"`
@@ -853,33 +899,40 @@ type OpenAPIPostGripConfigurationPlanSummary struct {
 	Blocked         int64 `json:"blocked"`
 }
 type OpenAPIPostGripConfigurationResourceProjection struct {
-	Id                    *string `json:"id,omitempty"`
-	Ref                   *string `json:"ref,omitempty"`
-	Name                  *string `json:"name,omitempty"`
-	Slug                  *string `json:"slug,omitempty"`
-	Framework             *string `json:"framework,omitempty"`
-	DeploymentMode        *string `json:"deploymentMode,omitempty"`
-	ProjectType           *string `json:"projectType,omitempty"`
-	Provider              *string `json:"provider,omitempty"`
-	RepoOwner             *string `json:"repoOwner,omitempty"`
-	RepoName              *string `json:"repoName,omitempty"`
-	DefaultBranch         *string `json:"defaultBranch,omitempty"`
-	ProjectPath           *string `json:"projectPath,omitempty"`
-	DockerfilePath        *string `json:"dockerfilePath,omitempty"`
-	Kind                  *string `json:"kind,omitempty"`
-	BranchPattern         *string `json:"branchPattern,omitempty"`
-	AssignedWorkerId      *string `json:"assignedWorkerId,omitempty"`
-	AssignedWorkerVersion *int64  `json:"assignedWorkerVersion,omitempty"`
-	BuildCommand          *string `json:"buildCommand,omitempty"`
-	ContainerPort         *int64  `json:"containerPort,omitempty"`
-	Domain                *string `json:"domain,omitempty"`
-	IsPrimary             *bool   `json:"isPrimary,omitempty"`
-	VariableName          *string `json:"variableName,omitempty"`
-	IsSecret              *bool   `json:"isSecret,omitempty"`
-	HasValue              *bool   `json:"hasValue,omitempty"`
-	Value                 *string `json:"value,omitempty"`
-	InputName             *string `json:"inputName,omitempty"`
-	SecretVersion         *string `json:"secretVersion,omitempty"`
+	Id                    *string  `json:"id,omitempty"`
+	Ref                   *string  `json:"ref,omitempty"`
+	Name                  *string  `json:"name,omitempty"`
+	Slug                  *string  `json:"slug,omitempty"`
+	Framework             *string  `json:"framework,omitempty"`
+	DeploymentMode        *string  `json:"deploymentMode,omitempty"`
+	ProjectType           *string  `json:"projectType,omitempty"`
+	Provider              *string  `json:"provider,omitempty"`
+	RepoOwner             *string  `json:"repoOwner,omitempty"`
+	RepoName              *string  `json:"repoName,omitempty"`
+	DefaultBranch         *string  `json:"defaultBranch,omitempty"`
+	ProjectPath           *string  `json:"projectPath,omitempty"`
+	DockerfilePath        *string  `json:"dockerfilePath,omitempty"`
+	ExternalRepoId        *string  `json:"externalRepoId,omitempty"`
+	Connection            *string  `json:"connection,omitempty"`
+	HasSourceCredential   *bool    `json:"hasSourceCredential,omitempty"`
+	GithubInstallationRef *string  `json:"githubInstallationRef,omitempty"`
+	GithubWebhookMode     *string  `json:"githubWebhookMode,omitempty"`
+	GithubWebhookStatus   *string  `json:"githubWebhookStatus,omitempty"`
+	MissingPermissions    []string `json:"missingPermissions,omitempty"`
+	Kind                  *string  `json:"kind,omitempty"`
+	BranchPattern         *string  `json:"branchPattern,omitempty"`
+	AssignedWorkerId      *string  `json:"assignedWorkerId,omitempty"`
+	AssignedWorkerVersion *int64   `json:"assignedWorkerVersion,omitempty"`
+	BuildCommand          *string  `json:"buildCommand,omitempty"`
+	ContainerPort         *int64   `json:"containerPort,omitempty"`
+	Domain                *string  `json:"domain,omitempty"`
+	IsPrimary             *bool    `json:"isPrimary,omitempty"`
+	VariableName          *string  `json:"variableName,omitempty"`
+	IsSecret              *bool    `json:"isSecret,omitempty"`
+	HasValue              *bool    `json:"hasValue,omitempty"`
+	Value                 *string  `json:"value,omitempty"`
+	InputName             *string  `json:"inputName,omitempty"`
+	SecretVersion         *string  `json:"secretVersion,omitempty"`
 }
 type OpenAPIPostGripConfigurationPlanAction struct {
 	Id             string                                          `json:"id"`
@@ -1008,6 +1061,8 @@ type OpenAPIPostGripConfigurationStackOperationActionList struct {
 	Items      []OpenAPIPostGripConfigurationStackOperationAction `json:"items"`
 	NextCursor string                                             `json:"nextCursor"`
 }
+type OpenAPIAdoptGitHubRepositoryRequestBody = OpenAPIGitHubRepositoryAdoptionRequest
+type OpenAPIAdoptGitHubRepositoryResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIApplyPostGripConfigurationPlanRequestBody = OpenAPIApplyPostGripConfigurationPlanRequest
 type OpenAPIApplyPostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationStackOperation
 type OpenAPIApplyServiceVariablesRequestBody = OpenAPIApplyServiceVariablesRequest
@@ -1088,6 +1143,8 @@ type OpenAPIGetServiceVolumeRemovalImpactRequestBody = OpenAPINoBody
 type OpenAPIGetServiceVolumeRemovalImpactResponseBody = OpenAPIServiceRemovalImpact
 type OpenAPIGetTargetServiceRemovalImpactRequestBody = OpenAPINoBody
 type OpenAPIGetTargetServiceRemovalImpactResponseBody = OpenAPIServiceRemovalImpact
+type OpenAPIListGitHubAppRepositoriesRequestBody = OpenAPINoBody
+type OpenAPIListGitHubAppRepositoriesResponseBody = OpenAPIGitHubRepositoryList
 type OpenAPIListPostGripConfigurationPlanActionsRequestBody = OpenAPINoBody
 type OpenAPIListPostGripConfigurationPlanActionsResponseBody = OpenAPIPostGripConfigurationPlanActionList
 type OpenAPIListPostGripConfigurationStackOperationActionsRequestBody = OpenAPINoBody
@@ -1110,6 +1167,8 @@ type OpenAPIListServiceVolumesRequestBody = OpenAPINoBody
 type OpenAPIListServiceVolumesResponseBody = OpenAPIServiceVolumeList
 type OpenAPIListServicesRequestBody = OpenAPINoBody
 type OpenAPIListServicesResponseBody = OpenAPIServiceList
+type OpenAPIPreviewGitHubRepositoryAdoptionRequestBody = OpenAPIGitHubRepositoryAdoptionPreviewRequest
+type OpenAPIPreviewGitHubRepositoryAdoptionResponseBody = OpenAPIGitHubRepositoryAdoptionPreview
 type OpenAPIPreviewServiceDeployRequestBody = OpenAPINoBody
 type OpenAPIPreviewServiceDeployResponseBody = OpenAPIDeployPreview
 type OpenAPIPreviewServiceEnvironmentReassignmentRequestBody = OpenAPIServiceEnvironmentReassignmentPreviewRequest
@@ -1290,6 +1349,12 @@ type PromoteServiceDeploymentRequest = OpenAPIPromoteServiceDeploymentRequest
 type ServiceBuildLogSettingsRequest = OpenAPIServiceBuildLogSettingsRequest
 type ServiceRuntimeLogSettingsRequest = OpenAPIServiceRuntimeLogSettingsRequest
 type ServiceTarget = OpenAPIServiceTarget
+type GitHubRepositoryPermission = OpenAPIGitHubRepositoryPermission
+type GitHubRepository = OpenAPIGitHubRepository
+type GitHubRepositoryList = OpenAPIGitHubRepositoryList
+type GitHubRepositoryAdoptionPreviewRequest = OpenAPIGitHubRepositoryAdoptionPreviewRequest
+type GitHubRepositoryAdoptionPreview = OpenAPIGitHubRepositoryAdoptionPreview
+type GitHubRepositoryAdoptionRequest = OpenAPIGitHubRepositoryAdoptionRequest
 type ServiceRepository = OpenAPIServiceRepository
 type ServiceProject = OpenAPIServiceProject
 type ServiceVolumeBinding = OpenAPIServiceVolumeBinding
@@ -1359,4 +1424,4 @@ type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOper
 type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
 type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
 
-const openAPITypesSpecSHA256 = "74d48490b3cf7b7fc4962124d2d5a9a0432dcf384e6ec4b877872118a9f2044b"
+const openAPITypesSpecSHA256 = "be46551825b1ad67442a777eeaafff4aff52a37e40cc101002797478ccc19a51"

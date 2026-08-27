@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "eb5a6a016b1efa62f0f720847888fc31575c5b7c797a6d5b4814bfbba07ccd1d",
+  "contractBundleDigest": "c88f2c1532abd35e1c7f8f0c6103def1db9ed77110ae2927ad363be56d810c2a",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "74d48490b3cf7b7fc4962124d2d5a9a0432dcf384e6ec4b877872118a9f2044b",
+    "service": "be46551825b1ad67442a777eeaafff4aff52a37e40cc101002797478ccc19a51",
     "worker": "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
   },
   "operations": [
@@ -1396,6 +1396,40 @@
       "idempotency": "required",
       "method": "POST",
       "operationClass": "tenant-api",
+      "operationId": "adoptGitHubRepository",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository/github/adopt",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "GitHubRepositoryAdoptionRequest",
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceConfigurationOperation",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
       "operationId": "applyPostGripConfigurationPlan",
       "pagination": "none",
       "path": "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/apply",
@@ -2692,6 +2726,35 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "listGitHubAppRepositories",
+      "pagination": "cursor",
+      "path": "/api/v1/services/integrations/github/repositories",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "GitHubRepositoryList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "listPostGripConfigurationPlanActions",
       "pagination": "cursor",
       "path": "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions",
@@ -3026,6 +3089,39 @@
       "responseSchema": "ServiceList",
       "retry": "bounded",
       "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "previewGitHubRepositoryAdoption",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository/github/adoption-preview",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "GitHubRepositoryAdoptionPreviewRequest",
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "GitHubRepositoryAdoptionPreview",
+      "retry": "bounded",
+      "safety": "mutation",
       "signing": null
     },
     {

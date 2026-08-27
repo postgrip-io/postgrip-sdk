@@ -9,14 +9,15 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "74d48490b3cf7b7fc4962124d2d5a9a0432dcf384e6ec4b877872118a9f2044b"
-	OpenAPIContractBundleSHA256 = "eb5a6a016b1efa62f0f720847888fc31575c5b7c797a6d5b4814bfbba07ccd1d"
-	OpenAPIOperationCount       = 83
+	OpenAPISpecSHA256           = "be46551825b1ad67442a777eeaafff4aff52a37e40cc101002797478ccc19a51"
+	OpenAPIContractBundleSHA256 = "c88f2c1532abd35e1c7f8f0c6103def1db9ed77110ae2927ad363be56d810c2a"
+	OpenAPIOperationCount       = 86
 )
 
 type openAPIOperationID string
 
 const (
+	openAPIAdoptGitHubRepository                          openAPIOperationID = "adoptGitHubRepository"
 	openAPIApplyPostGripConfigurationPlan                 openAPIOperationID = "applyPostGripConfigurationPlan"
 	openAPIApplyServiceVariables                          openAPIOperationID = "applyServiceVariables"
 	openAPIAttachTargetService                            openAPIOperationID = "attachTargetService"
@@ -57,6 +58,7 @@ const (
 	openAPIGetServiceVolume                               openAPIOperationID = "getServiceVolume"
 	openAPIGetServiceVolumeRemovalImpact                  openAPIOperationID = "getServiceVolumeRemovalImpact"
 	openAPIGetTargetServiceRemovalImpact                  openAPIOperationID = "getTargetServiceRemovalImpact"
+	openAPIListGitHubAppRepositories                      openAPIOperationID = "listGitHubAppRepositories"
 	openAPIListPostGripConfigurationPlanActions           openAPIOperationID = "listPostGripConfigurationPlanActions"
 	openAPIListPostGripConfigurationStackOperationActions openAPIOperationID = "listPostGripConfigurationStackOperationActions"
 	openAPIListServiceConfigurationOperations             openAPIOperationID = "listServiceConfigurationOperations"
@@ -68,6 +70,7 @@ const (
 	openAPIListServiceVariables                           openAPIOperationID = "listServiceVariables"
 	openAPIListServiceVolumes                             openAPIOperationID = "listServiceVolumes"
 	openAPIListServices                                   openAPIOperationID = "listServices"
+	openAPIPreviewGitHubRepositoryAdoption                openAPIOperationID = "previewGitHubRepositoryAdoption"
 	openAPIPreviewServiceDeploy                           openAPIOperationID = "previewServiceDeploy"
 	openAPIPreviewServiceEnvironmentReassignment          openAPIOperationID = "previewServiceEnvironmentReassignment"
 	openAPIPreviewServicePromotion                        openAPIOperationID = "previewServicePromotion"
@@ -118,6 +121,7 @@ type openAPIOperation struct {
 }
 
 var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
+	openAPIAdoptGitHubRepository:                          {Method: "POST", Path: "/api/v1/services/project/{serviceId}/repository/github/adopt", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "GitHubRepositoryAdoptionRequest", ResponseSchema: "ServiceConfigurationOperation", PathParameters: []string{"serviceId"}},
 	openAPIApplyPostGripConfigurationPlan:                 {Method: "POST", Path: "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/apply", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ApplyPostGripConfigurationPlanRequest", ResponseSchema: "PostGripConfigurationStackOperation", PathParameters: []string{"stackKey", "planId"}},
 	openAPIApplyServiceVariables:                          {Method: "POST", Path: "/api/v1/services/project/{serviceId}/variables/apply", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ApplyServiceVariablesRequest", ResponseSchema: "ServiceVariablesApplyResponse", PathParameters: []string{"serviceId"}},
 	openAPIAttachTargetService:                            {Method: "POST", Path: "/api/v1/services/targets", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "AttachTargetServiceRequest", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{}},
@@ -158,6 +162,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIGetServiceVolume:                               {Method: "GET", Path: "/api/v1/services/project/{serviceId}/volumes/{volumeRef}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVolume", PathParameters: []string{"serviceId", "volumeRef"}},
 	openAPIGetServiceVolumeRemovalImpact:                  {Method: "GET", Path: "/api/v1/services/project/{serviceId}/volumes/{volumeRef}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId", "volumeRef"}},
 	openAPIGetTargetServiceRemovalImpact:                  {Method: "GET", Path: "/api/v1/services/target/{serviceId}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId"}},
+	openAPIListGitHubAppRepositories:                      {Method: "GET", Path: "/api/v1/services/integrations/github/repositories", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "GitHubRepositoryList", PathParameters: []string{}},
 	openAPIListPostGripConfigurationPlanActions:           {Method: "GET", Path: "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "PostGripConfigurationPlanActionList", PathParameters: []string{"stackKey", "planId"}},
 	openAPIListPostGripConfigurationStackOperationActions: {Method: "GET", Path: "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "PostGripConfigurationStackOperationActionList", PathParameters: []string{"stackKey", "operationId"}},
 	openAPIListServiceConfigurationOperations:             {Method: "GET", Path: "/api/v1/services/configuration-operations", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperationList", PathParameters: []string{}},
@@ -169,6 +174,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIListServiceVariables:                           {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVariableList", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPIListServiceVolumes:                             {Method: "GET", Path: "/api/v1/services/project/{serviceId}/volumes", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVolumeList", PathParameters: []string{"serviceId"}},
 	openAPIListServices:                                   {Method: "GET", Path: "/api/v1/services", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceList", PathParameters: []string{}},
+	openAPIPreviewGitHubRepositoryAdoption:                {Method: "POST", Path: "/api/v1/services/project/{serviceId}/repository/github/adoption-preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "GitHubRepositoryAdoptionPreviewRequest", ResponseSchema: "GitHubRepositoryAdoptionPreview", PathParameters: []string{"serviceId"}},
 	openAPIPreviewServiceDeploy:                           {Method: "GET", Path: "/api/v1/services/project/{serviceId}/deploy/preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeployPreview", PathParameters: []string{"serviceId"}},
 	openAPIPreviewServiceEnvironmentReassignment:          {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/reassignment-preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceEnvironmentReassignmentPreviewRequest", ResponseSchema: "ServiceEnvironmentReassignmentPreview", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPIPreviewServicePromotion:                        {Method: "GET", Path: "/api/v1/services/project/{serviceId}/promotions/preview", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServicePromotionPreview", PathParameters: []string{"serviceId"}},

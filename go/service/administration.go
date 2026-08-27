@@ -324,6 +324,24 @@ func (c ServiceRepositoriesClient) RefreshCredential(ctx context.Context, projec
 	return c.client.OpenAPI().RefreshServiceRepositoryCredential(ctx, projectID, kind, OpenAPIRefreshServiceRepositoryCredentialHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }
 
+func (c ServiceRepositoriesClient) ListGitHub(ctx context.Context, query OpenAPIListGitHubAppRepositoriesQuery) (OpenAPIListGitHubAppRepositoriesResponseBody, error) {
+	return c.client.OpenAPI().ListGitHubAppRepositories(ctx, query)
+}
+
+func (c ServiceRepositoriesClient) PreviewGitHubAdoption(ctx context.Context, projectID string, body OpenAPIPreviewGitHubRepositoryAdoptionRequestBody, options MutationOptions) (OpenAPIPreviewGitHubRepositoryAdoptionResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIPreviewGitHubRepositoryAdoptionResponseBody{}, err
+	}
+	return c.client.OpenAPI().PreviewGitHubRepositoryAdoption(ctx, projectID, OpenAPIPreviewGitHubRepositoryAdoptionHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceRepositoriesClient) AdoptGitHub(ctx context.Context, projectID string, body OpenAPIAdoptGitHubRepositoryRequestBody, options WriteOptions) (OpenAPIAdoptGitHubRepositoryResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIAdoptGitHubRepositoryResponseBody{}, err
+	}
+	return c.client.OpenAPI().AdoptGitHubRepository(ctx, projectID, OpenAPIAdoptGitHubRepositoryHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+}
+
 func (c ServicePromotionsClient) List(ctx context.Context, projectID string, query OpenAPIListServicePromotionsQuery) (OpenAPIListServicePromotionsResponseBody, error) {
 	return c.client.OpenAPI().ListServicePromotions(ctx, projectID, query)
 }

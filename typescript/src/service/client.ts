@@ -249,6 +249,12 @@ export class ServiceClient {
         this.administrationMutation('clearServiceRepositoryCredential', { path: { serviceId, credentialKind }, ...administrationWrite(options) }, true),
       refreshCredential: (serviceId: string, credentialKind: string, options: AdministrationWriteOptions) =>
         this.administrationMutation('refreshServiceRepositoryCredential', { path: { serviceId, credentialKind }, ...administrationWrite(options) }, true),
+      listGitHub: (query: OpenAPIQueryParameters<'listGitHubAppRepositories'> = {}, options: RequestOptions = {}) =>
+        this.request('listGitHubAppRepositories', { query, signal: options.signal }),
+      previewGitHubAdoption: (serviceId: string, body: OpenAPIRequestBody<'previewGitHubRepositoryAdoption'>, options: MutationOptions) =>
+        this.administrationMutation('previewGitHubRepositoryAdoption', { path: { serviceId }, body, ...mutationRequest(options) }),
+      adoptGitHub: (serviceId: string, body: OpenAPIRequestBody<'adoptGitHubRepository'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('adoptGitHubRepository', { path: { serviceId }, body, ...administrationWrite(options) }, true),
     },
     promotions: {
       list: (serviceId: string, query: OpenAPIQueryParameters<'listServicePromotions'> = {}, options: RequestOptions = {}) => this.request('listServicePromotions', { path: { serviceId }, query, signal: options.signal }),

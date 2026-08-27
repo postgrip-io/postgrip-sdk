@@ -40,7 +40,7 @@ compatibility even though the repository is `postgrip-sdks`.
 
 See the repository [quick start](../README.md), [authentication
 model](../docs/authentication.md), and [generated API
-reference](../docs/reference/eb5a6a016b1efa62f0f720847888fc31575c5b7c797a6d5b4814bfbba07ccd1d/README.md).
+reference](../docs/reference/c88f2c1532abd35e1c7f8f0c6103def1db9ed77110ae2927ad363be56d810c2a/README.md).
 
 ```sh
 GOWORK=off go test ./...

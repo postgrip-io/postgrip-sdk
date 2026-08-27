@@ -89,6 +89,9 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(repositories.PutCredential(ctx, "project-1", "source-access", OpenAPIPutServiceRepositoryCredentialRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(repositories.ClearCredential(ctx, "project-1", "source-access", write)))
 	mustServiceResult(t, serviceResultError(repositories.RefreshCredential(ctx, "project-1", "source-access", write)))
+	mustServiceResult(t, serviceResultError(repositories.ListGitHub(ctx, OpenAPIListGitHubAppRepositoriesQuery{})))
+	mustServiceResult(t, serviceResultError(repositories.PreviewGitHubAdoption(ctx, "project-1", OpenAPIPreviewGitHubRepositoryAdoptionRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(repositories.AdoptGitHub(ctx, "project-1", OpenAPIAdoptGitHubRepositoryRequestBody{}, write)))
 
 	promotions := client.ServicePromotions()
 	mustServiceResult(t, serviceResultError(promotions.List(ctx, "project-1", OpenAPIListServicePromotionsQuery{})))
@@ -122,8 +125,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
 	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
 
-	if calls.Load() != 65 {
-		t.Fatalf("transport calls=%d, want 65", calls.Load())
+	if calls.Load() != 68 {
+		t.Fatalf("transport calls=%d, want 68", calls.Load())
 	}
 }
 

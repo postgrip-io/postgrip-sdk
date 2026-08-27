@@ -107,6 +107,8 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     "repositories": (
         "get_service_repository", "update_service_repository", "put_service_repository_credential",
         "clear_service_repository_credential", "refresh_service_repository_credential",
+        "list_git_hub_app_repositories", "preview_git_hub_repository_adoption",
+        "adopt_git_hub_repository",
     ),
     "promotions": (
         "list_service_promotions", "preview_service_promotion", "promote_service_deployment",

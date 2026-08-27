@@ -1,0 +1,43 @@
+{
+  "operationId": "listGitHubAppRepositories",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {
+      "cursor": "string",
+      "limit": 1
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "items": [
+        {
+          "adoptionState": "available",
+          "defaultBranch": "string",
+          "fullName": "string",
+          "id": 1,
+          "installationRef": "github-installation:1",
+          "missingPermissions": [
+            "string"
+          ],
+          "name": "string",
+          "owner": "string",
+          "permissions": {
+            "contents": "string"
+          },
+          "private": true
+        }
+      ],
+      "nextCursor": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listGitHubAppRepositories"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

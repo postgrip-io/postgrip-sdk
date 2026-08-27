@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "eb5a6a016b1efa62f0f720847888fc31575c5b7c797a6d5b4814bfbba07ccd1d",
+  "contractBundleDigest": "c88f2c1532abd35e1c7f8f0c6103def1db9ed77110ae2927ad363be56d810c2a",
   "operations": [
     {
       "curl": false,
@@ -775,6 +775,23 @@
         "python"
       ],
       "liveTest": "pre-release",
+      "operationId": "adoptGitHubRepository",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
       "operationId": "applyPostGripConfigurationPlan",
       "plane": "service",
       "protocolException": false,
@@ -1455,6 +1472,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "listGitHubAppRepositories",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "listPostGripConfigurationPlanActions",
       "plane": "service",
       "protocolException": false,
@@ -1626,6 +1660,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "listServices",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "previewGitHubRepositoryAdoption",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2390,10 +2441,10 @@
       "recordedTested": 45
     },
     "service": {
-      "curl": 83,
-      "operations": 83,
+      "curl": 86,
+      "operations": 86,
       "protocolExceptions": 0,
-      "recordedTested": 83
+      "recordedTested": 86
     },
     "worker": {
       "curl": 12,
@@ -2404,14 +2455,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 131,
-    "documented": 140,
-    "nightlyOwned": 110,
-    "operations": 140,
-    "preReleaseOwned": 28,
+    "curl": 134,
+    "documented": 143,
+    "nightlyOwned": 111,
+    "operations": 143,
+    "preReleaseOwned": 30,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 140,
-    "sdkGenerated": 140
+    "recordedTested": 143,
+    "sdkGenerated": 143
   }
 }

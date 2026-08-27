@@ -1,5 +1,14 @@
 {
   "operations": {
+    "adoptGitHubRepository": {
+      "behavior": "Revalidates an immutable adoption preview, tenant-owned GitHub App installation, repository identity, permissions, repository ETag, and assigned Workers before queuing the shared per-Worker credential and webhook reconciliation operation. No GitHub token or webhook secret is returned.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Pass the preview digest and repository ETag unchanged and poll the returned configuration operation.",
+        "Use a disposable GitHub App repository and remove it after live validation."
+      ],
+      "summary": "Adopt an authorized GitHub App repository"
+    },
     "appendAgentTaskEvent": {
       "behavior": "Records one task event and returns 202. Agents send progress, milestone, stdout, and stderr; the TypeScript and Python workers additionally emit started, completed, and failed markers alongside the authoritative complete and fail calls, so a finished task can carry two completed events. Only the server writes leased. The kind is not validated -- an empty value defaults to progress. This does not extend the lease; send a heartbeat for that.",
       "lifecycle": [
@@ -456,6 +465,14 @@
       "lifecycle": [],
       "summary": "List schedules"
     },
+    "listGitHubAppRepositories": {
+      "behavior": "Returns one bounded cursor page of repositories visible through the tenant-owned GitHub App installation, including only safe identity, permission, and adoption metadata.",
+      "lifecycle": [
+        "Follow nextCursor until it is empty; do not manufacture or reuse a cursor across tenants or installation changes.",
+        "Repository names are audited tenant metadata."
+      ],
+      "summary": "List repositories authorized for GitHub App adoption"
+    },
     "listPostGripConfigurationPlanActions": {
       "behavior": "Returns one bounded, cursor-paginated page of deterministic safe plan actions. Projections include resource ETags and redacted secret input metadata, never resolved secret bytes.",
       "lifecycle": [
@@ -595,6 +612,14 @@
       "behavior": "Blocks up to wait_seconds and returns 200 with an empty object -- not 204 -- when nothing is available. A queued lifecycle directive (upgrade, log level, attest) is returned in place of a task, and an agent that has been removed receives 410 carrying a shutdown directive.",
       "lifecycle": [],
       "summary": "Long-poll for the next leased task or lifecycle directive"
+    },
+    "previewGitHubRepositoryAdoption": {
+      "behavior": "Resolves an exact repository ID or owner/name through the tenant GitHub App installation and records a short-lived, secret-free preview of permissions, Worker targets, webhook changes, and the repository ETag.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Execute the preview before its expiry and recreate it after any repository, permission, installation, or Worker-assignment change."
+      ],
+      "summary": "Preview GitHub App repository adoption"
     },
     "previewServiceDeploy": {
       "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/deploy/preview behavior.",

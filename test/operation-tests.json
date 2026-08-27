@@ -1,5 +1,14 @@
 {
   "operations": {
+    "adoptGitHubRepository": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/adoptGitHubRepository.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "appendAgentTaskEvent": {
       "cleanup": "reverse-dependency",
       "curlEligible": false,
@@ -645,6 +654,15 @@
       "plane": "agent",
       "protocolException": null
     },
+    "listGitHubAppRepositories": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/listGitHubAppRepositories.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "listPostGripConfigurationPlanActions": {
       "cleanup": "none",
       "curlEligible": true,
@@ -873,6 +891,15 @@
         "reason": "Delegated Agent runtime requests require session claims and request signing.",
         "runner": "signed-agent-runtime"
       }
+    },
+    "previewGitHubRepositoryAdoption": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/previewGitHubRepositoryAdoption.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
     },
     "previewServiceDeploy": {
       "cleanup": "none",

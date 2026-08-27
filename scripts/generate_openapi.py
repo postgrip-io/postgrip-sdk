@@ -69,6 +69,7 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "Repositories": (
         "getServiceRepository", "updateServiceRepository", "putServiceRepositoryCredential",
         "clearServiceRepositoryCredential", "refreshServiceRepositoryCredential",
+        "listGitHubAppRepositories", "previewGitHubRepositoryAdoption", "adoptGitHubRepository",
     ),
     "Promotions": ("listServicePromotions", "previewServicePromotion", "promoteServiceDeployment"),
     "Retention": (
