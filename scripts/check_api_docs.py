@@ -67,6 +67,12 @@ def main() -> int:
                 failures.append(f"{label}: missing contract fact {required}")
 
         test = ownership[operation_id]
+        if operation_id == "createWorker":
+            if "## Equivalent raw HTTP" in page:
+                failures.append(f"{label}: unsafe generic raw bootstrap snippets were generated")
+            for marker in ("## Typed SDK bootstrap workflow", "## Raw HTTP omission", "crash-safe pre-request journal"):
+                if marker not in page:
+                    failures.append(f"{label}: safe bootstrap guidance missing {marker!r}")
         if test["curlEligible"]:
             curl_block = extract_block(page, "sh")
             markers = ["set +x", 'POSTGRIP_API_URL=', "curl \\", "--fail-with-body"]
@@ -89,6 +95,10 @@ def main() -> int:
                 for marker in ("mktemp", "chmod 600", "trap 'rm -f", '"@${POSTGRIP_BODY_FILE}"'):
                     if marker not in curl_block:
                         failures.append(f"{label}: protected request body missing {marker!r}")
+            if operation_id == "createWorker":
+                for marker in ('with open(source, "rb") as stream:', "os.fsync(stream.fileno())", "os.replace(source, target)"):
+                    if marker not in curl_block:
+                        failures.append(f"{label}: crash-safe receipt persistence missing {marker!r}")
         else:
             exception = test.get("protocolException")
             if not exception:

@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '88c5b980c1f699337775ac2005726ad5a04d23883fdb589c91f63c1fbd3e5255'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = 'f9ea05cd07831a2785b4b5e0bf3f97c1c83458a22e7e138a576044b791b6b903'
+OPENAPI_SPEC_SHA256 = '9b0540cbb1dc50155ba12d7adb3211666a002d03e65ee0b2f0f711c48e84e482'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '73278af7cf28358c4c7d2fafa3a62b11671d8a1c718fb3bbe6fa1838cb440508'
 OPENAPI_OPERATION_COUNT = 86
 OPENAPI_CLIENT_OPERATION_COUNT = 86
 
@@ -1207,6 +1207,7 @@ class _SchemaPostGripConfigurationStackOperation(_SchemaPostGripConfigurationSta
     attemptCount: int
     summary: _SchemaPostGripConfigurationStackOperationSummary
     configurationVersion: int
+    etag: str
     resources: list[_SchemaPostGripConfigurationStackResource]
     createdAt: str
     updatedAt: str

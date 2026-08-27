@@ -108,5 +108,5 @@ receipt = postgrip.workers.create(
 )  # replay this exact journal after response loss
 ```
 
-See the immutable [`createWorker` API reference](reference/f9ea05cd07831a2785b4b5e0bf3f97c1c83458a22e7e138a576044b791b6b903/worker/createWorker.md)
+See the immutable [`createWorker` API reference](reference/73278af7cf28358c4c7d2fafa3a62b11671d8a1c718fb3bbe6fa1838cb440508/worker/createWorker.md)
 for scopes, schemas, replay behavior, errors, and the crash-safe cURL workflow.

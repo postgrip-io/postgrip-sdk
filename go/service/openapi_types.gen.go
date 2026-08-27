@@ -3,6 +3,8 @@
 package service
 
 import (
+	"encoding/json"
+	"errors"
 	"time"
 )
 
@@ -790,7 +792,51 @@ type OpenAPIServiceVariablesApplyResponse struct {
 type OpenAPIPostGripConfigurationMetadata struct {
 	Name string `json:"name"`
 }
-type OpenAPIPostGripConfigurationWorkerSelector any
+type OpenAPIPostGripConfigurationWorkerSelector struct {
+	Id   *string `json:"id,omitempty"`
+	Name *string `json:"name,omitempty"`
+}
+
+func (value OpenAPIPostGripConfigurationWorkerSelector) Validate() error {
+	hasID := value.Id != nil && *value.Id != ""
+	hasName := value.Name != nil && *value.Name != ""
+	if hasID == hasName {
+		return errors.New("Worker selector must contain exactly one non-empty id or name")
+	}
+	return nil
+}
+
+func (value OpenAPIPostGripConfigurationWorkerSelector) MarshalJSON() ([]byte, error) {
+	if err := value.Validate(); err != nil {
+		return nil, err
+	}
+	type wire OpenAPIPostGripConfigurationWorkerSelector
+	return json.Marshal(wire(value))
+}
+
+func (value *OpenAPIPostGripConfigurationWorkerSelector) UnmarshalJSON(data []byte) error {
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(data, &object); err != nil {
+		return err
+	}
+	for name := range object {
+		if name != "id" && name != "name" {
+			return errors.New("Worker selector contains an unknown field")
+		}
+	}
+	type wire OpenAPIPostGripConfigurationWorkerSelector
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	candidate := OpenAPIPostGripConfigurationWorkerSelector(decoded)
+	if err := candidate.Validate(); err != nil {
+		return err
+	}
+	*value = candidate
+	return nil
+}
+
 type OpenAPIPostGripConfigurationRepository struct {
 	Provider       string  `json:"provider"`
 	RepoOwner      string  `json:"repoOwner"`
@@ -1034,6 +1080,7 @@ type OpenAPIPostGripConfigurationStackOperation struct {
 	Summary              OpenAPIPostGripConfigurationStackOperationSummary `json:"summary"`
 	LastErrorCode        *string                                           `json:"lastErrorCode,omitempty"`
 	ConfigurationVersion int64                                             `json:"configurationVersion"`
+	Etag                 string                                            `json:"etag"`
 	Resources            []OpenAPIPostGripConfigurationStackResource       `json:"resources"`
 	CreatedAt            time.Time                                         `json:"createdAt"`
 	UpdatedAt            time.Time                                         `json:"updatedAt"`
@@ -1425,4 +1472,4 @@ type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOper
 type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
 type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
 
-const openAPITypesSpecSHA256 = "88c5b980c1f699337775ac2005726ad5a04d23883fdb589c91f63c1fbd3e5255"
+const openAPITypesSpecSHA256 = "9b0540cbb1dc50155ba12d7adb3211666a002d03e65ee0b2f0f711c48e84e482"

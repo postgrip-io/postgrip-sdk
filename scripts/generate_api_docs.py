@@ -320,6 +320,8 @@ with open(source, encoding="utf-8") as stream:
 if not receipt.get("worker", {}).get("id") or not receipt.get("etag"):
     raise SystemExit("Worker response omitted its safe receipt")
 os.chmod(source, 0o600)
+with open(source, "rb") as stream:
+    os.fsync(stream.fileno())
 os.replace(source, target)
 directory = os.open(os.path.dirname(target), os.O_RDONLY)
 try:
@@ -540,14 +542,16 @@ def render_operation(
         f"| Pagination | `{operation['x-postgrip-pagination']}` |", "",
         "## Parameters", "",
     ]
-    if parameter_lines:
-        lines.extend(["| Name | In | Required | Schema | Example | Description |", "| --- | --- | --- | --- | --- | --- |", *parameter_lines])
-    elif operation["operationId"] == "createWorker":
+    if operation["operationId"] == "createWorker":
+        if parameter_lines:
+            lines.extend(["| Name | In | Required | Schema | Example | Description |", "| --- | --- | --- | --- | --- | --- |", *parameter_lines])
         lines.extend([
             "", "## Typed SDK bootstrap workflow", "",
             "The generic raw snippets are intentionally omitted for this operation: a reliable caller must persist the bootstrap values and idempotency key before the request.",
             "Use the typed Go, TypeScript, or Python Worker client with the durable journal workflow in [`docs/worker-bootstrap.md`](../../../worker-bootstrap.md).", "",
         ])
+    elif parameter_lines:
+        lines.extend(["| Name | In | Required | Schema | Example | Description |", "| --- | --- | --- | --- | --- | --- |", *parameter_lines])
     else:
         lines.append("This operation has no path or query parameters.")
     lines.extend(["", "## Request body", ""])
@@ -588,6 +592,11 @@ def render_operation(
             "", "## Protocol adapter", "",
             "Raw language snippets are intentionally omitted because an unsigned, unframed, or non-streaming HTTP example would be incorrect.",
             f"Use the typed {plane.title()} adapter and the `{protocol_exception['runner']}` conformance runner; it owns signing, streaming, archive, long-poll, or WebSocket semantics for this operation.", "",
+        ])
+    elif operation["operationId"] == "createWorker":
+        lines.extend([
+            "", "## Raw HTTP omission", "",
+            "Generic raw language snippets are intentionally omitted because they cannot demonstrate the required crash-safe pre-request journal. Use the durable cURL workflow above or the typed SDK bootstrap workflow.", "",
         ])
     else:
         lines.extend([

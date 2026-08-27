@@ -63,7 +63,7 @@ jobs:
 
   github-adoption:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     environment: sdk-live-pre-release
     env:
       POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
