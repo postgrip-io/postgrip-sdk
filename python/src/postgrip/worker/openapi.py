@@ -8,15 +8,16 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd'
-OPENAPI_OPERATION_COUNT = 12
-OPENAPI_CLIENT_OPERATION_COUNT = 12
+OPENAPI_SPEC_SHA256 = 'afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '73278af7cf28358c4c7d2fafa3a62b11671d8a1c718fb3bbe6fa1838cb440508'
+OPENAPI_OPERATION_COUNT = 13
+OPENAPI_CLIENT_OPERATION_COUNT = 13
 
 
 
 class OperationId(str, Enum):
     CHECK_WORKER = 'checkWorker'
+    CREATE_WORKER = 'createWorker'
     GET_WORKER = 'getWorker'
     GET_WORKER_JOB = 'getWorkerJob'
     LIST_WORKER_ASSIGNMENTS = 'listWorkerAssignments'
@@ -45,6 +46,26 @@ class _SchemaMaintenanceWindow(TypedDict):
     startMinute: int
     durationMinutes: int
     timezone: str
+
+class _SchemaCreateWorkerBootstrap(TypedDict):
+    enrollmentKey: str
+    attestationBootstrapToken: str
+
+class _SchemaCreateWorkerRequest(TypedDict):
+    name: str
+    host: str
+    autoShutdownOnRemoval: bool
+    bootstrap: _SchemaCreateWorkerBootstrap
+
+class _SchemaWorkerBootstrapExpiry(TypedDict):
+    enrollmentExpiresAt: str
+    attestationExpiresAt: str
+
+class _SchemaCreateWorkerResponse(TypedDict):
+    worker: _SchemaWorker
+    bootstrap: _SchemaWorkerBootstrapExpiry
+    etag: str
+    receipt: _SchemaOperationReceipt
 
 class _SchemaWorkerOptional(TypedDict, total=False):
     host: str
@@ -191,6 +212,10 @@ class _SchemaUpgradeWorkerResponse(TypedDict):
 OpenAPIHealthResponse: TypeAlias = _SchemaHealthResponse
 OpenAPIErrorResponse: TypeAlias = _SchemaErrorResponse
 OpenAPIMaintenanceWindow: TypeAlias = _SchemaMaintenanceWindow
+OpenAPICreateWorkerBootstrap: TypeAlias = _SchemaCreateWorkerBootstrap
+OpenAPICreateWorkerRequest: TypeAlias = _SchemaCreateWorkerRequest
+OpenAPIWorkerBootstrapExpiry: TypeAlias = _SchemaWorkerBootstrapExpiry
+OpenAPICreateWorkerResponse: TypeAlias = _SchemaCreateWorkerResponse
 OpenAPIWorker: TypeAlias = _SchemaWorker
 OpenAPIWorkerList: TypeAlias = _SchemaWorkerList
 OpenAPIAssignment: TypeAlias = _SchemaAssignment
@@ -210,6 +235,8 @@ OpenAPIUpgradeWorkerResponse: TypeAlias = _SchemaUpgradeWorkerResponse
 
 CheckWorkerRequestBody: TypeAlias = None
 CheckWorkerResponseBody: TypeAlias = _SchemaCheckWorkerResponse
+CreateWorkerRequestBody: TypeAlias = _SchemaCreateWorkerRequest
+CreateWorkerResponseBody: TypeAlias = _SchemaCreateWorkerResponse
 GetWorkerRequestBody: TypeAlias = None
 GetWorkerResponseBody: TypeAlias = _SchemaWorker
 GetWorkerJobRequestBody: TypeAlias = None
@@ -235,6 +262,7 @@ WorkerOrchestratorHealthResponseBody: TypeAlias = _SchemaHealthResponse
 
 OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.CHECK_WORKER: (CheckWorkerRequestBody, CheckWorkerResponseBody),
+    OperationId.CREATE_WORKER: (CreateWorkerRequestBody, CreateWorkerResponseBody),
     OperationId.GET_WORKER: (GetWorkerRequestBody, GetWorkerResponseBody),
     OperationId.GET_WORKER_JOB: (GetWorkerJobRequestBody, GetWorkerJobResponseBody),
     OperationId.LIST_WORKER_ASSIGNMENTS: (ListWorkerAssignmentsRequestBody, ListWorkerAssignmentsResponseBody),
@@ -278,6 +306,7 @@ class ResolvedOpenAPIOperation:
 
 _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.CHECK_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/check', 'worker-management', '', False, False, '', 'CheckWorkerResponse', ('workerId',)),
+    OperationId.CREATE_WORKER: OpenAPIOperation('POST', '/api/v1/workers', 'worker-management', '', False, False, 'CreateWorkerRequest', 'CreateWorkerResponse', ()),
     OperationId.GET_WORKER: OpenAPIOperation('GET', '/api/v1/workers/{workerId}', 'worker-management', '', False, False, '', 'Worker', ('workerId',)),
     OperationId.GET_WORKER_JOB: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs/{jobId}', 'worker-management', '', False, False, '', 'Job', ('workerId', 'jobId')),
     OperationId.LIST_WORKER_ASSIGNMENTS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/assignments', 'worker-management', '', False, False, '', 'AssignmentList', ('workerId',)),
@@ -337,6 +366,11 @@ class OpenAPIClient:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
         return cast(CheckWorkerResponseBody, self._transport(OperationId.CHECK_WORKER, path_parameters={'workerId': worker_id}, headers=_headers))
+
+    def create_worker(self, body: CreateWorkerRequestBody, *, idempotency_key: str) -> CreateWorkerResponseBody:
+        _headers: dict[str, str] = {}
+        _headers['Idempotency-Key'] = str(idempotency_key)
+        return cast(CreateWorkerResponseBody, self._transport(OperationId.CREATE_WORKER, body, headers=_headers))
 
     def get_worker(self, worker_id: str) -> GetWorkerResponseBody:
         return cast(GetWorkerResponseBody, self._transport(OperationId.GET_WORKER, path_parameters={'workerId': worker_id}))
@@ -456,4 +490,4 @@ def resolve_openapi_operation(
     )
 
 
-__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIHealthResponse', 'OpenAPIErrorResponse', 'OpenAPIMaintenanceWindow', 'OpenAPIWorker', 'OpenAPIWorkerList', 'OpenAPIAssignment', 'OpenAPIAssignmentList', 'OpenAPIJobState', 'OpenAPIJob', 'OpenAPIJobList', 'OpenAPIOperationReceipt', 'OpenAPICheckResult', 'OpenAPICheckWorkerResponse', 'OpenAPIOperationalLogEntry', 'OpenAPISecurityLogEntry', 'OpenAPIOperationalLogList', 'OpenAPISecurityLogList', 'OpenAPIWorkerOperationResponse', 'OpenAPIUpgradeWorkerResponse', 'CheckWorkerRequestBody', 'CheckWorkerResponseBody', 'GetWorkerRequestBody', 'GetWorkerResponseBody', 'GetWorkerJobRequestBody', 'GetWorkerJobResponseBody', 'ListWorkerAssignmentsRequestBody', 'ListWorkerAssignmentsResponseBody', 'ListWorkerJobsRequestBody', 'ListWorkerJobsResponseBody', 'ListWorkerOperationalLogsRequestBody', 'ListWorkerOperationalLogsResponseBody', 'ListWorkerSecurityLogsRequestBody', 'ListWorkerSecurityLogsResponseBody', 'ListWorkersRequestBody', 'ListWorkersResponseBody', 'PlaceWorkerInMaintenanceRequestBody', 'PlaceWorkerInMaintenanceResponseBody', 'ResumeWorkerFromMaintenanceRequestBody', 'ResumeWorkerFromMaintenanceResponseBody', 'UpgradeWorkerRequestBody', 'UpgradeWorkerResponseBody', 'WorkerOrchestratorHealthRequestBody', 'WorkerOrchestratorHealthResponseBody']
+__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIHealthResponse', 'OpenAPIErrorResponse', 'OpenAPIMaintenanceWindow', 'OpenAPICreateWorkerBootstrap', 'OpenAPICreateWorkerRequest', 'OpenAPIWorkerBootstrapExpiry', 'OpenAPICreateWorkerResponse', 'OpenAPIWorker', 'OpenAPIWorkerList', 'OpenAPIAssignment', 'OpenAPIAssignmentList', 'OpenAPIJobState', 'OpenAPIJob', 'OpenAPIJobList', 'OpenAPIOperationReceipt', 'OpenAPICheckResult', 'OpenAPICheckWorkerResponse', 'OpenAPIOperationalLogEntry', 'OpenAPISecurityLogEntry', 'OpenAPIOperationalLogList', 'OpenAPISecurityLogList', 'OpenAPIWorkerOperationResponse', 'OpenAPIUpgradeWorkerResponse', 'CheckWorkerRequestBody', 'CheckWorkerResponseBody', 'CreateWorkerRequestBody', 'CreateWorkerResponseBody', 'GetWorkerRequestBody', 'GetWorkerResponseBody', 'GetWorkerJobRequestBody', 'GetWorkerJobResponseBody', 'ListWorkerAssignmentsRequestBody', 'ListWorkerAssignmentsResponseBody', 'ListWorkerJobsRequestBody', 'ListWorkerJobsResponseBody', 'ListWorkerOperationalLogsRequestBody', 'ListWorkerOperationalLogsResponseBody', 'ListWorkerSecurityLogsRequestBody', 'ListWorkerSecurityLogsResponseBody', 'ListWorkersRequestBody', 'ListWorkersResponseBody', 'PlaceWorkerInMaintenanceRequestBody', 'PlaceWorkerInMaintenanceResponseBody', 'ResumeWorkerFromMaintenanceRequestBody', 'ResumeWorkerFromMaintenanceResponseBody', 'UpgradeWorkerRequestBody', 'UpgradeWorkerResponseBody', 'WorkerOrchestratorHealthRequestBody', 'WorkerOrchestratorHealthResponseBody']

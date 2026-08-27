@@ -56,3 +56,36 @@ jobs:
           path: test/reports/live-nightly-ledger.json
           if-no-files-found: warn
           retention-days: 30
+
+  github-adoption:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: sdk-live-nightly
+    env:
+      POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
+      POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
+      POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
+      POSTGRIP_GITHUB_LIVE_PROJECT_ID: ${{ vars.POSTGRIP_GITHUB_LIVE_PROJECT_ID }}
+      POSTGRIP_GITHUB_TEST_ORG: ${{ vars.POSTGRIP_GITHUB_TEST_ORG }}
+      POSTGRIP_GITHUB_TEST_TOKEN: ${{ secrets.POSTGRIP_GITHUB_TEST_TOKEN }}
+      POSTGRIP_GITHUB_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_GITHUB_LIVE_DISPOSABLE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify GitHub lifecycle safety guards
+        run: python3 scripts/test_github_adoption_live.py --self-test
+      - name: Create, adopt, trigger, rotate, and remove a disposable repository
+        run: >-
+          python3 scripts/test_github_adoption_live.py
+          --mode nightly
+          | tee test/reports/live-nightly-github-adoption.json
+      - name: Upload GitHub adoption receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-nightly-github-adoption-${{ github.run_id }}
+          path: test/reports/live-nightly-github-adoption.json
+          if-no-files-found: warn
+          retention-days: 30

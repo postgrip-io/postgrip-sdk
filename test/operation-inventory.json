@@ -1,9 +1,9 @@
 {
-  "contractBundleDigest": "5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd",
+  "contractBundleDigest": "73278af7cf28358c4c7d2fafa3a62b11671d8a1c718fb3bbe6fa1838cb440508",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "2dd219d428083e4416f141676dcfed63fe23f5d4d729aaadb3a574c2cb2b1ec5",
-    "worker": "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
+    "service": "9b0540cbb1dc50155ba12d7adb3211666a002d03e65ee0b2f0f711c48e84e482",
+    "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
     {
@@ -1396,6 +1396,74 @@
       "idempotency": "required",
       "method": "POST",
       "operationClass": "tenant-api",
+      "operationId": "adoptGitHubRepository",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository/github/adopt",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "GitHubRepositoryAdoptionRequest",
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:secrets:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceConfigurationOperation",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "applyPostGripConfigurationPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/apply",
+      "pathParameters": [
+        "stackKey",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ApplyPostGripConfigurationPlanRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationStackOperation",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
       "operationId": "applyServiceVariables",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/variables/apply",
@@ -1650,6 +1718,39 @@
       "responseSchema": "ServiceTargetMutationResponse",
       "retry": "bounded",
       "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createPostGripConfigurationPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/plans",
+      "pathParameters": [
+        "stackKey"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreatePostGripConfigurationPlanRequest",
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationPlan",
+      "retry": "bounded",
+      "safety": "read-only",
       "signing": null
     },
     {
@@ -2120,6 +2221,101 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getPostGripConfigurationPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}",
+      "pathParameters": [
+        "stackKey",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationPlan",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getPostGripConfigurationStack",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}",
+      "pathParameters": [
+        "stackKey"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationStack",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getPostGripConfigurationStackOperation",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}",
+      "pathParameters": [
+        "stackKey",
+        "operationId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationStackOperation",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getService",
       "pagination": "none",
       "path": "/api/v1/services/{source}/{serviceId}",
@@ -2530,6 +2726,99 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "listGitHubAppRepositories",
+      "pagination": "cursor",
+      "path": "/api/v1/services/integrations/github/repositories",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "GitHubRepositoryList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listPostGripConfigurationPlanActions",
+      "pagination": "cursor",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions",
+      "pathParameters": [
+        "stackKey",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationPlanActionList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listPostGripConfigurationStackOperationActions",
+      "pagination": "cursor",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions",
+      "pathParameters": [
+        "stackKey",
+        "operationId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationStackOperationActionList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "listServiceConfigurationOperations",
       "pagination": "none",
       "path": "/api/v1/services/configuration-operations",
@@ -2800,6 +3089,39 @@
       "responseSchema": "ServiceList",
       "retry": "bounded",
       "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "previewGitHubRepositoryAdoption",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/repository/github/adoption-preview",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "GitHubRepositoryAdoptionPreviewRequest",
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "GitHubRepositoryAdoptionPreview",
+      "retry": "bounded",
+      "safety": "mutation",
       "signing": null
     },
     {
@@ -3226,6 +3548,72 @@
         "application/json"
       ],
       "responseSchema": "ServiceOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "resubmitPostGripConfigurationSecretInputs",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/secret-inputs",
+      "pathParameters": [
+        "stackKey",
+        "operationId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ResubmitPostGripConfigurationSecretInputsRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationStackOperation",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "retryPostGripConfigurationStackOperation",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/retry",
+      "pathParameters": [
+        "stackKey",
+        "operationId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationStackOperation",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null
@@ -3764,6 +4152,37 @@
       "acceptedCredentials": [
         "postgrip-token"
       ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "validatePostGripConfiguration",
+      "pagination": "none",
+      "path": "/api/v1/services/configuration/validate",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ValidatePostGripConfigurationRequest",
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "PostGripConfigurationValidationResult",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
       "authLane": "worker-management",
       "idempotency": "required",
       "method": "POST",
@@ -3787,6 +4206,37 @@
         "application/json"
       ],
       "responseSchema": "CheckWorkerResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createWorker",
+      "pagination": "none",
+      "path": "/api/v1/workers",
+      "pathParameters": [],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateWorkerRequest",
+      "requiredScopes": [
+        [
+          "workers:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "CreateWorkerResponse",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null

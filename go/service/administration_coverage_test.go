@@ -25,7 +25,7 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer pgt_test-token" {
 			t.Fatalf("authorization=%q", r.Header.Get("Authorization"))
 		}
-		if r.Method != http.MethodGet && r.Header.Get("Idempotency-Key") != "operation-1" {
+		if r.Method != http.MethodGet && r.URL.Path != "/api/v1/services/configuration/validate" && r.Header.Get("Idempotency-Key") != "operation-1" {
 			t.Fatalf("idempotency=%q for %s", r.Header.Get("Idempotency-Key"), r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -89,6 +89,9 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(repositories.PutCredential(ctx, "project-1", "source-access", OpenAPIPutServiceRepositoryCredentialRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(repositories.ClearCredential(ctx, "project-1", "source-access", write)))
 	mustServiceResult(t, serviceResultError(repositories.RefreshCredential(ctx, "project-1", "source-access", write)))
+	mustServiceResult(t, serviceResultError(repositories.ListGitHub(ctx, OpenAPIListGitHubAppRepositoriesQuery{})))
+	mustServiceResult(t, serviceResultError(repositories.PreviewGitHubAdoption(ctx, "project-1", OpenAPIPreviewGitHubRepositoryAdoptionRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(repositories.AdoptGitHub(ctx, "project-1", OpenAPIAdoptGitHubRepositoryRequestBody{}, write)))
 
 	promotions := client.ServicePromotions()
 	mustServiceResult(t, serviceResultError(promotions.List(ctx, "project-1", OpenAPIListServicePromotionsQuery{})))
@@ -110,8 +113,20 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(operations.Get(ctx, "operation-1")))
 	mustServiceResult(t, serviceResultError(operations.Retry(ctx, "operation-1", write)))
 
-	if calls.Load() != 55 {
-		t.Fatalf("transport calls=%d, want 55", calls.Load())
+	configuration := client.DeclarativeConfiguration()
+	mustServiceResult(t, serviceResultError(configuration.Validate(ctx, OpenAPIValidatePostGripConfigurationRequestBody{})))
+	mustServiceResult(t, serviceResultError(configuration.GetStack(ctx, "stack-1")))
+	mustServiceResult(t, serviceResultError(configuration.CreatePlan(ctx, "stack-1", OpenAPICreatePostGripConfigurationPlanRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(configuration.GetPlan(ctx, "stack-1", "plan-1")))
+	mustServiceResult(t, serviceResultError(configuration.ListActions(ctx, "stack-1", "plan-1", OpenAPIListPostGripConfigurationPlanActionsQuery{})))
+	mustServiceResult(t, serviceResultError(configuration.Apply(ctx, "stack-1", "plan-1", OpenAPIApplyPostGripConfigurationPlanRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(configuration.GetOperation(ctx, "stack-1", "operation-1")))
+	mustServiceResult(t, serviceResultError(configuration.ListOperationActions(ctx, "stack-1", "operation-1", OpenAPIListPostGripConfigurationStackOperationActionsQuery{})))
+	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
+	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
+
+	if calls.Load() != 68 {
+		t.Fatalf("transport calls=%d, want 68", calls.Load())
 	}
 }
 

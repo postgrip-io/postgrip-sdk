@@ -39,6 +39,7 @@ type ServiceRepositoriesClient struct{ client *Client }
 type ServicePromotionsClient struct{ client *Client }
 type ServiceRetentionClient struct{ client *Client }
 type ServiceConfigurationOperationsClient struct{ client *Client }
+type DeclarativeConfigurationClient struct{ client *Client }
 
 func (c *Client) TargetServices() TargetServicesClient { return TargetServicesClient{client: c} }
 func (c *Client) Projects() ProjectsClient             { return ProjectsClient{client: c} }
@@ -61,6 +62,9 @@ func (c *Client) ServiceRetention() ServiceRetentionClient {
 }
 func (c *Client) ServiceConfigurationOperations() ServiceConfigurationOperationsClient {
 	return ServiceConfigurationOperationsClient{client: c}
+}
+func (c *Client) DeclarativeConfiguration() DeclarativeConfigurationClient {
+	return DeclarativeConfigurationClient{client: c}
 }
 
 func (c TargetServicesClient) Attach(ctx context.Context, body OpenAPIAttachTargetServiceRequestBody, options WriteOptions) (OpenAPIAttachTargetServiceResponseBody, error) {
@@ -320,6 +324,24 @@ func (c ServiceRepositoriesClient) RefreshCredential(ctx context.Context, projec
 	return c.client.OpenAPI().RefreshServiceRepositoryCredential(ctx, projectID, kind, OpenAPIRefreshServiceRepositoryCredentialHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }
 
+func (c ServiceRepositoriesClient) ListGitHub(ctx context.Context, query OpenAPIListGitHubAppRepositoriesQuery) (OpenAPIListGitHubAppRepositoriesResponseBody, error) {
+	return c.client.OpenAPI().ListGitHubAppRepositories(ctx, query)
+}
+
+func (c ServiceRepositoriesClient) PreviewGitHubAdoption(ctx context.Context, projectID string, body OpenAPIPreviewGitHubRepositoryAdoptionRequestBody, options MutationOptions) (OpenAPIPreviewGitHubRepositoryAdoptionResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIPreviewGitHubRepositoryAdoptionResponseBody{}, err
+	}
+	return c.client.OpenAPI().PreviewGitHubRepositoryAdoption(ctx, projectID, OpenAPIPreviewGitHubRepositoryAdoptionHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceRepositoriesClient) AdoptGitHub(ctx context.Context, projectID string, body OpenAPIAdoptGitHubRepositoryRequestBody, options WriteOptions) (OpenAPIAdoptGitHubRepositoryResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIAdoptGitHubRepositoryResponseBody{}, err
+	}
+	return c.client.OpenAPI().AdoptGitHubRepository(ctx, projectID, OpenAPIAdoptGitHubRepositoryHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+}
+
 func (c ServicePromotionsClient) List(ctx context.Context, projectID string, query OpenAPIListServicePromotionsQuery) (OpenAPIListServicePromotionsResponseBody, error) {
 	return c.client.OpenAPI().ListServicePromotions(ctx, projectID, query)
 }
@@ -398,4 +420,66 @@ func (c ServiceConfigurationOperationsClient) Retry(ctx context.Context, operati
 		return OpenAPIRetryServiceConfigurationOperationResponseBody{}, err
 	}
 	return c.client.OpenAPI().RetryServiceConfigurationOperation(ctx, operationID, OpenAPIRetryServiceConfigurationOperationHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+}
+
+// Validate checks a PostGrip configuration without creating a stack or plan.
+func (c DeclarativeConfigurationClient) Validate(ctx context.Context, body OpenAPIValidatePostGripConfigurationRequestBody) (OpenAPIValidatePostGripConfigurationResponseBody, error) {
+	return c.client.OpenAPI().ValidatePostGripConfiguration(ctx, body)
+}
+
+// GetStack returns the last applied state for a declarative stack.
+func (c DeclarativeConfigurationClient) GetStack(ctx context.Context, stackKey string) (OpenAPIGetPostGripConfigurationStackResponseBody, error) {
+	return c.client.OpenAPI().GetPostGripConfigurationStack(ctx, stackKey)
+}
+
+// CreatePlan creates an immutable, expiring plan without applying it.
+func (c DeclarativeConfigurationClient) CreatePlan(ctx context.Context, stackKey string, body OpenAPICreatePostGripConfigurationPlanRequestBody, options MutationOptions) (OpenAPICreatePostGripConfigurationPlanResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPICreatePostGripConfigurationPlanResponseBody{}, err
+	}
+	return c.client.OpenAPI().CreatePostGripConfigurationPlan(ctx, stackKey, OpenAPICreatePostGripConfigurationPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+// GetPlan returns immutable plan metadata and its safe receipt.
+func (c DeclarativeConfigurationClient) GetPlan(ctx context.Context, stackKey, planID string) (OpenAPIGetPostGripConfigurationPlanResponseBody, error) {
+	return c.client.OpenAPI().GetPostGripConfigurationPlan(ctx, stackKey, planID)
+}
+
+// ListActions returns one bounded page of the plan's safe action graph.
+func (c DeclarativeConfigurationClient) ListActions(ctx context.Context, stackKey, planID string, query OpenAPIListPostGripConfigurationPlanActionsQuery) (OpenAPIListPostGripConfigurationPlanActionsResponseBody, error) {
+	return c.client.OpenAPI().ListPostGripConfigurationPlanActions(ctx, stackKey, planID, query)
+}
+
+// Apply starts a durable aggregate operation for an accepted plan.
+func (c DeclarativeConfigurationClient) Apply(ctx context.Context, stackKey, planID string, body OpenAPIApplyPostGripConfigurationPlanRequestBody, options MutationOptions) (OpenAPIApplyPostGripConfigurationPlanResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIApplyPostGripConfigurationPlanResponseBody{}, err
+	}
+	return c.client.OpenAPI().ApplyPostGripConfigurationPlan(ctx, stackKey, planID, OpenAPIApplyPostGripConfigurationPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+// GetOperation returns the current state of a durable stack operation.
+func (c DeclarativeConfigurationClient) GetOperation(ctx context.Context, stackKey, operationID string) (OpenAPIGetPostGripConfigurationStackOperationResponseBody, error) {
+	return c.client.OpenAPI().GetPostGripConfigurationStackOperation(ctx, stackKey, operationID)
+}
+
+// ListOperationActions returns one bounded page of aggregate operation actions.
+func (c DeclarativeConfigurationClient) ListOperationActions(ctx context.Context, stackKey, operationID string, query OpenAPIListPostGripConfigurationStackOperationActionsQuery) (OpenAPIListPostGripConfigurationStackOperationActionsResponseBody, error) {
+	return c.client.OpenAPI().ListPostGripConfigurationStackOperationActions(ctx, stackKey, operationID, query)
+}
+
+// RetryOperation resumes a failed or blocked operation behind its ETag fence.
+func (c DeclarativeConfigurationClient) RetryOperation(ctx context.Context, stackKey, operationID string, options WriteOptions) (OpenAPIRetryPostGripConfigurationStackOperationResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIRetryPostGripConfigurationStackOperationResponseBody{}, err
+	}
+	return c.client.OpenAPI().RetryPostGripConfigurationStackOperation(ctx, stackKey, operationID, OpenAPIRetryPostGripConfigurationStackOperationHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+}
+
+// ResubmitSecretInputs replaces only expired secret envelopes behind an ETag fence.
+func (c DeclarativeConfigurationClient) ResubmitSecretInputs(ctx context.Context, stackKey, operationID string, body OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody, options WriteOptions) (OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody{}, err
+	}
+	return c.client.OpenAPI().ResubmitPostGripConfigurationSecretInputs(ctx, stackKey, operationID, OpenAPIResubmitPostGripConfigurationSecretInputsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
 }

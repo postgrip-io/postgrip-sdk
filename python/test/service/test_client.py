@@ -14,7 +14,11 @@ from urllib.request import Request
 from unittest.mock import patch
 
 from postgrip.service import AsyncServiceClient, ServiceAPIError, ServiceClient, ServiceReference
-from postgrip.service.administration_types import ConfigurationOperationsAdministration, RepositoriesAdministration
+from postgrip.service.administration_types import (
+    ConfigurationOperationsAdministration,
+    DeclarativeConfigurationAdministration,
+    RepositoriesAdministration,
+)
 from postgrip.service.client import _NoRedirect
 from postgrip.service.openapi import OperationId
 
@@ -55,6 +59,7 @@ class AdministrationTypeTests(unittest.TestCase):
     def test_runtime_type_hints_resolve_closed_literals(self) -> None:
         get_type_hints(RepositoriesAdministration.put_service_repository_credential)
         get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
+        get_type_hints(DeclarativeConfigurationAdministration.create_post_grip_configuration_plan)
 
 
 class FakeOpener:
@@ -414,6 +419,7 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.promotions,
             client.administration.retention,
             client.administration.configuration_operations,
+            client.administration.declarative_configuration,
         )
         exposed = {name for group in groups for name in dir(group)}
         phase_seven = {
@@ -426,7 +432,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 55)
+        self.assertEqual(len(exposed), 68)
 
         client.administration.target_services.attach_target_service(
             {
@@ -444,7 +450,7 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
 
     def test_every_administration_facade_executes_through_the_transport(self) -> None:
-        opener = FakeOpener([{} for _ in range(55)])
+        opener = FakeOpener([{} for _ in range(68)])
         client = ServiceClient(
             base_url="https://services.example.test", token="pgt_test-token", opener=opener,
         )  # type: ignore[arg-type]
@@ -459,6 +465,7 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.promotions,
             client.administration.retention,
             client.administration.configuration_operations,
+            client.administration.declarative_configuration,
         )
 
         for group in groups:
@@ -467,12 +474,16 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 55)
+        self.assertEqual(len(opener.requests), 68)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
         ))
-        mutations = [request for request in opener.requests if request.method != "GET"]
+        mutations = [
+            request for request in opener.requests
+            if request.method != "GET"
+            and urlparse(request.full_url).path != "/api/v1/services/configuration/validate"
+        ]
         self.assertTrue(mutations)
         self.assertTrue(all(
             request.get_header("Idempotency-key") == "operation-1"
@@ -618,7 +629,7 @@ class ServiceClientTests(unittest.TestCase):
 
     def test_async_administration_facades_execute_through_the_transport(self) -> None:
         async def run() -> None:
-            opener = FakeOpener([{} for _ in range(55)])
+            opener = FakeOpener([{} for _ in range(68)])
             client = AsyncServiceClient(
                 base_url="https://services.example.test", token="pgt_test-token", opener=opener,
             )  # type: ignore[arg-type]
@@ -636,6 +647,10 @@ class ServiceClientTests(unittest.TestCase):
                     client.administration.configuration_operations,
                     client._sync.administration.configuration_operations,
                 ),
+                (
+                    client.administration.declarative_configuration,
+                    client._sync.administration.declarative_configuration,
+                ),
             )
 
             for async_group, sync_group in groups:
@@ -643,7 +658,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 55)
+            self.assertEqual(len(opener.requests), 68)
 
         asyncio.run(run())
 

@@ -9,15 +9,16 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
-	OpenAPIContractBundleSHA256 = "5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd"
-	OpenAPIOperationCount       = 12
+	OpenAPISpecSHA256           = "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
+	OpenAPIContractBundleSHA256 = "73278af7cf28358c4c7d2fafa3a62b11671d8a1c718fb3bbe6fa1838cb440508"
+	OpenAPIOperationCount       = 13
 )
 
 type openAPIOperationID string
 
 const (
 	openAPICheckWorker                 openAPIOperationID = "checkWorker"
+	openAPICreateWorker                openAPIOperationID = "createWorker"
 	openAPIGetWorker                   openAPIOperationID = "getWorker"
 	openAPIGetWorkerJob                openAPIOperationID = "getWorkerJob"
 	openAPIListWorkerAssignments       openAPIOperationID = "listWorkerAssignments"
@@ -48,6 +49,7 @@ type openAPIOperation struct {
 
 var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPICheckWorker:                 {Method: "POST", Path: "/api/v1/workers/{workerId}/check", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "CheckWorkerResponse", PathParameters: []string{"workerId"}},
+	openAPICreateWorker:                {Method: "POST", Path: "/api/v1/workers", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateWorkerRequest", ResponseSchema: "CreateWorkerResponse", PathParameters: []string{}},
 	openAPIGetWorker:                   {Method: "GET", Path: "/api/v1/workers/{workerId}", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Worker", PathParameters: []string{"workerId"}},
 	openAPIGetWorkerJob:                {Method: "GET", Path: "/api/v1/workers/{workerId}/jobs/{jobId}", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Job", PathParameters: []string{"workerId", "jobId"}},
 	openAPIListWorkerAssignments:       {Method: "GET", Path: "/api/v1/workers/{workerId}/assignments", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "AssignmentList", PathParameters: []string{"workerId"}},

@@ -24,6 +24,26 @@ type OpenAPIMaintenanceWindow struct {
 	DurationMinutes int64  `json:"durationMinutes"`
 	Timezone        string `json:"timezone"`
 }
+type OpenAPICreateWorkerBootstrap struct {
+	EnrollmentKey             string `json:"enrollmentKey"`
+	AttestationBootstrapToken string `json:"attestationBootstrapToken"`
+}
+type OpenAPICreateWorkerRequest struct {
+	Name                  string                       `json:"name"`
+	Host                  string                       `json:"host"`
+	AutoShutdownOnRemoval bool                         `json:"autoShutdownOnRemoval"`
+	Bootstrap             OpenAPICreateWorkerBootstrap `json:"bootstrap"`
+}
+type OpenAPIWorkerBootstrapExpiry struct {
+	EnrollmentExpiresAt  time.Time `json:"enrollmentExpiresAt"`
+	AttestationExpiresAt time.Time `json:"attestationExpiresAt"`
+}
+type OpenAPICreateWorkerResponse struct {
+	Worker    OpenAPIWorker                `json:"worker"`
+	Bootstrap OpenAPIWorkerBootstrapExpiry `json:"bootstrap"`
+	Etag      string                       `json:"etag"`
+	Receipt   OpenAPIOperationReceipt      `json:"receipt"`
+}
 type OpenAPIWorker struct {
 	Id                      string                    `json:"id"`
 	Name                    string                    `json:"name"`
@@ -149,6 +169,8 @@ type OpenAPIUpgradeWorkerResponse struct {
 }
 type OpenAPICheckWorkerRequestBody = OpenAPINoBody
 type OpenAPICheckWorkerResponseBody = OpenAPICheckWorkerResponse
+type OpenAPICreateWorkerRequestBody = OpenAPICreateWorkerRequest
+type OpenAPICreateWorkerResponseBody = OpenAPICreateWorkerResponse
 type OpenAPIGetWorkerRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerResponseBody = OpenAPIWorker
 type OpenAPIGetWorkerJobRequestBody = OpenAPINoBody
@@ -186,6 +208,10 @@ const (
 // generated OpenAPI models its implementation.
 type HealthResponse = OpenAPIHealthResponse
 type MaintenanceWindow = OpenAPIMaintenanceWindow
+type CreateWorkerBootstrap = OpenAPICreateWorkerBootstrap
+type CreateWorkerRequest = OpenAPICreateWorkerRequest
+type WorkerBootstrapExpiry = OpenAPIWorkerBootstrapExpiry
+type CreateWorkerResponse = OpenAPICreateWorkerResponse
 type Worker = OpenAPIWorker
 type WorkerList = OpenAPIWorkerList
 type Assignment = OpenAPIAssignment
@@ -203,4 +229,4 @@ type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
 
-const openAPITypesSpecSHA256 = "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
+const openAPITypesSpecSHA256 = "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"

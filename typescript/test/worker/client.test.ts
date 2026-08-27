@@ -60,6 +60,33 @@ describe('WorkerClient', () => {
     });
   });
 
+  it('creates a Worker with caller-owned bootstrap material and replay protection', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      expect(String(input)).toBe('https://workers.example.com/api/v1/workers');
+      expect(init?.method).toBe('POST');
+      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer pgt_test-token');
+      expect(new Headers(init?.headers).get('idempotency-key')).toBe('worker-create-1');
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        bootstrap: {
+          enrollmentKey: 'enrollment-value',
+          attestationBootstrapToken: 'attestation-value',
+        },
+      });
+      return Response.json({ worker: {}, bootstrap: {}, etag: 'worker-etag', receipt: {} });
+    });
+    const client = new WorkerClient({
+      baseUrl: 'https://workers.example.com', token: 'pgt_test-token', fetch: fetchMock,
+    });
+
+    await expect(client.create({
+      name: 'worker', host: 'https://worker.example.com', autoShutdownOnRemoval: true,
+      bootstrap: {
+        enrollmentKey: 'enrollment-value',
+        attestationBootstrapToken: 'attestation-value',
+      },
+    }, { idempotencyKey: 'worker-create-1' })).resolves.toMatchObject({ etag: 'worker-etag' });
+  });
+
   it('preserves a configured reverse-proxy base path', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       expect(String(input)).toBe('https://workers.example.com/postgrip/api/v1/workers');

@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -49,6 +50,37 @@ func TestListInjectsBearerAndEncodesQuery(t *testing.T) {
 	page, err := newTestClient(t, server, false).List(context.Background(), ListWorkersOptions{PageSize: &pageSize})
 	if err != nil || len(page.Items) != 0 {
 		t.Fatalf("List() = %#v, %v", page, err)
+	}
+}
+
+func TestCreateSendsCallerOwnedBootstrapMaterialAndIdempotencyKey(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/workers" {
+			t.Fatalf("request = %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer pgt_test-token" {
+			t.Fatalf("Authorization = %q", got)
+		}
+		if got := r.Header.Get("Idempotency-Key"); got != "worker-create-1" {
+			t.Fatalf("Idempotency-Key = %q", got)
+		}
+		var body CreateWorkerRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body.Bootstrap.EnrollmentKey != "enrollment-value" || body.Bootstrap.AttestationBootstrapToken != "attestation-value" {
+			t.Fatalf("bootstrap = %#v", body.Bootstrap)
+		}
+		_, _ = w.Write([]byte(`{"worker":{},"bootstrap":{"enrollmentExpiresAt":"2026-08-27T00:00:00Z","attestationExpiresAt":"2026-08-27T00:00:00Z"},"etag":"worker-etag","receipt":{"requestId":"req","auditRecorded":true,"replayed":false}}`))
+	}))
+	defer server.Close()
+
+	response, err := newTestClient(t, server, false).Create(context.Background(), CreateWorkerRequest{
+		Name: "worker", Host: "https://worker.example.com", AutoShutdownOnRemoval: true,
+		Bootstrap: CreateWorkerBootstrap{EnrollmentKey: "enrollment-value", AttestationBootstrapToken: "attestation-value"},
+	}, "worker-create-1")
+	if err != nil || response.Etag != "worker-etag" {
+		t.Fatalf("Create() = %#v, %v", response, err)
 	}
 }
 

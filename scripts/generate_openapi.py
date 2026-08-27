@@ -69,6 +69,7 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "Repositories": (
         "getServiceRepository", "updateServiceRepository", "putServiceRepositoryCredential",
         "clearServiceRepositoryCredential", "refreshServiceRepositoryCredential",
+        "listGitHubAppRepositories", "previewGitHubRepositoryAdoption", "adoptGitHubRepository",
     ),
     "Promotions": ("listServicePromotions", "previewServicePromotion", "promoteServiceDeployment"),
     "Retention": (
@@ -79,6 +80,15 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "ConfigurationOperations": (
         "listServiceConfigurationOperations", "getServiceConfigurationOperation",
         "retryServiceConfigurationOperation",
+    ),
+    "DeclarativeConfiguration": (
+        "validatePostGripConfiguration", "getPostGripConfigurationStack",
+        "createPostGripConfigurationPlan", "getPostGripConfigurationPlan",
+        "listPostGripConfigurationPlanActions", "applyPostGripConfigurationPlan",
+        "getPostGripConfigurationStackOperation",
+        "listPostGripConfigurationStackOperationActions",
+        "retryPostGripConfigurationStackOperation",
+        "resubmitPostGripConfigurationSecretInputs",
     ),
 }
 
@@ -353,6 +363,53 @@ def go_struct_fields(schema: dict[str, Any]) -> str:
     return "\n".join(fields)
 
 
+def go_worker_selector_source(type_name: str) -> str:
+    return f'''type {type_name} struct {{
+\tId *string `json:"id,omitempty"`
+\tName *string `json:"name,omitempty"`
+}}
+
+func (value {type_name}) Validate() error {{
+\thasID := value.Id != nil && *value.Id != ""
+\thasName := value.Name != nil && *value.Name != ""
+\tif hasID == hasName {{
+\t\treturn errors.New("Worker selector must contain exactly one non-empty id or name")
+\t}}
+\treturn nil
+}}
+
+func (value {type_name}) MarshalJSON() ([]byte, error) {{
+\tif err := value.Validate(); err != nil {{
+\t\treturn nil, err
+\t}}
+\ttype wire {type_name}
+\treturn json.Marshal(wire(value))
+}}
+
+func (value *{type_name}) UnmarshalJSON(data []byte) error {{
+\tvar object map[string]json.RawMessage
+\tif err := json.Unmarshal(data, &object); err != nil {{
+\t\treturn err
+\t}}
+\tfor name := range object {{
+\t\tif name != "id" && name != "name" {{
+\t\t\treturn errors.New("Worker selector contains an unknown field")
+\t\t}}
+\t}}
+\ttype wire {type_name}
+\tvar decoded wire
+\tif err := json.Unmarshal(data, &decoded); err != nil {{
+\t\treturn err
+\t}}
+\tcandidate := {type_name}(decoded)
+\tif err := candidate.Validate(); err != nil {{
+\t\treturn err
+\t}}
+\t*value = candidate
+\treturn nil
+}}'''
+
+
 def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: str) -> str:
     declarations: list[str] = []
     compatibility_aliases: list[str] = []
@@ -363,6 +420,9 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
             protocol_name = GO_PROTOCOL_TYPE_OVERRIDES.get(name, name)
             declarations.append(f"type {type_name} = protocol.{protocol_name}")
             compatibility_alias = f"type {pascal_name(name)} = protocol.{protocol_name}"
+        elif name == "PostGripConfigurationWorkerSelector":
+            declarations.append(go_worker_selector_source(type_name))
+            compatibility_alias = f"type {pascal_name(name)} = {type_name}"
         elif schema.get("type") == "object" or "properties" in schema:
             declarations.append(f"type {type_name} struct {{\n{go_struct_fields(schema)}\n}}")
             compatibility_alias = f"type {pascal_name(name)} = {type_name}"
@@ -389,6 +449,10 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
     imports = []
     if "protocol." in declarations_source:
         imports.append('protocol "github.com/postgrip-io/postgrip-agent-sdks/go/protocol"')
+    if "json." in declarations_source:
+        imports.append('"encoding/json"')
+    if "errors." in declarations_source:
+        imports.append('"errors"')
     if "time.Time" in declarations_source:
         imports.append('"time"')
     import_source = "\n".join(f"\t{value}" for value in imports)

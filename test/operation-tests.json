@@ -1,5 +1,14 @@
 {
   "operations": {
+    "adoptGitHubRepository": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/adoptGitHubRepository.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "appendAgentTaskEvent": {
       "cleanup": "reverse-dependency",
       "curlEligible": false,
@@ -12,6 +21,15 @@
         "reason": "Delegated Agent runtime requests require session claims and request signing.",
         "runner": "signed-agent-runtime"
       }
+    },
+    "applyPostGripConfigurationPlan": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/applyPostGripConfigurationPlan.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
     },
     "applyServiceVariables": {
       "cleanup": "reverse-dependency",
@@ -196,6 +214,15 @@
       "plane": "agent",
       "protocolException": null
     },
+    "createPostGripConfigurationPlan": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createPostGripConfigurationPlan.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "createServiceDomain": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,
@@ -239,6 +266,15 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",
+      "protocolException": null
+    },
+    "createWorker": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/createWorker.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "worker",
       "protocolException": null
     },
     "deleteSandbox": {
@@ -387,6 +423,33 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "agent",
+      "protocolException": null
+    },
+    "getPostGripConfigurationPlan": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getPostGripConfigurationPlan.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getPostGripConfigurationStack": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getPostGripConfigurationStack.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getPostGripConfigurationStackOperation": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getPostGripConfigurationStackOperation.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
       "protocolException": null
     },
     "getService": {
@@ -600,6 +663,33 @@
       "plane": "agent",
       "protocolException": null
     },
+    "listGitHubAppRepositories": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/listGitHubAppRepositories.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listPostGripConfigurationPlanActions": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listPostGripConfigurationPlanActions.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listPostGripConfigurationStackOperationActions": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listPostGripConfigurationStackOperationActions.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "listServiceConfigurationOperations": {
       "cleanup": "none",
       "curlEligible": true,
@@ -811,6 +901,15 @@
         "runner": "signed-agent-runtime"
       }
     },
+    "previewGitHubRepositoryAdoption": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/previewGitHubRepositoryAdoption.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "previewServiceDeploy": {
       "cleanup": "none",
       "curlEligible": true,
@@ -957,6 +1056,24 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "worker",
+      "protocolException": null
+    },
+    "resubmitPostGripConfigurationSecretInputs": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/resubmitPostGripConfigurationSecretInputs.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "retryPostGripConfigurationStackOperation": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/retryPostGripConfigurationStackOperation.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
       "protocolException": null
     },
     "retryServiceConfigurationOperation": {
@@ -1170,6 +1287,15 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/updateTargetService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "validatePostGripConfiguration": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/validatePostGripConfiguration.json",
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",

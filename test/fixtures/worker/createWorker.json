@@ -1,0 +1,54 @@
+{
+  "operationId": "createWorker",
+  "plane": "worker",
+  "request": {
+    "body": {
+      "autoShutdownOnRemoval": true,
+      "bootstrap": {
+        "attestationBootstrapToken": "stringxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "enrollmentKey": "stringxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "host": "https://worker.example.com",
+      "name": "string"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-createWorker"
+    },
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "bootstrap": {
+        "attestationExpiresAt": "2026-01-01T00:00:00Z",
+        "enrollmentExpiresAt": "2026-01-01T00:00:00Z"
+      },
+      "etag": "string",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "worker": {
+        "autoShutdownOnRemoval": true,
+        "capabilities": [
+          "string"
+        ],
+        "createdAt": "2026-01-01T00:00:00Z",
+        "id": "11111111-1111-4111-8111-111111111111",
+        "name": "string",
+        "previewSubdomainEnabled": true,
+        "status": "string",
+        "trustState": "string",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_createWorker"
+    },
+    "status": 201
+  },
+  "schemaVersion": 1
+}

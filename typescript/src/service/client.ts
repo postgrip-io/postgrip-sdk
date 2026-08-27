@@ -249,6 +249,12 @@ export class ServiceClient {
         this.administrationMutation('clearServiceRepositoryCredential', { path: { serviceId, credentialKind }, ...administrationWrite(options) }, true),
       refreshCredential: (serviceId: string, credentialKind: string, options: AdministrationWriteOptions) =>
         this.administrationMutation('refreshServiceRepositoryCredential', { path: { serviceId, credentialKind }, ...administrationWrite(options) }, true),
+      listGitHub: (query: OpenAPIQueryParameters<'listGitHubAppRepositories'> = {}, options: RequestOptions = {}) =>
+        this.request('listGitHubAppRepositories', { query, signal: options.signal }),
+      previewGitHubAdoption: (serviceId: string, body: OpenAPIRequestBody<'previewGitHubRepositoryAdoption'>, options: MutationOptions) =>
+        this.administrationMutation('previewGitHubRepositoryAdoption', { path: { serviceId }, body, ...mutationRequest(options) }),
+      adoptGitHub: (serviceId: string, body: OpenAPIRequestBody<'adoptGitHubRepository'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('adoptGitHubRepository', { path: { serviceId }, body, ...administrationWrite(options) }, true),
     },
     promotions: {
       list: (serviceId: string, query: OpenAPIQueryParameters<'listServicePromotions'> = {}, options: RequestOptions = {}) => this.request('listServicePromotions', { path: { serviceId }, query, signal: options.signal }),
@@ -274,6 +280,28 @@ export class ServiceClient {
       list: (query: OpenAPIQueryParameters<'listServiceConfigurationOperations'> = {}, options: RequestOptions = {}) => this.request('listServiceConfigurationOperations', { query, signal: options.signal }),
       get: (operationId: string, options: RequestOptions = {}) => this.request('getServiceConfigurationOperation', { path: { operationId }, signal: options.signal }),
       retry: (operationId: string, options: AdministrationWriteOptions) => this.administrationMutation('retryServiceConfigurationOperation', { path: { operationId }, ...administrationWrite(options) }, true),
+    },
+    declarativeConfiguration: {
+      validate: (body: OpenAPIRequestBody<'validatePostGripConfiguration'>, options: RequestOptions = {}) =>
+        this.request('validatePostGripConfiguration', { body, signal: options.signal }),
+      getStack: (stackKey: string, options: RequestOptions = {}) =>
+        this.request('getPostGripConfigurationStack', { path: { stackKey }, signal: options.signal }),
+      createPlan: (stackKey: string, body: OpenAPIRequestBody<'createPostGripConfigurationPlan'>, options: MutationOptions) =>
+        this.administrationMutation('createPostGripConfigurationPlan', { path: { stackKey }, body, ...mutationRequest(options) }),
+      getPlan: (stackKey: string, planId: string, options: RequestOptions = {}) =>
+        this.request('getPostGripConfigurationPlan', { path: { stackKey, planId }, signal: options.signal }),
+      listActions: (stackKey: string, planId: string, query: OpenAPIQueryParameters<'listPostGripConfigurationPlanActions'> = {}, options: RequestOptions = {}) =>
+        this.request('listPostGripConfigurationPlanActions', { path: { stackKey, planId }, query, signal: options.signal }),
+      apply: (stackKey: string, planId: string, body: OpenAPIRequestBody<'applyPostGripConfigurationPlan'>, options: MutationOptions) =>
+        this.administrationMutation('applyPostGripConfigurationPlan', { path: { stackKey, planId }, body, ...mutationRequest(options) }),
+      getOperation: (stackKey: string, operationId: string, options: RequestOptions = {}) =>
+        this.request('getPostGripConfigurationStackOperation', { path: { stackKey, operationId }, signal: options.signal }),
+      listOperationActions: (stackKey: string, operationId: string, query: OpenAPIQueryParameters<'listPostGripConfigurationStackOperationActions'> = {}, options: RequestOptions = {}) =>
+        this.request('listPostGripConfigurationStackOperationActions', { path: { stackKey, operationId }, query, signal: options.signal }),
+      retryOperation: (stackKey: string, operationId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('retryPostGripConfigurationStackOperation', { path: { stackKey, operationId }, ...administrationWrite(options) }, true),
+      resubmitSecretInputs: (stackKey: string, operationId: string, body: OpenAPIRequestBody<'resubmitPostGripConfigurationSecretInputs'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('resubmitPostGripConfigurationSecretInputs', { path: { stackKey, operationId }, body, ...administrationWrite(options) }, true),
     },
   };
 

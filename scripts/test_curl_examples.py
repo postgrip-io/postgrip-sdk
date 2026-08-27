@@ -66,8 +66,20 @@ class RecordingServer:
                         body=body,
                     )
                 )
-                response = b"{}\n"
-                self.send_response(200)
+                if self.command == "POST" and target.path == "/api/v1/workers":
+                    response = json.dumps({
+                        "worker": {"id": "11111111-1111-4111-8111-111111111111"},
+                        "etag": '"worker-etag"',
+                        "bootstrap": {
+                            "enrollmentExpiresAt": "2026-08-27T00:00:00Z",
+                            "attestationExpiresAt": "2026-08-27T00:00:00Z",
+                        },
+                    }).encode() + b"\n"
+                    status = 201
+                else:
+                    response = b"{}\n"
+                    status = 200
+                self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(response)))
                 self.send_header("X-Request-Id", "req_recorded")
@@ -257,6 +269,13 @@ def main() -> int:
                     **case_environment,
                 }
             )
+            if expected.operation_id == "createWorker":
+                environment.update({
+                    "POSTGRIP_WORKER_NAME": str(expected.body["name"]),
+                    "POSTGRIP_WORKER_HOST": str(expected.body["host"]),
+                    "POSTGRIP_BOOTSTRAP_STATE": str(temporary / "create-worker.secret.json"),
+                    "POSTGRIP_WORKER_RECEIPT": str(temporary / "create-worker.receipt.json"),
+                })
             completed = subprocess.run(
                 ["bash", "-eu", "-o", "pipefail", "-c", script],
                 env=environment,
@@ -274,6 +293,19 @@ def main() -> int:
             except queue.Empty:
                 failures.append(f"{label}: recording server received no request")
                 continue
+            if expected.operation_id == "createWorker":
+                state = json.loads(Path(environment["POSTGRIP_BOOTSTRAP_STATE"]).read_text(encoding="utf-8"))
+                expected = ExpectedRequest(
+                    operation_id=expected.operation_id,
+                    method=expected.method,
+                    path=expected.path,
+                    query=expected.query,
+                    headers={**expected.headers, "idempotency-key": state["idempotencyKey"]},
+                    body=state["request"],
+                    authenticated=expected.authenticated,
+                )
+                if not Path(environment["POSTGRIP_WORKER_RECEIPT"]).is_file():
+                    failures.append(f"{label}: safe Worker receipt was not persisted")
             failures.extend(f"{label}: {failure}" for failure in validate(expected, recorded))
             argv = capture.read_bytes().split(b"\0") if capture.is_file() else []
             if any(TOKEN.encode() in argument for argument in argv):

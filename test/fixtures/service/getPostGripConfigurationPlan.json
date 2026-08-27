@@ -1,0 +1,47 @@
+{
+  "operationId": "getPostGripConfigurationPlan",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "planId": "11111111-1111-4111-8111-111111111111",
+      "stackKey": "recorded"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "allowAdoption": true,
+      "baseStackRevision": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "desiredStateDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expiresAt": "2026-01-01T00:00:00Z",
+      "id": "11111111-1111-4111-8111-111111111111",
+      "planDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prune": true,
+      "schemaVersion": "string",
+      "stackKey": "string",
+      "state": "ready",
+      "summary": {
+        "adopt": 1,
+        "blocked": 1,
+        "create": 1,
+        "delete": 1,
+        "noOp": 1,
+        "reconcileGitHub": 1,
+        "reconcileSecret": 1,
+        "replace": 1,
+        "total": 1,
+        "update": 1
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getPostGripConfigurationPlan"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

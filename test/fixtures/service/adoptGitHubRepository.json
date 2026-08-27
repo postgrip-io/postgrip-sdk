@@ -1,0 +1,52 @@
+{
+  "operationId": "adoptGitHubRepository",
+  "plane": "service",
+  "request": {
+    "body": {
+      "previewDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "previewId": "11111111-1111-4111-8111-111111111111",
+      "repositoryEtag": "string"
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-adoptGitHubRepository",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "attemptCount": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "etag": "string",
+      "id": "11111111-1111-4111-8111-111111111111",
+      "kind": "string",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      },
+      "resourceIds": [
+        "11111111-1111-4111-8111-111111111111"
+      ],
+      "serviceRef": "string",
+      "state": "pending",
+      "targets": [
+        {
+          "state": "pending"
+        }
+      ],
+      "updatedAt": "2026-01-01T00:00:00Z",
+      "version": 1
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_adoptGitHubRepository"
+    },
+    "status": 202
+  },
+  "schemaVersion": 1
+}

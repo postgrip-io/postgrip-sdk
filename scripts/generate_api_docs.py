@@ -104,7 +104,11 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         properties = schema.get("properties", {})
         required = list(schema.get("required", []))
         selected = required or list(properties)[: min(3, len(properties))]
-        return {name: sample(document, properties[name], seen) for name in selected if name in properties}
+        value = {name: sample(document, properties[name], seen) for name in selected if name in properties}
+        additional = schema.get("additionalProperties")
+        if not value and int(schema.get("minProperties", 0)) > 0 and isinstance(additional, dict):
+            value["recorded"] = sample(document, additional, seen)
+        return value
     if schema_type == "array":
         count = max(int(schema.get("minItems", 1)), 1)
         return [sample(document, schema.get("items", {}), seen) for _ in range(count)]
@@ -121,6 +125,12 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
     if schema.get("format") == "date":
         return "2026-01-01"
     pattern = schema.get("pattern")
+    if pattern == "^[a-f0-9]{64}$":
+        return "a" * 64
+    if pattern == "^[a-z][a-z0-9-]*[a-z0-9]$|^[a-z]$":
+        return "recorded"
+    if pattern == "^[A-Za-z_][A-Za-z0-9_]*$":
+        return "RECORDED_VALUE"
     if pattern == "^(target|project):[0-9a-fA-F-]{36}$":
         return "project:11111111-1111-4111-8111-111111111111"
     if pattern in {"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$", "^[!-~]+$"}:
@@ -210,7 +220,126 @@ def shell_json(value: Any) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True).replace("'", "'\"'\"'")
 
 
+def worker_create_curl_example() -> str:
+    return r'''set +x
+: "${POSTGRIP_TOKEN:?set POSTGRIP_TOKEN}"
+POSTGRIP_API_URL="${POSTGRIP_WORKER_URL:-${POSTGRIP_URL}}"
+: "${POSTGRIP_API_URL:?set POSTGRIP_URL or POSTGRIP_WORKER_URL}"
+: "${POSTGRIP_WORKER_NAME:?set the pending Worker name}"
+: "${POSTGRIP_WORKER_HOST:?set the Worker HTTPS origin}"
+: "${POSTGRIP_BOOTSTRAP_STATE:?set an approved durable secret-state path}"
+: "${POSTGRIP_WORKER_RECEIPT:?set a durable safe-receipt path}"
+export POSTGRIP_WORKER_NAME POSTGRIP_WORKER_HOST POSTGRIP_BOOTSTRAP_STATE
+
+# Exclusively persist caller-owned values and the replay key before POST.
+python3 <<'PY'
+import base64, hashlib, json, os, secrets, stat
+path = os.path.abspath(os.environ["POSTGRIP_BOOTSTRAP_STATE"])
+parent = os.path.dirname(path)
+parent_mode = stat.S_IMODE(os.stat(parent).st_mode)
+if parent_mode & 0o022 and not parent_mode & stat.S_ISVTX:
+    raise SystemExit("bootstrap-state parent must not be group/world writable")
+if os.path.lexists(path):
+    info = os.lstat(path)
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o600:
+        raise SystemExit("existing bootstrap state must be a regular mode-0600 file")
+    with open(path, encoding="utf-8") as stream:
+        state = json.load(stream)
+    if state.get("schemaVersion") != "postgrip.worker-create-curl/v1":
+        raise SystemExit("existing bootstrap state has the wrong schema")
+else:
+    encode = lambda raw: base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+    request = {
+        "name": os.environ["POSTGRIP_WORKER_NAME"],
+        "host": os.environ["POSTGRIP_WORKER_HOST"].rstrip("/"),
+        "autoShutdownOnRemoval": True,
+        "bootstrap": {
+            "enrollmentKey": encode(secrets.token_bytes(32)),
+            "attestationBootstrapToken": encode(secrets.token_bytes(32)),
+        },
+    }
+    canonical = json.dumps(request, separators=(",", ":"), sort_keys=True).encode()
+    state = {
+        "schemaVersion": "postgrip.worker-create-curl/v1",
+        "idempotencyKey": "postgrip-worker-create-" + secrets.token_hex(16),
+        "canonicalRequestDigest": hashlib.sha256(canonical).hexdigest(),
+        "request": request,
+    }
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        os.write(descriptor, json.dumps(state, indent=2, sort_keys=True).encode() + b"\n")
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    directory = os.open(parent, os.O_RDONLY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+PY
+
+POSTGRIP_BODY_FILE="$(mktemp "$(dirname "${POSTGRIP_BOOTSTRAP_STATE}")/.postgrip-worker-request.XXXXXX")"
+response_file="$(mktemp "$(dirname "${POSTGRIP_WORKER_RECEIPT}")/.postgrip-worker-response.XXXXXX")"
+trap 'rm -f "${POSTGRIP_BODY_FILE}" "${response_file}"' EXIT
+chmod 600 "${POSTGRIP_BODY_FILE}" "${response_file}"
+POSTGRIP_IDEMPOTENCY_KEY="$(python3 - "${POSTGRIP_BOOTSTRAP_STATE}" "${POSTGRIP_BODY_FILE}" <<'PY'
+import json, os, sys
+with open(sys.argv[1], encoding="utf-8") as stream:
+    state = json.load(stream)
+with open(sys.argv[2], "w", encoding="utf-8") as stream:
+    json.dump(state["request"], stream, separators=(",", ":"), sort_keys=True)
+    stream.write("\n")
+    stream.flush()
+    os.fsync(stream.fileno())
+print(state["idempotencyKey"])
+PY
+)"
+
+curl \
+  --config \
+  - \
+  --fail-with-body --silent --show-error \
+  --max-redirs 0 \
+  --connect-timeout 5 --max-time 30 --max-filesize 1048576 \
+  --request POST --header 'Content-Type: application/json' \
+  --header "Idempotency-Key: ${POSTGRIP_IDEMPOTENCY_KEY}" \
+  --data-binary "@${POSTGRIP_BODY_FILE}" --output "${response_file}" \
+  "${POSTGRIP_API_URL}/api/v1/workers" <<EOF
+header = "Authorization: Bearer ${POSTGRIP_TOKEN}"
+EOF
+
+# Atomically retain the safe Worker ID/ETag/expiries for the next bootstrap step.
+python3 - "${response_file}" "${POSTGRIP_WORKER_RECEIPT}" <<'PY'
+import json, os, stat, sys
+source, target = sys.argv[1], os.path.abspath(sys.argv[2])
+with open(source, encoding="utf-8") as stream:
+    receipt = json.load(stream)
+if not receipt.get("worker", {}).get("id") or not receipt.get("etag"):
+    raise SystemExit("Worker response omitted its safe receipt")
+os.chmod(source, 0o600)
+with open(source, "rb") as stream:
+    os.fsync(stream.fileno())
+os.replace(source, target)
+directory = os.open(os.path.dirname(target), os.O_RDONLY)
+try:
+    os.fsync(directory)
+finally:
+    os.close(directory)
+PY
+python3 - "${POSTGRIP_WORKER_RECEIPT}" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as stream:
+    receipt = json.load(stream)
+print(json.dumps({"workerId": receipt["worker"]["id"], "etag": receipt["etag"], "bootstrap": receipt["bootstrap"]}, separators=(",", ":")))
+PY'''
+
+
 def curl_example(plane: str, operation: dict[str, Any], parameters: list[dict[str, Any]], body: Any, authenticated: bool) -> str:
+    if operation["operationId"] == "createWorker":
+        return worker_create_curl_example()
     path, names = path_example(operation["path"])
     lines = ["set +x", f'POSTGRIP_API_URL="${{POSTGRIP_{plane.upper()}_URL:-${{POSTGRIP_URL}}}}"']
     lines.append(': "${POSTGRIP_API_URL:?set POSTGRIP_URL or the plane-specific URL}"')
@@ -413,7 +542,15 @@ def render_operation(
         f"| Pagination | `{operation['x-postgrip-pagination']}` |", "",
         "## Parameters", "",
     ]
-    if parameter_lines:
+    if operation["operationId"] == "createWorker":
+        if parameter_lines:
+            lines.extend(["| Name | In | Required | Schema | Example | Description |", "| --- | --- | --- | --- | --- | --- |", *parameter_lines])
+        lines.extend([
+            "", "## Typed SDK bootstrap workflow", "",
+            "The generic raw snippets are intentionally omitted for this operation: a reliable caller must persist the bootstrap values and idempotency key before the request.",
+            "Use the typed Go, TypeScript, or Python Worker client with the durable journal workflow in [`docs/worker-bootstrap.md`](../../../worker-bootstrap.md).", "",
+        ])
+    elif parameter_lines:
         lines.extend(["| Name | In | Required | Schema | Example | Description |", "| --- | --- | --- | --- | --- | --- |", *parameter_lines])
     else:
         lines.append("This operation has no path or query parameters.")
@@ -455,6 +592,11 @@ def render_operation(
             "", "## Protocol adapter", "",
             "Raw language snippets are intentionally omitted because an unsigned, unframed, or non-streaming HTTP example would be incorrect.",
             f"Use the typed {plane.title()} adapter and the `{protocol_exception['runner']}` conformance runner; it owns signing, streaming, archive, long-poll, or WebSocket semantics for this operation.", "",
+        ])
+    elif operation["operationId"] == "createWorker":
+        lines.extend([
+            "", "## Raw HTTP omission", "",
+            "Generic raw language snippets are intentionally omitted because they cannot demonstrate the required crash-safe pre-request journal. Use the durable cURL workflow above or the typed SDK bootstrap workflow.", "",
         ])
     else:
         lines.extend([
@@ -543,7 +685,22 @@ def render_tree(output: Path) -> tuple[str, int]:
 
 def compare_trees(expected: Path, actual: Path) -> list[str]:
     expected_files = {path.relative_to(expected) for path in expected.rglob("*") if path.is_file()}
-    actual_files = {path.relative_to(actual) for path in actual.rglob("*") if path.is_file()}
+    expected_bundles = {
+        path.parts[0]
+        for path in expected_files
+        if path.parts and re.fullmatch(r"[a-f0-9]{64}", path.parts[0])
+    }
+    actual_files = {
+        relative
+        for path in actual.rglob("*")
+        if path.is_file()
+        for relative in (path.relative_to(actual),)
+        if not (
+            relative.parts
+            and re.fullmatch(r"[a-f0-9]{64}", relative.parts[0])
+            and relative.parts[0] not in expected_bundles
+        )
+    }
     failures = [f"missing generated documentation: {path}" for path in sorted(expected_files - actual_files)]
     failures += [f"stale generated documentation: {path}" for path in sorted(actual_files - expected_files)]
     for relative in sorted(expected_files & actual_files):
@@ -568,8 +725,10 @@ def main() -> int:
             return 1
         print(f"API documentation verified: {count} operations, bundle {digest[:12]}")
         return 0
-    if REFERENCE.exists():
-        shutil.rmtree(REFERENCE)
+    bundle, _contract_digests = digest_bundle()
+    current = REFERENCE / bundle
+    if current.exists():
+        shutil.rmtree(current)
     digest, count = render_tree(REFERENCE)
     print(f"API documentation generated: {count} operations, bundle {digest[:12]}")
     return 0

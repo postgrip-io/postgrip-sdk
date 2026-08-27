@@ -60,3 +60,38 @@ jobs:
           path: test/reports/live-pre-release-ledger.json
           if-no-files-found: warn
           retention-days: 90
+
+  github-adoption:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: sdk-live-pre-release
+    env:
+      POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
+      POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
+      POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
+      POSTGRIP_GITHUB_LIVE_PROJECT_ID: ${{ vars.POSTGRIP_GITHUB_LIVE_PROJECT_ID }}
+      POSTGRIP_GITHUB_TEST_ORG: ${{ vars.POSTGRIP_GITHUB_TEST_ORG }}
+      POSTGRIP_GITHUB_TEST_TOKEN: ${{ secrets.POSTGRIP_GITHUB_TEST_TOKEN }}
+      POSTGRIP_GITHUB_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_GITHUB_LIVE_DISPOSABLE }}
+      POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY: "true"
+      POSTGRIP_GITHUB_LIVE_EXPIRY_WAIT_SECONDS: "3900"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify GitHub lifecycle safety guards
+        run: python3 scripts/test_github_adoption_live.py --self-test
+      - name: Prove rotation after expiry and signed merge-to-deploy
+        run: >-
+          python3 scripts/test_github_adoption_live.py
+          --mode pre-release
+          | tee test/reports/live-pre-release-github-adoption.json
+      - name: Upload GitHub adoption receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-pre-release-github-adoption-${{ github.run_id }}
+          path: test/reports/live-pre-release-github-adoption.json
+          if-no-files-found: warn
+          retention-days: 90
