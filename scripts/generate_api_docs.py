@@ -104,7 +104,11 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         properties = schema.get("properties", {})
         required = list(schema.get("required", []))
         selected = required or list(properties)[: min(3, len(properties))]
-        return {name: sample(document, properties[name], seen) for name in selected if name in properties}
+        value = {name: sample(document, properties[name], seen) for name in selected if name in properties}
+        additional = schema.get("additionalProperties")
+        if not value and int(schema.get("minProperties", 0)) > 0 and isinstance(additional, dict):
+            value["recorded"] = sample(document, additional, seen)
+        return value
     if schema_type == "array":
         count = max(int(schema.get("minItems", 1)), 1)
         return [sample(document, schema.get("items", {}), seen) for _ in range(count)]
@@ -549,7 +553,22 @@ def render_tree(output: Path) -> tuple[str, int]:
 
 def compare_trees(expected: Path, actual: Path) -> list[str]:
     expected_files = {path.relative_to(expected) for path in expected.rglob("*") if path.is_file()}
-    actual_files = {path.relative_to(actual) for path in actual.rglob("*") if path.is_file()}
+    expected_bundles = {
+        path.parts[0]
+        for path in expected_files
+        if path.parts and re.fullmatch(r"[a-f0-9]{64}", path.parts[0])
+    }
+    actual_files = {
+        relative
+        for path in actual.rglob("*")
+        if path.is_file()
+        for relative in (path.relative_to(actual),)
+        if not (
+            relative.parts
+            and re.fullmatch(r"[a-f0-9]{64}", relative.parts[0])
+            and relative.parts[0] not in expected_bundles
+        )
+    }
     failures = [f"missing generated documentation: {path}" for path in sorted(expected_files - actual_files)]
     failures += [f"stale generated documentation: {path}" for path in sorted(actual_files - expected_files)]
     for relative in sorted(expected_files & actual_files):
@@ -574,8 +593,10 @@ def main() -> int:
             return 1
         print(f"API documentation verified: {count} operations, bundle {digest[:12]}")
         return 0
-    if REFERENCE.exists():
-        shutil.rmtree(REFERENCE)
+    bundle, _contract_digests = digest_bundle()
+    current = REFERENCE / bundle
+    if current.exists():
+        shutil.rmtree(current)
     digest, count = render_tree(REFERENCE)
     print(f"API documentation generated: {count} operations, bundle {digest[:12]}")
     return 0

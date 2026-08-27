@@ -116,9 +116,14 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(configuration.CreatePlan(ctx, "stack-1", OpenAPICreatePostGripConfigurationPlanRequestBody{}, mutation)))
 	mustServiceResult(t, serviceResultError(configuration.GetPlan(ctx, "stack-1", "plan-1")))
 	mustServiceResult(t, serviceResultError(configuration.ListActions(ctx, "stack-1", "plan-1", OpenAPIListPostGripConfigurationPlanActionsQuery{})))
+	mustServiceResult(t, serviceResultError(configuration.Apply(ctx, "stack-1", "plan-1", OpenAPIApplyPostGripConfigurationPlanRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(configuration.GetOperation(ctx, "stack-1", "operation-1")))
+	mustServiceResult(t, serviceResultError(configuration.ListOperationActions(ctx, "stack-1", "operation-1", OpenAPIListPostGripConfigurationStackOperationActionsQuery{})))
+	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
+	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
 
-	if calls.Load() != 60 {
-		t.Fatalf("transport calls=%d, want 60", calls.Load())
+	if calls.Load() != 65 {
+		t.Fatalf("transport calls=%d, want 65", calls.Load())
 	}
 }
 

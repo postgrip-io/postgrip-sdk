@@ -123,7 +123,11 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     "declarative_configuration": (
         "validate_post_grip_configuration", "get_post_grip_configuration_stack",
         "create_post_grip_configuration_plan", "get_post_grip_configuration_plan",
-        "list_post_grip_configuration_plan_actions",
+        "list_post_grip_configuration_plan_actions", "apply_post_grip_configuration_plan",
+        "get_post_grip_configuration_stack_operation",
+        "list_post_grip_configuration_stack_operation_actions",
+        "retry_post_grip_configuration_stack_operation",
+        "resubmit_post_grip_configuration_secret_inputs",
     ),
 }
 

@@ -431,3 +431,37 @@ func (c DeclarativeConfigurationClient) GetPlan(ctx context.Context, stackKey, p
 func (c DeclarativeConfigurationClient) ListActions(ctx context.Context, stackKey, planID string, query OpenAPIListPostGripConfigurationPlanActionsQuery) (OpenAPIListPostGripConfigurationPlanActionsResponseBody, error) {
 	return c.client.OpenAPI().ListPostGripConfigurationPlanActions(ctx, stackKey, planID, query)
 }
+
+// Apply starts a durable aggregate operation for an accepted plan.
+func (c DeclarativeConfigurationClient) Apply(ctx context.Context, stackKey, planID string, body OpenAPIApplyPostGripConfigurationPlanRequestBody, options MutationOptions) (OpenAPIApplyPostGripConfigurationPlanResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIApplyPostGripConfigurationPlanResponseBody{}, err
+	}
+	return c.client.OpenAPI().ApplyPostGripConfigurationPlan(ctx, stackKey, planID, OpenAPIApplyPostGripConfigurationPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+// GetOperation returns the current state of a durable stack operation.
+func (c DeclarativeConfigurationClient) GetOperation(ctx context.Context, stackKey, operationID string) (OpenAPIGetPostGripConfigurationStackOperationResponseBody, error) {
+	return c.client.OpenAPI().GetPostGripConfigurationStackOperation(ctx, stackKey, operationID)
+}
+
+// ListOperationActions returns one bounded page of aggregate operation actions.
+func (c DeclarativeConfigurationClient) ListOperationActions(ctx context.Context, stackKey, operationID string, query OpenAPIListPostGripConfigurationStackOperationActionsQuery) (OpenAPIListPostGripConfigurationStackOperationActionsResponseBody, error) {
+	return c.client.OpenAPI().ListPostGripConfigurationStackOperationActions(ctx, stackKey, operationID, query)
+}
+
+// RetryOperation resumes a failed or blocked operation behind its ETag fence.
+func (c DeclarativeConfigurationClient) RetryOperation(ctx context.Context, stackKey, operationID string, options WriteOptions) (OpenAPIRetryPostGripConfigurationStackOperationResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIRetryPostGripConfigurationStackOperationResponseBody{}, err
+	}
+	return c.client.OpenAPI().RetryPostGripConfigurationStackOperation(ctx, stackKey, operationID, OpenAPIRetryPostGripConfigurationStackOperationHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+}
+
+// ResubmitSecretInputs replaces only expired secret envelopes behind an ETag fence.
+func (c DeclarativeConfigurationClient) ResubmitSecretInputs(ctx context.Context, stackKey, operationID string, body OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody, options WriteOptions) (OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody{}, err
+	}
+	return c.client.OpenAPI().ResubmitPostGripConfigurationSecretInputs(ctx, stackKey, operationID, OpenAPIResubmitPostGripConfigurationSecretInputsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+}

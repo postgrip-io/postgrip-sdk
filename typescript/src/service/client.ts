@@ -286,6 +286,16 @@ export class ServiceClient {
         this.request('getPostGripConfigurationPlan', { path: { stackKey, planId }, signal: options.signal }),
       listActions: (stackKey: string, planId: string, query: OpenAPIQueryParameters<'listPostGripConfigurationPlanActions'> = {}, options: RequestOptions = {}) =>
         this.request('listPostGripConfigurationPlanActions', { path: { stackKey, planId }, query, signal: options.signal }),
+      apply: (stackKey: string, planId: string, body: OpenAPIRequestBody<'applyPostGripConfigurationPlan'>, options: MutationOptions) =>
+        this.administrationMutation('applyPostGripConfigurationPlan', { path: { stackKey, planId }, body, ...mutationRequest(options) }),
+      getOperation: (stackKey: string, operationId: string, options: RequestOptions = {}) =>
+        this.request('getPostGripConfigurationStackOperation', { path: { stackKey, operationId }, signal: options.signal }),
+      listOperationActions: (stackKey: string, operationId: string, query: OpenAPIQueryParameters<'listPostGripConfigurationStackOperationActions'> = {}, options: RequestOptions = {}) =>
+        this.request('listPostGripConfigurationStackOperationActions', { path: { stackKey, operationId }, query, signal: options.signal }),
+      retryOperation: (stackKey: string, operationId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('retryPostGripConfigurationStackOperation', { path: { stackKey, operationId }, ...administrationWrite(options) }, true),
+      resubmitSecretInputs: (stackKey: string, operationId: string, body: OpenAPIRequestBody<'resubmitPostGripConfigurationSecretInputs'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('resubmitPostGripConfigurationSecretInputs', { path: { stackKey, operationId }, body, ...administrationWrite(options) }, true),
     },
   };
 

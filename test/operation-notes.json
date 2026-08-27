@@ -7,6 +7,15 @@
       ],
       "summary": "Append an event to a leased task"
     },
+    "applyPostGripConfigurationPlan": {
+      "behavior": "Revalidates an accepted immutable plan, its digest, policy flags, base stack revision, and live resource ETags before creating one durable aggregate operation. Secret values are accepted only as opaque input-name bindings and are immediately sealed into short-lived Worker commands.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "A first apply creates the stack at revision zero and advances it only after every action succeeds.",
+        "Poll the operation resource and its paginated action collection; never infer completion from the initial response."
+      ],
+      "summary": "Apply an accepted declarative configuration plan"
+    },
     "applyServiceVariables": {
       "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/variables/apply behavior.",
       "lifecycle": [
@@ -323,6 +332,13 @@
       "lifecycle": [],
       "summary": "Get declarative configuration stack state"
     },
+    "getPostGripConfigurationStackOperation": {
+      "behavior": "Returns bounded state, progress summary, concurrency version, and safe failure metadata for one tenant-scoped durable aggregate operation. It never returns secret values or ciphertext.",
+      "lifecycle": [
+        "Use the operation ETag from the response for retry and secret-resubmission mutations."
+      ],
+      "summary": "Get a declarative configuration operation"
+    },
     "getService": {
       "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId} behavior.",
       "lifecycle": [],
@@ -446,6 +462,13 @@
         "Follow nextCursor until it is empty to consume the complete action graph."
       ],
       "summary": "List declarative configuration plan actions"
+    },
+    "listPostGripConfigurationStackOperationActions": {
+      "behavior": "Returns one bounded, cursor-paginated page of durable aggregate action receipts. Secret actions expose opaque input identifiers and versions, never submitted values or sealed envelopes.",
+      "lifecycle": [
+        "Follow nextCursor until it is empty to consume the complete operation history."
+      ],
+      "summary": "List declarative configuration operation actions"
     },
     "listServiceConfigurationOperations": {
       "behavior": "Uses the contract-defined GET /api/v1/services/configuration-operations behavior.",
@@ -684,6 +707,23 @@
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Resume a worker from maintenance"
+    },
+    "resubmitPostGripConfigurationSecretInputs": {
+      "behavior": "Replaces only the expired secret inputs named by blocked operation actions. Each value is immediately sealed into the existing short-lived Worker command path and is never returned by any read API.",
+      "lifecycle": [
+        "Idempotency and If-Match are required.",
+        "Read the blocked action pages to discover the exact opaque input identifiers and versions before submitting replacements.",
+        "Send request bodies from a protected file or standard input; do not place secret values in shell arguments."
+      ],
+      "summary": "Resubmit expired declarative secret inputs"
+    },
+    "retryPostGripConfigurationStackOperation": {
+      "behavior": "Resumes a safely retryable failed or blocked aggregate operation without replaying actions whose mutation checkpoint already committed.",
+      "lifecycle": [
+        "Idempotency and If-Match are required.",
+        "Expired secret inputs must be resubmitted before retry can resume the operation."
+      ],
+      "summary": "Retry a declarative configuration operation"
     },
     "retryServiceConfigurationOperation": {
       "behavior": "Uses the contract-defined POST /api/v1/services/configuration-operations/{operationId}/retry behavior.",

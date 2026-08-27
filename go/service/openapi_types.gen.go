@@ -895,6 +895,8 @@ type OpenAPIPostGripConfigurationPlanAction struct {
 	Dependencies   []string                                        `json:"dependencies"`
 	Reason         string                                          `json:"reason"`
 	Drift          string                                          `json:"drift"`
+	SecretInputId  *string                                         `json:"secretInputId,omitempty"`
+	SecretVersion  *string                                         `json:"secretVersion,omitempty"`
 }
 type OpenAPIPostGripConfigurationPlanDigestInput struct {
 	SchemaVersion      string                                   `json:"schemaVersion"`
@@ -949,6 +951,65 @@ type OpenAPIPostGripConfigurationStack struct {
 	CreatedAt          time.Time                                   `json:"createdAt"`
 	UpdatedAt          time.Time                                   `json:"updatedAt"`
 }
+type OpenAPIApplyPostGripConfigurationPlanRequest struct {
+	PlanDigest    string            `json:"planDigest"`
+	AllowAdoption bool              `json:"allowAdoption"`
+	Prune         bool              `json:"prune"`
+	SecretInputs  map[string]string `json:"secretInputs"`
+}
+type OpenAPIResubmitPostGripConfigurationSecretInputsRequest struct {
+	SecretInputs map[string]string `json:"secretInputs"`
+}
+type OpenAPIPostGripConfigurationStackOperationSummary struct {
+	Total     int64 `json:"total"`
+	Pending   int64 `json:"pending"`
+	Applying  int64 `json:"applying"`
+	Succeeded int64 `json:"succeeded"`
+	Failed    int64 `json:"failed"`
+	Blocked   int64 `json:"blocked"`
+	Skipped   int64 `json:"skipped"`
+}
+type OpenAPIPostGripConfigurationStackOperation struct {
+	Id                   string                                            `json:"id"`
+	StackId              string                                            `json:"stackId"`
+	StackKey             string                                            `json:"stackKey"`
+	PlanId               string                                            `json:"planId"`
+	PlanDigest           string                                            `json:"planDigest"`
+	BaseStackRevision    int64                                             `json:"baseStackRevision"`
+	State                string                                            `json:"state"`
+	AttemptCount         int64                                             `json:"attemptCount"`
+	Summary              OpenAPIPostGripConfigurationStackOperationSummary `json:"summary"`
+	LastErrorCode        *string                                           `json:"lastErrorCode,omitempty"`
+	ConfigurationVersion int64                                             `json:"configurationVersion"`
+	CreatedAt            time.Time                                         `json:"createdAt"`
+	UpdatedAt            time.Time                                         `json:"updatedAt"`
+	CompletedAt          *time.Time                                        `json:"completedAt,omitempty"`
+	Receipt              OpenAPIOperationReceipt                           `json:"receipt"`
+}
+type OpenAPIPostGripConfigurationStackOperationAction struct {
+	Id                            string     `json:"id"`
+	Kind                          string     `json:"kind"`
+	Path                          string     `json:"path"`
+	ResourceType                  string     `json:"resourceType"`
+	ResourceId                    *string    `json:"resourceId,omitempty"`
+	State                         string     `json:"state"`
+	AttemptCount                  int64      `json:"attemptCount"`
+	Retryable                     bool       `json:"retryable"`
+	Dependencies                  []string   `json:"dependencies"`
+	ChildConfigurationOperationId *string    `json:"childConfigurationOperationId,omitempty"`
+	LastErrorCode                 *string    `json:"lastErrorCode,omitempty"`
+	SecretInputId                 *string    `json:"secretInputId,omitempty"`
+	SecretVersion                 *string    `json:"secretVersion,omitempty"`
+	SecretEnvelopeExpiresAt       *time.Time `json:"secretEnvelopeExpiresAt,omitempty"`
+	UpdatedAt                     time.Time  `json:"updatedAt"`
+	CompletedAt                   *time.Time `json:"completedAt,omitempty"`
+}
+type OpenAPIPostGripConfigurationStackOperationActionList struct {
+	Items      []OpenAPIPostGripConfigurationStackOperationAction `json:"items"`
+	NextCursor string                                             `json:"nextCursor"`
+}
+type OpenAPIApplyPostGripConfigurationPlanRequestBody = OpenAPIApplyPostGripConfigurationPlanRequest
+type OpenAPIApplyPostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationStackOperation
 type OpenAPIApplyServiceVariablesRequestBody = OpenAPIApplyServiceVariablesRequest
 type OpenAPIApplyServiceVariablesResponseBody = OpenAPIServiceVariablesApplyResponse
 type OpenAPIAttachTargetServiceRequestBody = OpenAPIAttachTargetServiceRequest
@@ -999,6 +1060,8 @@ type OpenAPIGetPostGripConfigurationPlanRequestBody = OpenAPINoBody
 type OpenAPIGetPostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
 type OpenAPIGetPostGripConfigurationStackRequestBody = OpenAPINoBody
 type OpenAPIGetPostGripConfigurationStackResponseBody = OpenAPIPostGripConfigurationStack
+type OpenAPIGetPostGripConfigurationStackOperationRequestBody = OpenAPINoBody
+type OpenAPIGetPostGripConfigurationStackOperationResponseBody = OpenAPIPostGripConfigurationStackOperation
 type OpenAPIGetServiceRequestBody = OpenAPINoBody
 type OpenAPIGetServiceResponseBody = OpenAPIService
 type OpenAPIGetServiceBuildLogSettingsRequestBody = OpenAPINoBody
@@ -1027,6 +1090,8 @@ type OpenAPIGetTargetServiceRemovalImpactRequestBody = OpenAPINoBody
 type OpenAPIGetTargetServiceRemovalImpactResponseBody = OpenAPIServiceRemovalImpact
 type OpenAPIListPostGripConfigurationPlanActionsRequestBody = OpenAPINoBody
 type OpenAPIListPostGripConfigurationPlanActionsResponseBody = OpenAPIPostGripConfigurationPlanActionList
+type OpenAPIListPostGripConfigurationStackOperationActionsRequestBody = OpenAPINoBody
+type OpenAPIListPostGripConfigurationStackOperationActionsResponseBody = OpenAPIPostGripConfigurationStackOperationActionList
 type OpenAPIListServiceConfigurationOperationsRequestBody = OpenAPINoBody
 type OpenAPIListServiceConfigurationOperationsResponseBody = OpenAPIServiceConfigurationOperationList
 type OpenAPIListServiceDeploymentsRequestBody = OpenAPINoBody
@@ -1071,6 +1136,10 @@ type OpenAPIResolveServiceEnvironmentRequestBody = OpenAPINoBody
 type OpenAPIResolveServiceEnvironmentResponseBody = OpenAPIEnvironment
 type OpenAPIRestartServiceRuntimeRequestBody = OpenAPIRuntimeOperationRequest
 type OpenAPIRestartServiceRuntimeResponseBody = OpenAPIServiceOperationResponse
+type OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody = OpenAPIResubmitPostGripConfigurationSecretInputsRequest
+type OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody = OpenAPIPostGripConfigurationStackOperation
+type OpenAPIRetryPostGripConfigurationStackOperationRequestBody = OpenAPINoBody
+type OpenAPIRetryPostGripConfigurationStackOperationResponseBody = OpenAPIPostGripConfigurationStackOperation
 type OpenAPIRetryServiceConfigurationOperationRequestBody = OpenAPINoBody
 type OpenAPIRetryServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIRollbackServiceDeploymentRequestBody = OpenAPINoBody
@@ -1283,5 +1352,11 @@ type PostGripConfigurationPlanActionList = OpenAPIPostGripConfigurationPlanActio
 type PostGripConfigurationStackResource = OpenAPIPostGripConfigurationStackResource
 type PostGripConfigurationSecretVersion = OpenAPIPostGripConfigurationSecretVersion
 type PostGripConfigurationStack = OpenAPIPostGripConfigurationStack
+type ApplyPostGripConfigurationPlanRequest = OpenAPIApplyPostGripConfigurationPlanRequest
+type ResubmitPostGripConfigurationSecretInputsRequest = OpenAPIResubmitPostGripConfigurationSecretInputsRequest
+type PostGripConfigurationStackOperationSummary = OpenAPIPostGripConfigurationStackOperationSummary
+type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOperation
+type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
+type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
 
-const openAPITypesSpecSHA256 = "c5324eed6f1585aca7826db1f789e94b7f8a36cfdc448b112103aa050b23c1e2"
+const openAPITypesSpecSHA256 = "74d48490b3cf7b7fc4962124d2d5a9a0432dcf384e6ec4b877872118a9f2044b"

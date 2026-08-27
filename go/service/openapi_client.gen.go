@@ -87,6 +87,22 @@ func (p OpenAPIListPostGripConfigurationPlanActionsQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIListPostGripConfigurationStackOperationActionsQuery struct {
+	Limit  *int64
+	Cursor *string
+}
+
+func (p OpenAPIListPostGripConfigurationStackOperationActionsQuery) values() url.Values {
+	values := url.Values{}
+	if p.Limit != nil {
+		values.Set("limit", fmt.Sprint(*p.Limit))
+	}
+	if p.Cursor != nil {
+		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	return values
+}
+
 type OpenAPIListServiceConfigurationOperationsQuery struct {
 	Limit      *int64
 	Cursor     *string
@@ -300,6 +316,16 @@ func (p OpenAPIUpdateServiceRuntimeLogSettingsQuery) values() url.Values {
 	if p.EnvironmentId != nil {
 		values.Set("environmentId", fmt.Sprint(*p.EnvironmentId))
 	}
+	return values
+}
+
+type OpenAPIApplyPostGripConfigurationPlanHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIApplyPostGripConfigurationPlanHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	return values
 }
 
@@ -669,6 +695,30 @@ func (p OpenAPIRestartServiceRuntimeHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIResubmitPostGripConfigurationSecretInputsHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPIResubmitPostGripConfigurationSecretInputsHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
+type OpenAPIRetryPostGripConfigurationStackOperationHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPIRetryPostGripConfigurationStackOperationHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
 type OpenAPIRetryServiceConfigurationOperationHeaders struct {
 	IdempotencyKey string
 	IfMatch        string
@@ -855,6 +905,11 @@ func (p OpenAPIUpdateTargetServiceHeaders) values() http.Header {
 	return values
 }
 
+func (c *OpenAPIClient) ApplyPostGripConfigurationPlan(ctx context.Context, stackKey string, planId string, headers OpenAPIApplyPostGripConfigurationPlanHeaders, body OpenAPIApplyPostGripConfigurationPlanRequestBody) (OpenAPIApplyPostGripConfigurationPlanResponseBody, error) {
+	var response OpenAPIApplyPostGripConfigurationPlanResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyPostGripConfigurationPlan, map[string]string{"stackKey": stackKey, "planId": planId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ApplyServiceVariables(ctx context.Context, serviceId string, headers OpenAPIApplyServiceVariablesHeaders, body OpenAPIApplyServiceVariablesRequestBody) (OpenAPIApplyServiceVariablesResponseBody, error) {
 	var response OpenAPIApplyServiceVariablesResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyServiceVariables, map[string]string{"serviceId": serviceId}, nil, body, &response)
@@ -980,6 +1035,11 @@ func (c *OpenAPIClient) GetPostGripConfigurationStack(ctx context.Context, stack
 	err := c.connection.doOpenAPI(ctx, openAPIGetPostGripConfigurationStack, map[string]string{"stackKey": stackKey}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) GetPostGripConfigurationStackOperation(ctx context.Context, stackKey string, operationId string) (OpenAPIGetPostGripConfigurationStackOperationResponseBody, error) {
+	var response OpenAPIGetPostGripConfigurationStackOperationResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetPostGripConfigurationStackOperation, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) GetService(ctx context.Context, source string, serviceId string) (OpenAPIGetServiceResponseBody, error) {
 	var response OpenAPIGetServiceResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetService, map[string]string{"source": source, "serviceId": serviceId}, nil, nil, &response)
@@ -1048,6 +1108,11 @@ func (c *OpenAPIClient) GetTargetServiceRemovalImpact(ctx context.Context, servi
 func (c *OpenAPIClient) ListPostGripConfigurationPlanActions(ctx context.Context, stackKey string, planId string, query OpenAPIListPostGripConfigurationPlanActionsQuery) (OpenAPIListPostGripConfigurationPlanActionsResponseBody, error) {
 	var response OpenAPIListPostGripConfigurationPlanActionsResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIListPostGripConfigurationPlanActions, map[string]string{"stackKey": stackKey, "planId": planId}, query.values(), nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) ListPostGripConfigurationStackOperationActions(ctx context.Context, stackKey string, operationId string, query OpenAPIListPostGripConfigurationStackOperationActionsQuery) (OpenAPIListPostGripConfigurationStackOperationActionsResponseBody, error) {
+	var response OpenAPIListPostGripConfigurationStackOperationActionsResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListPostGripConfigurationStackOperationActions, map[string]string{"stackKey": stackKey, "operationId": operationId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceConfigurationOperations(ctx context.Context, query OpenAPIListServiceConfigurationOperationsQuery) (OpenAPIListServiceConfigurationOperationsResponseBody, error) {
@@ -1160,6 +1225,16 @@ func (c *OpenAPIClient) RestartServiceRuntime(ctx context.Context, serviceId str
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRestartServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ResubmitPostGripConfigurationSecretInputs(ctx context.Context, stackKey string, operationId string, headers OpenAPIResubmitPostGripConfigurationSecretInputsHeaders, body OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody) (OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody, error) {
+	var response OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIResubmitPostGripConfigurationSecretInputs, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, body, &response)
+	return response, err
+}
+func (c *OpenAPIClient) RetryPostGripConfigurationStackOperation(ctx context.Context, stackKey string, operationId string, headers OpenAPIRetryPostGripConfigurationStackOperationHeaders) (OpenAPIRetryPostGripConfigurationStackOperationResponseBody, error) {
+	var response OpenAPIRetryPostGripConfigurationStackOperationResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryPostGripConfigurationStackOperation, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) RetryServiceConfigurationOperation(ctx context.Context, operationId string, headers OpenAPIRetryServiceConfigurationOperationHeaders) (OpenAPIRetryServiceConfigurationOperationResponseBody, error) {
 	var response OpenAPIRetryServiceConfigurationOperationResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
@@ -1248,6 +1323,6 @@ func (c *OpenAPIClient) ValidatePostGripConfiguration(ctx context.Context, body 
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 78
+const OpenAPIClientOperationCount = 83
 
-const openAPIClientSpecSHA256 = "c5324eed6f1585aca7826db1f789e94b7f8a36cfdc448b112103aa050b23c1e2"
+const openAPIClientSpecSHA256 = "74d48490b3cf7b7fc4962124d2d5a9a0432dcf384e6ec4b877872118a9f2044b"

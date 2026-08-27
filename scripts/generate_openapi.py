@@ -83,7 +83,11 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "DeclarativeConfiguration": (
         "validatePostGripConfiguration", "getPostGripConfigurationStack",
         "createPostGripConfigurationPlan", "getPostGripConfigurationPlan",
-        "listPostGripConfigurationPlanActions",
+        "listPostGripConfigurationPlanActions", "applyPostGripConfigurationPlan",
+        "getPostGripConfigurationStackOperation",
+        "listPostGripConfigurationStackOperationActions",
+        "retryPostGripConfigurationStackOperation",
+        "resubmitPostGripConfigurationSecretInputs",
     ),
 }
 

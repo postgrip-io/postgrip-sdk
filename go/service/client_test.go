@@ -207,8 +207,8 @@ func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
 	for _, facadeType := range types {
 		operationCount += facadeType.NumMethod()
 	}
-	if operationCount != 60 {
-		t.Fatalf("administration facade operations = %d, want 60", operationCount)
+	if operationCount != 65 {
+		t.Fatalf("administration facade operations = %d, want 65", operationCount)
 	}
 }
 

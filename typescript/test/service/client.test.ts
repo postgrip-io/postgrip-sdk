@@ -266,7 +266,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 60 administration operations and sends concurrency fences', async () => {
+  it('groups all 65 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -278,7 +278,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(60);
+    expect(methodCount).toBe(65);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -400,10 +400,15 @@ describe('ServiceClient', () => {
       () => admin.declarativeConfiguration.createPlan('stack-1', body, mutation),
       () => admin.declarativeConfiguration.getPlan('stack-1', 'plan-1'),
       () => admin.declarativeConfiguration.listActions('stack-1', 'plan-1'),
+      () => admin.declarativeConfiguration.apply('stack-1', 'plan-1', body, mutation),
+      () => admin.declarativeConfiguration.getOperation('stack-1', 'operation-1'),
+      () => admin.declarativeConfiguration.listOperationActions('stack-1', 'operation-1'),
+      () => admin.declarativeConfiguration.retryOperation('stack-1', 'operation-1', write),
+      () => admin.declarativeConfiguration.resubmitSecretInputs('stack-1', 'operation-1', body, write),
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(60);
+    expect(requestCount).toBe(65);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {
