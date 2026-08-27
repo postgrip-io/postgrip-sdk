@@ -59,6 +59,73 @@
       }
     },
     "/api/v1/workers": {
+      "post": {
+        "operationId": "createWorker",
+        "tags": [
+          "Workers"
+        ],
+        "summary": "Create a pending Worker with client-owned bootstrap material",
+        "description": "The caller must durably store the write-only bootstrap values and Idempotency-Key before sending this request. The response never returns either bootstrap value.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "worker-management",
+        "x-postgrip-required-scopes": [
+          [
+            "workers:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pending Worker created",
+            "headers": {
+              "ETag": {
+                "description": "Version fence for the returned Worker projection",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateWorkerResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      },
       "get": {
         "operationId": "listWorkers",
         "tags": [
@@ -152,6 +219,14 @@
         "responses": {
           "200": {
             "description": "Worker",
+            "headers": {
+              "ETag": {
+                "description": "Version fence for the returned Worker projection",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -893,6 +968,102 @@
           },
           "timezone": {
             "type": "string"
+          }
+        }
+      },
+      "CreateWorkerBootstrap": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enrollmentKey",
+          "attestationBootstrapToken"
+        ],
+        "properties": {
+          "enrollmentKey": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 43,
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "writeOnly": true
+          },
+          "attestationBootstrapToken": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 43,
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "writeOnly": true
+          }
+        }
+      },
+      "CreateWorkerRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "host",
+          "autoShutdownOnRemoval",
+          "bootstrap"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "host": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
+            "example": "https://worker.example.com"
+          },
+          "autoShutdownOnRemoval": {
+            "type": "boolean",
+            "const": true
+          },
+          "bootstrap": {
+            "$ref": "#/components/schemas/CreateWorkerBootstrap"
+          }
+        }
+      },
+      "WorkerBootstrapExpiry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enrollmentExpiresAt",
+          "attestationExpiresAt"
+        ],
+        "properties": {
+          "enrollmentExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attestationExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateWorkerResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "worker",
+          "bootstrap",
+          "etag",
+          "receipt"
+        ],
+        "properties": {
+          "worker": {
+            "$ref": "#/components/schemas/Worker"
+          },
+          "bootstrap": {
+            "$ref": "#/components/schemas/WorkerBootstrapExpiry"
+          },
+          "etag": {
+            "type": "string"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
           }
         }
       },

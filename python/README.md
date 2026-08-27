@@ -39,7 +39,9 @@ dependency for Agent signing; interactive sandbox WebSockets use the optional
 
 See the repository [quick start](../README.md), [authentication
 model](../docs/authentication.md), and [generated API
-reference](../docs/reference/c88f2c1532abd35e1c7f8f0c6103def1db9ed77110ae2927ad363be56d810c2a/README.md).
+reference](../docs/reference/2883faf18b23e4cc0c216dbe22a782138da56327f99e1f630ebdd0e234d170ea/README.md).
+Durable public Worker creation is covered in the [Worker bootstrap
+guide](../docs/worker-bootstrap.md).
 
 ```sh
 PYTHONPATH=src python3 -m unittest discover -s test

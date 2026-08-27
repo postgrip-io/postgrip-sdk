@@ -61,9 +61,41 @@ def api_error_value(status: int, value: object, retry_after: str = "0") -> HTTPE
 
 
 class WorkerClientTests(unittest.TestCase):
+    def test_create_sends_caller_owned_bootstrap_material_and_idempotency_key(self) -> None:
+        opener = FakeOpener([{"worker": {}, "bootstrap": {}, "etag": "worker-etag", "receipt": {}}])
+        client = WorkerClient(
+            base_url="https://workers.example.com", token="pgt_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        response = client.create({
+            "name": "worker",
+            "host": "https://worker.example.com",
+            "autoShutdownOnRemoval": True,
+            "bootstrap": {
+                "enrollmentKey": "enrollment-value",
+                "attestationBootstrapToken": "attestation-value",
+            },
+        }, idempotency_key="worker-create-1")
+
+        request = opener.requests[0]
+        self.assertEqual(request.method, "POST")
+        self.assertEqual(urlparse(request.full_url).path, "/api/v1/workers")
+        self.assertEqual(request.get_header("Authorization"), "Bearer pgt_test-token")
+        self.assertEqual(request.get_header("Idempotency-key"), "worker-create-1")
+        self.assertEqual(json.loads(request.data), {
+            "name": "worker",
+            "host": "https://worker.example.com",
+            "autoShutdownOnRemoval": True,
+            "bootstrap": {
+                "enrollmentKey": "enrollment-value",
+                "attestationBootstrapToken": "attestation-value",
+            },
+        })
+        self.assertEqual(response["etag"], "worker-etag")
+
     def test_every_worker_facade_maps_to_the_canonical_operation(self) -> None:
         expected = [
             ("GET", "/health"),
+            ("POST", "/api/v1/workers"),
             ("GET", "/api/v1/workers"),
             ("GET", "/api/v1/workers/worker-id"),
             ("GET", "/api/v1/workers/worker-id/assignments"),
@@ -83,6 +115,15 @@ class WorkerClientTests(unittest.TestCase):
 
         calls = [
             client.health,
+            lambda: client.create({
+                "name": "worker",
+                "host": "https://worker.example.com",
+                "autoShutdownOnRemoval": True,
+                "bootstrap": {
+                    "enrollmentKey": "enrollment-value",
+                    "attestationBootstrapToken": "attestation-value",
+                },
+            }, idempotency_key="operation-1"),
             lambda: client.list(status="ready", trust_state="trusted"),
             lambda: client.get("worker-id"),
             lambda: client.assignments("worker-id"),
@@ -107,7 +148,7 @@ class WorkerClientTests(unittest.TestCase):
         ))
         self.assertTrue(all(
             request.get_header("Idempotency-key") == "operation-1"
-            for request in opener.requests[6:10]
+            for request in [opener.requests[1], *opener.requests[7:11]]
         ))
 
     def test_worker_and_job_pages_preserve_opaque_tokens(self) -> None:

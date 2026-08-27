@@ -23,6 +23,8 @@ from .._internal.config import validate_base_url, validate_management_token
 
 from .openapi import (
     CheckWorkerResponseBody,
+    CreateWorkerRequestBody,
+    CreateWorkerResponseBody,
     GetWorkerJobResponseBody,
     GetWorkerResponseBody,
     WorkerOrchestratorHealthResponseBody,
@@ -236,6 +238,7 @@ class WorkerClient:
             raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
         return self._request(
             operation_id,
+            body=body,
             path=path_parameters,
             query=query,
             idempotency_key=idempotency_key,
@@ -258,6 +261,19 @@ class WorkerClient:
 
     def get(self, worker_id: str) -> GetWorkerResponseBody:
         return cast(GetWorkerResponseBody, self._request(OperationId.GET_WORKER, path={"workerId": worker_id}))
+
+    def create(
+        self,
+        body: CreateWorkerRequestBody,
+        *,
+        idempotency_key: str,
+    ) -> CreateWorkerResponseBody:
+        """Create a pending Worker from durably persisted caller-owned values."""
+        if re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
+            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        return cast(CreateWorkerResponseBody, self._request(
+            OperationId.CREATE_WORKER, body=body, idempotency_key=idempotency_key,
+        ))
 
     def assignments(self, worker_id: str) -> ListWorkerAssignmentsResponseBody:
         return cast(ListWorkerAssignmentsResponseBody, self._request(OperationId.LIST_WORKER_ASSIGNMENTS, path={"workerId": worker_id}))
@@ -395,7 +411,7 @@ class WorkerClient:
             raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
         return self._request(operation, path={"workerId": worker_id}, idempotency_key=idempotency_key)
 
-    def _request(self, operation_id: OperationId, *, path: Mapping[str, str] | None = None,
+    def _request(self, operation_id: OperationId, *, body: Any = None, path: Mapping[str, str] | None = None,
                  query: Mapping[str, Any] | None = None, idempotency_key: str | None = None) -> Any:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         operation = resolve_openapi_operation(operation_id, path, clean_query)
@@ -405,8 +421,10 @@ class WorkerClient:
         for attempt in range(1, attempts + 1):
             if cancel_event is not None and cancel_event.is_set():
                 raise _RequestCancelled
-            request = Request(endpoint, method=operation.method, headers={
+            encoded_body = None if body is None else json.dumps(body, separators=(",", ":")).encode("utf-8")
+            request = Request(endpoint, data=encoded_body, method=operation.method, headers={
                 "Accept": "application/json",
+                **({"Content-Type": "application/json"} if encoded_body is not None else {}),
                 **({"Authorization": f"Bearer {self._token}"} if operation.auth_lane == "worker-management" else {}),
                 **({"Idempotency-Key": idempotency_key} if idempotency_key else {}),
             })
@@ -490,6 +508,14 @@ class AsyncWorkerClient:
 
     async def get(self, worker_id: str) -> GetWorkerResponseBody:
         return await self._run(self._sync.get, worker_id)
+
+    async def create(
+        self,
+        body: CreateWorkerRequestBody,
+        *,
+        idempotency_key: str,
+    ) -> CreateWorkerResponseBody:
+        return await self._run(self._sync.create, body, idempotency_key=idempotency_key)
 
     async def assignments(self, worker_id: str) -> ListWorkerAssignmentsResponseBody:
         return await self._run(self._sync.assignments, worker_id)

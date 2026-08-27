@@ -158,6 +158,16 @@ func (p OpenAPICheckWorkerHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPICreateWorkerHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPICreateWorkerHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIPlaceWorkerInMaintenanceHeaders struct {
 	IdempotencyKey string
 }
@@ -191,6 +201,11 @@ func (p OpenAPIUpgradeWorkerHeaders) values() http.Header {
 func (c *OpenAPIClient) CheckWorker(ctx context.Context, workerId string, headers OpenAPICheckWorkerHeaders) (OpenAPICheckWorkerResponseBody, error) {
 	var response OpenAPICheckWorkerResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICheckWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) CreateWorker(ctx context.Context, headers OpenAPICreateWorkerHeaders, body OpenAPICreateWorkerRequestBody) (OpenAPICreateWorkerResponseBody, error) {
+	var response OpenAPICreateWorkerResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateWorker, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetWorker(ctx context.Context, workerId string) (OpenAPIGetWorkerResponseBody, error) {
@@ -251,6 +266,6 @@ func (c *OpenAPIClient) WorkerOrchestratorHealth(ctx context.Context) (OpenAPIWo
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 12
+const OpenAPIClientOperationCount = 13
 
-const openAPIClientSpecSHA256 = "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
+const openAPIClientSpecSHA256 = "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"

@@ -275,6 +275,18 @@ func (c *Client) Get(ctx context.Context, workerID string) (Worker, error) {
 	return c.OpenAPI().GetWorker(ctx, workerID)
 }
 
+// Create registers a pending Worker using caller-owned, write-only bootstrap
+// material. Persist the request values and idempotency key durably before
+// calling Create so a lost response can be replayed without creating a second
+// Worker.
+func (c *Client) Create(ctx context.Context, request CreateWorkerRequest, idempotencyKey string) (CreateWorkerResponse, error) {
+	ctx, err := withIdempotencyKey(ctx, idempotencyKey)
+	if err != nil {
+		return CreateWorkerResponse{}, err
+	}
+	return c.OpenAPI().CreateWorker(ctx, OpenAPICreateWorkerHeaders{IdempotencyKey: idempotencyKey}, request)
+}
+
 func (c *Client) Assignments(ctx context.Context, workerID string) (AssignmentList, error) {
 	return c.OpenAPI().ListWorkerAssignments(ctx, workerID)
 }

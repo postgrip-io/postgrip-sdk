@@ -1,9 +1,9 @@
 {
-  "contractBundleDigest": "c88f2c1532abd35e1c7f8f0c6103def1db9ed77110ae2927ad363be56d810c2a",
+  "contractBundleDigest": "2883faf18b23e4cc0c216dbe22a782138da56327f99e1f630ebdd0e234d170ea",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
     "service": "be46551825b1ad67442a777eeaafff4aff52a37e40cc101002797478ccc19a51",
-    "worker": "f3ad25a26be9c31614261f7c950b1c84513033ad38d672a574590078adabcab9"
+    "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
     {
@@ -4206,6 +4206,37 @@
         "application/json"
       ],
       "responseSchema": "CheckWorkerResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createWorker",
+      "pagination": "none",
+      "path": "/api/v1/workers",
+      "pathParameters": [],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateWorkerRequest",
+      "requiredScopes": [
+        [
+          "workers:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "CreateWorkerResponse",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null

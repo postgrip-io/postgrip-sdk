@@ -268,6 +268,15 @@
       "plane": "service",
       "protocolException": null
     },
+    "createWorker": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/createWorker.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
     "deleteSandbox": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,

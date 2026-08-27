@@ -212,6 +212,15 @@
       ],
       "summary": "Create Service Volume"
     },
+    "createWorker": {
+      "behavior": "Creates one pending Worker from caller-generated write-only enrollment and attestation bootstrap values. The server persists only their hashes, derives the signer identity, returns a safe Worker projection plus ETag and expiries, and replays the exact response for the same idempotency key and body.",
+      "lifecycle": [
+        "Persist the bootstrap values and idempotency key in an operator-approved mode-0600 store before the request.",
+        "Idempotency: required; a replay does not extend either bootstrap expiry.",
+        "Never log or print the request body and remove consumed values only after trusted enrollment."
+      ],
+      "summary": "Create a pending Worker"
+    },
     "deleteSandbox": {
       "behavior": "Sets desired state to deleted and returns 202 with the updated record. Teardown is asynchronous and completes when the assigned agent reports it.",
       "lifecycle": [

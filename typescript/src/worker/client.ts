@@ -3,6 +3,8 @@ import {
   resolveOpenAPIOperation,
   type OpenAPIAssignmentList,
   type OpenAPICheckWorkerResponse,
+  type OpenAPICreateWorkerRequest,
+  type OpenAPICreateWorkerResponse,
   type OpenAPIHealthResponse,
   type OpenAPIJob,
   type OpenAPIJobList,
@@ -91,6 +93,7 @@ export class WorkerAPIError extends Error {
 }
 
 interface InternalRequestOptions {
+  readonly body?: unknown;
   readonly path?: Readonly<Record<string, string>>;
   readonly query?: object | URLSearchParams;
   readonly signal?: AbortSignal;
@@ -128,6 +131,7 @@ export class WorkerClient {
     this.openapi = new OpenAPIClient((id, options) => {
       const headers = options.headers as Readonly<Record<string, string>> | undefined;
       return this.request(id, {
+        body: options.body,
         path: options.pathParameters as Readonly<Record<string, string>> | undefined,
         query: options.query,
         signal: options.signal,
@@ -164,6 +168,23 @@ export class WorkerClient {
 
   get(workerId: string, options: RequestOptions = {}): Promise<OpenAPIWorker> {
     return this.request('getWorker', { path: { workerId }, signal: options.signal });
+  }
+
+  /**
+   * Register a pending Worker with caller-owned, write-only bootstrap values.
+   * Persist the input and idempotency key before calling this method so a lost
+   * response can be replayed without creating a second Worker.
+   */
+  create(
+    input: OpenAPICreateWorkerRequest,
+    options: MutationOptions,
+  ): Promise<OpenAPICreateWorkerResponse> {
+    validateIdempotencyKey(options.idempotencyKey);
+    return this.request('createWorker', {
+      body: input,
+      signal: options.signal,
+      idempotencyKey: options.idempotencyKey,
+    });
   }
 
   assignments(workerId: string, options: RequestOptions = {}): Promise<OpenAPIAssignmentList> {
@@ -269,13 +290,16 @@ export class WorkerClient {
       options.signal?.throwIfAborted();
       let response: Response;
       try {
+        const encodedBody = options.body === undefined ? undefined : JSON.stringify(options.body);
         response = await this.fetchImpl(endpoint, {
           method: operation.method,
           headers: {
             Accept: 'application/json',
+            ...(encodedBody === undefined ? {} : { 'Content-Type': 'application/json' }),
             ...(operation.authLane === 'worker-management' ? { Authorization: `Bearer ${this.token}` } : {}),
             ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
           },
+          body: encodedBody,
           redirect: 'manual',
           signal: options.signal,
         });
