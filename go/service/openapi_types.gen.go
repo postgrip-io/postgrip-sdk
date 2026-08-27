@@ -1034,6 +1034,7 @@ type OpenAPIPostGripConfigurationStackOperation struct {
 	Summary              OpenAPIPostGripConfigurationStackOperationSummary `json:"summary"`
 	LastErrorCode        *string                                           `json:"lastErrorCode,omitempty"`
 	ConfigurationVersion int64                                             `json:"configurationVersion"`
+	Resources            []OpenAPIPostGripConfigurationStackResource       `json:"resources"`
 	CreatedAt            time.Time                                         `json:"createdAt"`
 	UpdatedAt            time.Time                                         `json:"updatedAt"`
 	CompletedAt          *time.Time                                        `json:"completedAt,omitempty"`
@@ -1424,4 +1425,4 @@ type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOper
 type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
 type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
 
-const openAPITypesSpecSHA256 = "be46551825b1ad67442a777eeaafff4aff52a37e40cc101002797478ccc19a51"
+const openAPITypesSpecSHA256 = "88c5b980c1f699337775ac2005726ad5a04d23883fdb589c91f63c1fbd3e5255"

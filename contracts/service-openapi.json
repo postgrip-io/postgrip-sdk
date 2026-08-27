@@ -9975,6 +9975,7 @@
           "attemptCount",
           "summary",
           "configurationVersion",
+          "resources",
           "createdAt",
           "updatedAt",
           "receipt"
@@ -10026,6 +10027,12 @@
           "configurationVersion": {
             "type": "integer",
             "minimum": 1
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostGripConfigurationStackResource"
+            }
           },
           "createdAt": {
             "type": "string",
