@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contractBundleDigest": "c88f2c1532abd35e1c7f8f0c6103def1db9ed77110ae2927ad363be56d810c2a",
+  "contractBundleDigest": "f9ea05cd07831a2785b4b5e0bf3f97c1c83458a22e7e138a576044b791b6b903",
   "tier": "production-smoke",
   "disposableEnvironment": false,
   "seedResources": [],
