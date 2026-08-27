@@ -1,6 +1,11 @@
 import { runInActivityRuntime } from './activity.js';
 import { Connection } from './connection.js';
-import { ApplicationFailure, CancelledFailure } from './errors.js';
+import {
+  ApplicationFailure,
+  CancelledFailure,
+  ignoreTerminalTaskMutation,
+  isTerminalTaskMutation,
+} from './errors.js';
 import { ContinueAsNewCommand, runInWorkflowRuntime, validateWorkflowSandbox, withTimeout } from './workflow.js';
 import type {
   ActivityInvocationPayload,
@@ -233,10 +238,10 @@ export class Agent {
         finished_at: new Date().toISOString(),
       };
       await this.emit(task.id, 'completed', 'workflow', `completed workflow ${workflowType}`);
-      await this.connection.completeTask(task.id, this.identity, result).catch((err) => this.ignoreTerminalTaskMutation(err));
+      await this.connection.completeTask(task.id, this.identity, result).catch(ignoreTerminalTaskMutation);
     } catch (err) {
       if (err instanceof WorkflowBlocked) {
-        await this.connection.blockTask(task.id, this.identity, err.message).catch((blockErr) => this.ignoreTerminalTaskMutation(blockErr));
+        await this.connection.blockTask(task.id, this.identity, err.message).catch(ignoreTerminalTaskMutation);
         return;
       }
       if (err instanceof ContinueAsNewCommand) {
@@ -250,7 +255,7 @@ export class Agent {
           failure: failureInfoFromError(err),
           started_at: startedAt,
           finished_at: new Date().toISOString(),
-        }).catch((failErr) => this.ignoreTerminalTaskMutation(failErr));
+        }).catch(ignoreTerminalTaskMutation);
         return;
       }
       const message = err instanceof Error ? err.message : String(err);
@@ -259,88 +264,32 @@ export class Agent {
         failure: failureInfoFromError(err),
         started_at: startedAt,
         finished_at: new Date().toISOString(),
-      }).catch((failErr) => this.ignoreTerminalTaskMutation(failErr));
+      }).catch(ignoreTerminalTaskMutation);
     }
   }
 
   private async executeQueryTask(task: Task<WorkflowQueryPayload>): Promise<void> {
-    await this.withLeaseRenewal(task, () => this.executeQueryTaskLeased(task));
-  }
-
-  private async executeQueryTaskLeased(task: Task<WorkflowQueryPayload>): Promise<void> {
-    const startedAt = new Date().toISOString();
-    const payload = task.payload;
-    try {
-      if (!payload?.workflowId || !payload.workflowType || !payload.queryName) {
-        throw ApplicationFailure.nonRetryable('invalid workflow query payload', 'InvalidWorkflowQueryPayload');
-      }
-      const workflow = this.workflows[payload.workflowType];
-      if (!workflow) {
-        throw ApplicationFailure.nonRetryable(`workflow ${payload.workflowType} is not registered`, 'WorkflowNotRegistered', payload.workflowType);
-      }
-      validateWorkflowSandbox(workflow);
-      const sourceWorkflow = await this.connection.getWorkflow(payload.workflowRunId ?? payload.workflowId);
-      const sourceTask = await this.connection.getTask<WorkflowPayload>(sourceWorkflow.task_id);
-      const history = await this.connection.getWorkflowHistory(payload.workflowRunId ?? payload.workflowId);
-      const replay = new WorkflowReplay(history);
-      await this.emit(task.id, 'started', 'query', `started query ${payload.queryName}`, { workflowType: payload.workflowType });
-      try {
-        await runInWorkflowRuntime({
-          workflowId: payload.workflowId,
-          workflowRunId: payload.workflowRunId ?? sourceWorkflow.run_id ?? payload.workflowId,
-          taskQueue: sourceWorkflow.queue,
-          workflowType: payload.workflowType,
-          cancellationScopes: [],
-          continueAsNew: () => {
-            throw new WorkflowQueryReady('workflow continued as new');
-          },
-          executeActivity: (name) => this.replayActivityForQuery(replay, name),
-          executeChild: (name) => this.replayChildForQuery(replay, name),
-          sleep: () => this.replayTimerForQuery(replay),
-          condition: (predicate) => this.replayConditionForQuery(predicate),
-          cancellationRequested: () => replay.isCancellationRequested(),
-          setSignalHandler: (name, handler) => replay.setSignalHandler(name, handler),
-          setQueryHandler: (name, handler) => replay.setQueryHandler(name, handler),
-          setUpdateHandler: (name, handler) => replay.setUpdateHandler(name, handler),
-          emit: async () => undefined,
-        }, () => workflow(...(sourceTask.payload?.args ?? [])));
-      } catch (err) {
-        if (!(err instanceof WorkflowQueryReady)) {
-          throw err;
-        }
-      }
-      const handler = replay.queryHandler(payload.queryName);
-      if (!handler) {
-        throw ApplicationFailure.nonRetryable(`query ${payload.queryName} is not registered`, 'QueryNotRegistered', payload.queryName);
-      }
-      const value = await Promise.resolve(handler(...(payload.args ?? [])));
-      await this.emit(task.id, 'completed', 'query', `completed query ${payload.queryName}`);
-      await this.connection.completeTask(task.id, this.identity, {
-        value,
-        message: 'query completed',
-        started_at: startedAt,
-        finished_at: new Date().toISOString(),
-      }).catch((err) => this.ignoreTerminalTaskMutation(err));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      await this.emit(task.id, 'failed', 'query', message).catch(() => undefined);
-      await this.connection.failTask(task.id, this.identity, message, {
-        started_at: startedAt,
-        finished_at: new Date().toISOString(),
-      }).catch((failErr) => this.ignoreTerminalTaskMutation(failErr));
-    }
+    await this.withLeaseRenewal(task, () => this.executeHandlerTaskLeased(task, 'query'));
   }
 
   private async executeUpdateTask(task: Task<WorkflowUpdatePayload>): Promise<void> {
-    await this.withLeaseRenewal(task, () => this.executeUpdateTaskLeased(task));
+    await this.withLeaseRenewal(task, () => this.executeHandlerTaskLeased(task, 'update'));
   }
 
-  private async executeUpdateTaskLeased(task: Task<WorkflowUpdatePayload>): Promise<void> {
+  private async executeHandlerTaskLeased(
+    task: Task<WorkflowQueryPayload | WorkflowUpdatePayload>,
+    kind: 'query' | 'update',
+  ): Promise<void> {
     const startedAt = new Date().toISOString();
     const payload = task.payload;
+    const name = kind === 'query'
+      ? (payload as WorkflowQueryPayload | undefined)?.queryName
+      : (payload as WorkflowUpdatePayload | undefined)?.updateName;
+    const invalidCode = kind === 'query' ? 'InvalidWorkflowQueryPayload' : 'InvalidWorkflowUpdatePayload';
+    const missingCode = kind === 'query' ? 'QueryNotRegistered' : 'UpdateNotRegistered';
     try {
-      if (!payload?.workflowId || !payload.workflowType || !payload.updateName) {
-        throw ApplicationFailure.nonRetryable('invalid workflow update payload', 'InvalidWorkflowUpdatePayload');
+      if (!payload?.workflowId || !payload.workflowType || !name) {
+        throw ApplicationFailure.nonRetryable(`invalid workflow ${kind} payload`, invalidCode);
       }
       const workflow = this.workflows[payload.workflowType];
       if (!workflow) {
@@ -351,7 +300,7 @@ export class Agent {
       const sourceTask = await this.connection.getTask<WorkflowPayload>(sourceWorkflow.task_id);
       const history = await this.connection.getWorkflowHistory(payload.workflowRunId ?? payload.workflowId);
       const replay = new WorkflowReplay(history);
-      await this.emit(task.id, 'started', 'update', `started update ${payload.updateName}`, { workflowType: payload.workflowType });
+      await this.emit(task.id, 'started', kind, `started ${kind} ${name}`, { workflowType: payload.workflowType });
       try {
         await runInWorkflowRuntime({
           workflowId: payload.workflowId,
@@ -377,25 +326,25 @@ export class Agent {
           throw err;
         }
       }
-      const handler = replay.updateHandler(payload.updateName);
+      const handler = kind === 'query' ? replay.queryHandler(name) : replay.updateHandler(name);
       if (!handler) {
-        throw ApplicationFailure.nonRetryable(`update ${payload.updateName} is not registered`, 'UpdateNotRegistered', payload.updateName);
+        throw ApplicationFailure.nonRetryable(`${kind} ${name} is not registered`, missingCode, name);
       }
       const value = await Promise.resolve(handler(...(payload.args ?? [])));
-      await this.emit(task.id, 'completed', 'update', `completed update ${payload.updateName}`);
+      await this.emit(task.id, 'completed', kind, `completed ${kind} ${name}`);
       await this.connection.completeTask(task.id, this.identity, {
         value,
-        message: 'update completed',
+        message: `${kind} completed`,
         started_at: startedAt,
         finished_at: new Date().toISOString(),
-      }).catch((err) => this.ignoreTerminalTaskMutation(err));
+      }).catch(ignoreTerminalTaskMutation);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      await this.emit(task.id, 'failed', 'update', message).catch(() => undefined);
+      await this.emit(task.id, 'failed', kind, message).catch(() => undefined);
       await this.connection.failTask(task.id, this.identity, message, {
         started_at: startedAt,
         finished_at: new Date().toISOString(),
-      }).catch((failErr) => this.ignoreTerminalTaskMutation(failErr));
+      }).catch(ignoreTerminalTaskMutation);
     }
   }
 
@@ -433,7 +382,7 @@ export class Agent {
       },
       started_at: startedAt,
       finished_at: new Date().toISOString(),
-    }).catch((err) => this.ignoreTerminalTaskMutation(err));
+    }).catch(ignoreTerminalTaskMutation);
   }
 
   private async executeActivityCommand(
@@ -602,7 +551,7 @@ export class Agent {
         message: 'activity completed',
         started_at: startedAt,
         finished_at: new Date().toISOString(),
-      }).catch((err) => this.ignoreTerminalTaskMutation(err));
+      }).catch(ignoreTerminalTaskMutation);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await this.emit(task.id, 'failed', 'activity', message).catch(() => undefined);
@@ -610,16 +559,8 @@ export class Agent {
         failure: failureInfoFromError(err),
         started_at: startedAt,
         finished_at: new Date().toISOString(),
-      }).catch((failErr) => this.ignoreTerminalTaskMutation(failErr));
+      }).catch(ignoreTerminalTaskMutation);
     }
-  }
-
-  private ignoreTerminalTaskMutation(err: unknown): void {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('terminal') || message.includes('not leased')) {
-      return;
-    }
-    throw err;
   }
 
   private async replayActivityForQuery(replay: WorkflowReplay, name: string): Promise<unknown> {
@@ -713,7 +654,7 @@ export class Agent {
         try {
           await renew();
         } catch (err) {
-          if (this.isTerminalTaskMutation(err)) {
+          if (isTerminalTaskMutation(err)) {
             return;
           }
         }
@@ -728,10 +669,6 @@ export class Agent {
     }
   }
 
-  private isTerminalTaskMutation(err: unknown): boolean {
-    const message = err instanceof Error ? err.message : String(err);
-    return message.includes('terminal') || message.includes('not leased');
-  }
 }
 class WorkflowBlocked extends Error {
   constructor(message: string) {

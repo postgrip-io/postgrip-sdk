@@ -137,7 +137,7 @@ func defaultWorkflowRuntimeQueue() string {
 // task. Use WorkflowHandle.Result for the same behavior keyed by
 // workflow id.
 func (t *TaskClient) Result(ctx context.Context, taskID string, target any) error {
-	return waitForTaskCompletion(ctx, t.conn, taskID, target)
+	return WaitForTaskCompletion(ctx, t.conn, taskID, target)
 }
 
 // WatchEvents polls the events endpoint and pushes new events onto the

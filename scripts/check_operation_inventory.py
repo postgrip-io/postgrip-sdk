@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from _contracts import PLANES
+
 
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY_PATH = ROOT / "test" / "operation-inventory.json"
@@ -28,7 +30,6 @@ OPERATION_FIELDS = {
     "idempotency", "pagination", "retry", "requestContentTypes",
     "responseContentTypes", "requestSchema", "responseSchema", "pathParameters",
 }
-PLANES = {"agent", "worker", "service"}
 LIVE_TIERS = {"nightly", "pre-release", "production-smoke"}
 
 

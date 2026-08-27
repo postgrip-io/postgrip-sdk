@@ -38,20 +38,6 @@ export interface AgentSigningKey {
   keyId: string;
 }
 
-export async function generateSigningKey(): Promise<AgentSigningKey> {
-  const { createHash, generateKeyPairSync } = await loadNodeCrypto();
-  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
-  // jwk format gives us the raw 32-byte public key in `x` (base64url-encoded).
-  const jwk = publicKey.export({ format: 'jwk' });
-  if (typeof jwk.x !== 'string') {
-    throw new Error('Ed25519 public key export missing x');
-  }
-  const rawPub = decodeBase64(jwk.x, true);
-  const publicKeyBase64 = encodeBase64(rawPub);
-  const keyId = createHash('sha256').update(rawPub).digest('hex').slice(0, 16);
-  return { privateKey, publicKey, publicKeyBase64, keyId };
-}
-
 export async function importSigningKeyFromBase64(encoded: string): Promise<AgentSigningKey> {
   const { createHash, createPrivateKey, createPublicKey } = await loadNodeCrypto();
   const raw = decodeBase64(encoded);

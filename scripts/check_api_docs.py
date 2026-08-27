@@ -8,10 +8,11 @@ from pathlib import Path
 import re
 import sys
 
+from _contracts import PLANES
+
 
 ROOT = Path(__file__).resolve().parent.parent
 REFERENCE = ROOT / "docs" / "reference"
-PLANES = ("agent", "worker", "service")
 REQUIRED_SECTIONS = (
     "## Operation",
     "## Parameters",

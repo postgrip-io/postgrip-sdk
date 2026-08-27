@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from _contracts import digest_bundle
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATHS = {
@@ -103,14 +105,7 @@ def load_contract(spec_path: Path) -> tuple[dict[str, Any], str]:
 
 def contract_bundle_digest() -> str:
     """Hash the exact deployed public contracts using the documented framing."""
-    digest = hashlib.sha256()
-    for plane in ("agent", "service", "worker"):
-        path = SPEC_PATHS[plane]
-        digest.update(path.name.encode())
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
+    return digest_bundle(ROOT / "contracts")[0]
 
 
 def resolve_ref(spec: dict[str, Any], value: dict[str, Any]) -> dict[str, Any]:
@@ -1520,15 +1515,13 @@ def operation_inventory_source(bundle_digest: str) -> str:
 
 
 def generated_files(
-    spec: dict[str, Any], digest: str, bundle_digest: str, plane: str
+    spec: dict[str, Any], rows: list[dict[str, Any]], digest: str, bundle_digest: str, plane: str
 ) -> dict[Path, str]:
-    rows = operation_rows(spec)
-    inventory = {ROOT / "test" / "operation-inventory.json": operation_inventory_source(bundle_digest)}
     if plane == "service":
         go_operations = go_source(rows, digest, bundle_digest).replace("package client", "package service", 1).replace("postgrip-agent:", "postgrip-service:")
         go_types = go_types_source(spec, rows, digest).replace("package client", "package service", 1)
         go_client = go_openapi_client_source(rows, digest, include_headers=True).replace("package client", "package service", 1)
-        return inventory | {
+        return {
             ROOT / "go" / "service" / "openapi_operations.gen.go": go_operations,
             ROOT / "go" / "service" / "openapi_types.gen.go": go_types,
             ROOT / "go" / "service" / "openapi_client.gen.go": go_client,
@@ -1548,7 +1541,7 @@ def generated_files(
         go_operations = go_source(rows, digest, bundle_digest).replace("package client", "package worker", 1).replace("postgrip-agent:", "postgrip-worker:")
         go_types = go_types_source(spec, rows, digest).replace("package client", "package worker", 1)
         go_client = go_openapi_client_source(rows, digest, include_headers=True).replace("package client", "package worker", 1)
-        return inventory | {
+        return {
             ROOT / "go" / "worker" / "openapi_operations.gen.go": go_operations,
             ROOT / "go" / "worker" / "openapi_types.gen.go": go_types,
             ROOT / "go" / "worker" / "openapi_client.gen.go": go_client,
@@ -1562,7 +1555,7 @@ def generated_files(
             ROOT / "python" / "src" / "postgrip" / "worker" / "openapi.py":
                 python_source(spec, rows, digest, bundle_digest).replace("postgrip-agent:", "postgrip-worker:"),
         }
-    return inventory | {
+    return {
         ROOT / "go" / "agent" / "client" / "openapi_operations.gen.go": go_source(rows, digest, bundle_digest),
         ROOT / "go" / "agent" / "client" / "openapi_types.gen.go": go_types_source(spec, rows, digest),
         ROOT / "go" / "agent" / "client" / "openapi_client.gen.go": go_openapi_client_source(rows, digest),
@@ -1639,7 +1632,11 @@ def main() -> int:
         parser.error("--check-source requires one concrete --plane")
     selected_planes = sorted(SPEC_PATHS) if args.plane == "all" else [args.plane]
     bundle_digest = contract_bundle_digest()
-    outputs: dict[Path, str] = {}
+    outputs = select_outputs(
+        {ROOT / "test" / "operation-inventory.json": operation_inventory_source(bundle_digest)},
+        args.language,
+        args.output_dir,
+    )
     counts: dict[str, int] = {}
     digests: dict[str, str] = {}
     for plane in selected_planes:
@@ -1649,14 +1646,15 @@ def main() -> int:
             return 1
         spec, digest = load_contract(spec_path)
         validate_schema_references(spec)
+        rows = operation_rows(spec)
         outputs.update(
             select_outputs(
-                generated_files(spec, digest, bundle_digest, plane),
+                generated_files(spec, rows, digest, bundle_digest, plane),
                 args.language,
                 args.output_dir,
             )
         )
-        counts[plane] = len(operation_rows(spec))
+        counts[plane] = len(rows)
         digests[plane] = digest
     if not write_or_check(outputs, args.check, args.plane):
         return 1

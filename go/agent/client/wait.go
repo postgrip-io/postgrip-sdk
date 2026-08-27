@@ -7,10 +7,10 @@ import (
 	"github.com/postgrip-io/postgrip-agent-sdks/go/agent/failure"
 )
 
-// waitForTaskCompletion polls the task until it reaches a terminal state.
+// WaitForTaskCompletion polls the task until it reaches a terminal state.
 // Used by TaskClient.Result and WorkflowHandle.Result so callers don't have
 // to hand-roll a polling loop.
-func waitForTaskCompletion(ctx context.Context, conn *Connection, taskID string, target any) error {
+func WaitForTaskCompletion(ctx context.Context, conn *Connection, taskID string, target any) error {
 	for {
 		task, err := conn.GetTask(ctx, taskID)
 		if err != nil {
@@ -42,11 +42,4 @@ func waitForTaskCompletion(ctx context.Context, conn *Connection, taskID string,
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
-}
-
-// WaitForTaskCompletion is the exported variant. The /worker package uses
-// it to surface the final task result via WorkflowHandle.Result. Same
-// behavior as the internal helper.
-func WaitForTaskCompletion(ctx context.Context, conn *Connection, taskID string, target any) error {
-	return waitForTaskCompletion(ctx, conn, taskID, target)
 }

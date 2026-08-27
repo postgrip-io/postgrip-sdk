@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 import inspect
 import os
 import threading
@@ -10,7 +11,7 @@ from typing import Any, Awaitable, Callable, Iterable
 
 from . import activity, workflow
 from .client import Client, Connection
-from .errors import ApplicationFailure, CancelledFailure
+from .errors import ApplicationFailure, CancelledFailure, is_terminal_task_mutation
 
 WORKFLOW_RUNTIME_TASK_TYPES = ["workflow:", "activity:", "query:", "update:"]
 
@@ -163,46 +164,28 @@ class Agent:
             await self._fail_task(task, str(exc), exc, started_at=started_at)
 
     async def _execute_query_task(self, task: dict[str, Any]) -> None:
-        started_at = _now()
-        payload = task.get("payload") or {}
-        try:
-            workflow_type = payload.get("workflowType")
-            query_name = payload.get("queryName")
-            if not payload.get("workflowId") or not workflow_type or not query_name:
-                raise ApplicationFailure.non_retryable_failure("invalid workflow query payload", "InvalidWorkflowQueryPayload")
-            target = self.workflows.get(workflow_type)
-            if target is None:
-                raise ApplicationFailure.non_retryable_failure(f"workflow {workflow_type} is not registered", "WorkflowNotRegistered", workflow_type)
-            source_workflow = await asyncio.to_thread(self.connection.get_workflow, payload.get("workflowRunId") or payload["workflowId"])
-            source_task = await asyncio.to_thread(self.connection.get_task, source_workflow["task_id"])
-            history = await asyncio.to_thread(self.connection.get_workflow_history, payload.get("workflowRunId") or payload["workflowId"])
-            replay = WorkflowReplay(history)
-            await self._emit(task["id"], "started", "query", f"started query {query_name}", {"workflowType": workflow_type})
-            try:
-                await self._run_workflow(target, source_task, source_task.get("payload") or {}, replay, query_mode=True)
-            except WorkflowQueryReady:
-                pass
-            handler = replay.query_handler(query_name)
-            if handler is None:
-                raise ApplicationFailure.non_retryable_failure(f"query {query_name} is not registered", "QueryNotRegistered", query_name)
-            value = await _maybe_await(handler(*(payload.get("args") or [])))
-            await self._complete_task(task, {
-                "value": value,
-                "message": "query completed",
-                "started_at": started_at,
-                "finished_at": _now(),
-            })
-        except Exception as exc:
-            await self._fail_task(task, str(exc), exc, started_at=started_at)
+        await self._execute_handler_task(task, "query")
 
     async def _execute_update_task(self, task: dict[str, Any]) -> None:
+        await self._execute_handler_task(task, "update")
+
+    async def _execute_handler_task(self, task: dict[str, Any], kind: str) -> None:
         started_at = _now()
-        payload = task.get("payload") or {}
+        name_key = "queryName" if kind == "query" else "updateName"
+        invalid_code = "InvalidWorkflowQueryPayload" if kind == "query" else "InvalidWorkflowUpdatePayload"
+        missing_code = "QueryNotRegistered" if kind == "query" else "UpdateNotRegistered"
         try:
+            payload_value = task.get("payload")
+            if payload_value is None:
+                payload: Mapping[str, Any] = {}
+            elif isinstance(payload_value, Mapping):
+                payload = payload_value
+            else:
+                raise ApplicationFailure.non_retryable_failure(f"invalid workflow {kind} payload", invalid_code)
+            name = payload.get(name_key)
             workflow_type = payload.get("workflowType")
-            update_name = payload.get("updateName")
-            if not payload.get("workflowId") or not workflow_type or not update_name:
-                raise ApplicationFailure.non_retryable_failure("invalid workflow update payload", "InvalidWorkflowUpdatePayload")
+            if not payload.get("workflowId") or not workflow_type or not name:
+                raise ApplicationFailure.non_retryable_failure(f"invalid workflow {kind} payload", invalid_code)
             target = self.workflows.get(workflow_type)
             if target is None:
                 raise ApplicationFailure.non_retryable_failure(f"workflow {workflow_type} is not registered", "WorkflowNotRegistered", workflow_type)
@@ -210,18 +193,18 @@ class Agent:
             source_task = await asyncio.to_thread(self.connection.get_task, source_workflow["task_id"])
             history = await asyncio.to_thread(self.connection.get_workflow_history, payload.get("workflowRunId") or payload["workflowId"])
             replay = WorkflowReplay(history)
-            await self._emit(task["id"], "started", "update", f"started update {update_name}", {"workflowType": workflow_type})
+            await self._emit(task["id"], "started", kind, f"started {kind} {name}", {"workflowType": workflow_type})
             try:
                 await self._run_workflow(target, source_task, source_task.get("payload") or {}, replay, query_mode=True)
             except WorkflowQueryReady:
                 pass
-            handler = replay.update_handler(update_name)
+            handler = replay.query_handler(name) if kind == "query" else replay.update_handler(name)
             if handler is None:
-                raise ApplicationFailure.non_retryable_failure(f"update {update_name} is not registered", "UpdateNotRegistered", update_name)
+                raise ApplicationFailure.non_retryable_failure(f"{kind} {name} is not registered", missing_code, name)
             value = await _maybe_await(handler(*(payload.get("args") or [])))
             await self._complete_task(task, {
                 "value": value,
-                "message": "update completed",
+                "message": f"{kind} completed",
                 "started_at": started_at,
                 "finished_at": _now(),
             })
@@ -679,11 +662,6 @@ def heartbeat_interval(lease_timeout_seconds: float) -> float:
     if lease_timeout_seconds <= 1:
         return 0.5
     return max(0.5, lease_timeout_seconds / 3)
-
-
-def is_terminal_task_mutation(exc: Exception) -> bool:
-    message = str(exc)
-    return "terminal" in message or "not leased" in message
 
 
 def _connection_from_client(client: Client | Connection | None, connection: Connection | None) -> Connection:

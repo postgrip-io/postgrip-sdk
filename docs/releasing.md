@@ -36,8 +36,8 @@ Neither environment may point at production.
    ```sh
    python3 scripts/generate_openapi.py --plane all --check
    python3 scripts/check_operation_coverage.py
-   python3 scripts/test_api_endpoints.py --plane all --mode recorded
-   python3 scripts/test_curl_examples.py --plane all --mode recorded
+   python3 scripts/test_api_endpoints.py --plane all
+   python3 scripts/test_curl_examples.py --plane all
    python3 scripts/check_release_artifacts.py --ecosystem all \
      --report /tmp/postgrip-release-artifacts.json
    PYTHONPATH=python/src python3 scripts/test_live_api.py --self-test

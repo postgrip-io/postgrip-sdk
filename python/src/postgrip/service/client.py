@@ -11,7 +11,6 @@ import json
 import math
 import os
 import random
-import re
 import socket
 from threading import Event, Thread
 import time
@@ -20,7 +19,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import HTTPHandler, HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
 
-from .._internal.config import validate_base_url, validate_management_token
+from .._internal.config import validate_base_url, validate_idempotency_key, validate_management_token
+from .._internal.pagination import iterate_pages, iterate_pages_async
 
 from .administration_types import (
     AsyncDeclarativeConfigurationAdministration,
@@ -441,12 +441,9 @@ class ServiceClient:
 
     def pages(self, **options: Any) -> Iterator[ListServicesResponseBody]:
         cursor = options.pop("cursor", None)
-        while True:
-            page = self.list(cursor=cursor, **options)
-            yield page
-            cursor = page["nextCursor"]
-            if not cursor:
-                return
+        yield from iterate_pages(
+            lambda next_cursor: self.list(cursor=next_cursor, **options), "nextCursor", cursor,
+        )
 
     def resolve(self, value: str) -> ResolveServiceResponseBody:
         return cast(ResolveServiceResponseBody, self._request(OperationId.RESOLVE_SERVICE, query={"value": value}))
@@ -473,12 +470,9 @@ class ServiceClient:
 
     def environment_pages(self, service: ServiceReference, **options: Any) -> Iterator[ListServiceEnvironmentsResponseBody]:
         cursor = options.pop("cursor", None)
-        while True:
-            page = self.environments(service, cursor=cursor, **options)
-            yield page
-            cursor = page["nextCursor"]
-            if not cursor:
-                return
+        yield from iterate_pages(
+            lambda next_cursor: self.environments(service, cursor=next_cursor, **options), "nextCursor", cursor,
+        )
 
     def environment(self, project_id: str, value: str) -> ResolveServiceEnvironmentResponseBody:
         return cast(ResolveServiceEnvironmentResponseBody, self._request(
@@ -501,12 +495,9 @@ class ServiceClient:
 
     def deployment_pages(self, service: ServiceReference, **options: Any) -> Iterator[ListServiceDeploymentsResponseBody]:
         cursor = options.pop("cursor", None)
-        while True:
-            page = self.deployments(service, cursor=cursor, **options)
-            yield page
-            cursor = page["nextCursor"]
-            if not cursor:
-                return
+        yield from iterate_pages(
+            lambda next_cursor: self.deployments(service, cursor=next_cursor, **options), "nextCursor", cursor,
+        )
 
     def deployment(self, project_id: str, deployment_id: str) -> GetServiceDeploymentResponseBody:
         return cast(GetServiceDeploymentResponseBody, self._request(
@@ -664,8 +655,7 @@ class ServiceClient:
         idempotency_key: str,
         body: Mapping[str, Any] | None = None,
     ) -> Any:
-        if re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
-            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        validate_idempotency_key(idempotency_key)
         return self._request(operation, path=path, body=body, idempotency_key=idempotency_key)
 
     def _request(
@@ -741,8 +731,8 @@ class ServiceClient:
     ) -> Any:
         request_headers = headers or {}
         idempotency_key = request_headers.get("Idempotency-Key")
-        if idempotency_key is not None and re.fullmatch(r"[!-~]{1,128}", idempotency_key) is None:
-            raise ValueError("idempotency_key must contain 1 to 128 visible ASCII characters")
+        if idempotency_key is not None:
+            validate_idempotency_key(idempotency_key)
         if_match = request_headers.get("If-Match")
         if if_match is not None and (not if_match.strip() or "\r" in if_match or "\n" in if_match):
             raise ValueError("if_match must be a non-empty HTTP ETag without line breaks")
@@ -816,12 +806,10 @@ class AsyncServiceClient:
 
     async def pages(self, **options: Any) -> AsyncIterator[ListServicesResponseBody]:
         cursor = options.pop("cursor", None)
-        while True:
-            page = await self.list(cursor=cursor, **options)
+        async for page in iterate_pages_async(
+            lambda next_cursor: self.list(cursor=next_cursor, **options), "nextCursor", cursor,
+        ):
             yield page
-            cursor = page["nextCursor"]
-            if not cursor:
-                return
 
     async def resolve(self, value: str) -> ResolveServiceResponseBody:
         return await self._run(self._sync.resolve, value)

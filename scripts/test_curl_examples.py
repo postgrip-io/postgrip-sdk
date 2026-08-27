@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 import json
 import os
 from pathlib import Path
@@ -14,16 +14,16 @@ import re
 import shutil
 import subprocess
 import tempfile
-import threading
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-from generate_api_docs import load_inputs, operations, request_body, resolve, snake
+from _contracts import PLANES, snake
+from generate_api_docs import load_inputs, operations, request_body, resolve
+from _recording_server import RecordingServerLifecycle
 
 
 ROOT = Path(__file__).resolve().parent.parent
 REFERENCE = ROOT / "docs" / "reference"
-PLANES = ("agent", "worker", "service")
 TOKEN = "pgt_recorded_conformance_token"
 
 
@@ -47,7 +47,7 @@ class RecordedRequest:
     body: bytes
 
 
-class RecordingServer:
+class RecordingServer(RecordingServerLifecycle):
     def __init__(self) -> None:
         self.records: queue.Queue[RecordedRequest] = queue.Queue()
         records = self.records
@@ -97,22 +97,7 @@ class RecordingServer:
             def log_message(self, _format: str, *args: object) -> None:
                 return None
 
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-
-    @property
-    def url(self) -> str:
-        host, port = self.server.server_address
-        return f"http://{host}:{port}"
-
-    def __enter__(self) -> RecordingServer:
-        self.thread.start()
-        return self
-
-    def __exit__(self, *_exc: object) -> None:
-        self.server.shutdown()
-        self.server.server_close()
-        self.thread.join(timeout=5)
+        super().__init__(Handler)
 
 
 def shell_block(page: str) -> str:
@@ -234,7 +219,6 @@ def curl_version(curl: str) -> tuple[int, int]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--plane", choices=("all", *PLANES), default="all")
-    parser.add_argument("--mode", choices=("recorded",), default="recorded")
     args = parser.parse_args()
     selected_planes = PLANES if args.plane == "all" else (args.plane,)
     real_curl = shutil.which("curl")

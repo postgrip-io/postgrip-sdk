@@ -3,57 +3,34 @@ package service
 import (
 	"context"
 	"time"
+
+	"github.com/postgrip-io/postgrip-agent-sdks/go/internal/transport"
 )
 
 type LogIterator struct {
-	client  *Client
-	ref     Reference
-	query   OpenAPIListServiceLogsQuery
-	entries []LogEntry
-	entry   LogEntry
-	err     error
+	follower *transport.Follower[LogEntry]
 }
 
 func (c *Client) FollowLogs(ref Reference, query OpenAPIListServiceLogsQuery) *LogIterator {
 	follow := true
 	query.Follow = &follow
-	return &LogIterator{client: c, ref: ref, query: query}
+	return &LogIterator{follower: transport.NewFollower(func(ctx context.Context) ([]LogEntry, time.Duration, error) {
+		page, err := c.Logs(ctx, ref, query)
+		if err != nil {
+			return nil, 0, err
+		}
+		query.Cursor = &page.NextCursor
+		delay := time.Duration(page.PollAfterMs) * time.Millisecond
+		if delay <= 0 {
+			delay = c.connection.followInterval
+		}
+		return page.Items, delay, nil
+	}, nil)}
 }
 
 func (it *LogIterator) Next(ctx context.Context) bool {
-	for it != nil && it.err == nil {
-		if err := ctx.Err(); err != nil {
-			it.err = err
-			return false
-		}
-		if len(it.entries) > 0 {
-			it.entry, it.entries = it.entries[0], it.entries[1:]
-			return true
-		}
-		page, err := it.client.Logs(ctx, it.ref, it.query)
-		if err != nil {
-			it.err = err
-			return false
-		}
-		it.query.Cursor = &page.NextCursor
-		it.entries = page.Items
-		if len(it.entries) == 0 {
-			delay := time.Duration(page.PollAfterMs) * time.Millisecond
-			if delay <= 0 {
-				delay = it.client.connection.followInterval
-			}
-			timer := time.NewTimer(delay)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				it.err = ctx.Err()
-				return false
-			case <-timer.C:
-			}
-		}
-	}
-	return false
+	return it != nil && it.follower.Next(ctx)
 }
 
-func (it *LogIterator) Entry() LogEntry { return it.entry }
-func (it *LogIterator) Err() error      { return it.err }
+func (it *LogIterator) Entry() LogEntry { return it.follower.Entry() }
+func (it *LogIterator) Err() error      { return it.follower.Err() }

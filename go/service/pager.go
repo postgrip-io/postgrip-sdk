@@ -1,98 +1,70 @@
 package service
 
-import "context"
+import (
+	"context"
+
+	"github.com/postgrip-io/postgrip-agent-sdks/go/internal/transport"
+)
 
 type ServicePager struct {
-	client  *Client
-	query   OpenAPIListServicesQuery
-	current ServiceList
-	err     error
-	done    bool
+	pager *transport.Pager[ServiceList]
 }
 
 func (c *Client) Services(query OpenAPIListServicesQuery) *ServicePager {
-	return &ServicePager{client: c, query: query}
+	return &ServicePager{pager: transport.NewPager(func(ctx context.Context) (ServiceList, string, error) {
+		page, err := c.List(ctx, query)
+		if err == nil && page.NextCursor != "" {
+			query.Cursor = &page.NextCursor
+		}
+		return page, page.NextCursor, err
+	})}
 }
 
 func (p *ServicePager) Next(ctx context.Context) bool {
-	if p == nil || p.done || p.err != nil {
-		return false
-	}
-	p.current, p.err = p.client.List(ctx, p.query)
-	if p.err != nil {
-		return false
-	}
-	if p.current.NextCursor == "" {
-		p.done = true
-	} else {
-		p.query.Cursor = &p.current.NextCursor
-	}
-	return true
+	return p != nil && p.pager.Next(ctx)
 }
 
-func (p *ServicePager) Page() ServiceList { return p.current }
-func (p *ServicePager) Err() error        { return p.err }
+func (p *ServicePager) Page() ServiceList { return p.pager.Page() }
+func (p *ServicePager) Err() error        { return p.pager.Err() }
 
 type EnvironmentPager struct {
-	client  *Client
-	ref     Reference
-	query   OpenAPIListServiceEnvironmentsQuery
-	current EnvironmentList
-	err     error
-	done    bool
+	pager *transport.Pager[EnvironmentList]
 }
 
 func (c *Client) ServiceEnvironments(ref Reference, query OpenAPIListServiceEnvironmentsQuery) *EnvironmentPager {
-	return &EnvironmentPager{client: c, ref: ref, query: query}
+	return &EnvironmentPager{pager: transport.NewPager(func(ctx context.Context) (EnvironmentList, string, error) {
+		page, err := c.Environments(ctx, ref, query)
+		if err == nil && page.NextCursor != "" {
+			query.Cursor = &page.NextCursor
+		}
+		return page, page.NextCursor, err
+	})}
 }
 
 func (p *EnvironmentPager) Next(ctx context.Context) bool {
-	if p == nil || p.done || p.err != nil {
-		return false
-	}
-	p.current, p.err = p.client.Environments(ctx, p.ref, p.query)
-	if p.err != nil {
-		return false
-	}
-	if p.current.NextCursor == "" {
-		p.done = true
-	} else {
-		p.query.Cursor = &p.current.NextCursor
-	}
-	return true
+	return p != nil && p.pager.Next(ctx)
 }
 
-func (p *EnvironmentPager) Page() EnvironmentList { return p.current }
-func (p *EnvironmentPager) Err() error            { return p.err }
+func (p *EnvironmentPager) Page() EnvironmentList { return p.pager.Page() }
+func (p *EnvironmentPager) Err() error            { return p.pager.Err() }
 
 type DeploymentPager struct {
-	client  *Client
-	ref     Reference
-	query   OpenAPIListServiceDeploymentsQuery
-	current DeploymentList
-	err     error
-	done    bool
+	pager *transport.Pager[DeploymentList]
 }
 
 func (c *Client) ServiceDeployments(ref Reference, query OpenAPIListServiceDeploymentsQuery) *DeploymentPager {
-	return &DeploymentPager{client: c, ref: ref, query: query}
+	return &DeploymentPager{pager: transport.NewPager(func(ctx context.Context) (DeploymentList, string, error) {
+		page, err := c.Deployments(ctx, ref, query)
+		if err == nil && page.NextCursor != "" {
+			query.Cursor = &page.NextCursor
+		}
+		return page, page.NextCursor, err
+	})}
 }
 
 func (p *DeploymentPager) Next(ctx context.Context) bool {
-	if p == nil || p.done || p.err != nil {
-		return false
-	}
-	p.current, p.err = p.client.Deployments(ctx, p.ref, p.query)
-	if p.err != nil {
-		return false
-	}
-	if p.current.NextCursor == "" {
-		p.done = true
-	} else {
-		p.query.Cursor = &p.current.NextCursor
-	}
-	return true
+	return p != nil && p.pager.Next(ctx)
 }
 
-func (p *DeploymentPager) Page() DeploymentList { return p.current }
-func (p *DeploymentPager) Err() error           { return p.err }
+func (p *DeploymentPager) Page() DeploymentList { return p.pager.Page() }
+func (p *DeploymentPager) Err() error           { return p.pager.Err() }

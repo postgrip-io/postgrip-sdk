@@ -27,3 +27,7 @@ class TaskFailedError(PostGripAgentError):
 class TimeoutFailure(PostGripAgentError):
     pass
 
+
+def is_terminal_task_mutation(exc: BaseException) -> bool:
+    message = str(exc)
+    return "terminal" in message or "not leased" in message

@@ -33,6 +33,7 @@ export {
   validateWorkflowSandbox,
   workflowInfo,
 } from './workflow.js';
+export type { WorkflowInfo } from './workflow.js';
 export { Agent } from './agent.js';
 export type { AgentOptions, AgentShutdownOptions } from './agent.js';
 export { Agent as Worker, Agent as WorkflowWorker } from './agent.js';

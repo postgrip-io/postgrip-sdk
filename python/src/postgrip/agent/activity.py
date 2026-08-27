@@ -5,7 +5,8 @@ import inspect
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, TypeVar, overload
 
-from .errors import CancelledFailure
+from ._events import milestone_event
+from .errors import CancelledFailure, is_terminal_task_mutation
 
 F = TypeVar("F", bound=Callable[..., Any])
 R = TypeVar("R")
@@ -66,8 +67,7 @@ async def heartbeat(details: dict[str, Any] | None = None) -> None:
     try:
         await runtime.heartbeat(details)
     except Exception as exc:
-        message = str(exc)
-        if "terminal" in message or "not leased" in message:
+        if is_terminal_task_mutation(exc):
             raise CancelledFailure("activity cancellation requested") from exc
         raise
 
@@ -83,22 +83,9 @@ async def milestone(
     runtime = _activity_runtime.get()
     if runtime is None:
         raise RuntimeError("activity.milestone() called outside of a PostGrip activity runtime")
-    event_details = {
-        **(details or {}),
-        "milestone": True,
-        "name": name,
-        "status": status,
-    }
-    if index is not None:
-        event_details["index"] = index
-    if total is not None:
-        event_details["total"] = total
-    await runtime.emit({
-        "kind": "milestone",
-        "stage": "milestone",
-        "message": _milestone_message(name, index=index, total=total, status=status),
-        "details": event_details,
-    })
+    await runtime.emit(milestone_event(
+        name, index=index, total=total, status=status, details=details,
+    ))
 
 
 async def stdout(
@@ -151,11 +138,6 @@ async def _emit_output(
         "data": data,
         "details": dict(details or {}),
     })
-
-
-def _milestone_message(name: str, *, index: int | None, total: int | None, status: str) -> str:
-    prefix = f"step {index}/{total} " if index is not None and total is not None else ""
-    return f"{prefix}{status} {name}".strip()
 
 
 __all__ = [

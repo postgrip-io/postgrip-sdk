@@ -3,110 +3,50 @@ package worker
 import (
 	"context"
 	"time"
+
+	"github.com/postgrip-io/postgrip-agent-sdks/go/internal/transport"
 )
 
 type OperationalLogIterator struct {
-	client   *Client
-	workerID string
-	query    OpenAPIListWorkerOperationalLogsQuery
-	entries  []OperationalLogEntry
-	entry    OperationalLogEntry
-	lastID   int64
-	hasLast  bool
-	err      error
+	follower *transport.Follower[OperationalLogEntry]
 }
 
 func (c *Client) FollowOperationalLogs(workerID string, query OpenAPIListWorkerOperationalLogsQuery) *OperationalLogIterator {
-	return &OperationalLogIterator{client: c, workerID: workerID, query: query}
+	return &OperationalLogIterator{follower: transport.NewFollower(func(ctx context.Context) ([]OperationalLogEntry, time.Duration, error) {
+		page, err := c.OpenAPI().ListWorkerOperationalLogs(ctx, workerID, query)
+		if err != nil {
+			return nil, 0, err
+		}
+		query.Cursor = &page.NextCursor
+		return page.Items, c.connection.followInterval, nil
+	}, func(entry OperationalLogEntry) int64 { return entry.Id })}
 }
 
 func (it *OperationalLogIterator) Next(ctx context.Context) bool {
-	for it != nil && it.err == nil {
-		if err := ctx.Err(); err != nil {
-			it.err = err
-			return false
-		}
-		if len(it.entries) > 0 {
-			it.entry, it.entries = it.entries[0], it.entries[1:]
-			if it.hasLast && it.entry.Id <= it.lastID {
-				continue
-			}
-			it.lastID, it.hasLast = it.entry.Id, true
-			return true
-		}
-		page, err := it.client.OpenAPI().ListWorkerOperationalLogs(ctx, it.workerID, it.query)
-		if err != nil {
-			it.err = err
-			return false
-		}
-		it.query.Cursor = &page.NextCursor
-		it.entries = page.Items
-		if len(it.entries) == 0 {
-			timer := time.NewTimer(it.client.connection.followInterval)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				it.err = ctx.Err()
-				return false
-			case <-timer.C:
-			}
-		}
-	}
-	return false
+	return it != nil && it.follower.Next(ctx)
 }
 
-func (it *OperationalLogIterator) Entry() OperationalLogEntry { return it.entry }
-func (it *OperationalLogIterator) Err() error                 { return it.err }
+func (it *OperationalLogIterator) Entry() OperationalLogEntry { return it.follower.Entry() }
+func (it *OperationalLogIterator) Err() error                 { return it.follower.Err() }
 
 type SecurityLogIterator struct {
-	client   *Client
-	workerID string
-	query    OpenAPIListWorkerSecurityLogsQuery
-	entries  []SecurityLogEntry
-	entry    SecurityLogEntry
-	lastID   int64
-	hasLast  bool
-	err      error
+	follower *transport.Follower[SecurityLogEntry]
 }
 
 func (c *Client) FollowSecurityLogs(workerID string, query OpenAPIListWorkerSecurityLogsQuery) *SecurityLogIterator {
-	return &SecurityLogIterator{client: c, workerID: workerID, query: query}
+	return &SecurityLogIterator{follower: transport.NewFollower(func(ctx context.Context) ([]SecurityLogEntry, time.Duration, error) {
+		page, err := c.OpenAPI().ListWorkerSecurityLogs(ctx, workerID, query)
+		if err != nil {
+			return nil, 0, err
+		}
+		query.Cursor = &page.NextCursor
+		return page.Items, c.connection.followInterval, nil
+	}, func(entry SecurityLogEntry) int64 { return entry.Id })}
 }
 
 func (it *SecurityLogIterator) Next(ctx context.Context) bool {
-	for it != nil && it.err == nil {
-		if err := ctx.Err(); err != nil {
-			it.err = err
-			return false
-		}
-		if len(it.entries) > 0 {
-			it.entry, it.entries = it.entries[0], it.entries[1:]
-			if it.hasLast && it.entry.Id <= it.lastID {
-				continue
-			}
-			it.lastID, it.hasLast = it.entry.Id, true
-			return true
-		}
-		page, err := it.client.OpenAPI().ListWorkerSecurityLogs(ctx, it.workerID, it.query)
-		if err != nil {
-			it.err = err
-			return false
-		}
-		it.query.Cursor = &page.NextCursor
-		it.entries = page.Items
-		if len(it.entries) == 0 {
-			timer := time.NewTimer(it.client.connection.followInterval)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				it.err = ctx.Err()
-				return false
-			case <-timer.C:
-			}
-		}
-	}
-	return false
+	return it != nil && it.follower.Next(ctx)
 }
 
-func (it *SecurityLogIterator) Entry() SecurityLogEntry { return it.entry }
-func (it *SecurityLogIterator) Err() error              { return it.err }
+func (it *SecurityLogIterator) Entry() SecurityLogEntry { return it.follower.Entry() }
+func (it *SecurityLogIterator) Err() error              { return it.follower.Err() }

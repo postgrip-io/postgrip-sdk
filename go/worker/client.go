@@ -98,23 +98,22 @@ func (c *Client) Health(ctx context.Context) (HealthResponse, error) {
 	return c.OpenAPI().WorkerOrchestratorHealth(ctx)
 }
 
-type idempotencyKeyContextKey struct{}
 type openAPIHeadersContextKey struct{}
 
 func withOpenAPIHeaders(ctx context.Context, headers http.Header) context.Context {
 	return context.WithValue(ctx, openAPIHeadersContextKey{}, headers.Clone())
 }
 
-func withIdempotencyKey(ctx context.Context, key string) (context.Context, error) {
+func validateIdempotencyKey(key string) error {
 	if len(key) == 0 || len(key) > 128 {
-		return nil, errors.New("postgrip-worker: idempotency key must contain 1 to 128 visible ASCII characters")
+		return errors.New("postgrip-worker: idempotency key must contain 1 to 128 visible ASCII characters")
 	}
 	for _, value := range key {
 		if value < 0x21 || value > 0x7e {
-			return nil, errors.New("postgrip-worker: idempotency key must contain visible ASCII only")
+			return errors.New("postgrip-worker: idempotency key must contain visible ASCII only")
 		}
 	}
-	return context.WithValue(ctx, idempotencyKeyContextKey{}, key), nil
+	return nil
 }
 
 func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error {
@@ -129,7 +128,7 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 			return fmt.Errorf("postgrip-worker: encode request: %w", err)
 		}
 	}
-	idempotencyKey, _ := ctx.Value(idempotencyKeyContextKey{}).(string)
+	idempotencyKey := ""
 	if headers, ok := ctx.Value(openAPIHeadersContextKey{}).(http.Header); ok {
 		idempotencyKey = headers.Get("Idempotency-Key")
 	}
@@ -280,8 +279,7 @@ func (c *Client) Get(ctx context.Context, workerID string) (Worker, error) {
 // calling Create so a lost response can be replayed without creating a second
 // Worker.
 func (c *Client) Create(ctx context.Context, request CreateWorkerRequest, idempotencyKey string) (CreateWorkerResponse, error) {
-	ctx, err := withIdempotencyKey(ctx, idempotencyKey)
-	if err != nil {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
 		return CreateWorkerResponse{}, err
 	}
 	return c.OpenAPI().CreateWorker(ctx, OpenAPICreateWorkerHeaders{IdempotencyKey: idempotencyKey}, request)
@@ -308,32 +306,28 @@ func (c *Client) SecurityLogs(ctx context.Context, workerID string, query OpenAP
 }
 
 func (c *Client) Check(ctx context.Context, workerID, idempotencyKey string) (CheckWorkerResponse, error) {
-	ctx, err := withIdempotencyKey(ctx, idempotencyKey)
-	if err != nil {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
 		return CheckWorkerResponse{}, err
 	}
 	return c.OpenAPI().CheckWorker(ctx, workerID, OpenAPICheckWorkerHeaders{IdempotencyKey: idempotencyKey})
 }
 
 func (c *Client) Maintenance(ctx context.Context, workerID, idempotencyKey string) (WorkerOperationResponse, error) {
-	ctx, err := withIdempotencyKey(ctx, idempotencyKey)
-	if err != nil {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
 		return WorkerOperationResponse{}, err
 	}
 	return c.OpenAPI().PlaceWorkerInMaintenance(ctx, workerID, OpenAPIPlaceWorkerInMaintenanceHeaders{IdempotencyKey: idempotencyKey})
 }
 
 func (c *Client) Resume(ctx context.Context, workerID, idempotencyKey string) (WorkerOperationResponse, error) {
-	ctx, err := withIdempotencyKey(ctx, idempotencyKey)
-	if err != nil {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
 		return WorkerOperationResponse{}, err
 	}
 	return c.OpenAPI().ResumeWorkerFromMaintenance(ctx, workerID, OpenAPIResumeWorkerFromMaintenanceHeaders{IdempotencyKey: idempotencyKey})
 }
 
 func (c *Client) Upgrade(ctx context.Context, workerID, idempotencyKey string) (UpgradeWorkerResponse, error) {
-	ctx, err := withIdempotencyKey(ctx, idempotencyKey)
-	if err != nil {
+	if err := validateIdempotencyKey(idempotencyKey); err != nil {
 		return UpgradeWorkerResponse{}, err
 	}
 	return c.OpenAPI().UpgradeWorker(ctx, workerID, OpenAPIUpgradeWorkerHeaders{IdempotencyKey: idempotencyKey})

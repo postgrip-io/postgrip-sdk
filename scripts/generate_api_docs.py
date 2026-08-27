@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import re
@@ -13,25 +12,16 @@ import sys
 import tempfile
 from typing import Any
 
+from _contracts import PLANES, digest_bundle as digest_contract_bundle, snake
+
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACTS = ROOT / "contracts"
 REFERENCE = ROOT / "docs" / "reference"
-PLANES = ("agent", "worker", "service")
 METHODS = ("get", "post", "put", "patch", "delete", "head", "options")
 
 
 def digest_bundle() -> tuple[str, dict[str, str]]:
-    bundle = hashlib.sha256()
-    per_plane: dict[str, str] = {}
-    for plane in sorted(PLANES):
-        path = CONTRACTS / f"{plane}-openapi.json"
-        body = path.read_bytes()
-        per_plane[plane] = hashlib.sha256(body).hexdigest()
-        bundle.update(path.name.encode())
-        bundle.update(b"\0")
-        bundle.update(body)
-        bundle.update(b"\0")
-    return bundle.hexdigest(), per_plane
+    return digest_contract_bundle(CONTRACTS)
 
 
 def load_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -209,15 +199,6 @@ def path_example(path: str) -> tuple[str, list[str]]:
     for name in names:
         rendered = rendered.replace("{" + name + "}", "${POSTGRIP_" + snake(name).upper() + "}")
     return rendered, names
-
-
-def snake(value: str) -> str:
-    value = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
-    return re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").lower()
-
-
-def shell_json(value: Any) -> str:
-    return json.dumps(value, separators=(",", ":"), sort_keys=True).replace("'", "'\"'\"'")
 
 
 def worker_create_curl_example() -> str:

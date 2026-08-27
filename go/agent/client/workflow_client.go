@@ -22,7 +22,7 @@ func (h *WorkflowHandle) Result(ctx context.Context, target any) error {
 		}
 		h.TaskID = exec.TaskID
 	}
-	return waitForTaskCompletion(ctx, h.conn, h.TaskID, target)
+	return WaitForTaskCompletion(ctx, h.conn, h.TaskID, target)
 }
 
 // Describe returns the durable workflow execution metadata.

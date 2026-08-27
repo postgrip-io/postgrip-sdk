@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import { CancelledFailure } from './errors.js';
+import { milestoneEvent } from './_events.js';
+import { CancelledFailure, isTerminalTaskMutation } from './errors.js';
 
 interface ActivityRuntime {
   taskId: string;
@@ -50,8 +51,7 @@ export async function heartbeat(details?: Record<string, unknown>): Promise<void
   try {
     await currentActivityRuntime().heartbeat(details);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('terminal') || message.includes('not leased')) {
+    if (isTerminalTaskMutation(err)) {
       throw new CancelledFailure('activity cancellation requested');
     }
     throw err;
@@ -59,20 +59,7 @@ export async function heartbeat(details?: Record<string, unknown>): Promise<void
 }
 
 export async function milestone(name: string, options: MilestoneOptions = {}): Promise<void> {
-  const details = {
-    ...(options.details ?? {}),
-    milestone: true,
-    name,
-    status: options.status ?? 'completed',
-    ...(options.index == null ? {} : { index: options.index }),
-    ...(options.total == null ? {} : { total: options.total }),
-  };
-  await currentActivityRuntime().emit({
-    kind: 'milestone',
-    stage: 'milestone',
-    message: milestoneMessage(name, options),
-    details,
-  });
+  await currentActivityRuntime().emit(milestoneEvent(name, options));
 }
 
 export async function stdout(data: string, options: ActivityOutputOptions = {}): Promise<void> {
@@ -96,14 +83,6 @@ async function emitOutput(stream: 'stdout' | 'stderr', data: string, options: Ac
     data,
     details: options.details,
   });
-}
-
-function milestoneMessage(name: string, options: MilestoneOptions): string {
-  const status = options.status ?? 'completed';
-  const prefix = options.index == null || options.total == null
-    ? ''
-    : `step ${options.index}/${options.total} `;
-  return `${prefix}${status} ${name}`.trim();
 }
 
 function currentActivityRuntime(): ActivityRuntime {

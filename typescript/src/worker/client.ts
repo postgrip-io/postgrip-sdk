@@ -22,6 +22,7 @@ import {
 } from './generated/openapi.js';
 import { validateBaseUrl, validateManagementToken, type PostGripEnvironment } from '../internal/config.js';
 import { readBoundedResponseBody } from '../internal/http.js';
+import { abortableDelay, followPages } from '../internal/polling.js';
 
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
 
@@ -246,39 +247,27 @@ export class WorkerClient {
   }
 
   private async *followOperationalLogs(workerId: string, options: OperationalLogOptions): AsyncGenerator<OpenAPIOperationalLogEntry> {
-    let cursor = options.cursor;
-    let lastId: number | undefined;
-    while (true) {
-      options.signal?.throwIfAborted();
-      const page = await this.listOperationalLogs(workerId, { ...options, cursor });
-      cursor = page.nextCursor;
-      for (const entry of page.items) {
-        options.signal?.throwIfAborted();
-        if (lastId === undefined || entry.id > lastId) {
-          lastId = entry.id;
-          yield entry;
-        }
-      }
-      if (page.items.length === 0) await abortableDelay(this.followIntervalMs, options.signal);
-    }
+    yield* followPages(
+      (cursor) => this.listOperationalLogs(workerId, { ...options, cursor }),
+      {
+        cursor: options.cursor,
+        signal: options.signal,
+        emptyPageDelayMs: () => this.followIntervalMs,
+        entryId: (entry) => entry.id,
+      },
+    );
   }
 
   private async *followSecurityLogs(workerId: string, options: SecurityLogOptions): AsyncGenerator<OpenAPISecurityLogEntry> {
-    let cursor = options.cursor;
-    let lastId: number | undefined;
-    while (true) {
-      options.signal?.throwIfAborted();
-      const page = await this.listSecurityLogs(workerId, { ...options, cursor });
-      cursor = page.nextCursor;
-      for (const entry of page.items) {
-        options.signal?.throwIfAborted();
-        if (lastId === undefined || entry.id > lastId) {
-          lastId = entry.id;
-          yield entry;
-        }
-      }
-      if (page.items.length === 0) await abortableDelay(this.followIntervalMs, options.signal);
-    }
+    yield* followPages(
+      (cursor) => this.listSecurityLogs(workerId, { ...options, cursor }),
+      {
+        cursor: options.cursor,
+        signal: options.signal,
+        emptyPageDelayMs: () => this.followIntervalMs,
+        entryId: (entry) => entry.id,
+      },
+    );
   }
 
   private async request<I extends OpenAPIOperationId>(operationId: I, options: InternalRequestOptions): Promise<OpenAPIResponseBody<I>> {
@@ -375,21 +364,4 @@ function parseRetryAfter(value: string | null): number | undefined {
 
 function jitter(attempt: number): number {
   return Math.random() * Math.min(200 * 2 ** (attempt - 1), 2_000);
-}
-
-function abortableDelay(milliseconds: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const complete = () => {
-      signal?.removeEventListener('abort', abort);
-      resolve();
-    };
-    const timeout = setTimeout(complete, milliseconds);
-    const abort = () => {
-      clearTimeout(timeout);
-      signal?.removeEventListener('abort', abort);
-      reject(signal?.reason ?? new DOMException('Aborted', 'AbortError'));
-    };
-    if (signal?.aborted) abort();
-    else signal?.addEventListener('abort', abort, { once: true });
-  });
 }

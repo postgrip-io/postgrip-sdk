@@ -51,7 +51,7 @@ jobs:
         run: |
           python3 scripts/generate_api_docs.py --check
           python3 scripts/check_api_docs.py
-          python3 scripts/test_curl_examples.py --plane all --mode recorded
+          python3 scripts/test_curl_examples.py --plane all
 
   go:
     runs-on: ubuntu-latest
@@ -157,7 +157,7 @@ jobs:
       - run: python -m pip install "cryptography>=42" "jsonschema>=4.23,<5"
       - run: bun install --frozen-lockfile
         working-directory: typescript
-      - run: python3 scripts/test_api_endpoints.py --plane all --mode recorded
+      - run: python3 scripts/test_api_endpoints.py --plane all
 
   artifacts:
     runs-on: ubuntu-latest
