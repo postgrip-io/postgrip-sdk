@@ -73,6 +73,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(domains.Create(ctx, "project-1", "environment-1", OpenAPICreateServiceDomainRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(domains.Update(ctx, "project-1", "environment-1", "domain-1", OpenAPIUpdateServiceDomainRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(domains.Delete(ctx, "project-1", "environment-1", "domain-1", write)))
+	mustServiceResult(t, serviceResultError(domains.Verification(ctx, "project-1", "environment-1", "domain-1")))
+	mustServiceResult(t, serviceResultError(domains.Verify(ctx, "project-1", "environment-1", "domain-1", mutation)))
 
 	variables := client.ServiceVariables()
 	mustServiceResult(t, serviceResultError(variables.List(ctx, "project-1", "environment-1")))
@@ -125,8 +127,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
 	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
 
-	if calls.Load() != 68 {
-		t.Fatalf("transport calls=%d, want 68", calls.Load())
+	if calls.Load() != 70 {
+		t.Fatalf("transport calls=%d, want 70", calls.Load())
 	}
 }
 

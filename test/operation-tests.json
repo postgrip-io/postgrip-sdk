@@ -1323,6 +1323,24 @@
         "runner": "streaming-protocol"
       }
     },
+    "getServiceDomainVerification": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceDomainVerification.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "verifyServiceDomain": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/verifyServiceDomain.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "workerOrchestratorHealth": {
       "cleanup": "none",
       "curlEligible": true,

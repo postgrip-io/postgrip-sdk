@@ -62,7 +62,10 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
         "getServiceVolumeRemovalImpact", "deleteServiceVolume", "bindServiceVolume",
         "updateServiceVolumeBinding", "unbindServiceVolume",
     ),
-    "Domains": ("listServiceDomains", "createServiceDomain", "updateServiceDomain", "deleteServiceDomain"),
+    "Domains": (
+        "listServiceDomains", "createServiceDomain", "updateServiceDomain", "deleteServiceDomain",
+        "getServiceDomainVerification", "verifyServiceDomain",
+    ),
     "Variables": (
         "listServiceVariables", "createServiceVariable", "updateServiceVariable",
         "deleteServiceVariable", "putServiceVariableValue", "clearServiceVariableValue",

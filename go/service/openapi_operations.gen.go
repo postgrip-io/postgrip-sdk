@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "392660cc1fad9ad6799c6c76d1935efc2279f0a2450c036ec6b661bf76ba7117"
-	OpenAPIContractBundleSHA256 = "8b76eed875370597f7e70a4541ec71d039fef1b56204e04189cc25d8ddad9c38"
-	OpenAPIOperationCount       = 86
+	OpenAPISpecSHA256           = "a24582ed09d34f162aaf200848201038e934613fd0254e1cdb9fa258275a6c22"
+	OpenAPIContractBundleSHA256 = "ea64faeb400bcb2630cd6af423c8c2d46da553a2379bb172aef4d0260693fac6"
+	OpenAPIOperationCount       = 88
 )
 
 type openAPIOperationID string
@@ -49,6 +49,7 @@ const (
 	openAPIGetServiceBuildLogSettings                     openAPIOperationID = "getServiceBuildLogSettings"
 	openAPIGetServiceConfigurationOperation               openAPIOperationID = "getServiceConfigurationOperation"
 	openAPIGetServiceDeployment                           openAPIOperationID = "getServiceDeployment"
+	openAPIGetServiceDomainVerification                   openAPIOperationID = "getServiceDomainVerification"
 	openAPIGetServiceEnvironment                          openAPIOperationID = "getServiceEnvironment"
 	openAPIGetServiceEnvironmentRemovalImpact             openAPIOperationID = "getServiceEnvironmentRemovalImpact"
 	openAPIGetServiceProjectRemovalImpact                 openAPIOperationID = "getServiceProjectRemovalImpact"
@@ -103,6 +104,7 @@ const (
 	openAPIUpdateServiceVolumeBinding                     openAPIOperationID = "updateServiceVolumeBinding"
 	openAPIUpdateTargetService                            openAPIOperationID = "updateTargetService"
 	openAPIValidatePostGripConfiguration                  openAPIOperationID = "validatePostGripConfiguration"
+	openAPIVerifyServiceDomain                            openAPIOperationID = "verifyServiceDomain"
 )
 
 // Parameter names are generated for streaming and WebSocket custom transports.
@@ -153,6 +155,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIGetServiceBuildLogSettings:                     {Method: "GET", Path: "/api/v1/services/project/{serviceId}/logs/build/settings", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceBuildLogStatus", PathParameters: []string{"serviceId"}},
 	openAPIGetServiceConfigurationOperation:               {Method: "GET", Path: "/api/v1/services/configuration-operations/{operationId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperation", PathParameters: []string{"operationId"}},
 	openAPIGetServiceDeployment:                           {Method: "GET", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Deployment", PathParameters: []string{"serviceId", "deploymentId"}},
+	openAPIGetServiceDomainVerification:                   {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verification", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceDomainVerification", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
 	openAPIGetServiceEnvironment:                          {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceEnvironmentConfiguration", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPIGetServiceEnvironmentRemovalImpact:             {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPIGetServiceProjectRemovalImpact:                 {Method: "GET", Path: "/api/v1/services/project/{serviceId}/removal-impact", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRemovalImpact", PathParameters: []string{"serviceId"}},
@@ -207,6 +210,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIUpdateServiceVolumeBinding:                     {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceVolumeBindingRequest", ResponseSchema: "ServiceVolumeBindingMutationResponse", PathParameters: []string{"serviceId", "environmentId", "volumeRef"}},
 	openAPIUpdateTargetService:                            {Method: "PATCH", Path: "/api/v1/services/target/{serviceId}", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateTargetServiceRequest", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{"serviceId"}},
 	openAPIValidatePostGripConfiguration:                  {Method: "POST", Path: "/api/v1/services/configuration/validate", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ValidatePostGripConfigurationRequest", ResponseSchema: "PostGripConfigurationValidationResult", PathParameters: []string{}},
+	openAPIVerifyServiceDomain:                            {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verify", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceDomainVerification", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
 }
 
 func resolveOpenAPIOperation(id openAPIOperationID, pathParameters map[string]string, query url.Values) (openAPIOperation, error) {

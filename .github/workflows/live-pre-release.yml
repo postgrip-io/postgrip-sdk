@@ -95,3 +95,26 @@ jobs:
           path: test/reports/live-pre-release-github-adoption.json
           if-no-files-found: warn
           retention-days: 90
+
+  service-domain:
+    if: ${{ vars.POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: sdk-live-pre-release
+    env:
+      POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
+      POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
+      POSTGRIP_SERVICE_ID: ${{ vars.POSTGRIP_SERVICE_ID }}
+      POSTGRIP_SERVICE_ENVIRONMENT_ID: ${{ vars.POSTGRIP_SERVICE_ENVIRONMENT_ID }}
+      POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID: ${{ vars.POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID }}
+      POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN: ${{ vars.POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID }}
+      POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify disposable Service domain safety guards
+        run: python3 scripts/test_service_domain_verification_live.py --self-test
+      - name: Verify public DNS, TLS, route, and HTTP behavior
+        run: python3 scripts/test_service_domain_verification_live.py

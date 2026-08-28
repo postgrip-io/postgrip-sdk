@@ -224,6 +224,10 @@ export class ServiceClient {
         this.administrationMutation('updateServiceDomain', { path: { serviceId, environmentId, domainId }, body, ...administrationWrite(options) }, true),
       delete: (serviceId: string, environmentId: string, domainId: string, options: AdministrationWriteOptions) =>
         this.administrationMutation('deleteServiceDomain', { path: { serviceId, environmentId, domainId }, ...administrationWrite(options) }, true),
+      verification: (serviceId: string, environmentId: string, domainId: string, options: RequestOptions = {}) =>
+        this.request('getServiceDomainVerification', { path: { serviceId, environmentId, domainId }, signal: options.signal }),
+      verify: (serviceId: string, environmentId: string, domainId: string, options: MutationOptions) =>
+        this.administrationMutation('verifyServiceDomain', { path: { serviceId, environmentId, domainId }, ...mutationRequest(options) }),
     },
     variables: {
       list: (serviceId: string, environmentId: string, options: RequestOptions = {}) => this.request('listServiceVariables', { path: { serviceId, environmentId }, signal: options.signal }),
