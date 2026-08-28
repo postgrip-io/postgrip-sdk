@@ -8958,6 +8958,7 @@
           "workerIds",
           "environmentIds",
           "activeDeploymentIds",
+          "canonicalDnsDomainIds",
           "domainCount",
           "variableCount",
           "hasRepositoryCredential",
@@ -8992,6 +8993,14 @@
           },
           "activeDeploymentIds": {
             "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "canonicalDnsDomainIds": {
+            "type": "array",
+            "description": "Canonical DNS domains whose active or recoverable target blocks this removal until it is reconciled.",
             "items": {
               "type": "string",
               "format": "uuid"
@@ -11554,7 +11563,7 @@
           "ttlSeconds": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 3600
+            "maximum": 2147483647
           }
         }
       },

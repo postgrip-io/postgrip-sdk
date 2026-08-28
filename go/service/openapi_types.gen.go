@@ -580,6 +580,7 @@ type OpenAPIServiceRemovalImpact struct {
 	WorkerIds               []string                            `json:"workerIds"`
 	EnvironmentIds          []string                            `json:"environmentIds"`
 	ActiveDeploymentIds     []string                            `json:"activeDeploymentIds"`
+	CanonicalDnsDomainIds   []string                            `json:"canonicalDnsDomainIds"`
 	DomainCount             int64                               `json:"domainCount"`
 	VariableCount           int64                               `json:"variableCount"`
 	HasRepositoryCredential bool                                `json:"hasRepositoryCredential"`
@@ -1720,4 +1721,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "7461cb15d7d78854ee48296927c73623e19c2e9bcac33fef784617d512ce2a28"
+const openAPITypesSpecSHA256 = "284d54fefb7a01596003e2cc7246a619d30439ee30e14f851b7a26b164574321"

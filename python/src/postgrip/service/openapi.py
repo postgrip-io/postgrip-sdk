@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '7461cb15d7d78854ee48296927c73623e19c2e9bcac33fef784617d512ce2a28'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '3b64db3dbb1f461537eb5885b71e100ac9ac07f9ff7333b18caafdf287f51199'
+OPENAPI_SPEC_SHA256 = '284d54fefb7a01596003e2cc7246a619d30439ee30e14f851b7a26b164574321'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '0375bd3bcde170bac4dbada5df6f18a588b6024ab83518c7d70e497e70c7e2c7'
 OPENAPI_OPERATION_COUNT = 98
 OPENAPI_CLIENT_OPERATION_COUNT = 98
 
@@ -777,6 +777,7 @@ class _SchemaServiceRemovalImpact(TypedDict):
     workerIds: list[str]
     environmentIds: list[str]
     activeDeploymentIds: list[str]
+    canonicalDnsDomainIds: list[str]
     domainCount: int
     variableCount: int
     hasRepositoryCredential: bool
