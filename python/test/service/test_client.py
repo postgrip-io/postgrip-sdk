@@ -57,6 +57,7 @@ class AdministrationTypeTests(unittest.TestCase):
             Literal[
                 "pending",
                 "active",
+                "disabled",
                 "provider-unsupported",
                 "base-url-not-public",
                 "no-worker-assigned",

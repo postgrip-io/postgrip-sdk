@@ -9437,21 +9437,25 @@
             "type": "boolean"
           },
           "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "active",
-              "provider-unsupported",
-              "base-url-not-public",
-              "no-worker-assigned",
-              "registration-failed"
-            ]
+            "$ref": "#/components/schemas/ServiceAutomaticDeploymentWiringStatus"
           },
           "checkedAt": {
             "type": "string",
             "format": "date-time"
           }
         }
+      },
+      "ServiceAutomaticDeploymentWiringStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "active",
+          "disabled",
+          "provider-unsupported",
+          "base-url-not-public",
+          "no-worker-assigned",
+          "registration-failed"
+        ]
       },
       "ServiceProject": {
         "type": "object",

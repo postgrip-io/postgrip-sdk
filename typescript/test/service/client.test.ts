@@ -39,6 +39,7 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<
         | 'pending'
         | 'active'
+        | 'disabled'
         | 'provider-unsupported'
         | 'base-url-not-public'
         | 'no-worker-assigned'

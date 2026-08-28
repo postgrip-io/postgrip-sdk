@@ -11,7 +11,7 @@ func TestServiceRepositoryExposesAutomaticDeploymentWiring(t *testing.T) {
 	repository := OpenAPIServiceRepository{
 		Provider: "gitlab", RepoOwner: "postgrip", RepoName: "api", DefaultBranch: "main",
 		AutomaticDeployments: OpenAPIServiceAutomaticDeploymentWiring{
-			Active: false, Status: "provider-unsupported", CheckedAt: checkedAt,
+			Active: false, Status: OpenAPIServiceAutomaticDeploymentWiringStatusProviderUnsupported, CheckedAt: checkedAt,
 		},
 	}
 	encoded, err := json.Marshal(repository)
