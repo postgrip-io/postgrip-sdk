@@ -1073,16 +1073,16 @@ type OpenAPIPostGripConfigurationSecretVariable struct {
 }
 type OpenAPIPostGripConfigurationVariable any
 type OpenAPIPostGripConfigurationEnvironment struct {
-	Ref            string                                     `json:"ref"`
-	Id             *string                                    `json:"id,omitempty"`
-	Name           string                                     `json:"name"`
-	Kind           string                                     `json:"kind"`
-	BranchPattern  *string                                    `json:"branchPattern,omitempty"`
-	AssignedWorker OpenAPIPostGripConfigurationWorkerSelector `json:"assignedWorker"`
-	BuildCommand   *string                                    `json:"buildCommand,omitempty"`
-	ContainerPort  int64                                      `json:"containerPort"`
-	Domains        []OpenAPIPostGripConfigurationDomain       `json:"domains"`
-	Variables      []OpenAPIPostGripConfigurationVariable     `json:"variables"`
+	Ref            string                                      `json:"ref"`
+	Id             *string                                     `json:"id,omitempty"`
+	Name           string                                      `json:"name"`
+	Kind           string                                      `json:"kind"`
+	BranchPattern  *string                                     `json:"branchPattern,omitempty"`
+	AssignedWorker *OpenAPIPostGripConfigurationWorkerSelector `json:"assignedWorker,omitempty"`
+	BuildCommand   *string                                     `json:"buildCommand,omitempty"`
+	ContainerPort  int64                                       `json:"containerPort"`
+	Domains        []OpenAPIPostGripConfigurationDomain        `json:"domains"`
+	Variables      []OpenAPIPostGripConfigurationVariable      `json:"variables"`
 }
 type OpenAPIPostGripConfigurationProject struct {
 	Ref            string                                    `json:"ref"`
@@ -2008,4 +2008,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "d02f1e472705abbd18b23341b9a626051594c19e74ac11391d40c80e65421082"
+const openAPITypesSpecSHA256 = "1e7f03dff5e170df9dbb17ac882c27218da9535d2bc0c3aecbf4ec88feba31fa"

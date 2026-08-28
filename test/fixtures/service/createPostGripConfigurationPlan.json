@@ -16,9 +16,6 @@
               "deploymentMode": "docker",
               "environments": [
                 {
-                  "assignedWorker": {
-                    "id": "11111111-1111-4111-8111-111111111111"
-                  },
                   "containerPort": 1,
                   "domains": [
                     {
