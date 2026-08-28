@@ -357,24 +357,27 @@ type OpenAPIServiceRepositoryWriteRequest struct {
 	ExternalRepoId *string `json:"externalRepoId,omitempty"`
 }
 type OpenAPICreateServiceProjectRequest struct {
-	AppId          *string                              `json:"appId,omitempty"`
-	Name           string                               `json:"name"`
-	Slug           string                               `json:"slug"`
-	Framework      *string                              `json:"framework,omitempty"`
-	DeploymentMode *string                              `json:"deploymentMode,omitempty"`
-	ProjectType    *string                              `json:"projectType,omitempty"`
-	ServerType     *string                              `json:"serverType,omitempty"`
-	Repository     OpenAPIServiceRepositoryWriteRequest `json:"repository"`
+	AppId           *string                              `json:"appId,omitempty"`
+	Name            string                               `json:"name"`
+	Slug            string                               `json:"slug"`
+	Framework       *string                              `json:"framework,omitempty"`
+	DeploymentMode  *string                              `json:"deploymentMode,omitempty"`
+	ProjectType     *string                              `json:"projectType,omitempty"`
+	ServerType      *string                              `json:"serverType,omitempty"`
+	DefaultWorkerId *string                              `json:"defaultWorkerId,omitempty"`
+	Repository      OpenAPIServiceRepositoryWriteRequest `json:"repository"`
 }
 type OpenAPIUpdateServiceProjectRequest struct {
-	AppId          *string `json:"appId,omitempty"`
-	ClearAppId     *bool   `json:"clearAppId,omitempty"`
-	Name           *string `json:"name,omitempty"`
-	Slug           *string `json:"slug,omitempty"`
-	Framework      *string `json:"framework,omitempty"`
-	DeploymentMode *string `json:"deploymentMode,omitempty"`
-	ProjectType    *string `json:"projectType,omitempty"`
-	ServerType     *string `json:"serverType,omitempty"`
+	AppId              *string `json:"appId,omitempty"`
+	ClearAppId         *bool   `json:"clearAppId,omitempty"`
+	Name               *string `json:"name,omitempty"`
+	Slug               *string `json:"slug,omitempty"`
+	Framework          *string `json:"framework,omitempty"`
+	DeploymentMode     *string `json:"deploymentMode,omitempty"`
+	ProjectType        *string `json:"projectType,omitempty"`
+	ServerType         *string `json:"serverType,omitempty"`
+	DefaultWorkerId    *string `json:"defaultWorkerId,omitempty"`
+	ClearDefaultWorker *bool   `json:"clearDefaultWorker,omitempty"`
 }
 type OpenAPICreateServiceEnvironmentRequest struct {
 	Name                       string  `json:"name"`
@@ -590,20 +593,21 @@ type OpenAPIServiceAutomaticDeploymentWiring struct {
 }
 type OpenAPIServiceAutomaticDeploymentWiringStatus string
 type OpenAPIServiceProject struct {
-	Id             string                   `json:"id"`
-	Ref            string                   `json:"ref"`
-	AppId          *string                  `json:"appId,omitempty"`
-	Name           string                   `json:"name"`
-	Slug           string                   `json:"slug"`
-	Framework      *string                  `json:"framework,omitempty"`
-	DeploymentMode string                   `json:"deploymentMode"`
-	ProjectType    string                   `json:"projectType"`
-	ServerType     *string                  `json:"serverType,omitempty"`
-	Repository     OpenAPIServiceRepository `json:"repository"`
-	Version        int64                    `json:"version"`
-	CreatedAt      time.Time                `json:"createdAt"`
-	UpdatedAt      time.Time                `json:"updatedAt"`
-	Etag           string                   `json:"etag"`
+	Id              string                   `json:"id"`
+	Ref             string                   `json:"ref"`
+	AppId           *string                  `json:"appId,omitempty"`
+	Name            string                   `json:"name"`
+	Slug            string                   `json:"slug"`
+	Framework       *string                  `json:"framework,omitempty"`
+	DeploymentMode  string                   `json:"deploymentMode"`
+	ProjectType     string                   `json:"projectType"`
+	ServerType      *string                  `json:"serverType,omitempty"`
+	DefaultWorkerId *string                  `json:"defaultWorkerId,omitempty"`
+	Repository      OpenAPIServiceRepository `json:"repository"`
+	Version         int64                    `json:"version"`
+	CreatedAt       time.Time                `json:"createdAt"`
+	UpdatedAt       time.Time                `json:"updatedAt"`
+	Etag            string                   `json:"etag"`
 }
 type OpenAPIServiceVolumeBinding struct {
 	VolumeRef     string `json:"volumeRef"`
@@ -612,26 +616,32 @@ type OpenAPIServiceVolumeBinding struct {
 	Version       int64  `json:"version"`
 	Etag          string `json:"etag"`
 }
+type OpenAPIServiceEnvironmentPlacement struct {
+	WorkerId string `json:"workerId"`
+	Mode     string `json:"mode"`
+	Reason   string `json:"reason"`
+}
 type OpenAPIServiceEnvironmentConfiguration struct {
-	Id                         string                        `json:"id"`
-	ProjectId                  string                        `json:"projectId"`
-	Name                       string                        `json:"name"`
-	Kind                       string                        `json:"kind"`
-	BranchPattern              *string                       `json:"branchPattern,omitempty"`
-	PreviewPathSegment         string                        `json:"previewPathSegment"`
-	PreviewTtlHours            *int64                        `json:"previewTtlHours,omitempty"`
-	PreviewBrowserCheckEnabled bool                          `json:"previewBrowserCheckEnabled"`
-	AssignedWorkerId           *string                       `json:"assignedWorkerId,omitempty"`
-	BuildCommand               string                        `json:"buildCommand"`
-	OutputDir                  string                        `json:"outputDir"`
-	ContainerPort              *int64                        `json:"containerPort,omitempty"`
-	IncludePaths               *string                       `json:"includePaths,omitempty"`
-	RunAs                      *string                       `json:"runAs,omitempty"`
-	VolumeBindings             []OpenAPIServiceVolumeBinding `json:"volumeBindings"`
-	Version                    int64                         `json:"version"`
-	CreatedAt                  time.Time                     `json:"createdAt"`
-	UpdatedAt                  time.Time                     `json:"updatedAt"`
-	Etag                       string                        `json:"etag"`
+	Id                         string                              `json:"id"`
+	ProjectId                  string                              `json:"projectId"`
+	Name                       string                              `json:"name"`
+	Kind                       string                              `json:"kind"`
+	BranchPattern              *string                             `json:"branchPattern,omitempty"`
+	PreviewPathSegment         string                              `json:"previewPathSegment"`
+	PreviewTtlHours            *int64                              `json:"previewTtlHours,omitempty"`
+	PreviewBrowserCheckEnabled bool                                `json:"previewBrowserCheckEnabled"`
+	AssignedWorkerId           *string                             `json:"assignedWorkerId,omitempty"`
+	Placement                  *OpenAPIServiceEnvironmentPlacement `json:"placement,omitempty"`
+	BuildCommand               string                              `json:"buildCommand"`
+	OutputDir                  string                              `json:"outputDir"`
+	ContainerPort              *int64                              `json:"containerPort,omitempty"`
+	IncludePaths               *string                             `json:"includePaths,omitempty"`
+	RunAs                      *string                             `json:"runAs,omitempty"`
+	VolumeBindings             []OpenAPIServiceVolumeBinding       `json:"volumeBindings"`
+	Version                    int64                               `json:"version"`
+	CreatedAt                  time.Time                           `json:"createdAt"`
+	UpdatedAt                  time.Time                           `json:"updatedAt"`
+	Etag                       string                              `json:"etag"`
 }
 type OpenAPIServiceVolume struct {
 	VolumeRef          string    `json:"volumeRef"`
@@ -1161,6 +1171,8 @@ type OpenAPIPostGripConfigurationResourceProjection struct {
 	BranchPattern         *string  `json:"branchPattern,omitempty"`
 	AssignedWorkerId      *string  `json:"assignedWorkerId,omitempty"`
 	AssignedWorkerVersion *int64   `json:"assignedWorkerVersion,omitempty"`
+	PlacementMode         *string  `json:"placementMode,omitempty"`
+	PlacementReason       *string  `json:"placementReason,omitempty"`
 	BuildCommand          *string  `json:"buildCommand,omitempty"`
 	ContainerPort         *int64   `json:"containerPort,omitempty"`
 	Domain                *string  `json:"domain,omitempty"`
@@ -1905,6 +1917,7 @@ type ServiceAutomaticDeploymentWiring = OpenAPIServiceAutomaticDeploymentWiring
 type ServiceAutomaticDeploymentWiringStatus = OpenAPIServiceAutomaticDeploymentWiringStatus
 type ServiceProject = OpenAPIServiceProject
 type ServiceVolumeBinding = OpenAPIServiceVolumeBinding
+type ServiceEnvironmentPlacement = OpenAPIServiceEnvironmentPlacement
 type ServiceEnvironmentConfiguration = OpenAPIServiceEnvironmentConfiguration
 type ServiceVolume = OpenAPIServiceVolume
 type ServiceVolumeList = OpenAPIServiceVolumeList
@@ -1995,4 +2008,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "91816d49f9966161099c8369c84541abe4d36a3b773ab3a765a0826e4a1c69fe"
+const openAPITypesSpecSHA256 = "d02f1e472705abbd18b23341b9a626051594c19e74ac11391d40c80e65421082"

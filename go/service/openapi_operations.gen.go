@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "91816d49f9966161099c8369c84541abe4d36a3b773ab3a765a0826e4a1c69fe"
-	OpenAPIContractBundleSHA256 = "4df0a0e8974dff7e09288bff686576d52dfdf35953a50fd06f108e5358df15a8"
+	OpenAPISpecSHA256           = "d02f1e472705abbd18b23341b9a626051594c19e74ac11391d40c80e65421082"
+	OpenAPIContractBundleSHA256 = "cb1df40e981af36d6394cf340b6e515b84964ced7bce1cafacfbd95f0a9531a1"
 	OpenAPIOperationCount       = 105
 )
 

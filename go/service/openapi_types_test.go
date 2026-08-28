@@ -45,3 +45,23 @@ func TestPostGripConfigurationWorkerSelectorIsClosed(t *testing.T) {
 		}
 	}
 }
+
+func TestServiceEnvironmentSupportsAutomaticPlacement(t *testing.T) {
+	request := OpenAPICreateServiceEnvironmentRequest{Name: "Production", Kind: "production"}
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != `{"name":"Production","kind":"production"}` {
+		t.Fatalf("automatic placement request=%s", encoded)
+	}
+	placement := OpenAPIServiceEnvironmentPlacement{
+		WorkerId: "11111111-1111-4111-8111-111111111111",
+		Mode:     "automatic",
+		Reason:   "most-recent-eligible",
+	}
+	encoded, err = json.Marshal(placement)
+	if err != nil || string(encoded) != `{"workerId":"11111111-1111-4111-8111-111111111111","mode":"automatic","reason":"most-recent-eligible"}` {
+		t.Fatalf("placement=%s err=%v", encoded, err)
+	}
+}
