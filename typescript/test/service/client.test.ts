@@ -47,6 +47,14 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<'disabled' | 'operator_approved' | 'automatic_external'>();
   });
 
+  it('requires the active deployment fence for failover plan requests', () => {
+    type Request = OpenAPIRequestBody<'createServiceDNSPlan'>;
+    expectTypeOf<Extract<Request, { kind: 'failover' | 'failback' }>['expectedActiveDeploymentId']>()
+      .toEqualTypeOf<string>();
+    expectTypeOf<Extract<Request, { kind: 'activate' }>['expectedActiveDeploymentId']>()
+      .toEqualTypeOf<string | undefined>();
+  });
+
   it('rejects unsafe configuration', () => {
     expect(() => new ServiceClient({ baseUrl: 'http://example.test', token: 'pgt_token' })).toThrow(/HTTPS/);
     expect(() => new ServiceClient({ baseUrl: 'https://example.test?q=yes', token: 'pgt_token' })).toThrow(/query/);

@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "afad86eba107c2175f3af8dbf50bd4f58c4732ac291126e8df5d07680b731505"
-	OpenAPIContractBundleSHA256 = "5be292e94aaa518d4cc4fc97d7309dfbcbf16e6139da32908c130b04708884b6"
+	OpenAPISpecSHA256           = "56864569e659b939992cc195e311635d60036a56d2504f49229e9b3db4ed6674"
+	OpenAPIContractBundleSHA256 = "5cfdb9663c6d13dace01c2414c025991e18fc48f91d1bf4465c0b17a4fd9cd37"
 	OpenAPIOperationCount       = 98
 )
 
@@ -212,7 +212,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIResubmitPostGripConfigurationSecretInputs:      {Method: "POST", Path: "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/secret-inputs", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ResubmitPostGripConfigurationSecretInputsRequest", ResponseSchema: "PostGripConfigurationStackOperation", PathParameters: []string{"stackKey", "operationId"}},
 	openAPIRetryPostGripConfigurationStackOperation:       {Method: "POST", Path: "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/retry", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "PostGripConfigurationStackOperation", PathParameters: []string{"stackKey", "operationId"}},
 	openAPIRetryServiceConfigurationOperation:             {Method: "POST", Path: "/api/v1/services/configuration-operations/{operationId}/retry", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperation", PathParameters: []string{"operationId"}},
-	openAPIRollbackServiceDNSPlan:                         {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RollbackServiceDNSPlanRequest", ResponseSchema: "ServiceDNSPlan", PathParameters: []string{"serviceId", "environmentId", "domainId", "planId"}},
+	openAPIRollbackServiceDNSPlan:                         {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RollbackServiceDNSPlanRequest", ResponseSchema: "ServiceDNSRollbackPlan", PathParameters: []string{"serviceId", "environmentId", "domainId", "planId"}},
 	openAPIRollbackServiceDeployment:                      {Method: "POST", Path: "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId", "deploymentId"}},
 	openAPIStartServiceRuntime:                            {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/start", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPIStopServiceRuntime:                             {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/stop", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},

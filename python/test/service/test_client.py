@@ -21,7 +21,12 @@ from postgrip.service.administration_types import (
     RepositoriesAdministration,
 )
 from postgrip.service.client import _NoRedirect
-from postgrip.service.openapi import OpenAPIRequestServiceDNSFailoverRequest, OperationId
+from postgrip.service.openapi import (
+    OpenAPIRequestServiceDNSFailoverRequest,
+    OpenAPIServiceDNSFailoverTarget,
+    OpenAPIServiceDNSRollbackPlan,
+    OperationId,
+)
 
 
 SERVICE = {
@@ -56,6 +61,12 @@ class AdministrationTypeTests(unittest.TestCase):
         client = ServiceClient(base_url="https://services.example.test", token="pgt_test-token", opener=FakeOpener([]))  # type: ignore[arg-type]
         self.assertTrue(hasattr(client.administration.dns, "get_service_dns_plan"))
         self.assertFalse(hasattr(client.administration.dns, "get_service_d_n_s_plan"))
+
+    def test_dns_response_types_preserve_server_guarantees(self) -> None:
+        rollback_hints = get_type_hints(OpenAPIServiceDNSRollbackPlan)
+        target_hints = get_type_hints(OpenAPIServiceDNSFailoverTarget)
+        self.assertEqual(rollback_hints["kind"], Literal["rollback"])
+        self.assertIn("workerId", target_hints)
 
 
 def api_error(status: int, code: str = "BUSY", retry_after: str = "0") -> HTTPError:

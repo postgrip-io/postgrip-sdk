@@ -5873,7 +5873,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                  "$ref": "#/components/schemas/ServiceDNSRollbackPlan"
                 }
               }
             }
@@ -11968,6 +11968,25 @@
           }
         }
       },
+      "ServiceDNSRollbackPlan": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceDNSPlan"
+          },
+          {
+            "type": "object",
+            "additionalProperties": {},
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "rollback"
+              }
+            }
+          }
+        ]
+      },
       "ServiceDNSPlanList": {
         "type": "object",
         "additionalProperties": false,
@@ -12329,7 +12348,8 @@
         "required": [
           "projectId",
           "environmentId",
-          "priority"
+          "priority",
+          "workerId"
         ],
         "properties": {
           "projectId": {
