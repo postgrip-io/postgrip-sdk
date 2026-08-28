@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '9b0540cbb1dc50155ba12d7adb3211666a002d03e65ee0b2f0f711c48e84e482'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '73278af7cf28358c4c7d2fafa3a62b11671d8a1c718fb3bbe6fa1838cb440508'
+OPENAPI_SPEC_SHA256 = '5c34128750aa3f20768d360750e7915d00054088146627bde0931b94f70b8e4d'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '31afa210eb0c84c807b9b70a2c1a748ac135c171a82f9de57a2b118303499b94'
 OPENAPI_OPERATION_COUNT = 86
 OPENAPI_CLIENT_OPERATION_COUNT = 86
 
@@ -187,6 +187,7 @@ class _SchemaDeployment(_SchemaDeploymentOptional):
     branch: str
     triggerKind: str
     status: str
+    cutoverState: Literal['candidate', 'cutover', 'rollback_candidate', 'rollback_cutover', 'live', 'retained', 'historical', 'terminal']
     isCurrent: bool
     createdAt: str
     updatedAt: str

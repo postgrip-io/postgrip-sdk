@@ -77,6 +77,7 @@ type OpenAPIDeployment struct {
 	Branch        string     `json:"branch"`
 	TriggerKind   string     `json:"triggerKind"`
 	Status        string     `json:"status"`
+	CutoverState  string     `json:"cutoverState"`
 	ErrorCode     *string    `json:"errorCode,omitempty"`
 	ErrorMessage  *string    `json:"errorMessage,omitempty"`
 	IsCurrent     bool       `json:"isCurrent"`
@@ -1472,4 +1473,4 @@ type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOper
 type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
 type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
 
-const openAPITypesSpecSHA256 = "9b0540cbb1dc50155ba12d7adb3211666a002d03e65ee0b2f0f711c48e84e482"
+const openAPITypesSpecSHA256 = "5c34128750aa3f20768d360750e7915d00054088146627bde0931b94f70b8e4d"
