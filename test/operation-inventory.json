@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "b48b9828c428581f6401ff87da2a4dcfc754b4dd851e51bb3f1e895aa5b3cf5d",
+  "contractBundleDigest": "d871319cfc32fb12a40c711ab3fa43b1544f1d1548b2fe1ad46648c5811338e3",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "b4530e626b4b3f0675a9948d05f3d9eabef68672d1bc86835bb27816a1915793",
+    "service": "bfcc999223f092746a422fdad8c98df14fcb1af76add477fb059e35d583945e5",
     "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
@@ -1631,6 +1631,37 @@
       "idempotency": "required",
       "method": "POST",
       "operationClass": "tenant-api",
+      "operationId": "cancelServiceReleaseGroup",
+      "pagination": "none",
+      "path": "/api/v1/services/release-groups/{releaseGroupId}/cancel",
+      "pathParameters": [
+        "releaseGroupId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceReleaseGroup",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
       "operationId": "checkService",
       "pagination": "none",
       "path": "/api/v1/services/{source}/{serviceId}/check",
@@ -1918,6 +1949,37 @@
         "application/json"
       ],
       "responseSchema": "ServiceProjectMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createServiceReleaseGroup",
+      "pagination": "none",
+      "path": "/api/v1/services/release-groups",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceReleaseGroupRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceReleaseGroup",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null
@@ -2741,6 +2803,37 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getServiceReleaseGroup",
+      "pagination": "none",
+      "path": "/api/v1/services/release-groups/{releaseGroupId}",
+      "pathParameters": [
+        "releaseGroupId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceReleaseGroup",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getServiceRepository",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/repository",
@@ -3244,6 +3337,66 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "listServiceReleaseGroupEvents",
+      "pagination": "cursor",
+      "path": "/api/v1/services/release-groups/{releaseGroupId}/events",
+      "pathParameters": [
+        "releaseGroupId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceReleaseGroupEventList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceReleaseGroups",
+      "pagination": "cursor",
+      "path": "/api/v1/services/release-groups",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceReleaseGroupList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "listServiceVariables",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables",
@@ -3453,6 +3606,37 @@
         "application/json"
       ],
       "responseSchema": "ServicePromotionPreview",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "previewServiceReleaseGroup",
+      "pagination": "none",
+      "path": "/api/v1/services/release-groups/preview",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "PreviewServiceReleaseGroupRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceReleaseGroupPreview",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -3953,6 +4137,37 @@
         "application/json"
       ],
       "responseSchema": "ServiceConfigurationOperation",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "retryServiceReleaseGroup",
+      "pagination": "none",
+      "path": "/api/v1/services/release-groups/{releaseGroupId}/retry",
+      "pathParameters": [
+        "releaseGroupId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceReleaseGroup",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null

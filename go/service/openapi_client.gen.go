@@ -231,6 +231,38 @@ func (p OpenAPIListServicePromotionsQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIListServiceReleaseGroupEventsQuery struct {
+	Limit  *int64
+	Cursor *string
+}
+
+func (p OpenAPIListServiceReleaseGroupEventsQuery) values() url.Values {
+	values := url.Values{}
+	if p.Limit != nil {
+		values.Set("limit", fmt.Sprint(*p.Limit))
+	}
+	if p.Cursor != nil {
+		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	return values
+}
+
+type OpenAPIListServiceReleaseGroupsQuery struct {
+	Limit  *int64
+	Cursor *string
+}
+
+func (p OpenAPIListServiceReleaseGroupsQuery) values() url.Values {
+	values := url.Values{}
+	if p.Limit != nil {
+		values.Set("limit", fmt.Sprint(*p.Limit))
+	}
+	if p.Cursor != nil {
+		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	return values
+}
+
 type OpenAPIListServicesQuery struct {
 	Kind   *OpenAPIServiceKind
 	Mode   *OpenAPIServiceMode
@@ -411,6 +443,16 @@ func (p OpenAPICancelServiceDeploymentHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPICancelServiceReleaseGroupHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPICancelServiceReleaseGroupHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPICheckServiceHeaders struct {
 	IdempotencyKey string
 }
@@ -510,6 +552,16 @@ func (p OpenAPICreateServiceProjectHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
+type OpenAPICreateServiceReleaseGroupHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPICreateServiceReleaseGroupHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	return values
 }
 
@@ -809,6 +861,16 @@ func (p OpenAPIRetryServiceConfigurationOperationHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIRetryServiceReleaseGroupHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIRetryServiceReleaseGroupHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIRollbackServiceDNSPlanHeaders struct {
 	IdempotencyKey string
 }
@@ -1048,6 +1110,11 @@ func (c *OpenAPIClient) CancelServiceDeployment(ctx context.Context, serviceId s
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICancelServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CancelServiceReleaseGroup(ctx context.Context, releaseGroupId string, headers OpenAPICancelServiceReleaseGroupHeaders) (OpenAPICancelServiceReleaseGroupResponseBody, error) {
+	var response OpenAPICancelServiceReleaseGroupResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICancelServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) CheckService(ctx context.Context, source string, serviceId string, headers OpenAPICheckServiceHeaders, body *OpenAPICheckServiceRequestBody) (OpenAPICheckServiceResponseBody, error) {
 	var response OpenAPICheckServiceResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICheckService, map[string]string{"source": source, "serviceId": serviceId}, nil, body, &response)
@@ -1091,6 +1158,11 @@ func (c *OpenAPIClient) CreateServiceEnvironment(ctx context.Context, serviceId 
 func (c *OpenAPIClient) CreateServiceProject(ctx context.Context, headers OpenAPICreateServiceProjectHeaders, body OpenAPICreateServiceProjectRequestBody) (OpenAPICreateServiceProjectResponseBody, error) {
 	var response OpenAPICreateServiceProjectResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceProject, nil, nil, body, &response)
+	return response, err
+}
+func (c *OpenAPIClient) CreateServiceReleaseGroup(ctx context.Context, headers OpenAPICreateServiceReleaseGroupHeaders, body OpenAPICreateServiceReleaseGroupRequestBody) (OpenAPICreateServiceReleaseGroupResponseBody, error) {
+	var response OpenAPICreateServiceReleaseGroupResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceReleaseGroup, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceVariable(ctx context.Context, serviceId string, environmentId string, headers OpenAPICreateServiceVariableHeaders, body OpenAPICreateServiceVariableRequestBody) (OpenAPICreateServiceVariableResponseBody, error) {
@@ -1218,6 +1290,11 @@ func (c *OpenAPIClient) GetServiceProjectRemovalImpact(ctx context.Context, serv
 	err := c.connection.doOpenAPI(ctx, openAPIGetServiceProjectRemovalImpact, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) GetServiceReleaseGroup(ctx context.Context, releaseGroupId string) (OpenAPIGetServiceReleaseGroupResponseBody, error) {
+	var response OpenAPIGetServiceReleaseGroupResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) GetServiceRepository(ctx context.Context, serviceId string) (OpenAPIGetServiceRepositoryResponseBody, error) {
 	var response OpenAPIGetServiceRepositoryResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetServiceRepository, map[string]string{"serviceId": serviceId}, nil, nil, &response)
@@ -1298,6 +1375,16 @@ func (c *OpenAPIClient) ListServicePromotions(ctx context.Context, serviceId str
 	err := c.connection.doOpenAPI(ctx, openAPIListServicePromotions, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ListServiceReleaseGroupEvents(ctx context.Context, releaseGroupId string, query OpenAPIListServiceReleaseGroupEventsQuery) (OpenAPIListServiceReleaseGroupEventsResponseBody, error) {
+	var response OpenAPIListServiceReleaseGroupEventsResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListServiceReleaseGroupEvents, map[string]string{"releaseGroupId": releaseGroupId}, query.values(), nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) ListServiceReleaseGroups(ctx context.Context, query OpenAPIListServiceReleaseGroupsQuery) (OpenAPIListServiceReleaseGroupsResponseBody, error) {
+	var response OpenAPIListServiceReleaseGroupsResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListServiceReleaseGroups, nil, query.values(), nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ListServiceVariables(ctx context.Context, serviceId string, environmentId string) (OpenAPIListServiceVariablesResponseBody, error) {
 	var response OpenAPIListServiceVariablesResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIListServiceVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
@@ -1331,6 +1418,11 @@ func (c *OpenAPIClient) PreviewServiceEnvironmentReassignment(ctx context.Contex
 func (c *OpenAPIClient) PreviewServicePromotion(ctx context.Context, serviceId string, query OpenAPIPreviewServicePromotionQuery) (OpenAPIPreviewServicePromotionResponseBody, error) {
 	var response OpenAPIPreviewServicePromotionResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIPreviewServicePromotion, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) PreviewServiceReleaseGroup(ctx context.Context, body OpenAPIPreviewServiceReleaseGroupRequestBody) (OpenAPIPreviewServiceReleaseGroupResponseBody, error) {
+	var response OpenAPIPreviewServiceReleaseGroupResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIPreviewServiceReleaseGroup, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PromoteServiceDeployment(ctx context.Context, serviceId string, headers OpenAPIPromoteServiceDeploymentHeaders, body OpenAPIPromoteServiceDeploymentRequestBody) (OpenAPIPromoteServiceDeploymentResponseBody, error) {
@@ -1406,6 +1498,11 @@ func (c *OpenAPIClient) RetryPostGripConfigurationStackOperation(ctx context.Con
 func (c *OpenAPIClient) RetryServiceConfigurationOperation(ctx context.Context, operationId string, headers OpenAPIRetryServiceConfigurationOperationHeaders) (OpenAPIRetryServiceConfigurationOperationResponseBody, error) {
 	var response OpenAPIRetryServiceConfigurationOperationResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) RetryServiceReleaseGroup(ctx context.Context, releaseGroupId string, headers OpenAPIRetryServiceReleaseGroupHeaders) (OpenAPIRetryServiceReleaseGroupResponseBody, error) {
+	var response OpenAPIRetryServiceReleaseGroupResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RollbackServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, planId string, headers OpenAPIRollbackServiceDNSPlanHeaders, body OpenAPIRollbackServiceDNSPlanRequestBody) (OpenAPIRollbackServiceDNSPlanResponseBody, error) {
@@ -1506,6 +1603,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 98
+const OpenAPIClientOperationCount = 105
 
-const openAPIClientSpecSHA256 = "b4530e626b4b3f0675a9948d05f3d9eabef68672d1bc86835bb27816a1915793"
+const openAPIClientSpecSHA256 = "bfcc999223f092746a422fdad8c98df14fcb1af76add477fb059e35d583945e5"

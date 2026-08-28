@@ -1431,6 +1431,69 @@
       "plane": "service",
       "protocolException": null
     },
+    "previewServiceReleaseGroup": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/previewServiceReleaseGroup.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "createServiceReleaseGroup": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceReleaseGroup.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceReleaseGroups": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceReleaseGroups.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceReleaseGroup": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceReleaseGroup.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceReleaseGroupEvents": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceReleaseGroupEvents.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "cancelServiceReleaseGroup": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/cancelServiceReleaseGroup.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "retryServiceReleaseGroup": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/retryServiceReleaseGroup.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "workerOrchestratorHealth": {
       "cleanup": "none",
       "curlEligible": true,

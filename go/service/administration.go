@@ -38,6 +38,7 @@ type ServiceDNSClient struct{ client *Client }
 type ServiceVariablesClient struct{ client *Client }
 type ServiceRepositoriesClient struct{ client *Client }
 type ServicePromotionsClient struct{ client *Client }
+type ServiceReleaseGroupsClient struct{ client *Client }
 type ServiceRetentionClient struct{ client *Client }
 type ServiceConfigurationOperationsClient struct{ client *Client }
 type DeclarativeConfigurationClient struct{ client *Client }
@@ -59,6 +60,9 @@ func (c *Client) ServiceRepositories() ServiceRepositoriesClient {
 func (c *Client) ServicePromotions() ServicePromotionsClient {
 	return ServicePromotionsClient{client: c}
 }
+func (c *Client) ServiceReleaseGroups() ServiceReleaseGroupsClient {
+	return ServiceReleaseGroupsClient{client: c}
+}
 func (c *Client) ServiceRetention() ServiceRetentionClient {
 	return ServiceRetentionClient{client: c}
 }
@@ -67,6 +71,43 @@ func (c *Client) ServiceConfigurationOperations() ServiceConfigurationOperations
 }
 func (c *Client) DeclarativeConfiguration() DeclarativeConfigurationClient {
 	return DeclarativeConfigurationClient{client: c}
+}
+
+func (c ServiceReleaseGroupsClient) List(ctx context.Context, query OpenAPIListServiceReleaseGroupsQuery) (OpenAPIListServiceReleaseGroupsResponseBody, error) {
+	return c.client.OpenAPI().ListServiceReleaseGroups(ctx, query)
+}
+
+func (c ServiceReleaseGroupsClient) Preview(ctx context.Context, body OpenAPIPreviewServiceReleaseGroupRequestBody) (OpenAPIPreviewServiceReleaseGroupResponseBody, error) {
+	return c.client.OpenAPI().PreviewServiceReleaseGroup(ctx, body)
+}
+
+func (c ServiceReleaseGroupsClient) Create(ctx context.Context, body OpenAPICreateServiceReleaseGroupRequestBody, options MutationOptions) (OpenAPICreateServiceReleaseGroupResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPICreateServiceReleaseGroupResponseBody{}, err
+	}
+	return c.client.OpenAPI().CreateServiceReleaseGroup(ctx, OpenAPICreateServiceReleaseGroupHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceReleaseGroupsClient) Get(ctx context.Context, releaseGroupID string) (OpenAPIGetServiceReleaseGroupResponseBody, error) {
+	return c.client.OpenAPI().GetServiceReleaseGroup(ctx, releaseGroupID)
+}
+
+func (c ServiceReleaseGroupsClient) Events(ctx context.Context, releaseGroupID string, query OpenAPIListServiceReleaseGroupEventsQuery) (OpenAPIListServiceReleaseGroupEventsResponseBody, error) {
+	return c.client.OpenAPI().ListServiceReleaseGroupEvents(ctx, releaseGroupID, query)
+}
+
+func (c ServiceReleaseGroupsClient) Cancel(ctx context.Context, releaseGroupID string, options MutationOptions) (OpenAPICancelServiceReleaseGroupResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPICancelServiceReleaseGroupResponseBody{}, err
+	}
+	return c.client.OpenAPI().CancelServiceReleaseGroup(ctx, releaseGroupID, OpenAPICancelServiceReleaseGroupHeaders{IdempotencyKey: options.IdempotencyKey})
+}
+
+func (c ServiceReleaseGroupsClient) Retry(ctx context.Context, releaseGroupID string, options MutationOptions) (OpenAPIRetryServiceReleaseGroupResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIRetryServiceReleaseGroupResponseBody{}, err
+	}
+	return c.client.OpenAPI().RetryServiceReleaseGroup(ctx, releaseGroupID, OpenAPIRetryServiceReleaseGroupHeaders{IdempotencyKey: options.IdempotencyKey})
 }
 
 func (c TargetServicesClient) Attach(ctx context.Context, body OpenAPIAttachTargetServiceRequestBody, options WriteOptions) (OpenAPIAttachTargetServiceResponseBody, error) {

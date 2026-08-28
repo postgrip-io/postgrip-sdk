@@ -1057,6 +1057,59 @@
       ],
       "summary": "Verify public Service domain routing"
     },
+    "previewServiceReleaseGroup": {
+      "behavior": "Validates the complete multi-project dependency graph and pins exact commits or immutable artifact identities, environment versions, Worker placement, current deployments, and verification policies without dispatching work.",
+      "lifecycle": [
+        "The signed preview expires after ten minutes and is revalidated under target locks when the release is created.",
+        "Members without dependencies form an explicit parallel group; ordering is never inferred."
+      ],
+      "summary": "Preview a fenced multi-project release"
+    },
+    "createServiceReleaseGroup": {
+      "behavior": "Creates one durable tenant-scoped saga from an unexpired preview and dispatches dependency-ready members while preserving exact per-member deployment identities.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "A second active release targeting any member environment is rejected, and canonical forward traffic remains fenced until aggregate success."
+      ],
+      "summary": "Create a coordinated release group"
+    },
+    "listServiceReleaseGroups": {
+      "behavior": "Returns bounded opaque-cursor pages of aggregate release state together with exact per-member deployment, verification, compensation, and safe-error projections.",
+      "lifecycle": [
+        "Treat cursors as opaque and stop when nextCursor is empty."
+      ],
+      "summary": "List coordinated release groups"
+    },
+    "getServiceReleaseGroup": {
+      "behavior": "Returns one release group and every pinned member, attempt, deployment receipt, verification state, compensation target, timestamp, and safe failure.",
+      "lifecycle": [
+        "Poll only while the aggregate state is non-terminal and use member states to explain progress."
+      ],
+      "summary": "Get coordinated release state"
+    },
+    "listServiceReleaseGroupEvents": {
+      "behavior": "Returns the bounded append-only event history for release creation, dispatch, verification, cancellation, compensation, retry, and completion.",
+      "lifecycle": [
+        "Treat cursors as opaque; event details are safe summaries and never contain Worker-local secrets."
+      ],
+      "summary": "List coordinated release events"
+    },
+    "cancelServiceReleaseGroup": {
+      "behavior": "Requests deterministic cancellation, skips undispatched work, cancels safely queued work, waits for in-flight cutovers, and restores reversible members before terminal completion.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Non-reversible cutovers or unavailable retained targets produce intervention_required instead of a silent rollback."
+      ],
+      "summary": "Cancel and compensate a release group"
+    },
+    "retryServiceReleaseGroup": {
+      "behavior": "Retries the same pinned release only after recovered or cancelled terminal state and after re-locking every environment against its original or compensated current deployment.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "An unrelated deployment or configuration change requires a new preview."
+      ],
+      "summary": "Retry a safely recovered release group"
+    },
     "workerOrchestratorHealth": {
       "behavior": "Uses the contract-defined GET /health behavior.",
       "lifecycle": [],

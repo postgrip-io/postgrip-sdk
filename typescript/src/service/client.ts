@@ -289,6 +289,22 @@ export class ServiceClient {
       create: (serviceId: string, body: OpenAPIRequestBody<'promoteServiceDeployment'>, options: MutationOptions) =>
         this.administrationMutation('promoteServiceDeployment', { path: { serviceId }, body, ...mutationRequest(options) }),
     },
+    releaseGroups: {
+      list: (query: OpenAPIQueryParameters<'listServiceReleaseGroups'> = {}, options: RequestOptions = {}) =>
+        this.request('listServiceReleaseGroups', { query, signal: options.signal }),
+      preview: (body: OpenAPIRequestBody<'previewServiceReleaseGroup'>, options: RequestOptions = {}) =>
+        this.request('previewServiceReleaseGroup', { body, signal: options.signal }),
+      create: (body: OpenAPIRequestBody<'createServiceReleaseGroup'>, options: MutationOptions) =>
+        this.administrationMutation('createServiceReleaseGroup', { body, ...mutationRequest(options) }),
+      get: (releaseGroupId: string, options: RequestOptions = {}) =>
+        this.request('getServiceReleaseGroup', { path: { releaseGroupId }, signal: options.signal }),
+      events: (releaseGroupId: string, query: OpenAPIQueryParameters<'listServiceReleaseGroupEvents'> = {}, options: RequestOptions = {}) =>
+        this.request('listServiceReleaseGroupEvents', { path: { releaseGroupId }, query, signal: options.signal }),
+      cancel: (releaseGroupId: string, options: MutationOptions) =>
+        this.administrationMutation('cancelServiceReleaseGroup', { path: { releaseGroupId }, ...mutationRequest(options) }),
+      retry: (releaseGroupId: string, options: MutationOptions) =>
+        this.administrationMutation('retryServiceReleaseGroup', { path: { releaseGroupId }, ...mutationRequest(options) }),
+    },
     retention: {
       getBuild: (serviceId: string, options: RequestOptions = {}) => this.request('getServiceBuildLogSettings', { path: { serviceId }, signal: options.signal }),
       updateBuild: (serviceId: string, body: OpenAPIRequestBody<'updateServiceBuildLogSettings'>, options: AdministrationWriteOptions) =>

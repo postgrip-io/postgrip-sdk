@@ -83,6 +83,11 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
         "listGitHubAppRepositories", "previewGitHubRepositoryAdoption", "adoptGitHubRepository",
     ),
     "Promotions": ("listServicePromotions", "previewServicePromotion", "promoteServiceDeployment"),
+    "ReleaseGroups": (
+        "listServiceReleaseGroups", "previewServiceReleaseGroup", "createServiceReleaseGroup",
+        "getServiceReleaseGroup", "listServiceReleaseGroupEvents", "cancelServiceReleaseGroup",
+        "retryServiceReleaseGroup",
+    ),
     "Retention": (
         "getServiceBuildLogSettings", "updateServiceBuildLogSettings", "trimServiceBuildLogs",
         "flushServiceBuildLogs", "getServiceRuntimeLogSettings", "updateServiceRuntimeLogSettings",
@@ -819,6 +824,31 @@ def typescript_schema_type(schema: dict[str, Any], indent: str = "") -> str:
         return " | ".join(json.dumps(value) for value in schema["enum"])
     if schema.get("oneOf") or schema.get("anyOf"):
         variants = schema.get("oneOf") or schema.get("anyOf")
+        base_schema = {
+            key: value for key, value in schema.items() if key not in ("oneOf", "anyOf")
+        }
+        # OpenAPI commonly places shared object properties on the composed
+        # schema and uses each branch only to tighten required fields. Render
+        # the complete object in every branch instead of collapsing these
+        # useful request models to `unknown | unknown`.
+        if base_schema.get("type") == "object" or base_schema.get("properties"):
+            rendered_variants: list[str] = []
+            for variant in variants:
+                if not isinstance(variant, dict):
+                    rendered_variants.append(typescript_schema_type(variant, indent))
+                    continue
+                branch = dict(base_schema)
+                branch["required"] = list(dict.fromkeys([
+                    *base_schema.get("required", []),
+                    *variant.get("required", []),
+                ]))
+                if isinstance(variant.get("properties"), dict):
+                    branch["properties"] = {
+                        **base_schema.get("properties", {}),
+                        **variant["properties"],
+                    }
+                rendered_variants.append(typescript_schema_type(branch, indent))
+            return " | ".join(rendered_variants)
         return " | ".join(typescript_schema_type(value, indent) for value in variants)
     if schema.get("allOf"):
         base_schema = {key: value for key, value in schema.items() if key != "allOf"}

@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "b48b9828c428581f6401ff87da2a4dcfc754b4dd851e51bb3f1e895aa5b3cf5d",
+  "contractBundleDigest": "d871319cfc32fb12a40c711ab3fa43b1544f1d1548b2fe1ad46648c5811338e3",
   "operations": [
     {
       "curl": false,
@@ -893,6 +893,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "cancelServiceReleaseGroup",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "checkService",
       "plane": "service",
@@ -1031,6 +1048,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "createServiceProject",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "createServiceReleaseGroup",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -1472,6 +1506,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "getServiceReleaseGroup",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "getServiceRepository",
       "plane": "service",
       "protocolException": false,
@@ -1744,6 +1795,40 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "listServiceReleaseGroupEvents",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "listServiceReleaseGroups",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "listServiceVariables",
       "plane": "service",
       "protocolException": false,
@@ -1847,6 +1932,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "previewServicePromotion",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "previewServiceReleaseGroup",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2102,6 +2204,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "retryServiceConfigurationOperation",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "retryServiceReleaseGroup",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2662,10 +2781,10 @@
       "recordedTested": 45
     },
     "service": {
-      "curl": 98,
-      "operations": 98,
+      "curl": 105,
+      "operations": 105,
       "protocolExceptions": 0,
-      "recordedTested": 98
+      "recordedTested": 105
     },
     "worker": {
       "curl": 13,
@@ -2676,14 +2795,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 147,
-    "documented": 156,
-    "nightlyOwned": 116,
-    "operations": 156,
-    "preReleaseOwned": 38,
+    "curl": 154,
+    "documented": 163,
+    "nightlyOwned": 119,
+    "operations": 163,
+    "preReleaseOwned": 42,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 156,
-    "sdkGenerated": 156
+    "recordedTested": 163,
+    "sdkGenerated": 163
   }
 }

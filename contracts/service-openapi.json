@@ -30,6 +30,9 @@
     },
     {
       "name": "Administration"
+    },
+    {
+      "name": "Release Groups"
     }
   ],
   "paths": {
@@ -536,6 +539,421 @@
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
         "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/release-groups/preview": {
+      "post": {
+        "operationId": "previewServiceReleaseGroup",
+        "tags": [
+          "Release Groups"
+        ],
+        "summary": "Preview and fence a multi-project release",
+        "description": "Validates the complete dependency graph, exact revisions or artifacts, worker placement, current deployments, environment versions, verification policy, and overlap fences without dispatching work. Independent dependency-ready members form an explicit parallel group.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewServiceReleaseGroupRequest"
+              },
+              "example": {
+                "name": "frontend-and-api",
+                "successPolicy": "all_required",
+                "failurePolicy": "compensate",
+                "members": [
+                  {
+                    "key": "api",
+                    "projectId": "11111111-1111-4111-8111-111111111111",
+                    "environmentId": "22222222-2222-4222-8222-222222222222",
+                    "expectedCommitSha": "0123456789abcdef0123456789abcdef01234567",
+                    "branch": "main",
+                    "required": true,
+                    "reversible": true,
+                    "verificationPolicy": "deployment_ready",
+                    "dependsOn": []
+                  },
+                  {
+                    "key": "frontend",
+                    "projectId": "33333333-3333-4333-8333-333333333333",
+                    "environmentId": "44444444-4444-4444-8444-444444444444",
+                    "expectedCommitSha": "abcdef0123456789abcdef0123456789abcdef01",
+                    "branch": "main",
+                    "required": true,
+                    "reversible": true,
+                    "verificationPolicy": "public",
+                    "dependsOn": [
+                      "api"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Release group preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReleaseGroupPreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/release-groups": {
+      "get": {
+        "operationId": "listServiceReleaseGroups",
+        "tags": [
+          "Release Groups"
+        ],
+        "summary": "List release groups",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Release groups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReleaseGroupList"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "cursor",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      },
+      "post": {
+        "operationId": "createServiceReleaseGroup",
+        "tags": [
+          "Release Groups"
+        ],
+        "summary": "Create a fenced multi-project release saga",
+        "description": "Accepts an unexpired preview and creates one durable release identity. Dependency-ready members dispatch in parallel. A required failure cancels safe work and restores already-cut-over reversible members; non-reversible cutovers report intervention-required.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceReleaseGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Release group accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReleaseGroup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/release-groups/{releaseGroupId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ReleaseGroupId"
+        }
+      ],
+      "get": {
+        "operationId": "getServiceReleaseGroup",
+        "tags": [
+          "Release Groups"
+        ],
+        "summary": "Get aggregate and per-member release state",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Release group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReleaseGroup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/release-groups/{releaseGroupId}/events": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ReleaseGroupId"
+        }
+      ],
+      "get": {
+        "operationId": "listServiceReleaseGroupEvents",
+        "tags": [
+          "Release Groups"
+        ],
+        "summary": "List bounded release audit events",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Release group events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReleaseGroupEventList"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "cursor",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/release-groups/{releaseGroupId}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ReleaseGroupId"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "operationId": "cancelServiceReleaseGroup",
+        "tags": [
+          "Release Groups"
+        ],
+        "summary": "Cancel and compensate a release group",
+        "description": "Cancels undispatched and still-queued members, waits for unsafe-to-cancel members, and restores every reversible member that cut over.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancellation accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReleaseGroup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/release-groups/{releaseGroupId}/retry": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ReleaseGroupId"
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "post": {
+        "operationId": "retryServiceReleaseGroup",
+        "tags": [
+          "Release Groups"
+        ],
+        "summary": "Retry a safely recovered release group",
+        "description": "Retries the same pinned revisions only after compensation or cancellation reached a safe terminal state. Intervention-required groups require a new preview.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retry accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceReleaseGroup"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
         "x-postgrip-retry": "bounded"
       }
     },
@@ -6344,6 +6762,16 @@
           "format": "uuid"
         },
         "description": "Immutable provider-neutral DNS plan identifier."
+      },
+      "ReleaseGroupId": {
+        "name": "releaseGroupId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Durable multi-project release saga identifier."
       }
     },
     "responses": {
@@ -6404,6 +6832,673 @@
           },
           "replayed": {
             "type": "boolean"
+          }
+        }
+      },
+      "ServiceReleaseVerificationPolicy": {
+        "type": "string",
+        "enum": [
+          "deployment_ready",
+          "public"
+        ]
+      },
+      "ServiceReleaseGroupState": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "running",
+          "verifying",
+          "cancelling",
+          "compensating",
+          "succeeded",
+          "recovered",
+          "cancelled",
+          "intervention_required"
+        ]
+      },
+      "ServiceReleaseGroupMemberState": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "dispatching",
+          "deploying",
+          "verifying",
+          "verified",
+          "failed",
+          "cancelling",
+          "cancelled",
+          "compensating",
+          "compensated",
+          "succeeded",
+          "skipped",
+          "intervention_required"
+        ]
+      },
+      "ServiceReleaseGroupMemberRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "projectId",
+          "environmentId"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedCommitSha": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 128
+          },
+          "branch": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "sourceDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedArtifactIdentity": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "expectedCurrentDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          },
+          "reversible": {
+            "type": "boolean",
+            "default": true,
+            "description": "Set false for stateful members that must never be silently rolled back. A cutover followed by group failure then reports intervention_required."
+          },
+          "verificationPolicy": {
+            "$ref": "#/components/schemas/ServiceReleaseVerificationPolicy"
+          },
+          "dependsOn": {
+            "type": "array",
+            "maxItems": 49,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+            },
+            "default": []
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "expectedCommitSha",
+              "branch"
+            ]
+          },
+          {
+            "required": [
+              "sourceDeploymentId",
+              "expectedArtifactIdentity"
+            ]
+          }
+        ]
+      },
+      "PreviewServiceReleaseGroupRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "members"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "successPolicy": {
+            "type": "string",
+            "enum": [
+              "all_required"
+            ],
+            "default": "all_required"
+          },
+          "failurePolicy": {
+            "type": "string",
+            "enum": [
+              "compensate"
+            ],
+            "default": "compensate"
+          },
+          "members": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/ServiceReleaseGroupMemberRequest"
+            }
+          }
+        }
+      },
+      "CreateServiceReleaseGroupRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "previewToken"
+        ],
+        "properties": {
+          "previewToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          }
+        }
+      },
+      "ServiceReleaseGroupPreviewMember": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "projectId",
+          "environmentId",
+          "workerId",
+          "environmentVersion",
+          "expectedCommitSha",
+          "branch",
+          "required",
+          "reversible",
+          "verificationPolicy",
+          "dependsOn"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedCommitSha": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "sourceDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedArtifactIdentity": {
+            "type": "string"
+          },
+          "currentDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "reversible": {
+            "type": "boolean"
+          },
+          "verificationPolicy": {
+            "$ref": "#/components/schemas/ServiceReleaseVerificationPolicy"
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verificationDomainId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "verificationDomainVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "verificationUrl": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          }
+        }
+      },
+      "ServiceReleaseGroupPreview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "successPolicy",
+          "failurePolicy",
+          "members",
+          "requestFingerprint",
+          "previewToken",
+          "expiresAt"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "successPolicy": {
+            "type": "string",
+            "enum": [
+              "all_required"
+            ]
+          },
+          "failurePolicy": {
+            "type": "string",
+            "enum": [
+              "compensate"
+            ]
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceReleaseGroupPreviewMember"
+            }
+          },
+          "requestFingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "previewToken": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceReleaseGroupMemberReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deploymentId",
+          "commandId",
+          "jobRunId",
+          "dispatchedAt"
+        ],
+        "properties": {
+          "deploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commandId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dispatchedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceReleaseGroupMember": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "key",
+          "projectId",
+          "environmentId",
+          "workerId",
+          "required",
+          "reversible",
+          "verificationPolicy",
+          "dependsOn",
+          "expectedCommitSha",
+          "branch",
+          "expectedEnvironmentVersion",
+          "state",
+          "attempt",
+          "verificationAttempts",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "reversible": {
+            "type": "boolean"
+          },
+          "verificationPolicy": {
+            "$ref": "#/components/schemas/ServiceReleaseVerificationPolicy"
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expectedCommitSha": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "sourceDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedArtifactIdentity": {
+            "type": "string"
+          },
+          "expectedEnvironmentVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedCurrentDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "verificationDomainId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "verificationDomainVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "verificationUrl": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ServiceReleaseGroupMemberState"
+          },
+          "deploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "previousDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "compensationDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dispatchReceipt": {
+            "$ref": "#/components/schemas/ServiceReleaseGroupMemberReceipt"
+          },
+          "compensationReceipt": {
+            "$ref": "#/components/schemas/ServiceReleaseGroupMemberReceipt"
+          },
+          "attempt": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 21
+          },
+          "verificationAttempts": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "verificationDeadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextVerificationAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "errorDetail": {
+            "type": "string",
+            "description": "Safe bounded release detail; Worker errors and secrets are not exposed."
+          },
+          "dispatchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceReleaseGroup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "state",
+          "successPolicy",
+          "failurePolicy",
+          "requestFingerprint",
+          "retryCount",
+          "createdAt",
+          "updatedAt",
+          "members"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ServiceReleaseGroupState"
+          },
+          "successPolicy": {
+            "type": "string",
+            "enum": [
+              "all_required"
+            ]
+          },
+          "failurePolicy": {
+            "type": "string",
+            "enum": [
+              "compensate"
+            ]
+          },
+          "requestFingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "retryCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "failureCode": {
+            "type": "string"
+          },
+          "failureDetail": {
+            "type": "string"
+          },
+          "cancelRequestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "members": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/ServiceReleaseGroupMember"
+            }
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          }
+        }
+      },
+      "ServiceReleaseGroupList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceReleaseGroup"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceReleaseGroupEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "created",
+              "state_changed",
+              "dispatched",
+              "verification",
+              "cancelled",
+              "compensation_dispatched",
+              "retry",
+              "completed"
+            ]
+          },
+          "state": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "deploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceReleaseGroupEventList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceReleaseGroupEvent"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
           }
         }
       },

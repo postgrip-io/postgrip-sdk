@@ -408,6 +408,7 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.variables,
             client.administration.repositories,
             client.administration.promotions,
+            client.administration.release_groups,
             client.administration.retention,
             client.administration.configuration_operations,
             client.administration.declarative_configuration,
@@ -423,7 +424,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 80)
+        self.assertEqual(len(exposed), 87)
 
         client.administration.target_services.attach_target_service(
             {
