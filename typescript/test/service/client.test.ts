@@ -5,6 +5,7 @@ import {
   ServiceClient,
   referenceFor,
   type OpenAPIRequestBody,
+  type GetServiceRepositoryResponseBody,
 } from '../../src/service/index.js';
 
 const service = {
@@ -33,6 +34,18 @@ function client(fetchImpl: typeof globalThis.fetch): ServiceClient {
 }
 
 describe('ServiceClient', () => {
+  it('exposes automatic-deployment wiring as a closed repository status', () => {
+    expectTypeOf<GetServiceRepositoryResponseBody['automaticDeployments']['status']>()
+      .toEqualTypeOf<
+        | 'pending'
+        | 'active'
+        | 'provider-unsupported'
+        | 'base-url-not-public'
+        | 'no-worker-assigned'
+        | 'registration-failed'
+      >();
+  });
+
   it('preserves const approval fields in generated request types', () => {
     expectTypeOf<OpenAPIRequestBody<'requestServiceDNSFailover'>['approved']>()
       .toEqualTypeOf<true>();

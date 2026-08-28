@@ -9369,6 +9369,7 @@
           "defaultBranch",
           "hasSourceCredential",
           "hasWebhookCredential",
+          "automaticDeployments",
           "version",
           "etag"
         ],
@@ -9400,6 +9401,9 @@
           "hasWebhookCredential": {
             "type": "boolean"
           },
+          "automaticDeployments": {
+            "$ref": "#/components/schemas/ServiceAutomaticDeploymentWiring"
+          },
           "sourceCredentialRotatedAt": {
             "type": "string",
             "format": "date-time"
@@ -9416,6 +9420,36 @@
           "etag": {
             "type": "string",
             "minLength": 1
+          }
+        }
+      },
+      "ServiceAutomaticDeploymentWiring": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Last reconciled state of push-triggered automatic deployment wiring. Credential presence alone does not imply that the provider can reach or is configured to call PostGrip.",
+        "required": [
+          "active",
+          "status",
+          "checkedAt"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "provider-unsupported",
+              "base-url-not-public",
+              "no-worker-assigned",
+              "registration-failed"
+            ]
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

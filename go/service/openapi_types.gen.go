@@ -568,19 +568,25 @@ type OpenAPIGitHubRepositoryAdoptionRequest struct {
 	RepositoryEtag string `json:"repositoryEtag"`
 }
 type OpenAPIServiceRepository struct {
-	Provider                   string     `json:"provider"`
-	RepoOwner                  string     `json:"repoOwner"`
-	RepoName                   string     `json:"repoName"`
-	DefaultBranch              string     `json:"defaultBranch"`
-	ProjectPath                *string    `json:"projectPath,omitempty"`
-	DockerfilePath             *string    `json:"dockerfilePath,omitempty"`
-	ExternalRepoId             *string    `json:"externalRepoId,omitempty"`
-	HasSourceCredential        bool       `json:"hasSourceCredential"`
-	HasWebhookCredential       bool       `json:"hasWebhookCredential"`
-	SourceCredentialRotatedAt  *time.Time `json:"sourceCredentialRotatedAt,omitempty"`
-	WebhookCredentialRotatedAt *time.Time `json:"webhookCredentialRotatedAt,omitempty"`
-	Version                    int64      `json:"version"`
-	Etag                       string     `json:"etag"`
+	Provider                   string                                  `json:"provider"`
+	RepoOwner                  string                                  `json:"repoOwner"`
+	RepoName                   string                                  `json:"repoName"`
+	DefaultBranch              string                                  `json:"defaultBranch"`
+	ProjectPath                *string                                 `json:"projectPath,omitempty"`
+	DockerfilePath             *string                                 `json:"dockerfilePath,omitempty"`
+	ExternalRepoId             *string                                 `json:"externalRepoId,omitempty"`
+	HasSourceCredential        bool                                    `json:"hasSourceCredential"`
+	HasWebhookCredential       bool                                    `json:"hasWebhookCredential"`
+	AutomaticDeployments       OpenAPIServiceAutomaticDeploymentWiring `json:"automaticDeployments"`
+	SourceCredentialRotatedAt  *time.Time                              `json:"sourceCredentialRotatedAt,omitempty"`
+	WebhookCredentialRotatedAt *time.Time                              `json:"webhookCredentialRotatedAt,omitempty"`
+	Version                    int64                                   `json:"version"`
+	Etag                       string                                  `json:"etag"`
+}
+type OpenAPIServiceAutomaticDeploymentWiring struct {
+	Active    bool      `json:"active"`
+	Status    string    `json:"status"`
+	CheckedAt time.Time `json:"checkedAt"`
 }
 type OpenAPIServiceProject struct {
 	Id             string                   `json:"id"`
@@ -1887,6 +1893,7 @@ type GitHubRepositoryAdoptionPreviewRequest = OpenAPIGitHubRepositoryAdoptionPre
 type GitHubRepositoryAdoptionPreview = OpenAPIGitHubRepositoryAdoptionPreview
 type GitHubRepositoryAdoptionRequest = OpenAPIGitHubRepositoryAdoptionRequest
 type ServiceRepository = OpenAPIServiceRepository
+type ServiceAutomaticDeploymentWiring = OpenAPIServiceAutomaticDeploymentWiring
 type ServiceProject = OpenAPIServiceProject
 type ServiceVolumeBinding = OpenAPIServiceVolumeBinding
 type ServiceEnvironmentConfiguration = OpenAPIServiceEnvironmentConfiguration
@@ -1979,4 +1986,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "4333b23356fe842d4dbf86c69750f56e0670c9512a18071cb2bd6a30ac987e68"
+const openAPITypesSpecSHA256 = "e476fa6393cada5aa76177e6e0d1a99fc5ece8266397d3bd5db051eb63e084b9"
