@@ -77,7 +77,7 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         if reference in seen:
             return {}
         return sample(document, resolve(document, schema), seen | {reference})
-    if schema.get("allOf"):
+    if schema.get("allOf") and not (schema.get("type") or schema.get("properties")):
         merged: dict[str, Any] = {}
         for item in schema["allOf"]:
             value = sample(document, item, seen)

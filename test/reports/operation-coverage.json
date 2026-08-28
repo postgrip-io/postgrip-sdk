@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "7d1702e54be36871b78b433fae3edcb261c6ea191a0fe238ab9bcb1bea872d43",
+  "contractBundleDigest": "b48b9828c428581f6401ff87da2a4dcfc754b4dd851e51bb3f1e895aa5b3cf5d",
   "operations": [
     {
       "curl": false,
@@ -808,6 +808,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "applyServiceDNSPlan",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "applyServiceVariables",
       "plane": "service",
@@ -946,6 +963,23 @@
       ],
       "liveTest": "pre-release",
       "operationId": "createPostGripConfigurationPlan",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "createServiceDNSPlan",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -1302,6 +1336,57 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "getServiceDNSCanonicalState",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "getServiceDNSFailoverPolicy",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "getServiceDNSPlan",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "getServiceDeployment",
       "plane": "service",
       "protocolException": false,
@@ -1541,6 +1626,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "listServiceConfigurationOperations",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "listServiceDNSPlans",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -1879,6 +1981,40 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "reportServiceDNSProviderResult",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "requestServiceDNSFailover",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "resolveService",
       "plane": "service",
@@ -1966,6 +2102,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "retryServiceConfigurationOperation",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "rollbackServiceDNSPlan",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2085,6 +2238,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "updateServiceBuildLogSettings",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "updateServiceDNSFailoverPolicy",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2492,10 +2662,10 @@
       "recordedTested": 45
     },
     "service": {
-      "curl": 88,
-      "operations": 88,
+      "curl": 98,
+      "operations": 98,
       "protocolExceptions": 0,
-      "recordedTested": 88
+      "recordedTested": 98
     },
     "worker": {
       "curl": 13,
@@ -2506,14 +2676,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 137,
-    "documented": 146,
-    "nightlyOwned": 112,
-    "operations": 146,
-    "preReleaseOwned": 32,
+    "curl": 147,
+    "documented": 156,
+    "nightlyOwned": 116,
+    "operations": 156,
+    "preReleaseOwned": 38,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 146,
-    "sdkGenerated": 146
+    "recordedTested": 156,
+    "sdkGenerated": 156
   }
 }

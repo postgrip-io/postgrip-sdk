@@ -66,6 +66,12 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
         "listServiceDomains", "createServiceDomain", "updateServiceDomain", "deleteServiceDomain",
         "getServiceDomainVerification", "verifyServiceDomain",
     ),
+    "DNS": (
+        "getServiceDNSCanonicalState", "listServiceDNSPlans", "createServiceDNSPlan",
+        "getServiceDNSPlan", "applyServiceDNSPlan", "reportServiceDNSProviderResult",
+        "rollbackServiceDNSPlan", "getServiceDNSFailoverPolicy",
+        "updateServiceDNSFailoverPolicy", "requestServiceDNSFailover",
+    ),
     "Variables": (
         "listServiceVariables", "createServiceVariable", "updateServiceVariable",
         "deleteServiceVariable", "putServiceVariableValue", "clearServiceVariableValue",
@@ -280,7 +286,13 @@ def go_name(operation_id: str) -> str:
 
 
 def snake_name(operation_id: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", operation_id).upper()
+    return snake_case_name(operation_id).upper()
+
+
+def snake_case_name(value: str) -> str:
+    value = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", value)
+    value = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
+    return re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9_]+", "_", value)).strip("_").lower()
 
 
 def pascal_name(value: str) -> str:
@@ -304,6 +316,30 @@ def schema_label(schema: dict[str, Any] | None) -> str:
     if not schema:
         return ""
     return schema_ref_name(schema) or "inline"
+
+
+def merged_all_of_object_schema(spec: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    branches = schema.get("allOf")
+    if not isinstance(branches, list) or not branches or any("if" in branch for branch in branches):
+        return schema
+    merged: dict[str, Any] = {"type": "object", "properties": {}, "required": []}
+    for branch in branches:
+        reference_name = schema_ref_name(branch)
+        source = spec.get("components", {}).get("schemas", {}).get(reference_name) if reference_name else branch
+        if not isinstance(source, dict):
+            return schema
+        source = merged_all_of_object_schema(spec, source)
+        if source.get("type") != "object" and "properties" not in source:
+            return schema
+        for name, property_schema in source.get("properties", {}).items():
+            previous = merged["properties"].get(name, {})
+            merged["properties"][name] = {**previous, **property_schema}
+        merged["required"] = list(dict.fromkeys([*merged["required"], *source.get("required", [])]))
+        if source.get("additionalProperties") is False:
+            merged["additionalProperties"] = False
+        elif "additionalProperties" not in merged and "additionalProperties" in source:
+            merged["additionalProperties"] = source["additionalProperties"]
+    return merged
 
 
 def go_schema_type(schema: dict[str, Any], optional: bool = False) -> str:
@@ -413,6 +449,7 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
     compatibility_aliases: list[str] = []
     enum_constants: list[str] = []
     for name, schema in spec.get("components", {}).get("schemas", {}).items():
+        schema = merged_all_of_object_schema(spec, schema)
         type_name = f"OpenAPI{pascal_name(name)}"
         if name in GO_PROTOCOL_SCHEMAS:
             protocol_name = GO_PROTOCOL_TYPE_OVERRIDES.get(name, name)
@@ -704,19 +741,103 @@ const openAPIClientSpecSHA256 = "{digest}"
     return formatted.stdout
 
 
+def typescript_conditional_schema_type(
+    base_schema: dict[str, Any], conditional: dict[str, Any], indent: str
+) -> str | None:
+    predicate = conditional.get("if")
+    consequence = conditional.get("then")
+    if not isinstance(predicate, dict) or not isinstance(consequence, dict):
+        return None
+    predicate_properties = predicate.get("properties")
+    base_properties = base_schema.get("properties")
+    if not isinstance(predicate_properties, dict) or len(predicate_properties) != 1 or not isinstance(base_properties, dict):
+        return None
+    discriminator, discriminator_constraint = next(iter(predicate_properties.items()))
+    if discriminator not in base_properties or not isinstance(discriminator_constraint, dict):
+        return None
+    matched_values = discriminator_constraint.get("enum")
+    if matched_values is None and "const" in discriminator_constraint:
+        matched_values = [discriminator_constraint["const"]]
+    base_discriminator = base_properties[discriminator]
+    base_values = base_discriminator.get("enum") if isinstance(base_discriminator, dict) else None
+    if not isinstance(matched_values, list) or not matched_values or not isinstance(base_values, list):
+        return None
+    unmatched_values = [value for value in base_values if value not in matched_values]
+
+    def constrained_branch(
+        discriminator_values: list[Any], constraints: dict[str, Any]
+    ) -> dict[str, Any]:
+        branch = dict(base_schema)
+        properties = dict(base_properties)
+        properties[discriminator] = {"enum": discriminator_values}
+        if isinstance(constraints.get("properties"), dict):
+            for name, constraint in constraints["properties"].items():
+                base_property = properties.get(name)
+                if isinstance(base_property, dict) and isinstance(constraint, dict):
+                    # Preserve nested conditional constraints. Array item
+                    # constraints must intersect the referenced element type;
+                    # putting the constraint beside `items` loses it when the
+                    # TypeScript renderer emits the array.
+                    if isinstance(base_property.get("items"), dict) and isinstance(constraint.get("items"), dict):
+                        properties[name] = {
+                            **base_property,
+                            **{key: value for key, value in constraint.items() if key != "items"},
+                            "items": {
+                                "allOf": [base_property["items"], constraint["items"]],
+                            },
+                        }
+                    else:
+                        properties[name] = {**base_property, "allOf": [constraint]}
+                else:
+                    properties[name] = constraint
+        branch["properties"] = properties
+        required = list(dict.fromkeys([
+            *base_schema.get("required", []),
+            *constraints.get("required", []),
+        ]))
+        branch["required"] = required
+        return branch
+
+    branches = [constrained_branch(matched_values, consequence)]
+    alternate = conditional.get("else")
+    if unmatched_values:
+        branches.append(constrained_branch(
+            unmatched_values, alternate if isinstance(alternate, dict) else {}
+        ))
+    return "(" + " | ".join(typescript_schema_type(branch, indent) for branch in branches) + ")"
+
+
 def typescript_schema_type(schema: dict[str, Any], indent: str = "") -> str:
     reference_name = schema_ref_name(schema)
     if reference_name:
         return f"OpenAPIComponents[{json.dumps(reference_name)}]"
     if not schema:
         return "unknown"
+    if "const" in schema:
+        return json.dumps(schema["const"])
     if schema.get("enum"):
         return " | ".join(json.dumps(value) for value in schema["enum"])
     if schema.get("oneOf") or schema.get("anyOf"):
         variants = schema.get("oneOf") or schema.get("anyOf")
         return " | ".join(typescript_schema_type(value, indent) for value in variants)
     if schema.get("allOf"):
-        return " & ".join(typescript_schema_type(value, indent) for value in schema["allOf"])
+        base_schema = {key: value for key, value in schema.items() if key != "allOf"}
+        members: list[str] = []
+        conditional_members = [
+            member
+            for value in schema["allOf"]
+            if (member := typescript_conditional_schema_type(base_schema, value, indent)) is not None
+        ]
+        if not conditional_members and any(key in base_schema for key in ("$ref", "const", "enum", "oneOf", "anyOf", "type", "properties", "additionalProperties")):
+            members.append(typescript_schema_type(base_schema, indent))
+        members.extend(conditional_members)
+        members.extend(
+            typescript_schema_type(value, indent)
+            for value in schema["allOf"]
+            if typescript_conditional_schema_type(base_schema, value, indent) is None
+        )
+        members = [member for member in members if member != "unknown"]
+        return " & ".join(members) if members else "unknown"
     schema_type = schema.get("type")
     if schema_type == "array":
         return f"Array<{typescript_schema_type(schema.get('items', {}), indent)}>"
@@ -771,6 +892,8 @@ def python_schema_type(schema: dict[str, Any]) -> str:
         return f"_Schema{pascal_name(reference_name)}"
     if not schema:
         return "Any"
+    if "const" in schema:
+        return f"Literal[{schema['const']!r}]"
     if schema.get("enum"):
         values = ", ".join(repr(value) for value in schema["enum"])
         return f"Literal[{values}]"
@@ -804,6 +927,7 @@ def python_types_source(spec: dict[str, Any], rows: list[dict[str, Any]]) -> str
     declarations: list[str] = []
     public_aliases: list[str] = []
     for name, schema in spec.get("components", {}).get("schemas", {}).items():
+        schema = merged_all_of_object_schema(spec, schema)
         type_name = f"_Schema{pascal_name(name)}"
         if schema.get("type") == "object" or "properties" in schema:
             required = set(schema.get("required", []))
@@ -846,8 +970,7 @@ def python_types_source(spec: dict[str, Any], rows: list[dict[str, Any]]) -> str
 
 
 def python_name(value: str) -> str:
-    value = re.sub(r"(?<!^)(?=[A-Z])", "_", value).lower()
-    return re.sub(r"_+", "_", re.sub(r"[^a-z0-9_]+", "_", value)).strip("_")
+    return snake_case_name(value)
 
 
 def python_openapi_client_source(rows: list[dict[str, Any]]) -> str:

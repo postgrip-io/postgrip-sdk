@@ -966,6 +966,82 @@
       ],
       "summary": "Upload a workspace archive"
     },
+    "applyServiceDNSPlan": {
+      "behavior": "Releases only the immutable, derived record set for an external DNS agent after the target route-staging operation has succeeded; PostGrip never receives provider credentials.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "The provider binding contains opaque account and zone references only; the response remains awaiting an exact provider result."
+      ],
+      "summary": "Release a fenced DNS plan for external apply"
+    },
+    "createServiceDNSPlan": {
+      "behavior": "Derives an exact CNAME or address record plus PostGrip ownership TXT proof after bounded target preflight and captures the hostname version, canonical generation, target deployment, current observation, and rollback records.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Only one plan may be open for a hostname, and the desired records cannot be expanded or rewritten after creation."
+      ],
+      "summary": "Preview an immutable provider-neutral DNS plan"
+    },
+    "getServiceDNSCanonicalState": {
+      "behavior": "Returns the canonical hostname state independently of the environment's primary display URL, including the active target, generation, last verified records, and health counters.",
+      "lifecycle": [
+        "A generation change fences older apply, provider-result, failover, and rollback requests."
+      ],
+      "summary": "Get canonical DNS and failover state"
+    },
+    "getServiceDNSFailoverPolicy": {
+      "behavior": "Returns the disabled, operator-approved, or automatic-external policy together with bounded thresholds, TTL, cooldown, attempt limit, and approved distinct-Worker targets.",
+      "lifecycle": [
+        "Automatic-external mode creates fenced plans but still delegates provider mutation to the external agent."
+      ],
+      "summary": "Get the canonical DNS failover policy"
+    },
+    "getServiceDNSPlan": {
+      "behavior": "Returns one immutable plan with exact desired and rollback records, provider references, current observation, propagation deadline, verification state, and failure details.",
+      "lifecycle": [
+        "Terminal plans are retained as auditable evidence and cannot become current again."
+      ],
+      "summary": "Get a provider-neutral DNS plan"
+    },
+    "listServiceDNSPlans": {
+      "behavior": "Lists the bounded plan history for one saved canonical domain, newest first, without exposing DNS-provider credentials.",
+      "lifecycle": [
+        "Use each plan state and generation to decide whether the external agent should apply, observe, roll back, or stop."
+      ],
+      "summary": "List canonical DNS plan history"
+    },
+    "reportServiceDNSProviderResult": {
+      "behavior": "Accepts an external provider result only when every returned record exactly matches the immutable desired set; extra, missing, or altered mutations are rejected before propagation starts.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Applied results enter bounded TTL-aware propagation and public verification; partial or failed results require rollback or intervention."
+      ],
+      "summary": "Report an exact external DNS provider result"
+    },
+    "requestServiceDNSFailover": {
+      "behavior": "Creates an operator-approved failover plan only for a configured, current-ready target on a distinct Worker after bounded target preflight.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "The request must fence the active deployment and canonical generation and explicitly carry operator approval."
+      ],
+      "summary": "Request a bounded canonical DNS failover"
+    },
+    "rollbackServiceDNSPlan": {
+      "behavior": "Creates a new immutable rollback plan from the canonical hostname's last verified record set; it never guesses a target from an unverified observation.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Rollback uses the same external apply, exact result, propagation, and verification sequence as activation."
+      ],
+      "summary": "Plan rollback to the last verified DNS target"
+    },
+    "updateServiceDNSFailoverPolicy": {
+      "behavior": "Replaces the complete failover policy under hostname-version and canonical-generation fences and validates that enabled targets use distinct Workers.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Health thresholds require hysteresis, bounded cooldown, and a maximum automatic attempt count."
+      ],
+      "summary": "Configure bounded canonical DNS failover"
+    },
     "getServiceDomainVerification": {
       "behavior": "Returns the latest persisted DNS, TLS, route, and HTTP observation for the exact saved domain configuration and deployment without initiating a network request.",
       "lifecycle": [

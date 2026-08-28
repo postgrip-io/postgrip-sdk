@@ -1,0 +1,43 @@
+{
+  "operationId": "getServiceDNSCanonicalState",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "domainId": "11111111-1111-4111-8111-111111111111",
+      "environmentId": "11111111-1111-4111-8111-111111111111",
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "consecutiveFailures": 1,
+      "consecutiveSuccesses": 1,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "domainConfigurationVersion": 1,
+      "domainId": "11111111-1111-4111-8111-111111111111",
+      "failoverAttempts": 1,
+      "generation": 1,
+      "hostname": "string",
+      "lastVerifiedRecords": [
+        {
+          "hostname": "string",
+          "ttlSeconds": 30,
+          "type": "A",
+          "value": "string"
+        }
+      ],
+      "state": "inactive",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getServiceDNSCanonicalState"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

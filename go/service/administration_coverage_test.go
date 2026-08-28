@@ -76,6 +76,18 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(domains.Verification(ctx, "project-1", "environment-1", "domain-1")))
 	mustServiceResult(t, serviceResultError(domains.Verify(ctx, "project-1", "environment-1", "domain-1", mutation)))
 
+	dns := client.ServiceDNS()
+	mustServiceResult(t, serviceResultError(dns.CanonicalState(ctx, "project-1", "environment-1", "domain-1")))
+	mustServiceResult(t, serviceResultError(dns.Plans(ctx, "project-1", "environment-1", "domain-1")))
+	mustServiceResult(t, serviceResultError(dns.CreatePlan(ctx, "project-1", "environment-1", "domain-1", OpenAPICreateServiceDNSPlanRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(dns.Plan(ctx, "project-1", "environment-1", "domain-1", "plan-1")))
+	mustServiceResult(t, serviceResultError(dns.Apply(ctx, "project-1", "environment-1", "domain-1", "plan-1", OpenAPIApplyServiceDNSPlanRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(dns.ReportProviderResult(ctx, "project-1", "environment-1", "domain-1", "plan-1", OpenAPIReportServiceDNSProviderResultRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(dns.Rollback(ctx, "project-1", "environment-1", "domain-1", "plan-1", OpenAPIRollbackServiceDNSPlanRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(dns.FailoverPolicy(ctx, "project-1", "environment-1", "domain-1")))
+	mustServiceResult(t, serviceResultError(dns.UpdateFailoverPolicy(ctx, "project-1", "environment-1", "domain-1", OpenAPIUpdateServiceDNSFailoverPolicyRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(dns.Failover(ctx, "project-1", "environment-1", "domain-1", OpenAPIRequestServiceDNSFailoverRequestBody{}, mutation)))
+
 	variables := client.ServiceVariables()
 	mustServiceResult(t, serviceResultError(variables.List(ctx, "project-1", "environment-1")))
 	mustServiceResult(t, serviceResultError(variables.Create(ctx, "project-1", "environment-1", OpenAPICreateServiceVariableRequestBody{}, write)))
@@ -127,8 +139,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
 	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
 
-	if calls.Load() != 70 {
-		t.Fatalf("transport calls=%d, want 70", calls.Load())
+	if calls.Load() != 80 {
+		t.Fatalf("transport calls=%d, want 80", calls.Load())
 	}
 }
 

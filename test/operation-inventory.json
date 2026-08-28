@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "7d1702e54be36871b78b433fae3edcb261c6ea191a0fe238ab9bcb1bea872d43",
+  "contractBundleDigest": "b48b9828c428581f6401ff87da2a4dcfc754b4dd851e51bb3f1e895aa5b3cf5d",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "13c78464957178b5d73f27ba2953c29506ddbb4637832c445c0174381c778c5b",
+    "service": "b4530e626b4b3f0675a9948d05f3d9eabef68672d1bc86835bb27816a1915793",
     "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
@@ -1464,6 +1464,42 @@
       "idempotency": "required",
       "method": "POST",
       "operationClass": "tenant-api",
+      "operationId": "applyServiceDNSPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/apply",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ApplyServiceDNSPlanRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSPlan",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
       "operationId": "applyServiceVariables",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/variables/apply",
@@ -1751,6 +1787,41 @@
       "responseSchema": "PostGripConfigurationPlan",
       "retry": "bounded",
       "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "createServiceDNSPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceDNSPlanRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSPlan",
+      "retry": "bounded",
+      "safety": "mutation",
       "signing": null
     },
     {
@@ -2410,6 +2481,106 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getServiceDNSCanonicalState",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSCanonicalState",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceDNSFailoverPolicy",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSFailoverPolicy",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceDNSPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSPlan",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getServiceDeployment",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/deployments/{deploymentId}",
@@ -2869,6 +3040,39 @@
         "application/json"
       ],
       "responseSchema": "ServiceConfigurationOperationList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceDNSPlans",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSPlanList",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -3496,6 +3700,77 @@
         "postgrip-token"
       ],
       "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "reportServiceDNSProviderResult",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/provider-result",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ReportServiceDNSProviderResultRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSPlan",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "requestServiceDNSFailover",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "RequestServiceDNSFailoverRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSFailoverPlan",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
@@ -3680,6 +3955,42 @@
       "responseSchema": "ServiceConfigurationOperation",
       "retry": "bounded",
       "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "rollbackServiceDNSPlan",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId",
+        "planId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "RollbackServiceDNSPlanRequest",
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSRollbackPlan",
+      "retry": "bounded",
+      "safety": "destructive",
       "signing": null
     },
     {
@@ -3906,6 +4217,42 @@
         "application/json"
       ],
       "responseSchema": "ServiceBuildLogSettingsMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceDNSFailoverPolicy",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceDNSFailoverPolicyRequest",
+      "requiredScopes": [
+        [
+          "services:config:write",
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDNSFailoverPolicy",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null

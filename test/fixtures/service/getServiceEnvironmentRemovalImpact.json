@@ -16,6 +16,9 @@
       "activeDeploymentIds": [
         "11111111-1111-4111-8111-111111111111"
       ],
+      "canonicalDnsDomainIds": [
+        "11111111-1111-4111-8111-111111111111"
+      ],
       "domainCount": 1,
       "durableData": true,
       "environmentIds": [

@@ -6,7 +6,7 @@ from io import BytesIO
 import inspect
 import json
 from threading import Event
-from typing import get_type_hints
+from typing import Literal, get_type_hints
 import unittest
 from urllib.error import HTTPError
 from urllib.parse import urlparse
@@ -21,7 +21,12 @@ from postgrip.service.administration_types import (
     RepositoriesAdministration,
 )
 from postgrip.service.client import _NoRedirect
-from postgrip.service.openapi import OperationId
+from postgrip.service.openapi import (
+    OpenAPIRequestServiceDNSFailoverRequest,
+    OpenAPIServiceDNSFailoverTarget,
+    OpenAPIServiceDNSRollbackPlan,
+    OperationId,
+)
 
 
 SERVICE = {
@@ -47,6 +52,21 @@ class AdministrationTypeTests(unittest.TestCase):
         get_type_hints(RepositoriesAdministration.put_service_repository_credential)
         get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
         get_type_hints(DeclarativeConfigurationAdministration.create_post_grip_configuration_plan)
+
+    def test_const_approval_field_remains_literal_true(self) -> None:
+        hints = get_type_hints(OpenAPIRequestServiceDNSFailoverRequest)
+        self.assertEqual(hints["approved"], Literal[True])
+
+    def test_dns_operation_names_keep_the_acronym_intact(self) -> None:
+        client = ServiceClient(base_url="https://services.example.test", token="pgt_test-token", opener=FakeOpener([]))  # type: ignore[arg-type]
+        self.assertTrue(hasattr(client.administration.dns, "get_service_dns_plan"))
+        self.assertFalse(hasattr(client.administration.dns, "get_service_d_n_s_plan"))
+
+    def test_dns_response_types_preserve_server_guarantees(self) -> None:
+        rollback_hints = get_type_hints(OpenAPIServiceDNSRollbackPlan)
+        target_hints = get_type_hints(OpenAPIServiceDNSFailoverTarget)
+        self.assertEqual(rollback_hints["kind"], Literal["rollback"])
+        self.assertIn("workerId", target_hints)
 
 
 def api_error(status: int, code: str = "BUSY", retry_after: str = "0") -> HTTPError:
@@ -384,6 +404,7 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.environments,
             client.administration.managed_volumes,
             client.administration.domains,
+            client.administration.dns,
             client.administration.variables,
             client.administration.repositories,
             client.administration.promotions,
@@ -402,7 +423,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 70)
+        self.assertEqual(len(exposed), 80)
 
         client.administration.target_services.attach_target_service(
             {
@@ -420,7 +441,7 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
 
     def test_every_administration_facade_executes_through_the_transport(self) -> None:
-        opener = FakeOpener([{} for _ in range(70)])
+        opener = FakeOpener([{} for _ in range(80)])
         client = ServiceClient(
             base_url="https://services.example.test", token="pgt_test-token", opener=opener,
         )  # type: ignore[arg-type]
@@ -430,6 +451,7 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.environments,
             client.administration.managed_volumes,
             client.administration.domains,
+            client.administration.dns,
             client.administration.variables,
             client.administration.repositories,
             client.administration.promotions,
@@ -444,7 +466,7 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 70)
+        self.assertEqual(len(opener.requests), 80)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
@@ -599,7 +621,7 @@ class ServiceClientTests(unittest.TestCase):
 
     def test_async_administration_facades_execute_through_the_transport(self) -> None:
         async def run() -> None:
-            opener = FakeOpener([{} for _ in range(70)])
+            opener = FakeOpener([{} for _ in range(80)])
             client = AsyncServiceClient(
                 base_url="https://services.example.test", token="pgt_test-token", opener=opener,
             )  # type: ignore[arg-type]
@@ -609,6 +631,7 @@ class ServiceClientTests(unittest.TestCase):
                 (client.administration.environments, client._sync.administration.environments),
                 (client.administration.managed_volumes, client._sync.administration.managed_volumes),
                 (client.administration.domains, client._sync.administration.domains),
+                (client.administration.dns, client._sync.administration.dns),
                 (client.administration.variables, client._sync.administration.variables),
                 (client.administration.repositories, client._sync.administration.repositories),
                 (client.administration.promotions, client._sync.administration.promotions),
@@ -628,7 +651,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 70)
+            self.assertEqual(len(opener.requests), 80)
 
         asyncio.run(run())
 

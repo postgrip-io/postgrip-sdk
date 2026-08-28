@@ -1,0 +1,88 @@
+{
+  "operationId": "createServiceDNSPlan",
+  "plane": "service",
+  "request": {
+    "body": {
+      "expectedCanonicalGeneration": 1,
+      "expectedDomainConfigurationVersion": 1,
+      "expectedTargetDeploymentId": "11111111-1111-4111-8111-111111111111",
+      "kind": "activate",
+      "reason": "initial_activation",
+      "targetEnvironmentId": "11111111-1111-4111-8111-111111111111",
+      "targetProjectId": "11111111-1111-4111-8111-111111111111",
+      "ttlSeconds": 30
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-createServiceDNSPlan"
+    },
+    "pathParameters": {
+      "domainId": "11111111-1111-4111-8111-111111111111",
+      "environmentId": "11111111-1111-4111-8111-111111111111",
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "createdAt": "2026-01-01T00:00:00Z",
+      "currentObservation": {
+        "observedAt": "2026-01-01T00:00:00Z",
+        "records": [
+          {
+            "hostname": "string",
+            "ttlSeconds": 1,
+            "type": "A",
+            "value": "string"
+          }
+        ]
+      },
+      "desiredRecords": [
+        {
+          "hostname": "app.example.com",
+          "ttlSeconds": 60,
+          "type": "CNAME",
+          "value": "worker.example.com"
+        },
+        {
+          "hostname": "_postgrip.app.example.com",
+          "ttlSeconds": 60,
+          "type": "TXT",
+          "value": "postgrip-domain=11111111-1111-4111-8111-111111111111;proof=0123456789abcdef0123456789abcdef"
+        }
+      ],
+      "domainId": "11111111-1111-4111-8111-111111111111",
+      "expectedCanonicalGeneration": 1,
+      "expectedDomainConfigurationVersion": 1,
+      "id": "11111111-1111-4111-8111-111111111111",
+      "kind": "activate",
+      "previousRecords": [
+        {
+          "hostname": "string",
+          "ttlSeconds": 30,
+          "type": "A",
+          "value": "string"
+        }
+      ],
+      "propagationSuccesses": 1,
+      "providerMode": "external",
+      "reason": "string",
+      "state": "planned",
+      "target": {
+        "deploymentId": "11111111-1111-4111-8111-111111111111",
+        "environmentId": "11111111-1111-4111-8111-111111111111",
+        "projectId": "11111111-1111-4111-8111-111111111111",
+        "verificationUrl": "https://worker.example.com/deploy/project/environment/",
+        "workerId": "11111111-1111-4111-8111-111111111111",
+        "workerOrigin": "https://worker.example.com"
+      },
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_createServiceDNSPlan"
+    },
+    "status": 201
+  },
+  "schemaVersion": 1
+}
