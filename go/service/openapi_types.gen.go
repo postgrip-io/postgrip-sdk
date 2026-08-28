@@ -1258,6 +1258,36 @@ type OpenAPIServiceDNSRollbackPlan struct {
 	UpdatedAt                          time.Time                         `json:"updatedAt"`
 	Receipt                            *OpenAPIOperationReceipt          `json:"receipt,omitempty"`
 }
+type OpenAPIServiceDNSFailoverPlan struct {
+	Id                                 string                            `json:"id"`
+	DomainId                           string                            `json:"domainId"`
+	Kind                               string                            `json:"kind"`
+	State                              string                            `json:"state"`
+	ExpectedDomainConfigurationVersion int64                             `json:"expectedDomainConfigurationVersion"`
+	ExpectedCanonicalGeneration        int64                             `json:"expectedCanonicalGeneration"`
+	ExpectedActiveDeploymentId         *string                           `json:"expectedActiveDeploymentId,omitempty"`
+	Target                             OpenAPIServiceDNSCanonicalTarget  `json:"target"`
+	ProviderMode                       string                            `json:"providerMode"`
+	ProviderBinding                    *OpenAPIServiceDNSProviderBinding `json:"providerBinding,omitempty"`
+	ProviderChangeRef                  *string                           `json:"providerChangeRef,omitempty"`
+	DesiredRecords                     []OpenAPIServiceDNSRecord         `json:"desiredRecords"`
+	PreviousRecords                    []OpenAPIServiceDNSRecord         `json:"previousRecords"`
+	CurrentObservation                 OpenAPIServiceDNSObservation      `json:"currentObservation"`
+	Reason                             string                            `json:"reason"`
+	PropagationSuccesses               int64                             `json:"propagationSuccesses"`
+	NextCheckAt                        *time.Time                        `json:"nextCheckAt,omitempty"`
+	PropagationDeadline                *time.Time                        `json:"propagationDeadline,omitempty"`
+	FailureCode                        *string                           `json:"failureCode,omitempty"`
+	FailureDetail                      *string                           `json:"failureDetail,omitempty"`
+	SourceHealthObservedAt             *time.Time                        `json:"sourceHealthObservedAt,omitempty"`
+	RollbackOfPlanId                   *string                           `json:"rollbackOfPlanId,omitempty"`
+	RouteConfigurationOperationId      *string                           `json:"routeConfigurationOperationId,omitempty"`
+	CreatedAt                          time.Time                         `json:"createdAt"`
+	AppliedAt                          *time.Time                        `json:"appliedAt,omitempty"`
+	CompletedAt                        *time.Time                        `json:"completedAt,omitempty"`
+	UpdatedAt                          time.Time                         `json:"updatedAt"`
+	Receipt                            *OpenAPIOperationReceipt          `json:"receipt,omitempty"`
+}
 type OpenAPIServiceDNSPlanList struct {
 	Items []OpenAPIServiceDNSPlan `json:"items"`
 }
@@ -1487,7 +1517,7 @@ type OpenAPIRefreshServiceRepositoryCredentialResponseBody = OpenAPIServiceRepos
 type OpenAPIReportServiceDNSProviderResultRequestBody = OpenAPIReportServiceDNSProviderResultRequest
 type OpenAPIReportServiceDNSProviderResultResponseBody = OpenAPIServiceDNSPlan
 type OpenAPIRequestServiceDNSFailoverRequestBody = OpenAPIRequestServiceDNSFailoverRequest
-type OpenAPIRequestServiceDNSFailoverResponseBody = OpenAPIServiceDNSPlan
+type OpenAPIRequestServiceDNSFailoverResponseBody = OpenAPIServiceDNSFailoverPlan
 type OpenAPIResolveServiceRequestBody = OpenAPINoBody
 type OpenAPIResolveServiceResponseBody = OpenAPIService
 type OpenAPIResolveServiceEnvironmentRequestBody = OpenAPINoBody
@@ -1740,6 +1770,7 @@ type ServiceDNSCanonicalState = OpenAPIServiceDNSCanonicalState
 type ServiceDNSProviderBinding = OpenAPIServiceDNSProviderBinding
 type ServiceDNSPlan = OpenAPIServiceDNSPlan
 type ServiceDNSRollbackPlan = OpenAPIServiceDNSRollbackPlan
+type ServiceDNSFailoverPlan = OpenAPIServiceDNSFailoverPlan
 type ServiceDNSPlanList = OpenAPIServiceDNSPlanList
 type CreateServiceDNSPlanRequest = OpenAPICreateServiceDNSPlanRequest
 type ApplyServiceDNSPlanRequest = OpenAPIApplyServiceDNSPlanRequest
@@ -1752,4 +1783,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "56864569e659b939992cc195e311635d60036a56d2504f49229e9b3db4ed6674"
+const openAPITypesSpecSHA256 = "b4530e626b4b3f0675a9948d05f3d9eabef68672d1bc86835bb27816a1915793"

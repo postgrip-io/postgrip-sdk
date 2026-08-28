@@ -43,6 +43,11 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<'applied' | 'failed' | 'partial'>();
     expectTypeOf<OpenAPIRequestBody<'reportServiceDNSProviderResult'>['records']>()
       .toBeArray();
+    type ProviderResult = OpenAPIRequestBody<'reportServiceDNSProviderResult'>;
+    expectTypeOf<Extract<ProviderResult, { outcome: 'applied' }>['records'][number]['status']>()
+      .toEqualTypeOf<'applied'>();
+    expectTypeOf<Extract<ProviderResult, { outcome: 'failed' }>['records'][number]['status']>()
+      .toEqualTypeOf<'failed'>();
     expectTypeOf<OpenAPIRequestBody<'updateServiceDNSFailoverPolicy'>['mode']>()
       .toEqualTypeOf<'disabled' | 'operator_approved' | 'automatic_external'>();
   });

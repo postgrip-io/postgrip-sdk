@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "56864569e659b939992cc195e311635d60036a56d2504f49229e9b3db4ed6674"
-	OpenAPIContractBundleSHA256 = "5cfdb9663c6d13dace01c2414c025991e18fc48f91d1bf4465c0b17a4fd9cd37"
+	OpenAPISpecSHA256           = "b4530e626b4b3f0675a9948d05f3d9eabef68672d1bc86835bb27816a1915793"
+	OpenAPIContractBundleSHA256 = "b48b9828c428581f6401ff87da2a4dcfc754b4dd851e51bb3f1e895aa5b3cf5d"
 	OpenAPIOperationCount       = 98
 )
 
@@ -205,7 +205,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIRedeployService:                                {Method: "POST", Path: "/api/v1/services/project/{serviceId}/redeploy", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RedeployServiceRequest", ResponseSchema: "DeploymentOperationResponse", PathParameters: []string{"serviceId"}},
 	openAPIRefreshServiceRepositoryCredential:             {Method: "POST", Path: "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}/refresh", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRepositoryMutationResponse", PathParameters: []string{"serviceId", "credentialKind"}},
 	openAPIReportServiceDNSProviderResult:                 {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/provider-result", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ReportServiceDNSProviderResultRequest", ResponseSchema: "ServiceDNSPlan", PathParameters: []string{"serviceId", "environmentId", "domainId", "planId"}},
-	openAPIRequestServiceDNSFailover:                      {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RequestServiceDNSFailoverRequest", ResponseSchema: "ServiceDNSPlan", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
+	openAPIRequestServiceDNSFailover:                      {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RequestServiceDNSFailoverRequest", ResponseSchema: "ServiceDNSFailoverPlan", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
 	openAPIResolveService:                                 {Method: "GET", Path: "/api/v1/services/resolve", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Service", PathParameters: []string{}},
 	openAPIResolveServiceEnvironment:                      {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/resolve", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Environment", PathParameters: []string{"serviceId"}},
 	openAPIRestartServiceRuntime:                          {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/restart", AuthLane: "service-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "RuntimeOperationRequest", ResponseSchema: "ServiceOperationResponse", PathParameters: []string{"serviceId", "environmentId"}},

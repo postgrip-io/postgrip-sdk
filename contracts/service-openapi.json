@@ -6069,7 +6069,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                  "$ref": "#/components/schemas/ServiceDNSFailoverPlan"
                 }
               }
             }
@@ -11987,6 +11987,28 @@
           }
         ]
       },
+      "ServiceDNSFailoverPlan": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceDNSPlan"
+          },
+          {
+            "type": "object",
+            "additionalProperties": {},
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "failover",
+                  "failback"
+                ]
+              }
+            }
+          }
+        ]
+      },
       "ServiceDNSPlanList": {
         "type": "object",
         "additionalProperties": false,
@@ -12117,7 +12139,8 @@
           "hostname": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 253
+            "maxLength": 253,
+            "pattern": "^[a-z0-9_][a-z0-9_.-]*$"
           },
           "type": {
             "type": "string",

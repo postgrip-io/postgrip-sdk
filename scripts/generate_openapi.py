@@ -774,7 +774,20 @@ def typescript_conditional_schema_type(
             for name, constraint in constraints["properties"].items():
                 base_property = properties.get(name)
                 if isinstance(base_property, dict) and isinstance(constraint, dict):
-                    properties[name] = {**base_property, "allOf": [constraint]}
+                    # Preserve nested conditional constraints. Array item
+                    # constraints must intersect the referenced element type;
+                    # putting the constraint beside `items` loses it when the
+                    # TypeScript renderer emits the array.
+                    if isinstance(base_property.get("items"), dict) and isinstance(constraint.get("items"), dict):
+                        properties[name] = {
+                            **base_property,
+                            **{key: value for key, value in constraint.items() if key != "items"},
+                            "items": {
+                                "allOf": [base_property["items"], constraint["items"]],
+                            },
+                        }
+                    else:
+                        properties[name] = {**base_property, "allOf": [constraint]}
                 else:
                     properties[name] = constraint
         branch["properties"] = properties
