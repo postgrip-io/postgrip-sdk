@@ -6,6 +6,7 @@ import {
   referenceFor,
   type OpenAPIRequestBody,
   type GetServiceRepositoryResponseBody,
+  type GetServiceEnvironmentResponseBody,
 } from '../../src/service/index.js';
 
 const service = {
@@ -45,6 +46,13 @@ describe('ServiceClient', () => {
         | 'no-worker-assigned'
         | 'registration-failed'
       >();
+  });
+
+  it('supports server-resolved environment placement', () => {
+    expectTypeOf<OpenAPIRequestBody<'createServiceEnvironment'>['assignedWorkerId']>()
+      .toEqualTypeOf<string | undefined>();
+    expectTypeOf<NonNullable<GetServiceEnvironmentResponseBody['placement']>['mode']>()
+      .toEqualTypeOf<'automatic' | 'project-default' | 'explicit' | 'reassigned' | 'legacy'>();
   });
 
   it('preserves const approval fields in generated request types', () => {

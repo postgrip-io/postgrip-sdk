@@ -27,6 +27,8 @@ from postgrip.service.openapi import (
     OpenAPIServiceDNSFailoverTarget,
     OpenAPIServiceDNSRollbackPlan,
     OpenAPIServiceAutomaticDeploymentWiring,
+    OpenAPICreateServiceEnvironmentRequest,
+    OpenAPIServiceEnvironmentPlacement,
     OperationId,
 )
 
@@ -63,6 +65,14 @@ class AdministrationTypeTests(unittest.TestCase):
                 "no-worker-assigned",
                 "registration-failed",
             ],
+        )
+
+    def test_environment_placement_is_server_resolvable_and_closed(self) -> None:
+        self.assertNotIn("assignedWorkerId", OpenAPICreateServiceEnvironmentRequest.__required_keys__)
+        hints = get_type_hints(OpenAPIServiceEnvironmentPlacement)
+        self.assertEqual(
+            hints["mode"],
+            Literal["automatic", "project-default", "explicit", "reassigned", "legacy"],
         )
 
     def test_runtime_type_hints_resolve_closed_literals(self) -> None:

@@ -8455,6 +8455,11 @@
           "serverType": {
             "type": "string"
           },
+          "defaultWorkerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Eligible project-level Worker override used for future environment placement when assignedWorkerId is omitted."
+          },
           "repository": {
             "$ref": "#/components/schemas/ServiceRepositoryWriteRequest"
           }
@@ -8493,6 +8498,14 @@
           },
           "serverType": {
             "type": "string"
+          },
+          "defaultWorkerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clearDefaultWorker": {
+            "type": "boolean",
+            "description": "Clears the project Worker default; future environments return to automatic placement."
           }
         }
       },
@@ -8525,7 +8538,8 @@
           },
           "assignedWorkerId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Explicit placement override. When omitted, the project default or deterministic automatic placement is used."
           },
           "buildCommand": {
             "type": "string"
@@ -9503,6 +9517,10 @@
           "serverType": {
             "type": "string"
           },
+          "defaultWorkerId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "repository": {
             "$ref": "#/components/schemas/ServiceRepository"
           },
@@ -9555,6 +9573,35 @@
           }
         }
       },
+      "ServiceEnvironmentPlacement": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workerId",
+          "mode",
+          "reason"
+        ],
+        "properties": {
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "project-default",
+              "explicit",
+              "reassigned",
+              "legacy"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Stable audit reason for the resolved placement decision."
+          }
+        }
+      },
       "ServiceEnvironmentConfiguration": {
         "type": "object",
         "additionalProperties": false,
@@ -9603,6 +9650,9 @@
           "assignedWorkerId": {
             "type": "string",
             "format": "uuid"
+          },
+          "placement": {
+            "$ref": "#/components/schemas/ServiceEnvironmentPlacement"
           },
           "buildCommand": {
             "type": "string"
@@ -11959,6 +12009,19 @@
           "assignedWorkerVersion": {
             "type": "integer",
             "minimum": 1
+          },
+          "placementMode": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "project-default",
+              "explicit",
+              "reassigned",
+              "legacy"
+            ]
+          },
+          "placementReason": {
+            "type": "string"
           },
           "buildCommand": {
             "type": "string"
