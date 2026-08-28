@@ -38,6 +38,15 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<true>();
   });
 
+  it('preserves base fields on schemas with conditional allOf constraints', () => {
+    expectTypeOf<OpenAPIRequestBody<'reportServiceDNSProviderResult'>['outcome']>()
+      .toEqualTypeOf<'applied' | 'failed' | 'partial'>();
+    expectTypeOf<OpenAPIRequestBody<'reportServiceDNSProviderResult'>['records']>()
+      .toBeArray();
+    expectTypeOf<OpenAPIRequestBody<'updateServiceDNSFailoverPolicy'>['mode']>()
+      .toEqualTypeOf<'disabled' | 'operator_approved' | 'automatic_external'>();
+  });
+
   it('rejects unsafe configuration', () => {
     expect(() => new ServiceClient({ baseUrl: 'http://example.test', token: 'pgt_token' })).toThrow(/HTTPS/);
     expect(() => new ServiceClient({ baseUrl: 'https://example.test?q=yes', token: 'pgt_token' })).toThrow(/query/);

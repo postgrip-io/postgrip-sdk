@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '10d6c18a0f933819f6b299c2273921ad5e52f374ac9609ad90d177c8c67f80cb'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '2b292feefff63a07800f5fd5515887ce1da367f4b4eb195f1a3b73e65b8761f1'
+OPENAPI_SPEC_SHA256 = 'afad86eba107c2175f3af8dbf50bd4f58c4732ac291126e8df5d07680b731505'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '5be292e94aaa518d4cc4fc97d7309dfbcbf16e6139da32908c130b04708884b6'
 OPENAPI_OPERATION_COUNT = 98
 OPENAPI_CLIENT_OPERATION_COUNT = 98
 
@@ -18,7 +18,7 @@ OPENAPI_CLIENT_OPERATION_COUNT = 98
 class OperationId(str, Enum):
     ADOPT_GIT_HUB_REPOSITORY = 'adoptGitHubRepository'
     APPLY_POST_GRIP_CONFIGURATION_PLAN = 'applyPostGripConfigurationPlan'
-    APPLY_SERVICE_D_N_S_PLAN = 'applyServiceDNSPlan'
+    APPLY_SERVICE_DNS_PLAN = 'applyServiceDNSPlan'
     APPLY_SERVICE_VARIABLES = 'applyServiceVariables'
     ATTACH_TARGET_SERVICE = 'attachTargetService'
     BIND_SERVICE_VOLUME = 'bindServiceVolume'
@@ -28,7 +28,7 @@ class OperationId(str, Enum):
     CLEAR_SERVICE_VARIABLE_VALUE = 'clearServiceVariableValue'
     CLEAR_TARGET_SERVICE_CONNECTION = 'clearTargetServiceConnection'
     CREATE_POST_GRIP_CONFIGURATION_PLAN = 'createPostGripConfigurationPlan'
-    CREATE_SERVICE_D_N_S_PLAN = 'createServiceDNSPlan'
+    CREATE_SERVICE_DNS_PLAN = 'createServiceDNSPlan'
     CREATE_SERVICE_DOMAIN = 'createServiceDomain'
     CREATE_SERVICE_ENVIRONMENT = 'createServiceEnvironment'
     CREATE_SERVICE_PROJECT = 'createServiceProject'
@@ -49,9 +49,9 @@ class OperationId(str, Enum):
     GET_SERVICE = 'getService'
     GET_SERVICE_BUILD_LOG_SETTINGS = 'getServiceBuildLogSettings'
     GET_SERVICE_CONFIGURATION_OPERATION = 'getServiceConfigurationOperation'
-    GET_SERVICE_D_N_S_CANONICAL_STATE = 'getServiceDNSCanonicalState'
-    GET_SERVICE_D_N_S_FAILOVER_POLICY = 'getServiceDNSFailoverPolicy'
-    GET_SERVICE_D_N_S_PLAN = 'getServiceDNSPlan'
+    GET_SERVICE_DNS_CANONICAL_STATE = 'getServiceDNSCanonicalState'
+    GET_SERVICE_DNS_FAILOVER_POLICY = 'getServiceDNSFailoverPolicy'
+    GET_SERVICE_DNS_PLAN = 'getServiceDNSPlan'
     GET_SERVICE_DEPLOYMENT = 'getServiceDeployment'
     GET_SERVICE_DOMAIN_VERIFICATION = 'getServiceDomainVerification'
     GET_SERVICE_ENVIRONMENT = 'getServiceEnvironment'
@@ -67,7 +67,7 @@ class OperationId(str, Enum):
     LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS = 'listPostGripConfigurationPlanActions'
     LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS = 'listPostGripConfigurationStackOperationActions'
     LIST_SERVICE_CONFIGURATION_OPERATIONS = 'listServiceConfigurationOperations'
-    LIST_SERVICE_D_N_S_PLANS = 'listServiceDNSPlans'
+    LIST_SERVICE_DNS_PLANS = 'listServiceDNSPlans'
     LIST_SERVICE_DEPLOYMENTS = 'listServiceDeployments'
     LIST_SERVICE_DOMAINS = 'listServiceDomains'
     LIST_SERVICE_ENVIRONMENTS = 'listServiceEnvironments'
@@ -87,15 +87,15 @@ class OperationId(str, Enum):
     REASSIGN_SERVICE_ENVIRONMENT = 'reassignServiceEnvironment'
     REDEPLOY_SERVICE = 'redeployService'
     REFRESH_SERVICE_REPOSITORY_CREDENTIAL = 'refreshServiceRepositoryCredential'
-    REPORT_SERVICE_D_N_S_PROVIDER_RESULT = 'reportServiceDNSProviderResult'
-    REQUEST_SERVICE_D_N_S_FAILOVER = 'requestServiceDNSFailover'
+    REPORT_SERVICE_DNS_PROVIDER_RESULT = 'reportServiceDNSProviderResult'
+    REQUEST_SERVICE_DNS_FAILOVER = 'requestServiceDNSFailover'
     RESOLVE_SERVICE = 'resolveService'
     RESOLVE_SERVICE_ENVIRONMENT = 'resolveServiceEnvironment'
     RESTART_SERVICE_RUNTIME = 'restartServiceRuntime'
     RESUBMIT_POST_GRIP_CONFIGURATION_SECRET_INPUTS = 'resubmitPostGripConfigurationSecretInputs'
     RETRY_POST_GRIP_CONFIGURATION_STACK_OPERATION = 'retryPostGripConfigurationStackOperation'
     RETRY_SERVICE_CONFIGURATION_OPERATION = 'retryServiceConfigurationOperation'
-    ROLLBACK_SERVICE_D_N_S_PLAN = 'rollbackServiceDNSPlan'
+    ROLLBACK_SERVICE_DNS_PLAN = 'rollbackServiceDNSPlan'
     ROLLBACK_SERVICE_DEPLOYMENT = 'rollbackServiceDeployment'
     START_SERVICE_RUNTIME = 'startServiceRuntime'
     STOP_SERVICE_RUNTIME = 'stopServiceRuntime'
@@ -103,7 +103,7 @@ class OperationId(str, Enum):
     TRIM_SERVICE_RUNTIME_LOGS = 'trimServiceRuntimeLogs'
     UNBIND_SERVICE_VOLUME = 'unbindServiceVolume'
     UPDATE_SERVICE_BUILD_LOG_SETTINGS = 'updateServiceBuildLogSettings'
-    UPDATE_SERVICE_D_N_S_FAILOVER_POLICY = 'updateServiceDNSFailoverPolicy'
+    UPDATE_SERVICE_DNS_FAILOVER_POLICY = 'updateServiceDNSFailoverPolicy'
     UPDATE_SERVICE_DOMAIN = 'updateServiceDomain'
     UPDATE_SERVICE_ENVIRONMENT = 'updateServiceEnvironment'
     UPDATE_SERVICE_PROJECT = 'updateServiceProject'
@@ -1826,7 +1826,7 @@ VerifyServiceDomainResponseBody: TypeAlias = _SchemaServiceDomainVerification
 OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.ADOPT_GIT_HUB_REPOSITORY: (AdoptGitHubRepositoryRequestBody, AdoptGitHubRepositoryResponseBody),
     OperationId.APPLY_POST_GRIP_CONFIGURATION_PLAN: (ApplyPostGripConfigurationPlanRequestBody, ApplyPostGripConfigurationPlanResponseBody),
-    OperationId.APPLY_SERVICE_D_N_S_PLAN: (ApplyServiceDNSPlanRequestBody, ApplyServiceDNSPlanResponseBody),
+    OperationId.APPLY_SERVICE_DNS_PLAN: (ApplyServiceDNSPlanRequestBody, ApplyServiceDNSPlanResponseBody),
     OperationId.APPLY_SERVICE_VARIABLES: (ApplyServiceVariablesRequestBody, ApplyServiceVariablesResponseBody),
     OperationId.ATTACH_TARGET_SERVICE: (AttachTargetServiceRequestBody, AttachTargetServiceResponseBody),
     OperationId.BIND_SERVICE_VOLUME: (BindServiceVolumeRequestBody, BindServiceVolumeResponseBody),
@@ -1836,7 +1836,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.CLEAR_SERVICE_VARIABLE_VALUE: (ClearServiceVariableValueRequestBody, ClearServiceVariableValueResponseBody),
     OperationId.CLEAR_TARGET_SERVICE_CONNECTION: (ClearTargetServiceConnectionRequestBody, ClearTargetServiceConnectionResponseBody),
     OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN: (CreatePostGripConfigurationPlanRequestBody, CreatePostGripConfigurationPlanResponseBody),
-    OperationId.CREATE_SERVICE_D_N_S_PLAN: (CreateServiceDNSPlanRequestBody, CreateServiceDNSPlanResponseBody),
+    OperationId.CREATE_SERVICE_DNS_PLAN: (CreateServiceDNSPlanRequestBody, CreateServiceDNSPlanResponseBody),
     OperationId.CREATE_SERVICE_DOMAIN: (CreateServiceDomainRequestBody, CreateServiceDomainResponseBody),
     OperationId.CREATE_SERVICE_ENVIRONMENT: (CreateServiceEnvironmentRequestBody, CreateServiceEnvironmentResponseBody),
     OperationId.CREATE_SERVICE_PROJECT: (CreateServiceProjectRequestBody, CreateServiceProjectResponseBody),
@@ -1857,9 +1857,9 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.GET_SERVICE: (GetServiceRequestBody, GetServiceResponseBody),
     OperationId.GET_SERVICE_BUILD_LOG_SETTINGS: (GetServiceBuildLogSettingsRequestBody, GetServiceBuildLogSettingsResponseBody),
     OperationId.GET_SERVICE_CONFIGURATION_OPERATION: (GetServiceConfigurationOperationRequestBody, GetServiceConfigurationOperationResponseBody),
-    OperationId.GET_SERVICE_D_N_S_CANONICAL_STATE: (GetServiceDNSCanonicalStateRequestBody, GetServiceDNSCanonicalStateResponseBody),
-    OperationId.GET_SERVICE_D_N_S_FAILOVER_POLICY: (GetServiceDNSFailoverPolicyRequestBody, GetServiceDNSFailoverPolicyResponseBody),
-    OperationId.GET_SERVICE_D_N_S_PLAN: (GetServiceDNSPlanRequestBody, GetServiceDNSPlanResponseBody),
+    OperationId.GET_SERVICE_DNS_CANONICAL_STATE: (GetServiceDNSCanonicalStateRequestBody, GetServiceDNSCanonicalStateResponseBody),
+    OperationId.GET_SERVICE_DNS_FAILOVER_POLICY: (GetServiceDNSFailoverPolicyRequestBody, GetServiceDNSFailoverPolicyResponseBody),
+    OperationId.GET_SERVICE_DNS_PLAN: (GetServiceDNSPlanRequestBody, GetServiceDNSPlanResponseBody),
     OperationId.GET_SERVICE_DEPLOYMENT: (GetServiceDeploymentRequestBody, GetServiceDeploymentResponseBody),
     OperationId.GET_SERVICE_DOMAIN_VERIFICATION: (GetServiceDomainVerificationRequestBody, GetServiceDomainVerificationResponseBody),
     OperationId.GET_SERVICE_ENVIRONMENT: (GetServiceEnvironmentRequestBody, GetServiceEnvironmentResponseBody),
@@ -1875,7 +1875,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS: (ListPostGripConfigurationPlanActionsRequestBody, ListPostGripConfigurationPlanActionsResponseBody),
     OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS: (ListPostGripConfigurationStackOperationActionsRequestBody, ListPostGripConfigurationStackOperationActionsResponseBody),
     OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: (ListServiceConfigurationOperationsRequestBody, ListServiceConfigurationOperationsResponseBody),
-    OperationId.LIST_SERVICE_D_N_S_PLANS: (ListServiceDNSPlansRequestBody, ListServiceDNSPlansResponseBody),
+    OperationId.LIST_SERVICE_DNS_PLANS: (ListServiceDNSPlansRequestBody, ListServiceDNSPlansResponseBody),
     OperationId.LIST_SERVICE_DEPLOYMENTS: (ListServiceDeploymentsRequestBody, ListServiceDeploymentsResponseBody),
     OperationId.LIST_SERVICE_DOMAINS: (ListServiceDomainsRequestBody, ListServiceDomainsResponseBody),
     OperationId.LIST_SERVICE_ENVIRONMENTS: (ListServiceEnvironmentsRequestBody, ListServiceEnvironmentsResponseBody),
@@ -1895,15 +1895,15 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.REASSIGN_SERVICE_ENVIRONMENT: (ReassignServiceEnvironmentRequestBody, ReassignServiceEnvironmentResponseBody),
     OperationId.REDEPLOY_SERVICE: (RedeployServiceRequestBody, RedeployServiceResponseBody),
     OperationId.REFRESH_SERVICE_REPOSITORY_CREDENTIAL: (RefreshServiceRepositoryCredentialRequestBody, RefreshServiceRepositoryCredentialResponseBody),
-    OperationId.REPORT_SERVICE_D_N_S_PROVIDER_RESULT: (ReportServiceDNSProviderResultRequestBody, ReportServiceDNSProviderResultResponseBody),
-    OperationId.REQUEST_SERVICE_D_N_S_FAILOVER: (RequestServiceDNSFailoverRequestBody, RequestServiceDNSFailoverResponseBody),
+    OperationId.REPORT_SERVICE_DNS_PROVIDER_RESULT: (ReportServiceDNSProviderResultRequestBody, ReportServiceDNSProviderResultResponseBody),
+    OperationId.REQUEST_SERVICE_DNS_FAILOVER: (RequestServiceDNSFailoverRequestBody, RequestServiceDNSFailoverResponseBody),
     OperationId.RESOLVE_SERVICE: (ResolveServiceRequestBody, ResolveServiceResponseBody),
     OperationId.RESOLVE_SERVICE_ENVIRONMENT: (ResolveServiceEnvironmentRequestBody, ResolveServiceEnvironmentResponseBody),
     OperationId.RESTART_SERVICE_RUNTIME: (RestartServiceRuntimeRequestBody, RestartServiceRuntimeResponseBody),
     OperationId.RESUBMIT_POST_GRIP_CONFIGURATION_SECRET_INPUTS: (ResubmitPostGripConfigurationSecretInputsRequestBody, ResubmitPostGripConfigurationSecretInputsResponseBody),
     OperationId.RETRY_POST_GRIP_CONFIGURATION_STACK_OPERATION: (RetryPostGripConfigurationStackOperationRequestBody, RetryPostGripConfigurationStackOperationResponseBody),
     OperationId.RETRY_SERVICE_CONFIGURATION_OPERATION: (RetryServiceConfigurationOperationRequestBody, RetryServiceConfigurationOperationResponseBody),
-    OperationId.ROLLBACK_SERVICE_D_N_S_PLAN: (RollbackServiceDNSPlanRequestBody, RollbackServiceDNSPlanResponseBody),
+    OperationId.ROLLBACK_SERVICE_DNS_PLAN: (RollbackServiceDNSPlanRequestBody, RollbackServiceDNSPlanResponseBody),
     OperationId.ROLLBACK_SERVICE_DEPLOYMENT: (RollbackServiceDeploymentRequestBody, RollbackServiceDeploymentResponseBody),
     OperationId.START_SERVICE_RUNTIME: (StartServiceRuntimeRequestBody, StartServiceRuntimeResponseBody),
     OperationId.STOP_SERVICE_RUNTIME: (StopServiceRuntimeRequestBody, StopServiceRuntimeResponseBody),
@@ -1911,7 +1911,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.TRIM_SERVICE_RUNTIME_LOGS: (TrimServiceRuntimeLogsRequestBody, TrimServiceRuntimeLogsResponseBody),
     OperationId.UNBIND_SERVICE_VOLUME: (UnbindServiceVolumeRequestBody, UnbindServiceVolumeResponseBody),
     OperationId.UPDATE_SERVICE_BUILD_LOG_SETTINGS: (UpdateServiceBuildLogSettingsRequestBody, UpdateServiceBuildLogSettingsResponseBody),
-    OperationId.UPDATE_SERVICE_D_N_S_FAILOVER_POLICY: (UpdateServiceDNSFailoverPolicyRequestBody, UpdateServiceDNSFailoverPolicyResponseBody),
+    OperationId.UPDATE_SERVICE_DNS_FAILOVER_POLICY: (UpdateServiceDNSFailoverPolicyRequestBody, UpdateServiceDNSFailoverPolicyResponseBody),
     OperationId.UPDATE_SERVICE_DOMAIN: (UpdateServiceDomainRequestBody, UpdateServiceDomainResponseBody),
     OperationId.UPDATE_SERVICE_ENVIRONMENT: (UpdateServiceEnvironmentRequestBody, UpdateServiceEnvironmentResponseBody),
     OperationId.UPDATE_SERVICE_PROJECT: (UpdateServiceProjectRequestBody, UpdateServiceProjectResponseBody),
@@ -1955,7 +1955,7 @@ class ResolvedOpenAPIOperation:
 _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.ADOPT_GIT_HUB_REPOSITORY: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/github/adopt', 'service-management', '', False, False, 'GitHubRepositoryAdoptionRequest', 'ServiceConfigurationOperation', ('serviceId',)),
     OperationId.APPLY_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/apply', 'service-management', '', False, False, 'ApplyPostGripConfigurationPlanRequest', 'PostGripConfigurationStackOperation', ('stackKey', 'planId')),
-    OperationId.APPLY_SERVICE_D_N_S_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/apply', 'service-management', '', False, False, 'ApplyServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.APPLY_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/apply', 'service-management', '', False, False, 'ApplyServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
     OperationId.APPLY_SERVICE_VARIABLES: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/variables/apply', 'service-management', '', False, False, 'ApplyServiceVariablesRequest', 'ServiceVariablesApplyResponse', ('serviceId',)),
     OperationId.ATTACH_TARGET_SERVICE: OpenAPIOperation('POST', '/api/v1/services/targets', 'service-management', '', False, False, 'AttachTargetServiceRequest', 'ServiceTargetMutationResponse', ()),
     OperationId.BIND_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings', 'service-management', '', False, False, 'BindServiceVolumeRequest', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId')),
@@ -1965,7 +1965,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.CLEAR_SERVICE_VARIABLE_VALUE: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value', 'service-management', '', False, False, '', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
     OperationId.CLEAR_TARGET_SERVICE_CONNECTION: OpenAPIOperation('DELETE', '/api/v1/services/target/{serviceId}/connection', 'service-management', '', False, False, '', 'ServiceTargetMutationResponse', ('serviceId',)),
     OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/plans', 'service-management', '', False, False, 'CreatePostGripConfigurationPlanRequest', 'PostGripConfigurationPlan', ('stackKey',)),
-    OperationId.CREATE_SERVICE_D_N_S_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', '', False, False, 'CreateServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.CREATE_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', '', False, False, 'CreateServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId')),
     OperationId.CREATE_SERVICE_DOMAIN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', '', False, False, 'CreateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId')),
     OperationId.CREATE_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments', 'service-management', '', False, False, 'CreateServiceEnvironmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId',)),
     OperationId.CREATE_SERVICE_PROJECT: OpenAPIOperation('POST', '/api/v1/services/projects', 'service-management', '', False, False, 'CreateServiceProjectRequest', 'ServiceProjectMutationResponse', ()),
@@ -1986,9 +1986,9 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.GET_SERVICE: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}', 'service-management', '', False, False, '', 'Service', ('source', 'serviceId')),
     OperationId.GET_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', '', False, False, '', 'ServiceBuildLogStatus', ('serviceId',)),
     OperationId.GET_SERVICE_CONFIGURATION_OPERATION: OpenAPIOperation('GET', '/api/v1/services/configuration-operations/{operationId}', 'service-management', '', False, False, '', 'ServiceConfigurationOperation', ('operationId',)),
-    OperationId.GET_SERVICE_D_N_S_CANONICAL_STATE: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns', 'service-management', '', False, False, '', 'ServiceDNSCanonicalState', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.GET_SERVICE_D_N_S_FAILOVER_POLICY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', '', False, False, '', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.GET_SERVICE_D_N_S_PLAN: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}', 'service-management', '', False, False, '', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.GET_SERVICE_DNS_CANONICAL_STATE: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns', 'service-management', '', False, False, '', 'ServiceDNSCanonicalState', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.GET_SERVICE_DNS_FAILOVER_POLICY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', '', False, False, '', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.GET_SERVICE_DNS_PLAN: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}', 'service-management', '', False, False, '', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
     OperationId.GET_SERVICE_DEPLOYMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}', 'service-management', '', False, False, '', 'Deployment', ('serviceId', 'deploymentId')),
     OperationId.GET_SERVICE_DOMAIN_VERIFICATION: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verification', 'service-management', '', False, False, '', 'ServiceDomainVerification', ('serviceId', 'environmentId', 'domainId')),
     OperationId.GET_SERVICE_ENVIRONMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}', 'service-management', '', False, False, '', 'ServiceEnvironmentConfiguration', ('serviceId', 'environmentId')),
@@ -2004,7 +2004,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions', 'service-management', '', False, False, '', 'PostGripConfigurationPlanActionList', ('stackKey', 'planId')),
     OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions', 'service-management', '', False, False, '', 'PostGripConfigurationStackOperationActionList', ('stackKey', 'operationId')),
     OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-operations', 'service-management', '', False, False, '', 'ServiceConfigurationOperationList', ()),
-    OperationId.LIST_SERVICE_D_N_S_PLANS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', '', False, False, '', 'ServiceDNSPlanList', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.LIST_SERVICE_DNS_PLANS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', '', False, False, '', 'ServiceDNSPlanList', ('serviceId', 'environmentId', 'domainId')),
     OperationId.LIST_SERVICE_DEPLOYMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/deployments', 'service-management', '', False, False, '', 'DeploymentList', ('source', 'serviceId')),
     OperationId.LIST_SERVICE_DOMAINS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', '', False, False, '', 'ServiceDomainList', ('serviceId', 'environmentId')),
     OperationId.LIST_SERVICE_ENVIRONMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/environments', 'service-management', '', False, False, '', 'EnvironmentList', ('source', 'serviceId')),
@@ -2024,15 +2024,15 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.REASSIGN_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/reassign', 'service-management', '', False, False, 'ServiceEnvironmentReassignmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId', 'environmentId')),
     OperationId.REDEPLOY_SERVICE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/redeploy', 'service-management', '', False, False, 'RedeployServiceRequest', 'DeploymentOperationResponse', ('serviceId',)),
     OperationId.REFRESH_SERVICE_REPOSITORY_CREDENTIAL: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}/refresh', 'service-management', '', False, False, '', 'ServiceRepositoryMutationResponse', ('serviceId', 'credentialKind')),
-    OperationId.REPORT_SERVICE_D_N_S_PROVIDER_RESULT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/provider-result', 'service-management', '', False, False, 'ReportServiceDNSProviderResultRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
-    OperationId.REQUEST_SERVICE_D_N_S_FAILOVER: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers', 'service-management', '', False, False, 'RequestServiceDNSFailoverRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.REPORT_SERVICE_DNS_PROVIDER_RESULT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/provider-result', 'service-management', '', False, False, 'ReportServiceDNSProviderResultRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.REQUEST_SERVICE_DNS_FAILOVER: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers', 'service-management', '', False, False, 'RequestServiceDNSFailoverRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId')),
     OperationId.RESOLVE_SERVICE: OpenAPIOperation('GET', '/api/v1/services/resolve', 'service-management', '', False, False, '', 'Service', ()),
     OperationId.RESOLVE_SERVICE_ENVIRONMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/resolve', 'service-management', '', False, False, '', 'Environment', ('serviceId',)),
     OperationId.RESTART_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/restart', 'service-management', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
     OperationId.RESUBMIT_POST_GRIP_CONFIGURATION_SECRET_INPUTS: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/secret-inputs', 'service-management', '', False, False, 'ResubmitPostGripConfigurationSecretInputsRequest', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
     OperationId.RETRY_POST_GRIP_CONFIGURATION_STACK_OPERATION: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/retry', 'service-management', '', False, False, '', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
     OperationId.RETRY_SERVICE_CONFIGURATION_OPERATION: OpenAPIOperation('POST', '/api/v1/services/configuration-operations/{operationId}/retry', 'service-management', '', False, False, '', 'ServiceConfigurationOperation', ('operationId',)),
-    OperationId.ROLLBACK_SERVICE_D_N_S_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback', 'service-management', '', False, False, 'RollbackServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.ROLLBACK_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback', 'service-management', '', False, False, 'RollbackServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
     OperationId.ROLLBACK_SERVICE_DEPLOYMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback', 'service-management', '', False, False, '', 'DeploymentOperationResponse', ('serviceId', 'deploymentId')),
     OperationId.START_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/start', 'service-management', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
     OperationId.STOP_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/stop', 'service-management', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
@@ -2040,7 +2040,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.TRIM_SERVICE_RUNTIME_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/runtime/trim', 'service-management', '', False, False, '', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
     OperationId.UNBIND_SERVICE_VOLUME: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}', 'service-management', '', False, False, '', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId', 'volumeRef')),
     OperationId.UPDATE_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', '', False, False, 'ServiceBuildLogSettingsRequest', 'ServiceBuildLogSettingsMutationResponse', ('serviceId',)),
-    OperationId.UPDATE_SERVICE_D_N_S_FAILOVER_POLICY: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', '', False, False, 'UpdateServiceDNSFailoverPolicyRequest', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.UPDATE_SERVICE_DNS_FAILOVER_POLICY: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', '', False, False, 'UpdateServiceDNSFailoverPolicyRequest', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
     OperationId.UPDATE_SERVICE_DOMAIN: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}', 'service-management', '', False, False, 'UpdateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId', 'domainId')),
     OperationId.UPDATE_SERVICE_ENVIRONMENT: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}', 'service-management', '', False, False, 'UpdateServiceEnvironmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId', 'environmentId')),
     OperationId.UPDATE_SERVICE_PROJECT: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}', 'service-management', '', False, False, 'UpdateServiceProjectRequest', 'ServiceProjectMutationResponse', ('serviceId',)),
@@ -2106,10 +2106,10 @@ class OpenAPIClient:
         _headers['Idempotency-Key'] = str(idempotency_key)
         return cast(ApplyPostGripConfigurationPlanResponseBody, self._transport(OperationId.APPLY_POST_GRIP_CONFIGURATION_PLAN, body, path_parameters={'stackKey': stack_key, 'planId': plan_id}, headers=_headers))
 
-    def apply_service_d_n_s_plan(self, service_id: str, environment_id: str, domain_id: str, plan_id: str, body: ApplyServiceDNSPlanRequestBody, *, idempotency_key: str) -> ApplyServiceDNSPlanResponseBody:
+    def apply_service_dns_plan(self, service_id: str, environment_id: str, domain_id: str, plan_id: str, body: ApplyServiceDNSPlanRequestBody, *, idempotency_key: str) -> ApplyServiceDNSPlanResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
-        return cast(ApplyServiceDNSPlanResponseBody, self._transport(OperationId.APPLY_SERVICE_D_N_S_PLAN, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}, headers=_headers))
+        return cast(ApplyServiceDNSPlanResponseBody, self._transport(OperationId.APPLY_SERVICE_DNS_PLAN, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}, headers=_headers))
 
     def apply_service_variables(self, service_id: str, body: ApplyServiceVariablesRequestBody, *, idempotency_key: str) -> ApplyServiceVariablesResponseBody:
         _headers: dict[str, str] = {}
@@ -2161,10 +2161,10 @@ class OpenAPIClient:
         _headers['Idempotency-Key'] = str(idempotency_key)
         return cast(CreatePostGripConfigurationPlanResponseBody, self._transport(OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN, body, path_parameters={'stackKey': stack_key}, headers=_headers))
 
-    def create_service_d_n_s_plan(self, service_id: str, environment_id: str, domain_id: str, body: CreateServiceDNSPlanRequestBody, *, idempotency_key: str) -> CreateServiceDNSPlanResponseBody:
+    def create_service_dns_plan(self, service_id: str, environment_id: str, domain_id: str, body: CreateServiceDNSPlanRequestBody, *, idempotency_key: str) -> CreateServiceDNSPlanResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
-        return cast(CreateServiceDNSPlanResponseBody, self._transport(OperationId.CREATE_SERVICE_D_N_S_PLAN, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}, headers=_headers))
+        return cast(CreateServiceDNSPlanResponseBody, self._transport(OperationId.CREATE_SERVICE_DNS_PLAN, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}, headers=_headers))
 
     def create_service_domain(self, service_id: str, environment_id: str, body: CreateServiceDomainRequestBody, *, idempotency_key: str, if_match: str) -> CreateServiceDomainResponseBody:
         _headers: dict[str, str] = {}
@@ -2269,14 +2269,14 @@ class OpenAPIClient:
     def get_service_configuration_operation(self, operation_id: str) -> GetServiceConfigurationOperationResponseBody:
         return cast(GetServiceConfigurationOperationResponseBody, self._transport(OperationId.GET_SERVICE_CONFIGURATION_OPERATION, path_parameters={'operationId': operation_id}))
 
-    def get_service_d_n_s_canonical_state(self, service_id: str, environment_id: str, domain_id: str) -> GetServiceDNSCanonicalStateResponseBody:
-        return cast(GetServiceDNSCanonicalStateResponseBody, self._transport(OperationId.GET_SERVICE_D_N_S_CANONICAL_STATE, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}))
+    def get_service_dns_canonical_state(self, service_id: str, environment_id: str, domain_id: str) -> GetServiceDNSCanonicalStateResponseBody:
+        return cast(GetServiceDNSCanonicalStateResponseBody, self._transport(OperationId.GET_SERVICE_DNS_CANONICAL_STATE, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}))
 
-    def get_service_d_n_s_failover_policy(self, service_id: str, environment_id: str, domain_id: str) -> GetServiceDNSFailoverPolicyResponseBody:
-        return cast(GetServiceDNSFailoverPolicyResponseBody, self._transport(OperationId.GET_SERVICE_D_N_S_FAILOVER_POLICY, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}))
+    def get_service_dns_failover_policy(self, service_id: str, environment_id: str, domain_id: str) -> GetServiceDNSFailoverPolicyResponseBody:
+        return cast(GetServiceDNSFailoverPolicyResponseBody, self._transport(OperationId.GET_SERVICE_DNS_FAILOVER_POLICY, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}))
 
-    def get_service_d_n_s_plan(self, service_id: str, environment_id: str, domain_id: str, plan_id: str) -> GetServiceDNSPlanResponseBody:
-        return cast(GetServiceDNSPlanResponseBody, self._transport(OperationId.GET_SERVICE_D_N_S_PLAN, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}))
+    def get_service_dns_plan(self, service_id: str, environment_id: str, domain_id: str, plan_id: str) -> GetServiceDNSPlanResponseBody:
+        return cast(GetServiceDNSPlanResponseBody, self._transport(OperationId.GET_SERVICE_DNS_PLAN, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}))
 
     def get_service_deployment(self, service_id: str, deployment_id: str) -> GetServiceDeploymentResponseBody:
         return cast(GetServiceDeploymentResponseBody, self._transport(OperationId.GET_SERVICE_DEPLOYMENT, path_parameters={'serviceId': service_id, 'deploymentId': deployment_id}))
@@ -2341,8 +2341,8 @@ class OpenAPIClient:
         if state is not None: _query['state'] = state
         return cast(ListServiceConfigurationOperationsResponseBody, self._transport(OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS, query=_query))
 
-    def list_service_d_n_s_plans(self, service_id: str, environment_id: str, domain_id: str) -> ListServiceDNSPlansResponseBody:
-        return cast(ListServiceDNSPlansResponseBody, self._transport(OperationId.LIST_SERVICE_D_N_S_PLANS, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}))
+    def list_service_dns_plans(self, service_id: str, environment_id: str, domain_id: str) -> ListServiceDNSPlansResponseBody:
+        return cast(ListServiceDNSPlansResponseBody, self._transport(OperationId.LIST_SERVICE_DNS_PLANS, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}))
 
     def list_service_deployments(self, source: _SchemaServiceSource, service_id: str, *, environment: str | None = None, status: str | None = None, limit: int | None = None, cursor: str | None = None) -> ListServiceDeploymentsResponseBody:
         _query: dict[str, Any] = {}
@@ -2455,15 +2455,15 @@ class OpenAPIClient:
         _headers['If-Match'] = str(if_match)
         return cast(RefreshServiceRepositoryCredentialResponseBody, self._transport(OperationId.REFRESH_SERVICE_REPOSITORY_CREDENTIAL, path_parameters={'serviceId': service_id, 'credentialKind': credential_kind}, headers=_headers))
 
-    def report_service_d_n_s_provider_result(self, service_id: str, environment_id: str, domain_id: str, plan_id: str, body: ReportServiceDNSProviderResultRequestBody, *, idempotency_key: str) -> ReportServiceDNSProviderResultResponseBody:
+    def report_service_dns_provider_result(self, service_id: str, environment_id: str, domain_id: str, plan_id: str, body: ReportServiceDNSProviderResultRequestBody, *, idempotency_key: str) -> ReportServiceDNSProviderResultResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
-        return cast(ReportServiceDNSProviderResultResponseBody, self._transport(OperationId.REPORT_SERVICE_D_N_S_PROVIDER_RESULT, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}, headers=_headers))
+        return cast(ReportServiceDNSProviderResultResponseBody, self._transport(OperationId.REPORT_SERVICE_DNS_PROVIDER_RESULT, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}, headers=_headers))
 
-    def request_service_d_n_s_failover(self, service_id: str, environment_id: str, domain_id: str, body: RequestServiceDNSFailoverRequestBody, *, idempotency_key: str) -> RequestServiceDNSFailoverResponseBody:
+    def request_service_dns_failover(self, service_id: str, environment_id: str, domain_id: str, body: RequestServiceDNSFailoverRequestBody, *, idempotency_key: str) -> RequestServiceDNSFailoverResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
-        return cast(RequestServiceDNSFailoverResponseBody, self._transport(OperationId.REQUEST_SERVICE_D_N_S_FAILOVER, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}, headers=_headers))
+        return cast(RequestServiceDNSFailoverResponseBody, self._transport(OperationId.REQUEST_SERVICE_DNS_FAILOVER, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}, headers=_headers))
 
     def resolve_service(self, *, value: str) -> ResolveServiceResponseBody:
         _query: dict[str, Any] = {}
@@ -2498,10 +2498,10 @@ class OpenAPIClient:
         _headers['If-Match'] = str(if_match)
         return cast(RetryServiceConfigurationOperationResponseBody, self._transport(OperationId.RETRY_SERVICE_CONFIGURATION_OPERATION, path_parameters={'operationId': operation_id}, headers=_headers))
 
-    def rollback_service_d_n_s_plan(self, service_id: str, environment_id: str, domain_id: str, plan_id: str, body: RollbackServiceDNSPlanRequestBody, *, idempotency_key: str) -> RollbackServiceDNSPlanResponseBody:
+    def rollback_service_dns_plan(self, service_id: str, environment_id: str, domain_id: str, plan_id: str, body: RollbackServiceDNSPlanRequestBody, *, idempotency_key: str) -> RollbackServiceDNSPlanResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
-        return cast(RollbackServiceDNSPlanResponseBody, self._transport(OperationId.ROLLBACK_SERVICE_D_N_S_PLAN, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}, headers=_headers))
+        return cast(RollbackServiceDNSPlanResponseBody, self._transport(OperationId.ROLLBACK_SERVICE_DNS_PLAN, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id, 'planId': plan_id}, headers=_headers))
 
     def rollback_service_deployment(self, service_id: str, deployment_id: str, *, idempotency_key: str) -> RollbackServiceDeploymentResponseBody:
         _headers: dict[str, str] = {}
@@ -2544,10 +2544,10 @@ class OpenAPIClient:
         _headers['If-Match'] = str(if_match)
         return cast(UpdateServiceBuildLogSettingsResponseBody, self._transport(OperationId.UPDATE_SERVICE_BUILD_LOG_SETTINGS, body, path_parameters={'serviceId': service_id}, headers=_headers))
 
-    def update_service_d_n_s_failover_policy(self, service_id: str, environment_id: str, domain_id: str, body: UpdateServiceDNSFailoverPolicyRequestBody, *, idempotency_key: str) -> UpdateServiceDNSFailoverPolicyResponseBody:
+    def update_service_dns_failover_policy(self, service_id: str, environment_id: str, domain_id: str, body: UpdateServiceDNSFailoverPolicyRequestBody, *, idempotency_key: str) -> UpdateServiceDNSFailoverPolicyResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
-        return cast(UpdateServiceDNSFailoverPolicyResponseBody, self._transport(OperationId.UPDATE_SERVICE_D_N_S_FAILOVER_POLICY, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}, headers=_headers))
+        return cast(UpdateServiceDNSFailoverPolicyResponseBody, self._transport(OperationId.UPDATE_SERVICE_DNS_FAILOVER_POLICY, body, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}, headers=_headers))
 
     def update_service_domain(self, service_id: str, environment_id: str, domain_id: str, body: UpdateServiceDomainRequestBody, *, idempotency_key: str, if_match: str) -> UpdateServiceDomainResponseBody:
         _headers: dict[str, str] = {}

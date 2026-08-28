@@ -52,6 +52,11 @@ class AdministrationTypeTests(unittest.TestCase):
         hints = get_type_hints(OpenAPIRequestServiceDNSFailoverRequest)
         self.assertEqual(hints["approved"], Literal[True])
 
+    def test_dns_operation_names_keep_the_acronym_intact(self) -> None:
+        client = ServiceClient(base_url="https://services.example.test", token="pgt_test-token", opener=FakeOpener([]))  # type: ignore[arg-type]
+        self.assertTrue(hasattr(client.administration.dns, "get_service_dns_plan"))
+        self.assertFalse(hasattr(client.administration.dns, "get_service_d_n_s_plan"))
+
 
 def api_error(status: int, code: str = "BUSY", retry_after: str = "0") -> HTTPError:
     headers = Message()

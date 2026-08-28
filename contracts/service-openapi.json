@@ -12046,7 +12046,31 @@
               "planned_migration"
             ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "additionalProperties": {},
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "failover",
+                    "failback"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "additionalProperties": {},
+              "required": [
+                "expectedActiveDeploymentId"
+              ]
+            }
+          }
+        ]
       },
       "ApplyServiceDNSPlanRequest": {
         "type": "object",

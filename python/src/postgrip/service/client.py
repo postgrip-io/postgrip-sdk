@@ -103,11 +103,11 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
         "get_service_domain_verification", "verify_service_domain",
     ),
     "dns": (
-        "get_service_d_n_s_canonical_state", "list_service_d_n_s_plans",
-        "create_service_d_n_s_plan", "get_service_d_n_s_plan", "apply_service_d_n_s_plan",
-        "report_service_d_n_s_provider_result", "rollback_service_d_n_s_plan",
-        "get_service_d_n_s_failover_policy", "update_service_d_n_s_failover_policy",
-        "request_service_d_n_s_failover",
+        "get_service_dns_canonical_state", "list_service_dns_plans",
+        "create_service_dns_plan", "get_service_dns_plan", "apply_service_dns_plan",
+        "report_service_dns_provider_result", "rollback_service_dns_plan",
+        "get_service_dns_failover_policy", "update_service_dns_failover_policy",
+        "request_service_dns_failover",
     ),
     "variables": (
         "list_service_variables", "create_service_variable", "update_service_variable",

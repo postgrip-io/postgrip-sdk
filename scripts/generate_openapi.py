@@ -286,7 +286,13 @@ def go_name(operation_id: str) -> str:
 
 
 def snake_name(operation_id: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", operation_id).upper()
+    return snake_case_name(operation_id).upper()
+
+
+def snake_case_name(value: str) -> str:
+    value = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", value)
+    value = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
+    return re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9_]+", "_", value)).strip("_").lower()
 
 
 def pascal_name(value: str) -> str:
@@ -724,7 +730,13 @@ def typescript_schema_type(schema: dict[str, Any], indent: str = "") -> str:
         variants = schema.get("oneOf") or schema.get("anyOf")
         return " | ".join(typescript_schema_type(value, indent) for value in variants)
     if schema.get("allOf"):
-        return " & ".join(typescript_schema_type(value, indent) for value in schema["allOf"])
+        base_schema = {key: value for key, value in schema.items() if key != "allOf"}
+        members: list[str] = []
+        if any(key in base_schema for key in ("$ref", "const", "enum", "oneOf", "anyOf", "type", "properties", "additionalProperties")):
+            members.append(typescript_schema_type(base_schema, indent))
+        members.extend(typescript_schema_type(value, indent) for value in schema["allOf"])
+        members = [member for member in members if member != "unknown"]
+        return " & ".join(members) if members else "unknown"
     schema_type = schema.get("type")
     if schema_type == "array":
         return f"Array<{typescript_schema_type(schema.get('items', {}), indent)}>"
@@ -856,8 +868,7 @@ def python_types_source(spec: dict[str, Any], rows: list[dict[str, Any]]) -> str
 
 
 def python_name(value: str) -> str:
-    value = re.sub(r"(?<!^)(?=[A-Z])", "_", value).lower()
-    return re.sub(r"_+", "_", re.sub(r"[^a-z0-9_]+", "_", value)).strip("_")
+    return snake_case_name(value)
 
 
 def python_openapi_client_source(rows: list[dict[str, Any]]) -> str:

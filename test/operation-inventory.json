@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "2b292feefff63a07800f5fd5515887ce1da367f4b4eb195f1a3b73e65b8761f1",
+  "contractBundleDigest": "5be292e94aaa518d4cc4fc97d7309dfbcbf16e6139da32908c130b04708884b6",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "10d6c18a0f933819f6b299c2273921ad5e52f374ac9609ad90d177c8c67f80cb",
+    "service": "afad86eba107c2175f3af8dbf50bd4f58c4732ac291126e8df5d07680b731505",
     "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
