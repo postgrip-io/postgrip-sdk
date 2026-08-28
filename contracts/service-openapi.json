@@ -2070,6 +2070,7 @@
           "Administration"
         ],
         "summary": "Update Service Project",
+        "description": "Updates project configuration. Setting defaultWorkerId or setting clearDefaultWorker=true additionally requires services:admin.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -8501,11 +8502,12 @@
           },
           "defaultWorkerId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Sets the eligible project-level Worker override. This placement change additionally requires services:admin."
           },
           "clearDefaultWorker": {
             "type": "boolean",
-            "description": "Clears the project Worker default; future environments return to automatic placement."
+            "description": "Clears the project Worker default so future environments return to automatic placement. Setting this to true additionally requires services:admin."
           }
         }
       },
