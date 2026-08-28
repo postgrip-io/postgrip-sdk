@@ -3002,6 +3002,123 @@
         "x-postgrip-retry": "bounded"
       }
     },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verification": {
+      "get": {
+        "operationId": "getServiceDomainVerification",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get Latest Service Domain Verification",
+        "description": "Returns the latest bounded public DNS, TLS, route, and HTTP observation for the configured domain. This evidence is separate from runtime readiness.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest public verification observation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDomainVerification"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verify": {
+      "post": {
+        "operationId": "verifyServiceDomain",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Verify Service Domain Public Routing",
+        "description": "Performs a bounded HTTPS request to the saved tenant domain only, persists deployment- and configuration-version-bound observations, and advances domain verification and route state when the target is still current.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Completed public verification observation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDomainVerification"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
     "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables": {
       "get": {
         "operationId": "listServiceVariables",
@@ -5748,6 +5865,7 @@
           "name",
           "kind",
           "status",
+          "aliases",
           "createdAt",
           "updatedAt"
         ],
@@ -5790,6 +5908,21 @@
           "status": {
             "$ref": "#/components/schemas/ServiceStatusValue"
           },
+          "canonicalUrl": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://",
+            "example": "https://app.example.com/"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://",
+              "example": "https://www.example.com/"
+            }
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -5812,6 +5945,7 @@
           "triggerKind",
           "status",
           "cutoverState",
+          "aliases",
           "isCurrent",
           "createdAt",
           "updatedAt"
@@ -5858,6 +5992,28 @@
               "historical",
               "terminal"
             ]
+          },
+          "accessUrl": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://",
+            "example": "https://preview.example.com/previews/11111111-1111-4111-8111-111111111111/"
+          },
+          "accessUrlKind": {
+            "type": "string",
+            "enum": [
+              "canonical",
+              "preview"
+            ]
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://",
+              "example": "https://www.example.com/"
+            }
           },
           "errorCode": {
             "type": "string"
@@ -7512,10 +7668,20 @@
             "type": "boolean"
           },
           "verificationState": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified",
+              "failed"
+            ]
           },
           "routeState": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "failed"
+            ]
           },
           "version": {
             "type": "integer",
@@ -7557,6 +7723,183 @@
           "etag": {
             "type": "string",
             "minLength": 1
+          }
+        }
+      },
+      "ServiceDomainLayerObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "skipped"
+            ]
+          },
+          "detailCode": {
+            "type": "string",
+            "maxLength": 100
+          }
+        }
+      },
+      "ServiceDomainTlsObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "skipped"
+            ]
+          },
+          "detailCode": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "version": {
+            "type": "string",
+            "enum": [
+              "TLS1.2",
+              "TLS1.3"
+            ]
+          }
+        }
+      },
+      "ServiceDomainHttpObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "redirectCount"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "skipped"
+            ]
+          },
+          "detailCode": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "statusCode": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "redirectCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "responseBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 65536
+          }
+        }
+      },
+      "ServiceDomainVerification": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "projectId",
+          "environmentId",
+          "deploymentId",
+          "domainId",
+          "domainConfigurationVersion",
+          "url",
+          "outcome",
+          "dns",
+          "tls",
+          "route",
+          "http",
+          "totalDurationMs",
+          "observedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domainId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domainConfigurationVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
+            "example": "https://app.example.com/"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "failed",
+              "stale"
+            ]
+          },
+          "dns": {
+            "$ref": "#/components/schemas/ServiceDomainLayerObservation"
+          },
+          "tls": {
+            "$ref": "#/components/schemas/ServiceDomainTlsObservation"
+          },
+          "route": {
+            "$ref": "#/components/schemas/ServiceDomainLayerObservation"
+          },
+          "http": {
+            "$ref": "#/components/schemas/ServiceDomainHttpObservation"
+          },
+          "failureCode": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "totalDurationMs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
           }
         }
       },

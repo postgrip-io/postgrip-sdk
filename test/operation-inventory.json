@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "8b76eed875370597f7e70a4541ec71d039fef1b56204e04189cc25d8ddad9c38",
+  "contractBundleDigest": "7d1702e54be36871b78b433fae3edcb261c6ea191a0fe238ab9bcb1bea872d43",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "392660cc1fad9ad6799c6c76d1935efc2279f0a2450c036ec6b661bf76ba7117",
+    "service": "13c78464957178b5d73f27ba2953c29506ddbb4637832c445c0174381c778c5b",
     "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
@@ -2442,6 +2442,39 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getServiceDomainVerification",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verification",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDomainVerification",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getServiceEnvironment",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}",
@@ -4177,6 +4210,39 @@
       "responseSchema": "PostGripConfigurationValidationResult",
       "retry": "bounded",
       "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "verifyServiceDomain",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verify",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "domainId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDomainVerification",
+      "retry": "bounded",
+      "safety": "mutation",
       "signing": null
     },
     {

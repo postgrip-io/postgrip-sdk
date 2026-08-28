@@ -65,6 +65,8 @@ type OpenAPIEnvironment struct {
 	CommitSha           *string                   `json:"commitSha,omitempty"`
 	Branch              *string                   `json:"branch,omitempty"`
 	Status              OpenAPIServiceStatusValue `json:"status"`
+	CanonicalUrl        *string                   `json:"canonicalUrl,omitempty"`
+	Aliases             []string                  `json:"aliases"`
 	CreatedAt           time.Time                 `json:"createdAt"`
 	UpdatedAt           time.Time                 `json:"updatedAt"`
 }
@@ -78,6 +80,9 @@ type OpenAPIDeployment struct {
 	TriggerKind   string     `json:"triggerKind"`
 	Status        string     `json:"status"`
 	CutoverState  string     `json:"cutoverState"`
+	AccessUrl     *string    `json:"accessUrl,omitempty"`
+	AccessUrlKind *string    `json:"accessUrlKind,omitempty"`
+	Aliases       []string   `json:"aliases"`
 	ErrorCode     *string    `json:"errorCode,omitempty"`
 	ErrorMessage  *string    `json:"errorMessage,omitempty"`
 	IsCurrent     bool       `json:"isCurrent"`
@@ -510,6 +515,40 @@ type OpenAPIServiceDomainList struct {
 	Items   []OpenAPIServiceDomain `json:"items"`
 	Version int64                  `json:"version"`
 	Etag    string                 `json:"etag"`
+}
+type OpenAPIServiceDomainLayerObservation struct {
+	Status     string  `json:"status"`
+	DetailCode *string `json:"detailCode,omitempty"`
+}
+type OpenAPIServiceDomainTlsObservation struct {
+	Status     string  `json:"status"`
+	DetailCode *string `json:"detailCode,omitempty"`
+	Version    *string `json:"version,omitempty"`
+}
+type OpenAPIServiceDomainHttpObservation struct {
+	Status        string  `json:"status"`
+	DetailCode    *string `json:"detailCode,omitempty"`
+	StatusCode    *int64  `json:"statusCode,omitempty"`
+	RedirectCount int64   `json:"redirectCount"`
+	ResponseBytes *int64  `json:"responseBytes,omitempty"`
+}
+type OpenAPIServiceDomainVerification struct {
+	Id                         string                               `json:"id"`
+	ProjectId                  string                               `json:"projectId"`
+	EnvironmentId              string                               `json:"environmentId"`
+	DeploymentId               string                               `json:"deploymentId"`
+	DomainId                   string                               `json:"domainId"`
+	DomainConfigurationVersion int64                                `json:"domainConfigurationVersion"`
+	Url                        string                               `json:"url"`
+	Outcome                    string                               `json:"outcome"`
+	Dns                        OpenAPIServiceDomainLayerObservation `json:"dns"`
+	Tls                        OpenAPIServiceDomainTlsObservation   `json:"tls"`
+	Route                      OpenAPIServiceDomainLayerObservation `json:"route"`
+	Http                       OpenAPIServiceDomainHttpObservation  `json:"http"`
+	FailureCode                *string                              `json:"failureCode,omitempty"`
+	TotalDurationMs            int64                                `json:"totalDurationMs"`
+	ObservedAt                 time.Time                            `json:"observedAt"`
+	Receipt                    *OpenAPIOperationReceipt             `json:"receipt,omitempty"`
 }
 type OpenAPIServiceVariable struct {
 	Id        string    `json:"id"`
@@ -1174,6 +1213,8 @@ type OpenAPIGetServiceConfigurationOperationRequestBody = OpenAPINoBody
 type OpenAPIGetServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIGetServiceDeploymentRequestBody = OpenAPINoBody
 type OpenAPIGetServiceDeploymentResponseBody = OpenAPIDeployment
+type OpenAPIGetServiceDomainVerificationRequestBody = OpenAPINoBody
+type OpenAPIGetServiceDomainVerificationResponseBody = OpenAPIServiceDomainVerification
 type OpenAPIGetServiceEnvironmentRequestBody = OpenAPINoBody
 type OpenAPIGetServiceEnvironmentResponseBody = OpenAPIServiceEnvironmentConfiguration
 type OpenAPIGetServiceEnvironmentRemovalImpactRequestBody = OpenAPINoBody
@@ -1282,6 +1323,8 @@ type OpenAPIUpdateTargetServiceRequestBody = OpenAPIUpdateTargetServiceRequest
 type OpenAPIUpdateTargetServiceResponseBody = OpenAPIServiceTargetMutationResponse
 type OpenAPIValidatePostGripConfigurationRequestBody = OpenAPIValidatePostGripConfigurationRequest
 type OpenAPIValidatePostGripConfigurationResponseBody = OpenAPIPostGripConfigurationValidationResult
+type OpenAPIVerifyServiceDomainRequestBody = OpenAPINoBody
+type OpenAPIVerifyServiceDomainResponseBody = OpenAPIServiceDomainVerification
 
 // OpenAPI-prefixed constants expose every generated enum value without
 // colliding with the ergonomic SDK's compatibility constants.
@@ -1412,6 +1455,10 @@ type ServiceVolume = OpenAPIServiceVolume
 type ServiceVolumeList = OpenAPIServiceVolumeList
 type ServiceDomain = OpenAPIServiceDomain
 type ServiceDomainList = OpenAPIServiceDomainList
+type ServiceDomainLayerObservation = OpenAPIServiceDomainLayerObservation
+type ServiceDomainTlsObservation = OpenAPIServiceDomainTlsObservation
+type ServiceDomainHttpObservation = OpenAPIServiceDomainHttpObservation
+type ServiceDomainVerification = OpenAPIServiceDomainVerification
 type ServiceVariable = OpenAPIServiceVariable
 type ServiceVariableList = OpenAPIServiceVariableList
 type ServiceRemovalVolumeImpact = OpenAPIServiceRemovalVolumeImpact
@@ -1473,4 +1520,4 @@ type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOper
 type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
 type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
 
-const openAPITypesSpecSHA256 = "392660cc1fad9ad6799c6c76d1935efc2279f0a2450c036ec6b661bf76ba7117"
+const openAPITypesSpecSHA256 = "13c78464957178b5d73f27ba2953c29506ddbb4637832c445c0174381c778c5b"

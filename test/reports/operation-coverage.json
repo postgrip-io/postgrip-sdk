@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "8b76eed875370597f7e70a4541ec71d039fef1b56204e04189cc25d8ddad9c38",
+  "contractBundleDigest": "7d1702e54be36871b78b433fae3edcb261c6ea191a0fe238ab9bcb1bea872d43",
   "operations": [
     {
       "curl": false,
@@ -1319,6 +1319,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "getServiceDomainVerification",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "getServiceEnvironment",
       "plane": "service",
       "protocolException": false,
@@ -2236,6 +2253,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "verifyServiceDomain",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "checkWorker",
       "plane": "worker",
@@ -2458,10 +2492,10 @@
       "recordedTested": 45
     },
     "service": {
-      "curl": 86,
-      "operations": 86,
+      "curl": 88,
+      "operations": 88,
       "protocolExceptions": 0,
-      "recordedTested": 86
+      "recordedTested": 88
     },
     "worker": {
       "curl": 13,
@@ -2472,14 +2506,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 135,
-    "documented": 144,
-    "nightlyOwned": 111,
-    "operations": 144,
-    "preReleaseOwned": 31,
+    "curl": 137,
+    "documented": 146,
+    "nightlyOwned": 112,
+    "operations": 146,
+    "preReleaseOwned": 32,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 144,
-    "sdkGenerated": 144
+    "recordedTested": 146,
+    "sdkGenerated": 146
   }
 }

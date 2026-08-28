@@ -98,6 +98,7 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "domains": (
         "list_service_domains", "create_service_domain", "update_service_domain", "delete_service_domain",
+        "get_service_domain_verification", "verify_service_domain",
     ),
     "variables": (
         "list_service_variables", "create_service_variable", "update_service_variable",
@@ -309,7 +310,7 @@ class _AdministrationGroup:
 
 
 class ServiceAdministration:
-    """Grouped access to all 60 generated Service-administration operations."""
+    """Grouped access to all 70 generated Service-administration operations."""
 
     target_services: TargetServicesAdministration
     projects: ProjectsAdministration

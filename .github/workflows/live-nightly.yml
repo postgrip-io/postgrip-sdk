@@ -89,3 +89,39 @@ jobs:
           path: test/reports/live-nightly-github-adoption.json
           if-no-files-found: warn
           retention-days: 30
+
+  service-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: sdk-live-nightly
+    env:
+      POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
+      POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
+      POSTGRIP_SERVICE_ID: ${{ vars.POSTGRIP_SERVICE_ID }}
+      POSTGRIP_SERVICE_ENVIRONMENT_ID: ${{ vars.POSTGRIP_SERVICE_ENVIRONMENT_ID }}
+      POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID: ${{ vars.POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID }}
+      POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN: ${{ vars.POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN }}
+      POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE }}
+    steps:
+      - name: Detect disposable Service domain fixture
+        id: fixture
+        shell: bash
+        run: |
+          if [[ -n "${POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID:-}" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No disposable Service domain fixture is configured; skipping live verification."
+          fi
+      - if: ${{ steps.fixture.outputs.enabled == 'true' }}
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        if: ${{ steps.fixture.outputs.enabled == 'true' }}
+        with:
+          python-version: "3.12"
+      - name: Verify disposable Service domain safety guards
+        if: ${{ steps.fixture.outputs.enabled == 'true' }}
+        run: python3 scripts/test_service_domain_verification_live.py --self-test
+      - name: Verify public DNS, TLS, route, and HTTP behavior
+        if: ${{ steps.fixture.outputs.enabled == 'true' }}
+        run: python3 scripts/test_service_domain_verification_live.py

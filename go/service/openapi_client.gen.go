@@ -943,6 +943,16 @@ func (p OpenAPIUpdateTargetServiceHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIVerifyServiceDomainHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIVerifyServiceDomainHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 func (c *OpenAPIClient) AdoptGitHubRepository(ctx context.Context, serviceId string, headers OpenAPIAdoptGitHubRepositoryHeaders, body OpenAPIAdoptGitHubRepositoryRequestBody) (OpenAPIAdoptGitHubRepositoryResponseBody, error) {
 	var response OpenAPIAdoptGitHubRepositoryResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIAdoptGitHubRepository, map[string]string{"serviceId": serviceId}, nil, body, &response)
@@ -1101,6 +1111,11 @@ func (c *OpenAPIClient) GetServiceConfigurationOperation(ctx context.Context, op
 func (c *OpenAPIClient) GetServiceDeployment(ctx context.Context, serviceId string, deploymentId string) (OpenAPIGetServiceDeploymentResponseBody, error) {
 	var response OpenAPIGetServiceDeploymentResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetServiceDomainVerification(ctx context.Context, serviceId string, environmentId string, domainId string) (OpenAPIGetServiceDomainVerificationResponseBody, error) {
+	var response OpenAPIGetServiceDomainVerificationResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDomainVerification, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceEnvironment(ctx context.Context, serviceId string, environmentId string) (OpenAPIGetServiceEnvironmentResponseBody, error) {
@@ -1373,9 +1388,14 @@ func (c *OpenAPIClient) ValidatePostGripConfiguration(ctx context.Context, body 
 	err := c.connection.doOpenAPI(ctx, openAPIValidatePostGripConfiguration, nil, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIVerifyServiceDomainHeaders) (OpenAPIVerifyServiceDomainResponseBody, error) {
+	var response OpenAPIVerifyServiceDomainResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIVerifyServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
+	return response, err
+}
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 86
+const OpenAPIClientOperationCount = 88
 
-const openAPIClientSpecSHA256 = "392660cc1fad9ad6799c6c76d1935efc2279f0a2450c036ec6b661bf76ba7117"
+const openAPIClientSpecSHA256 = "13c78464957178b5d73f27ba2953c29506ddbb4637832c445c0174381c778c5b"

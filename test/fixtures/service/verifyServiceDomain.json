@@ -1,0 +1,50 @@
+{
+  "operationId": "verifyServiceDomain",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {
+      "Idempotency-Key": "recorded-verifyServiceDomain"
+    },
+    "pathParameters": {
+      "domainId": "11111111-1111-4111-8111-111111111111",
+      "environmentId": "11111111-1111-4111-8111-111111111111",
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "deploymentId": "11111111-1111-4111-8111-111111111111",
+      "dns": {
+        "status": "passed"
+      },
+      "domainConfigurationVersion": 1,
+      "domainId": "11111111-1111-4111-8111-111111111111",
+      "environmentId": "11111111-1111-4111-8111-111111111111",
+      "http": {
+        "redirectCount": 1,
+        "status": "passed"
+      },
+      "id": "11111111-1111-4111-8111-111111111111",
+      "observedAt": "2026-01-01T00:00:00Z",
+      "outcome": "verified",
+      "projectId": "11111111-1111-4111-8111-111111111111",
+      "route": {
+        "status": "passed"
+      },
+      "tls": {
+        "status": "passed"
+      },
+      "totalDurationMs": 1,
+      "url": "https://app.example.com/"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_verifyServiceDomain"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

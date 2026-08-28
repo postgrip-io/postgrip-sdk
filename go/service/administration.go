@@ -246,6 +246,17 @@ func (c ServiceDomainsClient) Delete(ctx context.Context, projectID, environment
 	return c.client.OpenAPI().DeleteServiceDomain(ctx, projectID, environmentID, domainID, OpenAPIDeleteServiceDomainHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }
 
+func (c ServiceDomainsClient) Verification(ctx context.Context, projectID, environmentID, domainID string) (OpenAPIGetServiceDomainVerificationResponseBody, error) {
+	return c.client.OpenAPI().GetServiceDomainVerification(ctx, projectID, environmentID, domainID)
+}
+
+func (c ServiceDomainsClient) Verify(ctx context.Context, projectID, environmentID, domainID string, options MutationOptions) (OpenAPIVerifyServiceDomainResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIVerifyServiceDomainResponseBody{}, err
+	}
+	return c.client.OpenAPI().VerifyServiceDomain(ctx, projectID, environmentID, domainID, OpenAPIVerifyServiceDomainHeaders{IdempotencyKey: options.IdempotencyKey})
+}
+
 func (c ServiceVariablesClient) List(ctx context.Context, projectID, environmentID string) (OpenAPIListServiceVariablesResponseBody, error) {
 	return c.client.OpenAPI().ListServiceVariables(ctx, projectID, environmentID)
 }

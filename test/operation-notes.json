@@ -966,6 +966,21 @@
       ],
       "summary": "Upload a workspace archive"
     },
+    "getServiceDomainVerification": {
+      "behavior": "Returns the latest persisted DNS, TLS, route, and HTTP observation for the exact saved domain configuration and deployment without initiating a network request.",
+      "lifecycle": [
+        "An outcome of stale is retained evidence only and did not update the current domain projection."
+      ],
+      "summary": "Get the latest public Service domain verification"
+    },
+    "verifyServiceDomain": {
+      "behavior": "Runs one bounded HTTPS verification against the saved tenant domain only and returns separate DNS, TLS, route, and HTTP observations.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "The control plane rejects private resolution, rebinding, cross-destination redirects, oversized responses, and stale deployment or configuration races."
+      ],
+      "summary": "Verify public Service domain routing"
+    },
     "workerOrchestratorHealth": {
       "behavior": "Uses the contract-defined GET /health behavior.",
       "lifecycle": [],
