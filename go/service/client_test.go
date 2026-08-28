@@ -191,6 +191,7 @@ func TestBulkVariableApplyUsesPerEnvironmentFencesWithoutIfMatch(t *testing.T) {
 
 func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
 	types := []reflect.Type{
+		reflect.TypeOf(AppsClient{}),
 		reflect.TypeOf(TargetServicesClient{}),
 		reflect.TypeOf(ProjectsClient{}),
 		reflect.TypeOf(ServiceEnvironmentsClient{}),
@@ -209,8 +210,8 @@ func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
 	for _, facadeType := range types {
 		operationCount += facadeType.NumMethod()
 	}
-	if operationCount != 87 {
-		t.Fatalf("administration facade operations = %d, want 87", operationCount)
+	if operationCount != 92 {
+		t.Fatalf("administration facade operations = %d, want 92", operationCount)
 	}
 }
 

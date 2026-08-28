@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "8214e2f9d30d2b37bbeced8360c6865089d3790061aba9b33e2236edd9883331"
-	OpenAPIContractBundleSHA256 = "83e36290e5d9aaacb2acbbf76156b1ce092b940d19d46846e633c80759b70830"
-	OpenAPIOperationCount       = 105
+	OpenAPISpecSHA256           = "f9ff035b1ed2e959263fa89f481065ca250f0ec2608140ec7b42c677b0a6dea3"
+	OpenAPIContractBundleSHA256 = "98c8ed10e0ecb902c68c9ffabcb6ba943ab3e2a2aafac9f9abe70d74268db6a9"
+	OpenAPIOperationCount       = 110
 )
 
 type openAPIOperationID string
@@ -30,6 +30,7 @@ const (
 	openAPIClearServiceVariableValue                      openAPIOperationID = "clearServiceVariableValue"
 	openAPIClearTargetServiceConnection                   openAPIOperationID = "clearTargetServiceConnection"
 	openAPICreatePostGripConfigurationPlan                openAPIOperationID = "createPostGripConfigurationPlan"
+	openAPICreateServiceApp                               openAPIOperationID = "createServiceApp"
 	openAPICreateServiceDNSPlan                           openAPIOperationID = "createServiceDNSPlan"
 	openAPICreateServiceDomain                            openAPIOperationID = "createServiceDomain"
 	openAPICreateServiceEnvironment                       openAPIOperationID = "createServiceEnvironment"
@@ -37,6 +38,7 @@ const (
 	openAPICreateServiceReleaseGroup                      openAPIOperationID = "createServiceReleaseGroup"
 	openAPICreateServiceVariable                          openAPIOperationID = "createServiceVariable"
 	openAPICreateServiceVolume                            openAPIOperationID = "createServiceVolume"
+	openAPIDeleteServiceApp                               openAPIOperationID = "deleteServiceApp"
 	openAPIDeleteServiceDomain                            openAPIOperationID = "deleteServiceDomain"
 	openAPIDeleteServiceEnvironment                       openAPIOperationID = "deleteServiceEnvironment"
 	openAPIDeleteServiceProject                           openAPIOperationID = "deleteServiceProject"
@@ -50,6 +52,7 @@ const (
 	openAPIGetPostGripConfigurationStack                  openAPIOperationID = "getPostGripConfigurationStack"
 	openAPIGetPostGripConfigurationStackOperation         openAPIOperationID = "getPostGripConfigurationStackOperation"
 	openAPIGetService                                     openAPIOperationID = "getService"
+	openAPIGetServiceApp                                  openAPIOperationID = "getServiceApp"
 	openAPIGetServiceBuildLogSettings                     openAPIOperationID = "getServiceBuildLogSettings"
 	openAPIGetServiceConfigurationOperation               openAPIOperationID = "getServiceConfigurationOperation"
 	openAPIGetServiceDNSCanonicalState                    openAPIOperationID = "getServiceDNSCanonicalState"
@@ -70,6 +73,7 @@ const (
 	openAPIListGitHubAppRepositories                      openAPIOperationID = "listGitHubAppRepositories"
 	openAPIListPostGripConfigurationPlanActions           openAPIOperationID = "listPostGripConfigurationPlanActions"
 	openAPIListPostGripConfigurationStackOperationActions openAPIOperationID = "listPostGripConfigurationStackOperationActions"
+	openAPIListServiceApps                                openAPIOperationID = "listServiceApps"
 	openAPIListServiceConfigurationOperations             openAPIOperationID = "listServiceConfigurationOperations"
 	openAPIListServiceDNSPlans                            openAPIOperationID = "listServiceDNSPlans"
 	openAPIListServiceDeployments                         openAPIOperationID = "listServiceDeployments"
@@ -110,6 +114,7 @@ const (
 	openAPITrimServiceBuildLogs                           openAPIOperationID = "trimServiceBuildLogs"
 	openAPITrimServiceRuntimeLogs                         openAPIOperationID = "trimServiceRuntimeLogs"
 	openAPIUnbindServiceVolume                            openAPIOperationID = "unbindServiceVolume"
+	openAPIUpdateServiceApp                               openAPIOperationID = "updateServiceApp"
 	openAPIUpdateServiceBuildLogSettings                  openAPIOperationID = "updateServiceBuildLogSettings"
 	openAPIUpdateServiceDNSFailoverPolicy                 openAPIOperationID = "updateServiceDNSFailoverPolicy"
 	openAPIUpdateServiceDomain                            openAPIOperationID = "updateServiceDomain"
@@ -155,6 +160,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIClearServiceVariableValue:                      {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId", "variableId"}},
 	openAPIClearTargetServiceConnection:                   {Method: "DELETE", Path: "/api/v1/services/target/{serviceId}/connection", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{"serviceId"}},
 	openAPICreatePostGripConfigurationPlan:                {Method: "POST", Path: "/api/v1/services/configuration-stacks/{stackKey}/plans", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreatePostGripConfigurationPlanRequest", ResponseSchema: "PostGripConfigurationPlan", PathParameters: []string{"stackKey"}},
+	openAPICreateServiceApp:                               {Method: "POST", Path: "/api/v1/services/apps", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceAppRequest", ResponseSchema: "ServiceAppMutationResponse", PathParameters: []string{}},
 	openAPICreateServiceDNSPlan:                           {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceDNSPlanRequest", ResponseSchema: "ServiceDNSPlan", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
 	openAPICreateServiceDomain:                            {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceDomainRequest", ResponseSchema: "ServiceDomainMutationResponse", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPICreateServiceEnvironment:                       {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceEnvironmentRequest", ResponseSchema: "ServiceEnvironmentMutationResponse", PathParameters: []string{"serviceId"}},
@@ -162,6 +168,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPICreateServiceReleaseGroup:                      {Method: "POST", Path: "/api/v1/services/release-groups", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceReleaseGroupRequest", ResponseSchema: "ServiceReleaseGroup", PathParameters: []string{}},
 	openAPICreateServiceVariable:                          {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceVariableRequest", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPICreateServiceVolume:                            {Method: "POST", Path: "/api/v1/services/project/{serviceId}/volumes", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceVolumeRequest", ResponseSchema: "ServiceVolumeMutationResponse", PathParameters: []string{"serviceId"}},
+	openAPIDeleteServiceApp:                               {Method: "DELETE", Path: "/api/v1/services/apps/{appId}", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceAppDeletionResponse", PathParameters: []string{"appId"}},
 	openAPIDeleteServiceDomain:                            {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceDomainMutationResponse", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
 	openAPIDeleteServiceEnvironment:                       {Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/delete", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ConfirmedDeletionRequest", ResponseSchema: "ServiceDeletionResponse", PathParameters: []string{"serviceId", "environmentId"}},
 	openAPIDeleteServiceProject:                           {Method: "POST", Path: "/api/v1/services/project/{serviceId}/delete", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ConfirmedDeletionRequest", ResponseSchema: "ServiceDeletionResponse", PathParameters: []string{"serviceId"}},
@@ -175,6 +182,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIGetPostGripConfigurationStack:                  {Method: "GET", Path: "/api/v1/services/configuration-stacks/{stackKey}", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "PostGripConfigurationStack", PathParameters: []string{"stackKey"}},
 	openAPIGetPostGripConfigurationStackOperation:         {Method: "GET", Path: "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "PostGripConfigurationStackOperation", PathParameters: []string{"stackKey", "operationId"}},
 	openAPIGetService:                                     {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Service", PathParameters: []string{"source", "serviceId"}},
+	openAPIGetServiceApp:                                  {Method: "GET", Path: "/api/v1/services/apps/{appId}", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceApp", PathParameters: []string{"appId"}},
 	openAPIGetServiceBuildLogSettings:                     {Method: "GET", Path: "/api/v1/services/project/{serviceId}/logs/build/settings", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceBuildLogStatus", PathParameters: []string{"serviceId"}},
 	openAPIGetServiceConfigurationOperation:               {Method: "GET", Path: "/api/v1/services/configuration-operations/{operationId}", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperation", PathParameters: []string{"operationId"}},
 	openAPIGetServiceDNSCanonicalState:                    {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceDNSCanonicalState", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
@@ -195,6 +203,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPIListGitHubAppRepositories:                      {Method: "GET", Path: "/api/v1/services/integrations/github/repositories", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "GitHubRepositoryList", PathParameters: []string{}},
 	openAPIListPostGripConfigurationPlanActions:           {Method: "GET", Path: "/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "PostGripConfigurationPlanActionList", PathParameters: []string{"stackKey", "planId"}},
 	openAPIListPostGripConfigurationStackOperationActions: {Method: "GET", Path: "/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "PostGripConfigurationStackOperationActionList", PathParameters: []string{"stackKey", "operationId"}},
+	openAPIListServiceApps:                                {Method: "GET", Path: "/api/v1/services/apps", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceAppList", PathParameters: []string{}},
 	openAPIListServiceConfigurationOperations:             {Method: "GET", Path: "/api/v1/services/configuration-operations", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceConfigurationOperationList", PathParameters: []string{}},
 	openAPIListServiceDNSPlans:                            {Method: "GET", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceDNSPlanList", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
 	openAPIListServiceDeployments:                         {Method: "GET", Path: "/api/v1/services/{source}/{serviceId}/deployments", AuthLane: "service-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "DeploymentList", PathParameters: []string{"source", "serviceId"}},
@@ -235,6 +244,7 @@ var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
 	openAPITrimServiceBuildLogs:                           {Method: "POST", Path: "/api/v1/services/project/{serviceId}/logs/build/trim", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceBuildLogMaintenanceResponse", PathParameters: []string{"serviceId"}},
 	openAPITrimServiceRuntimeLogs:                         {Method: "POST", Path: "/api/v1/services/project/{serviceId}/logs/runtime/trim", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRuntimeLogMutationResponse", PathParameters: []string{"serviceId"}},
 	openAPIUnbindServiceVolume:                            {Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}", AuthLane: "service-management", Safety: "destructive", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVolumeBindingMutationResponse", PathParameters: []string{"serviceId", "environmentId", "volumeRef"}},
+	openAPIUpdateServiceApp:                               {Method: "PUT", Path: "/api/v1/services/apps/{appId}", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceAppRequest", ResponseSchema: "ServiceAppMutationResponse", PathParameters: []string{"appId"}},
 	openAPIUpdateServiceBuildLogSettings:                  {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/logs/build/settings", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "ServiceBuildLogSettingsRequest", ResponseSchema: "ServiceBuildLogSettingsMutationResponse", PathParameters: []string{"serviceId"}},
 	openAPIUpdateServiceDNSFailoverPolicy:                 {Method: "PUT", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceDNSFailoverPolicyRequest", ResponseSchema: "ServiceDNSFailoverPolicy", PathParameters: []string{"serviceId", "environmentId", "domainId"}},
 	openAPIUpdateServiceDomain:                            {Method: "PATCH", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}", AuthLane: "service-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateServiceDomainRequest", ResponseSchema: "ServiceDomainMutationResponse", PathParameters: []string{"serviceId", "environmentId", "domainId"}},

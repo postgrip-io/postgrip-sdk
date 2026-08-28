@@ -570,6 +570,41 @@ type OpenAPIGitHubRepositoryAdoptionRequest struct {
 	PreviewDigest  string `json:"previewDigest"`
 	RepositoryEtag string `json:"repositoryEtag"`
 }
+type OpenAPIServiceApp struct {
+	Id          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description,omitempty"`
+	Version     int64     `json:"version"`
+	Etag        string    `json:"etag"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+type OpenAPIServiceAppList struct {
+	Items []OpenAPIServiceApp `json:"items"`
+}
+type OpenAPICreateServiceAppRequest struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+type OpenAPIUpdateServiceAppRequest struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+type OpenAPIServiceAppMutationResponse struct {
+	App                   OpenAPIServiceApp       `json:"app"`
+	Effect                string                  `json:"effect"`
+	ConfigurationRevision int64                   `json:"configurationRevision"`
+	CatalogRevision       int64                   `json:"catalogRevision"`
+	Receipt               OpenAPIOperationReceipt `json:"receipt"`
+}
+type OpenAPIServiceAppDeletionResponse struct {
+	Effect                string                  `json:"effect"`
+	ConfigurationRevision int64                   `json:"configurationRevision"`
+	CatalogRevision       int64                   `json:"catalogRevision"`
+	DetachedProjectCount  int64                   `json:"detachedProjectCount"`
+	DetachedTargetCount   int64                   `json:"detachedTargetCount"`
+	Receipt               OpenAPIOperationReceipt `json:"receipt"`
+}
 type OpenAPIServiceRepository struct {
 	Provider                   string                                  `json:"provider"`
 	RepoOwner                  string                                  `json:"repoOwner"`
@@ -1561,6 +1596,8 @@ type OpenAPIClearTargetServiceConnectionRequestBody = OpenAPINoBody
 type OpenAPIClearTargetServiceConnectionResponseBody = OpenAPIServiceTargetMutationResponse
 type OpenAPICreatePostGripConfigurationPlanRequestBody = OpenAPICreatePostGripConfigurationPlanRequest
 type OpenAPICreatePostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
+type OpenAPICreateServiceAppRequestBody = OpenAPICreateServiceAppRequest
+type OpenAPICreateServiceAppResponseBody = OpenAPIServiceAppMutationResponse
 type OpenAPICreateServiceDNSPlanRequestBody = OpenAPICreateServiceDNSPlanRequest
 type OpenAPICreateServiceDNSPlanResponseBody = OpenAPIServiceDNSPlan
 type OpenAPICreateServiceDomainRequestBody = OpenAPICreateServiceDomainRequest
@@ -1575,6 +1612,8 @@ type OpenAPICreateServiceVariableRequestBody = OpenAPICreateServiceVariableReque
 type OpenAPICreateServiceVariableResponseBody = OpenAPIServiceVariableMutationResponse
 type OpenAPICreateServiceVolumeRequestBody = OpenAPICreateServiceVolumeRequest
 type OpenAPICreateServiceVolumeResponseBody = OpenAPIServiceVolumeMutationResponse
+type OpenAPIDeleteServiceAppRequestBody = OpenAPINoBody
+type OpenAPIDeleteServiceAppResponseBody = OpenAPIServiceAppDeletionResponse
 type OpenAPIDeleteServiceDomainRequestBody = OpenAPINoBody
 type OpenAPIDeleteServiceDomainResponseBody = OpenAPIServiceDomainMutationResponse
 type OpenAPIDeleteServiceEnvironmentRequestBody = OpenAPIConfirmedDeletionRequest
@@ -1601,6 +1640,8 @@ type OpenAPIGetPostGripConfigurationStackOperationRequestBody = OpenAPINoBody
 type OpenAPIGetPostGripConfigurationStackOperationResponseBody = OpenAPIPostGripConfigurationStackOperation
 type OpenAPIGetServiceRequestBody = OpenAPINoBody
 type OpenAPIGetServiceResponseBody = OpenAPIService
+type OpenAPIGetServiceAppRequestBody = OpenAPINoBody
+type OpenAPIGetServiceAppResponseBody = OpenAPIServiceApp
 type OpenAPIGetServiceBuildLogSettingsRequestBody = OpenAPINoBody
 type OpenAPIGetServiceBuildLogSettingsResponseBody = OpenAPIServiceBuildLogStatus
 type OpenAPIGetServiceConfigurationOperationRequestBody = OpenAPINoBody
@@ -1641,6 +1682,8 @@ type OpenAPIListPostGripConfigurationPlanActionsRequestBody = OpenAPINoBody
 type OpenAPIListPostGripConfigurationPlanActionsResponseBody = OpenAPIPostGripConfigurationPlanActionList
 type OpenAPIListPostGripConfigurationStackOperationActionsRequestBody = OpenAPINoBody
 type OpenAPIListPostGripConfigurationStackOperationActionsResponseBody = OpenAPIPostGripConfigurationStackOperationActionList
+type OpenAPIListServiceAppsRequestBody = OpenAPINoBody
+type OpenAPIListServiceAppsResponseBody = OpenAPIServiceAppList
 type OpenAPIListServiceConfigurationOperationsRequestBody = OpenAPINoBody
 type OpenAPIListServiceConfigurationOperationsResponseBody = OpenAPIServiceConfigurationOperationList
 type OpenAPIListServiceDNSPlansRequestBody = OpenAPINoBody
@@ -1721,6 +1764,8 @@ type OpenAPITrimServiceRuntimeLogsRequestBody = OpenAPINoBody
 type OpenAPITrimServiceRuntimeLogsResponseBody = OpenAPIServiceRuntimeLogMutationResponse
 type OpenAPIUnbindServiceVolumeRequestBody = OpenAPINoBody
 type OpenAPIUnbindServiceVolumeResponseBody = OpenAPIServiceVolumeBindingMutationResponse
+type OpenAPIUpdateServiceAppRequestBody = OpenAPIUpdateServiceAppRequest
+type OpenAPIUpdateServiceAppResponseBody = OpenAPIServiceAppMutationResponse
 type OpenAPIUpdateServiceBuildLogSettingsRequestBody = OpenAPIServiceBuildLogSettingsRequest
 type OpenAPIUpdateServiceBuildLogSettingsResponseBody = OpenAPIServiceBuildLogSettingsMutationResponse
 type OpenAPIUpdateServiceDNSFailoverPolicyRequestBody = OpenAPIUpdateServiceDNSFailoverPolicyRequest
@@ -1912,6 +1957,12 @@ type GitHubRepositoryList = OpenAPIGitHubRepositoryList
 type GitHubRepositoryAdoptionPreviewRequest = OpenAPIGitHubRepositoryAdoptionPreviewRequest
 type GitHubRepositoryAdoptionPreview = OpenAPIGitHubRepositoryAdoptionPreview
 type GitHubRepositoryAdoptionRequest = OpenAPIGitHubRepositoryAdoptionRequest
+type ServiceApp = OpenAPIServiceApp
+type ServiceAppList = OpenAPIServiceAppList
+type CreateServiceAppRequest = OpenAPICreateServiceAppRequest
+type UpdateServiceAppRequest = OpenAPIUpdateServiceAppRequest
+type ServiceAppMutationResponse = OpenAPIServiceAppMutationResponse
+type ServiceAppDeletionResponse = OpenAPIServiceAppDeletionResponse
 type ServiceRepository = OpenAPIServiceRepository
 type ServiceAutomaticDeploymentWiring = OpenAPIServiceAutomaticDeploymentWiring
 type ServiceAutomaticDeploymentWiringStatus = OpenAPIServiceAutomaticDeploymentWiringStatus
@@ -2008,4 +2059,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "8214e2f9d30d2b37bbeced8360c6865089d3790061aba9b33e2236edd9883331"
+const openAPITypesSpecSHA256 = "f9ff035b1ed2e959263fa89f481065ca250f0ec2608140ec7b42c677b0a6dea3"

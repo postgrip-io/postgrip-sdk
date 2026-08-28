@@ -172,6 +172,15 @@
       ],
       "summary": "Create a deterministic declarative configuration plan"
     },
+    "createServiceApp": {
+      "behavior": "Creates one tenant-scoped application grouping after fencing the Service catalog ETag.",
+      "lifecycle": [
+        "Supply the ETag returned by listServiceApps as If-Match.",
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create a service application grouping"
+    },
     "createServiceDomain": {
       "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/environments/{environmentId}/domains behavior.",
       "lifecycle": [
@@ -234,6 +243,15 @@
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Delete a schedule"
+    },
+    "deleteServiceApp": {
+      "behavior": "Deletes the grouping record while retaining and atomically detaching every attached project and target service.",
+      "lifecycle": [
+        "Supply the application ETag as If-Match.",
+        "Idempotency: required.",
+        "The response reports detachedProjectCount and detachedTargetCount."
+      ],
+      "summary": "Delete a service application grouping"
     },
     "deleteServiceDomain": {
       "behavior": "Uses the contract-defined DELETE /api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId} behavior.",
@@ -361,6 +379,13 @@
       "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId} behavior.",
       "lifecycle": [],
       "summary": "Get a service and its capabilities"
+    },
+    "getServiceApp": {
+      "behavior": "Returns one tenant-scoped application grouping and its current configuration ETag.",
+      "lifecycle": [
+        "Use the returned ETag to fence update or delete."
+      ],
+      "summary": "Get a service application grouping"
     },
     "getServiceBuildLogSettings": {
       "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/logs/build/settings behavior.",
@@ -495,6 +520,13 @@
         "Follow nextCursor until it is empty to consume the complete operation history."
       ],
       "summary": "List declarative configuration operation actions"
+    },
+    "listServiceApps": {
+      "behavior": "Lists every tenant-scoped application grouping without exposing tenant identity.",
+      "lifecycle": [
+        "Use the collection ETag to fence createServiceApp."
+      ],
+      "summary": "List service application groupings"
     },
     "listServiceConfigurationOperations": {
       "behavior": "Uses the contract-defined GET /api/v1/services/configuration-operations behavior.",
@@ -870,6 +902,14 @@
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Update a schedule"
+    },
+    "updateServiceApp": {
+      "behavior": "Replaces the name and description of one application grouping under its configuration ETag.",
+      "lifecycle": [
+        "Supply the application ETag as If-Match.",
+        "Idempotency: required."
+      ],
+      "summary": "Replace a service application grouping"
     },
     "updateServiceBuildLogSettings": {
       "behavior": "Uses the contract-defined PATCH /api/v1/services/project/{serviceId}/logs/build/settings behavior.",

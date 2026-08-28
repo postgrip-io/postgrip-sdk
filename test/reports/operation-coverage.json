@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "83e36290e5d9aaacb2acbbf76156b1ce092b940d19d46846e633c80759b70830",
+  "contractBundleDigest": "98c8ed10e0ecb902c68c9ffabcb6ba943ab3e2a2aafac9f9abe70d74268db6a9",
   "operations": [
     {
       "curl": false,
@@ -995,6 +995,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "nightly",
+      "operationId": "createServiceApp",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "pre-release",
       "operationId": "createServiceDNSPlan",
       "plane": "service",
@@ -1099,6 +1116,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "createServiceVolume",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "deleteServiceApp",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -1320,6 +1354,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "getService",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "getServiceApp",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -1660,6 +1711,23 @@
       ],
       "liveTest": "nightly",
       "operationId": "listPostGripConfigurationStackOperationActions",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "listServiceApps",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2356,6 +2424,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "updateServiceApp",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "updateServiceBuildLogSettings",
       "plane": "service",
       "protocolException": false,
@@ -2781,10 +2866,10 @@
       "recordedTested": 45
     },
     "service": {
-      "curl": 105,
-      "operations": 105,
+      "curl": 110,
+      "operations": 110,
       "protocolExceptions": 0,
-      "recordedTested": 105
+      "recordedTested": 110
     },
     "worker": {
       "curl": 13,
@@ -2795,14 +2880,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 154,
-    "documented": 163,
-    "nightlyOwned": 119,
-    "operations": 163,
+    "curl": 159,
+    "documented": 168,
+    "nightlyOwned": 124,
+    "operations": 168,
     "preReleaseOwned": 42,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 163,
-    "sdkGenerated": 163
+    "recordedTested": 168,
+    "sdkGenerated": 168
   }
 }

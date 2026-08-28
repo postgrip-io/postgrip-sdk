@@ -343,7 +343,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 87 administration operations and sends concurrency fences', async () => {
+  it('groups all 92 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -355,7 +355,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(87);
+    expect(methodCount).toBe(92);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -399,7 +399,7 @@ describe('ServiceClient', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('executes all 87 administration facades through the authenticated transport', async () => {
+  it('executes all 92 administration facades through the authenticated transport', async () => {
     let requestCount = 0;
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestCount += 1;
@@ -417,6 +417,11 @@ describe('ServiceClient', () => {
     const write = { idempotencyKey: 'operation-1', ifMatch: '"etag:1"' };
     const mutation = { idempotencyKey: 'operation-1' };
     const calls: Array<() => Promise<unknown>> = [
+      () => admin.apps.list(),
+      () => admin.apps.get('app-1'),
+      () => admin.apps.create(body, write),
+      () => admin.apps.update('app-1', body, write),
+      () => admin.apps.delete('app-1', write),
       () => admin.targets.attach(body, write),
       () => admin.targets.update('target-1', body, write),
       () => admin.targets.removalImpact('target-1'),
@@ -507,7 +512,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(87);
+    expect(requestCount).toBe(92);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

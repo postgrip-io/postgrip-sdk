@@ -223,6 +223,15 @@
       "plane": "service",
       "protocolException": null
     },
+    "createServiceApp": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceApp.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "createServiceDomain": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,
@@ -293,6 +302,15 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "agent",
+      "protocolException": null
+    },
+    "deleteServiceApp": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deleteServiceApp.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
       "protocolException": null
     },
     "deleteServiceDomain": {
@@ -456,6 +474,15 @@
       "cleanup": "none",
       "curlEligible": true,
       "fixture": "service/getService.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceApp": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceApp.json",
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",
@@ -685,6 +712,15 @@
       "cleanup": "none",
       "curlEligible": true,
       "fixture": "service/listPostGripConfigurationStackOperationActions.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceApps": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceApps.json",
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",
@@ -1209,6 +1245,15 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "agent",
+      "protocolException": null
+    },
+    "updateServiceApp": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceApp.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
       "protocolException": null
     },
     "updateServiceBuildLogSettings": {

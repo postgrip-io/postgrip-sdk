@@ -1,0 +1,36 @@
+{
+  "operationId": "deleteServiceApp",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {
+      "Idempotency-Key": "recorded-deleteServiceApp",
+      "If-Match": "\"revision:7\""
+    },
+    "pathParameters": {
+      "appId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "catalogRevision": 1,
+      "configurationRevision": 1,
+      "detachedProjectCount": 1,
+      "detachedTargetCount": 1,
+      "effect": "immediate",
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_deleteServiceApp"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -161,6 +161,18 @@ export class ServiceClient {
   };
 
   readonly administration = {
+    apps: {
+      list: (options: RequestOptions = {}) =>
+        this.request('listServiceApps', { signal: options.signal }),
+      get: (appId: string, options: RequestOptions = {}) =>
+        this.request('getServiceApp', { path: { appId }, signal: options.signal }),
+      create: (body: OpenAPIRequestBody<'createServiceApp'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('createServiceApp', { body, ...administrationWrite(options) }, true),
+      update: (appId: string, body: OpenAPIRequestBody<'updateServiceApp'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceApp', { path: { appId }, body, ...administrationWrite(options) }, true),
+      delete: (appId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('deleteServiceApp', { path: { appId }, ...administrationWrite(options) }, true),
+    },
     targets: {
       attach: (body: OpenAPIRequestBody<'attachTargetService'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('attachTargetService', { body, ...administrationWrite(options) }, true),
