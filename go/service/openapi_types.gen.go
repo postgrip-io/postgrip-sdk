@@ -568,20 +568,27 @@ type OpenAPIGitHubRepositoryAdoptionRequest struct {
 	RepositoryEtag string `json:"repositoryEtag"`
 }
 type OpenAPIServiceRepository struct {
-	Provider                   string     `json:"provider"`
-	RepoOwner                  string     `json:"repoOwner"`
-	RepoName                   string     `json:"repoName"`
-	DefaultBranch              string     `json:"defaultBranch"`
-	ProjectPath                *string    `json:"projectPath,omitempty"`
-	DockerfilePath             *string    `json:"dockerfilePath,omitempty"`
-	ExternalRepoId             *string    `json:"externalRepoId,omitempty"`
-	HasSourceCredential        bool       `json:"hasSourceCredential"`
-	HasWebhookCredential       bool       `json:"hasWebhookCredential"`
-	SourceCredentialRotatedAt  *time.Time `json:"sourceCredentialRotatedAt,omitempty"`
-	WebhookCredentialRotatedAt *time.Time `json:"webhookCredentialRotatedAt,omitempty"`
-	Version                    int64      `json:"version"`
-	Etag                       string     `json:"etag"`
+	Provider                   string                                  `json:"provider"`
+	RepoOwner                  string                                  `json:"repoOwner"`
+	RepoName                   string                                  `json:"repoName"`
+	DefaultBranch              string                                  `json:"defaultBranch"`
+	ProjectPath                *string                                 `json:"projectPath,omitempty"`
+	DockerfilePath             *string                                 `json:"dockerfilePath,omitempty"`
+	ExternalRepoId             *string                                 `json:"externalRepoId,omitempty"`
+	HasSourceCredential        bool                                    `json:"hasSourceCredential"`
+	HasWebhookCredential       bool                                    `json:"hasWebhookCredential"`
+	AutomaticDeployments       OpenAPIServiceAutomaticDeploymentWiring `json:"automaticDeployments"`
+	SourceCredentialRotatedAt  *time.Time                              `json:"sourceCredentialRotatedAt,omitempty"`
+	WebhookCredentialRotatedAt *time.Time                              `json:"webhookCredentialRotatedAt,omitempty"`
+	Version                    int64                                   `json:"version"`
+	Etag                       string                                  `json:"etag"`
 }
+type OpenAPIServiceAutomaticDeploymentWiring struct {
+	Active    bool                                          `json:"active"`
+	Status    OpenAPIServiceAutomaticDeploymentWiringStatus `json:"status"`
+	CheckedAt time.Time                                     `json:"checkedAt"`
+}
+type OpenAPIServiceAutomaticDeploymentWiringStatus string
 type OpenAPIServiceProject struct {
 	Id             string                   `json:"id"`
 	Ref            string                   `json:"ref"`
@@ -1730,84 +1737,91 @@ type OpenAPIVerifyServiceDomainResponseBody = OpenAPIServiceDomainVerification
 // OpenAPI-prefixed constants expose every generated enum value without
 // colliding with the ergonomic SDK's compatibility constants.
 const (
-	OpenAPIServiceReleaseVerificationPolicyDeploymentReady    OpenAPIServiceReleaseVerificationPolicy = "deployment_ready"
-	OpenAPIServiceReleaseVerificationPolicyPublic             OpenAPIServiceReleaseVerificationPolicy = "public"
-	OpenAPIServiceReleaseGroupStatePending                    OpenAPIServiceReleaseGroupState         = "pending"
-	OpenAPIServiceReleaseGroupStateRunning                    OpenAPIServiceReleaseGroupState         = "running"
-	OpenAPIServiceReleaseGroupStateVerifying                  OpenAPIServiceReleaseGroupState         = "verifying"
-	OpenAPIServiceReleaseGroupStateCancelling                 OpenAPIServiceReleaseGroupState         = "cancelling"
-	OpenAPIServiceReleaseGroupStateCompensating               OpenAPIServiceReleaseGroupState         = "compensating"
-	OpenAPIServiceReleaseGroupStateSucceeded                  OpenAPIServiceReleaseGroupState         = "succeeded"
-	OpenAPIServiceReleaseGroupStateRecovered                  OpenAPIServiceReleaseGroupState         = "recovered"
-	OpenAPIServiceReleaseGroupStateCancelled                  OpenAPIServiceReleaseGroupState         = "cancelled"
-	OpenAPIServiceReleaseGroupStateInterventionRequired       OpenAPIServiceReleaseGroupState         = "intervention_required"
-	OpenAPIServiceReleaseGroupMemberStatePending              OpenAPIServiceReleaseGroupMemberState   = "pending"
-	OpenAPIServiceReleaseGroupMemberStateDispatching          OpenAPIServiceReleaseGroupMemberState   = "dispatching"
-	OpenAPIServiceReleaseGroupMemberStateDeploying            OpenAPIServiceReleaseGroupMemberState   = "deploying"
-	OpenAPIServiceReleaseGroupMemberStateVerifying            OpenAPIServiceReleaseGroupMemberState   = "verifying"
-	OpenAPIServiceReleaseGroupMemberStateVerified             OpenAPIServiceReleaseGroupMemberState   = "verified"
-	OpenAPIServiceReleaseGroupMemberStateFailed               OpenAPIServiceReleaseGroupMemberState   = "failed"
-	OpenAPIServiceReleaseGroupMemberStateCancelling           OpenAPIServiceReleaseGroupMemberState   = "cancelling"
-	OpenAPIServiceReleaseGroupMemberStateCancelled            OpenAPIServiceReleaseGroupMemberState   = "cancelled"
-	OpenAPIServiceReleaseGroupMemberStateCompensating         OpenAPIServiceReleaseGroupMemberState   = "compensating"
-	OpenAPIServiceReleaseGroupMemberStateCompensated          OpenAPIServiceReleaseGroupMemberState   = "compensated"
-	OpenAPIServiceReleaseGroupMemberStateSucceeded            OpenAPIServiceReleaseGroupMemberState   = "succeeded"
-	OpenAPIServiceReleaseGroupMemberStateSkipped              OpenAPIServiceReleaseGroupMemberState   = "skipped"
-	OpenAPIServiceReleaseGroupMemberStateInterventionRequired OpenAPIServiceReleaseGroupMemberState   = "intervention_required"
-	OpenAPIServiceSourceTarget                                OpenAPIServiceSource                    = "target"
-	OpenAPIServiceSourceProject                               OpenAPIServiceSource                    = "project"
-	OpenAPIServiceKindPostgresql                              OpenAPIServiceKind                      = "postgresql"
-	OpenAPIServiceKindSqlite                                  OpenAPIServiceKind                      = "sqlite"
-	OpenAPIServiceKindWeb                                     OpenAPIServiceKind                      = "web"
-	OpenAPIServiceKindBackend                                 OpenAPIServiceKind                      = "backend"
-	OpenAPIServiceKindZvec                                    OpenAPIServiceKind                      = "zvec"
-	OpenAPIServiceKindLadybugdb                               OpenAPIServiceKind                      = "ladybugdb"
-	OpenAPIServiceKindNodedb                                  OpenAPIServiceKind                      = "nodedb"
-	OpenAPIServiceModeConnected                               OpenAPIServiceMode                      = "connected"
-	OpenAPIServiceModeManaged                                 OpenAPIServiceMode                      = "managed"
-	OpenAPIServiceModeDeployed                                OpenAPIServiceMode                      = "deployed"
-	OpenAPIServiceStatusValueReady                            OpenAPIServiceStatusValue               = "ready"
-	OpenAPIServiceStatusValueDegraded                         OpenAPIServiceStatusValue               = "degraded"
-	OpenAPIServiceStatusValueUnreachable                      OpenAPIServiceStatusValue               = "unreachable"
-	OpenAPIServiceStatusValueDeploying                        OpenAPIServiceStatusValue               = "deploying"
-	OpenAPIServiceStatusValueFailed                           OpenAPIServiceStatusValue               = "failed"
-	OpenAPIServiceStatusValueStopped                          OpenAPIServiceStatusValue               = "stopped"
-	OpenAPIServiceStatusValueUnassigned                       OpenAPIServiceStatusValue               = "unassigned"
-	OpenAPIServiceStatusValueMixed                            OpenAPIServiceStatusValue               = "mixed"
-	OpenAPIServiceStatusValueUnknown                          OpenAPIServiceStatusValue               = "unknown"
-	OpenAPIServiceCapabilityCheck                             OpenAPIServiceCapability                = "check"
-	OpenAPIServiceCapabilityEnvironmentsRead                  OpenAPIServiceCapability                = "environments:read"
-	OpenAPIServiceCapabilityDeploymentsRead                   OpenAPIServiceCapability                = "deployments:read"
-	OpenAPIServiceCapabilityLogsBuildRead                     OpenAPIServiceCapability                = "logs:build:read"
-	OpenAPIServiceCapabilityLogsRuntimeRead                   OpenAPIServiceCapability                = "logs:runtime:read"
-	OpenAPIServiceCapabilityLogsRuntimeFollow                 OpenAPIServiceCapability                = "logs:runtime:follow"
-	OpenAPIServiceCapabilityDeploy                            OpenAPIServiceCapability                = "deploy"
-	OpenAPIServiceCapabilityRedeploy                          OpenAPIServiceCapability                = "redeploy"
-	OpenAPIServiceCapabilityCancel                            OpenAPIServiceCapability                = "cancel"
-	OpenAPIServiceCapabilityRollback                          OpenAPIServiceCapability                = "rollback"
-	OpenAPIServiceCapabilityRuntimeStart                      OpenAPIServiceCapability                = "runtime:start"
-	OpenAPIServiceCapabilityRuntimeStop                       OpenAPIServiceCapability                = "runtime:stop"
-	OpenAPIServiceCapabilityRuntimeRestart                    OpenAPIServiceCapability                = "runtime:restart"
-	OpenAPIServiceCapabilityServiceUpdate                     OpenAPIServiceCapability                = "service:update"
-	OpenAPIServiceCapabilityServiceDelete                     OpenAPIServiceCapability                = "service:delete"
-	OpenAPIServiceCapabilityEnvironmentsWrite                 OpenAPIServiceCapability                = "environments:write"
-	OpenAPIServiceCapabilityEnvironmentsReassign              OpenAPIServiceCapability                = "environments:reassign"
-	OpenAPIServiceCapabilityVolumesRead                       OpenAPIServiceCapability                = "volumes:read"
-	OpenAPIServiceCapabilityVolumesWrite                      OpenAPIServiceCapability                = "volumes:write"
-	OpenAPIServiceCapabilityVolumesAdmin                      OpenAPIServiceCapability                = "volumes:admin"
-	OpenAPIServiceCapabilityDomainsRead                       OpenAPIServiceCapability                = "domains:read"
-	OpenAPIServiceCapabilityDomainsWrite                      OpenAPIServiceCapability                = "domains:write"
-	OpenAPIServiceCapabilityVariablesRead                     OpenAPIServiceCapability                = "variables:read"
-	OpenAPIServiceCapabilityVariablesWrite                    OpenAPIServiceCapability                = "variables:write"
-	OpenAPIServiceCapabilityRepositoryRead                    OpenAPIServiceCapability                = "repository:read"
-	OpenAPIServiceCapabilityRepositoryWrite                   OpenAPIServiceCapability                = "repository:write"
-	OpenAPIServiceCapabilityPromotionsRead                    OpenAPIServiceCapability                = "promotions:read"
-	OpenAPIServiceCapabilityPromotionsCreate                  OpenAPIServiceCapability                = "promotions:create"
-	OpenAPIServiceCapabilityRetentionRead                     OpenAPIServiceCapability                = "retention:read"
-	OpenAPIServiceCapabilityRetentionWrite                    OpenAPIServiceCapability                = "retention:write"
-	OpenAPIServiceCapabilityLogsMaintain                      OpenAPIServiceCapability                = "logs:maintain"
-	OpenAPIServiceCapabilityConfigurationOperationsRead       OpenAPIServiceCapability                = "configuration-operations:read"
-	OpenAPIServiceCapabilityConfigurationOperationsRetry      OpenAPIServiceCapability                = "configuration-operations:retry"
+	OpenAPIServiceReleaseVerificationPolicyDeploymentReady           OpenAPIServiceReleaseVerificationPolicy       = "deployment_ready"
+	OpenAPIServiceReleaseVerificationPolicyPublic                    OpenAPIServiceReleaseVerificationPolicy       = "public"
+	OpenAPIServiceReleaseGroupStatePending                           OpenAPIServiceReleaseGroupState               = "pending"
+	OpenAPIServiceReleaseGroupStateRunning                           OpenAPIServiceReleaseGroupState               = "running"
+	OpenAPIServiceReleaseGroupStateVerifying                         OpenAPIServiceReleaseGroupState               = "verifying"
+	OpenAPIServiceReleaseGroupStateCancelling                        OpenAPIServiceReleaseGroupState               = "cancelling"
+	OpenAPIServiceReleaseGroupStateCompensating                      OpenAPIServiceReleaseGroupState               = "compensating"
+	OpenAPIServiceReleaseGroupStateSucceeded                         OpenAPIServiceReleaseGroupState               = "succeeded"
+	OpenAPIServiceReleaseGroupStateRecovered                         OpenAPIServiceReleaseGroupState               = "recovered"
+	OpenAPIServiceReleaseGroupStateCancelled                         OpenAPIServiceReleaseGroupState               = "cancelled"
+	OpenAPIServiceReleaseGroupStateInterventionRequired              OpenAPIServiceReleaseGroupState               = "intervention_required"
+	OpenAPIServiceReleaseGroupMemberStatePending                     OpenAPIServiceReleaseGroupMemberState         = "pending"
+	OpenAPIServiceReleaseGroupMemberStateDispatching                 OpenAPIServiceReleaseGroupMemberState         = "dispatching"
+	OpenAPIServiceReleaseGroupMemberStateDeploying                   OpenAPIServiceReleaseGroupMemberState         = "deploying"
+	OpenAPIServiceReleaseGroupMemberStateVerifying                   OpenAPIServiceReleaseGroupMemberState         = "verifying"
+	OpenAPIServiceReleaseGroupMemberStateVerified                    OpenAPIServiceReleaseGroupMemberState         = "verified"
+	OpenAPIServiceReleaseGroupMemberStateFailed                      OpenAPIServiceReleaseGroupMemberState         = "failed"
+	OpenAPIServiceReleaseGroupMemberStateCancelling                  OpenAPIServiceReleaseGroupMemberState         = "cancelling"
+	OpenAPIServiceReleaseGroupMemberStateCancelled                   OpenAPIServiceReleaseGroupMemberState         = "cancelled"
+	OpenAPIServiceReleaseGroupMemberStateCompensating                OpenAPIServiceReleaseGroupMemberState         = "compensating"
+	OpenAPIServiceReleaseGroupMemberStateCompensated                 OpenAPIServiceReleaseGroupMemberState         = "compensated"
+	OpenAPIServiceReleaseGroupMemberStateSucceeded                   OpenAPIServiceReleaseGroupMemberState         = "succeeded"
+	OpenAPIServiceReleaseGroupMemberStateSkipped                     OpenAPIServiceReleaseGroupMemberState         = "skipped"
+	OpenAPIServiceReleaseGroupMemberStateInterventionRequired        OpenAPIServiceReleaseGroupMemberState         = "intervention_required"
+	OpenAPIServiceSourceTarget                                       OpenAPIServiceSource                          = "target"
+	OpenAPIServiceSourceProject                                      OpenAPIServiceSource                          = "project"
+	OpenAPIServiceKindPostgresql                                     OpenAPIServiceKind                            = "postgresql"
+	OpenAPIServiceKindSqlite                                         OpenAPIServiceKind                            = "sqlite"
+	OpenAPIServiceKindWeb                                            OpenAPIServiceKind                            = "web"
+	OpenAPIServiceKindBackend                                        OpenAPIServiceKind                            = "backend"
+	OpenAPIServiceKindZvec                                           OpenAPIServiceKind                            = "zvec"
+	OpenAPIServiceKindLadybugdb                                      OpenAPIServiceKind                            = "ladybugdb"
+	OpenAPIServiceKindNodedb                                         OpenAPIServiceKind                            = "nodedb"
+	OpenAPIServiceModeConnected                                      OpenAPIServiceMode                            = "connected"
+	OpenAPIServiceModeManaged                                        OpenAPIServiceMode                            = "managed"
+	OpenAPIServiceModeDeployed                                       OpenAPIServiceMode                            = "deployed"
+	OpenAPIServiceStatusValueReady                                   OpenAPIServiceStatusValue                     = "ready"
+	OpenAPIServiceStatusValueDegraded                                OpenAPIServiceStatusValue                     = "degraded"
+	OpenAPIServiceStatusValueUnreachable                             OpenAPIServiceStatusValue                     = "unreachable"
+	OpenAPIServiceStatusValueDeploying                               OpenAPIServiceStatusValue                     = "deploying"
+	OpenAPIServiceStatusValueFailed                                  OpenAPIServiceStatusValue                     = "failed"
+	OpenAPIServiceStatusValueStopped                                 OpenAPIServiceStatusValue                     = "stopped"
+	OpenAPIServiceStatusValueUnassigned                              OpenAPIServiceStatusValue                     = "unassigned"
+	OpenAPIServiceStatusValueMixed                                   OpenAPIServiceStatusValue                     = "mixed"
+	OpenAPIServiceStatusValueUnknown                                 OpenAPIServiceStatusValue                     = "unknown"
+	OpenAPIServiceCapabilityCheck                                    OpenAPIServiceCapability                      = "check"
+	OpenAPIServiceCapabilityEnvironmentsRead                         OpenAPIServiceCapability                      = "environments:read"
+	OpenAPIServiceCapabilityDeploymentsRead                          OpenAPIServiceCapability                      = "deployments:read"
+	OpenAPIServiceCapabilityLogsBuildRead                            OpenAPIServiceCapability                      = "logs:build:read"
+	OpenAPIServiceCapabilityLogsRuntimeRead                          OpenAPIServiceCapability                      = "logs:runtime:read"
+	OpenAPIServiceCapabilityLogsRuntimeFollow                        OpenAPIServiceCapability                      = "logs:runtime:follow"
+	OpenAPIServiceCapabilityDeploy                                   OpenAPIServiceCapability                      = "deploy"
+	OpenAPIServiceCapabilityRedeploy                                 OpenAPIServiceCapability                      = "redeploy"
+	OpenAPIServiceCapabilityCancel                                   OpenAPIServiceCapability                      = "cancel"
+	OpenAPIServiceCapabilityRollback                                 OpenAPIServiceCapability                      = "rollback"
+	OpenAPIServiceCapabilityRuntimeStart                             OpenAPIServiceCapability                      = "runtime:start"
+	OpenAPIServiceCapabilityRuntimeStop                              OpenAPIServiceCapability                      = "runtime:stop"
+	OpenAPIServiceCapabilityRuntimeRestart                           OpenAPIServiceCapability                      = "runtime:restart"
+	OpenAPIServiceCapabilityServiceUpdate                            OpenAPIServiceCapability                      = "service:update"
+	OpenAPIServiceCapabilityServiceDelete                            OpenAPIServiceCapability                      = "service:delete"
+	OpenAPIServiceCapabilityEnvironmentsWrite                        OpenAPIServiceCapability                      = "environments:write"
+	OpenAPIServiceCapabilityEnvironmentsReassign                     OpenAPIServiceCapability                      = "environments:reassign"
+	OpenAPIServiceCapabilityVolumesRead                              OpenAPIServiceCapability                      = "volumes:read"
+	OpenAPIServiceCapabilityVolumesWrite                             OpenAPIServiceCapability                      = "volumes:write"
+	OpenAPIServiceCapabilityVolumesAdmin                             OpenAPIServiceCapability                      = "volumes:admin"
+	OpenAPIServiceCapabilityDomainsRead                              OpenAPIServiceCapability                      = "domains:read"
+	OpenAPIServiceCapabilityDomainsWrite                             OpenAPIServiceCapability                      = "domains:write"
+	OpenAPIServiceCapabilityVariablesRead                            OpenAPIServiceCapability                      = "variables:read"
+	OpenAPIServiceCapabilityVariablesWrite                           OpenAPIServiceCapability                      = "variables:write"
+	OpenAPIServiceCapabilityRepositoryRead                           OpenAPIServiceCapability                      = "repository:read"
+	OpenAPIServiceCapabilityRepositoryWrite                          OpenAPIServiceCapability                      = "repository:write"
+	OpenAPIServiceCapabilityPromotionsRead                           OpenAPIServiceCapability                      = "promotions:read"
+	OpenAPIServiceCapabilityPromotionsCreate                         OpenAPIServiceCapability                      = "promotions:create"
+	OpenAPIServiceCapabilityRetentionRead                            OpenAPIServiceCapability                      = "retention:read"
+	OpenAPIServiceCapabilityRetentionWrite                           OpenAPIServiceCapability                      = "retention:write"
+	OpenAPIServiceCapabilityLogsMaintain                             OpenAPIServiceCapability                      = "logs:maintain"
+	OpenAPIServiceCapabilityConfigurationOperationsRead              OpenAPIServiceCapability                      = "configuration-operations:read"
+	OpenAPIServiceCapabilityConfigurationOperationsRetry             OpenAPIServiceCapability                      = "configuration-operations:retry"
+	OpenAPIServiceAutomaticDeploymentWiringStatusPending             OpenAPIServiceAutomaticDeploymentWiringStatus = "pending"
+	OpenAPIServiceAutomaticDeploymentWiringStatusActive              OpenAPIServiceAutomaticDeploymentWiringStatus = "active"
+	OpenAPIServiceAutomaticDeploymentWiringStatusDisabled            OpenAPIServiceAutomaticDeploymentWiringStatus = "disabled"
+	OpenAPIServiceAutomaticDeploymentWiringStatusProviderUnsupported OpenAPIServiceAutomaticDeploymentWiringStatus = "provider-unsupported"
+	OpenAPIServiceAutomaticDeploymentWiringStatusBaseUrlNotPublic    OpenAPIServiceAutomaticDeploymentWiringStatus = "base-url-not-public"
+	OpenAPIServiceAutomaticDeploymentWiringStatusNoWorkerAssigned    OpenAPIServiceAutomaticDeploymentWiringStatus = "no-worker-assigned"
+	OpenAPIServiceAutomaticDeploymentWiringStatusRegistrationFailed  OpenAPIServiceAutomaticDeploymentWiringStatus = "registration-failed"
 )
 
 // Compatibility names preserve the existing SDK surface while making the
@@ -1887,6 +1901,8 @@ type GitHubRepositoryAdoptionPreviewRequest = OpenAPIGitHubRepositoryAdoptionPre
 type GitHubRepositoryAdoptionPreview = OpenAPIGitHubRepositoryAdoptionPreview
 type GitHubRepositoryAdoptionRequest = OpenAPIGitHubRepositoryAdoptionRequest
 type ServiceRepository = OpenAPIServiceRepository
+type ServiceAutomaticDeploymentWiring = OpenAPIServiceAutomaticDeploymentWiring
+type ServiceAutomaticDeploymentWiringStatus = OpenAPIServiceAutomaticDeploymentWiringStatus
 type ServiceProject = OpenAPIServiceProject
 type ServiceVolumeBinding = OpenAPIServiceVolumeBinding
 type ServiceEnvironmentConfiguration = OpenAPIServiceEnvironmentConfiguration
@@ -1979,4 +1995,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "4333b23356fe842d4dbf86c69750f56e0670c9512a18071cb2bd6a30ac987e68"
+const openAPITypesSpecSHA256 = "91816d49f9966161099c8369c84541abe4d36a3b773ab3a765a0826e4a1c69fe"

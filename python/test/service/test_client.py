@@ -26,6 +26,7 @@ from postgrip.service.openapi import (
     OpenAPIServiceReleaseGroupMemberRequest,
     OpenAPIServiceDNSFailoverTarget,
     OpenAPIServiceDNSRollbackPlan,
+    OpenAPIServiceAutomaticDeploymentWiring,
     OperationId,
 )
 
@@ -49,6 +50,21 @@ SERVICE = {
 
 
 class AdministrationTypeTests(unittest.TestCase):
+    def test_repository_wiring_status_is_closed(self) -> None:
+        hints = get_type_hints(OpenAPIServiceAutomaticDeploymentWiring)
+        self.assertEqual(
+            hints["status"],
+            Literal[
+                "pending",
+                "active",
+                "disabled",
+                "provider-unsupported",
+                "base-url-not-public",
+                "no-worker-assigned",
+                "registration-failed",
+            ],
+        )
+
     def test_runtime_type_hints_resolve_closed_literals(self) -> None:
         get_type_hints(RepositoriesAdministration.put_service_repository_credential)
         get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
