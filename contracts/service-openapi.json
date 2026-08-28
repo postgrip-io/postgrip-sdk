@@ -11516,6 +11516,43 @@
           },
           "ttlSeconds": {
             "type": "integer",
+            "minimum": 30,
+            "maximum": 3600
+          }
+        }
+      },
+      "ServiceDNSObservedRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hostname",
+          "type",
+          "value",
+          "ttlSeconds"
+        ],
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253,
+            "pattern": "^[a-z0-9_][a-z0-9_.-]*$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "A",
+              "AAAA",
+              "CNAME",
+              "TXT"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "ttlSeconds": {
+            "type": "integer",
             "minimum": 0,
             "maximum": 3600
           }
@@ -11533,7 +11570,7 @@
             "type": "array",
             "maxItems": 32,
             "items": {
-              "$ref": "#/components/schemas/ServiceDNSRecord"
+              "$ref": "#/components/schemas/ServiceDNSObservedRecord"
             }
           },
           "observedAt": {
@@ -11795,6 +11832,7 @@
           },
           "desiredRecords": {
             "type": "array",
+            "minItems": 2,
             "maxItems": 2,
             "items": {
               "$ref": "#/components/schemas/ServiceDNSRecord"
@@ -12027,6 +12065,7 @@
           },
           "records": {
             "type": "array",
+            "minItems": 2,
             "maxItems": 2,
             "items": {
               "$ref": "#/components/schemas/ServiceDNSProviderRecordResult"
@@ -12209,6 +12248,7 @@
           "healthCheckIntervalSeconds",
           "expectedDomainConfigurationVersion",
           "expectedCanonicalGeneration",
+          "expectedPolicyVersion",
           "targets"
         ],
         "properties": {
@@ -12264,6 +12304,11 @@
             "type": "integer",
             "format": "int64",
             "minimum": 1
+          },
+          "expectedPolicyVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           },
           "targets": {
             "type": "array",

@@ -716,6 +716,8 @@ def typescript_schema_type(schema: dict[str, Any], indent: str = "") -> str:
         return f"OpenAPIComponents[{json.dumps(reference_name)}]"
     if not schema:
         return "unknown"
+    if "const" in schema:
+        return json.dumps(schema["const"])
     if schema.get("enum"):
         return " | ".join(json.dumps(value) for value in schema["enum"])
     if schema.get("oneOf") or schema.get("anyOf"):
@@ -777,6 +779,8 @@ def python_schema_type(schema: dict[str, Any]) -> str:
         return f"_Schema{pascal_name(reference_name)}"
     if not schema:
         return "Any"
+    if "const" in schema:
+        return f"Literal[{schema['const']!r}]"
     if schema.get("enum"):
         values = ", ".join(repr(value) for value in schema["enum"])
         return f"Literal[{values}]"

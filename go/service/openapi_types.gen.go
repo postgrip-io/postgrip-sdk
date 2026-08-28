@@ -1155,10 +1155,16 @@ type OpenAPIServiceDNSRecord struct {
 	Value      string `json:"value"`
 	TtlSeconds int64  `json:"ttlSeconds"`
 }
+type OpenAPIServiceDNSObservedRecord struct {
+	Hostname   string `json:"hostname"`
+	Type       string `json:"type"`
+	Value      string `json:"value"`
+	TtlSeconds int64  `json:"ttlSeconds"`
+}
 type OpenAPIServiceDNSObservation struct {
-	Records    []OpenAPIServiceDNSRecord `json:"records"`
-	ObservedAt time.Time                 `json:"observedAt"`
-	DetailCode *string                   `json:"detailCode,omitempty"`
+	Records    []OpenAPIServiceDNSObservedRecord `json:"records"`
+	ObservedAt time.Time                         `json:"observedAt"`
+	DetailCode *string                           `json:"detailCode,omitempty"`
 }
 type OpenAPIServiceDNSCanonicalTarget struct {
 	ProjectId       string `json:"projectId"`
@@ -1292,6 +1298,7 @@ type OpenAPIUpdateServiceDNSFailoverPolicyRequest struct {
 	HealthCheckIntervalSeconds         int64                                  `json:"healthCheckIntervalSeconds"`
 	ExpectedDomainConfigurationVersion int64                                  `json:"expectedDomainConfigurationVersion"`
 	ExpectedCanonicalGeneration        int64                                  `json:"expectedCanonicalGeneration"`
+	ExpectedPolicyVersion              int64                                  `json:"expectedPolicyVersion"`
 	Targets                            []OpenAPIServiceDNSFailoverTargetInput `json:"targets"`
 }
 type OpenAPIRequestServiceDNSFailoverRequest struct {
@@ -1695,6 +1702,7 @@ type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOper
 type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
 type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
 type ServiceDNSRecord = OpenAPIServiceDNSRecord
+type ServiceDNSObservedRecord = OpenAPIServiceDNSObservedRecord
 type ServiceDNSObservation = OpenAPIServiceDNSObservation
 type ServiceDNSCanonicalTarget = OpenAPIServiceDNSCanonicalTarget
 type ServiceDNSCanonicalState = OpenAPIServiceDNSCanonicalState
@@ -1712,4 +1720,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "c02fb6a11a38c6b1015e83ccb4ed92de7d795844e4cd8600549a054cbaee417b"
+const openAPITypesSpecSHA256 = "7461cb15d7d78854ee48296927c73623e19c2e9bcac33fef784617d512ce2a28"

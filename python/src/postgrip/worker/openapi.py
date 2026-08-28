@@ -9,7 +9,7 @@ from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDi
 from urllib.parse import quote, urlencode
 
 OPENAPI_SPEC_SHA256 = 'afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '960c3bcfec3992519731a9590cd1b5a81c5ff4407b3aed2bd560071b481c5021'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '3b64db3dbb1f461537eb5885b71e100ac9ac07f9ff7333b18caafdf287f51199'
 OPENAPI_OPERATION_COUNT = 13
 OPENAPI_CLIENT_OPERATION_COUNT = 13
 
@@ -32,7 +32,7 @@ class OperationId(str, Enum):
 
 
 class _SchemaHealthResponse(TypedDict):
-    status: str
+    status: Literal['ok']
 
 class _SchemaErrorResponseOptional(TypedDict, total=False):
     details: dict[str, Any]
@@ -54,7 +54,7 @@ class _SchemaCreateWorkerBootstrap(TypedDict):
 class _SchemaCreateWorkerRequest(TypedDict):
     name: str
     host: str
-    autoShutdownOnRemoval: bool
+    autoShutdownOnRemoval: Literal[True]
     bootstrap: _SchemaCreateWorkerBootstrap
 
 class _SchemaWorkerBootstrapExpiry(TypedDict):
@@ -200,9 +200,9 @@ class _SchemaWorkerOperationResponse(TypedDict):
     receipt: _SchemaOperationReceipt
 
 class _SchemaUpgradeWorkerResponse(TypedDict):
-    status: str
+    status: Literal['queued']
     worker: _SchemaWorker
-    lifecycleDirective: str
+    lifecycleDirective: Literal['upgrade']
     expectedVersion: int
     workerImage: str
     expectedSignerVersion: int

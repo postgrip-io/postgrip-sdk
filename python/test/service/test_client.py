@@ -6,7 +6,7 @@ from io import BytesIO
 import inspect
 import json
 from threading import Event
-from typing import get_type_hints
+from typing import Literal, get_type_hints
 import unittest
 from urllib.error import HTTPError
 from urllib.parse import urlparse
@@ -21,7 +21,7 @@ from postgrip.service.administration_types import (
     RepositoriesAdministration,
 )
 from postgrip.service.client import _NoRedirect
-from postgrip.service.openapi import OperationId
+from postgrip.service.openapi import OpenAPIRequestServiceDNSFailoverRequest, OperationId
 
 
 SERVICE = {
@@ -47,6 +47,10 @@ class AdministrationTypeTests(unittest.TestCase):
         get_type_hints(RepositoriesAdministration.put_service_repository_credential)
         get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
         get_type_hints(DeclarativeConfigurationAdministration.create_post_grip_configuration_plan)
+
+    def test_const_approval_field_remains_literal_true(self) -> None:
+        hints = get_type_hints(OpenAPIRequestServiceDNSFailoverRequest)
+        self.assertEqual(hints["approved"], Literal[True])
 
 
 def api_error(status: int, code: str = "BUSY", retry_after: str = "0") -> HTTPError:

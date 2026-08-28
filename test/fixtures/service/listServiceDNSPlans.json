@@ -31,7 +31,13 @@
           "desiredRecords": [
             {
               "hostname": "string",
-              "ttlSeconds": 1,
+              "ttlSeconds": 30,
+              "type": "A",
+              "value": "string"
+            },
+            {
+              "hostname": "string",
+              "ttlSeconds": 30,
               "type": "A",
               "value": "string"
             }
@@ -44,7 +50,7 @@
           "previousRecords": [
             {
               "hostname": "string",
-              "ttlSeconds": 1,
+              "ttlSeconds": 30,
               "type": "A",
               "value": "string"
             }

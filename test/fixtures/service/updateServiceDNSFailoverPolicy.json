@@ -6,6 +6,7 @@
       "cooldownSeconds": 60,
       "expectedCanonicalGeneration": 1,
       "expectedDomainConfigurationVersion": 1,
+      "expectedPolicyVersion": 1,
       "failureThreshold": 2,
       "healthCheckIntervalSeconds": 30,
       "maximumFailoverAttempts": 1,

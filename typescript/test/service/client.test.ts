@@ -1,6 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
-import { ServiceAPIError, ServiceClient, referenceFor } from '../../src/service/index.js';
+import {
+  ServiceAPIError,
+  ServiceClient,
+  referenceFor,
+  type OpenAPIRequestBody,
+} from '../../src/service/index.js';
 
 const service = {
   ref: 'project:11111111-1111-4111-8111-111111111111',
@@ -28,6 +33,11 @@ function client(fetchImpl: typeof globalThis.fetch): ServiceClient {
 }
 
 describe('ServiceClient', () => {
+  it('preserves const approval fields in generated request types', () => {
+    expectTypeOf<OpenAPIRequestBody<'requestServiceDNSFailover'>['approved']>()
+      .toEqualTypeOf<true>();
+  });
+
   it('rejects unsafe configuration', () => {
     expect(() => new ServiceClient({ baseUrl: 'http://example.test', token: 'pgt_token' })).toThrow(/HTTPS/);
     expect(() => new ServiceClient({ baseUrl: 'https://example.test?q=yes', token: 'pgt_token' })).toThrow(/query/);
