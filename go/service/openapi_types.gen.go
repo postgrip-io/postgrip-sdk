@@ -1149,10 +1149,167 @@ type OpenAPIPostGripConfigurationStackOperationActionList struct {
 	Items      []OpenAPIPostGripConfigurationStackOperationAction `json:"items"`
 	NextCursor string                                             `json:"nextCursor"`
 }
+type OpenAPIServiceDNSRecord struct {
+	Hostname   string `json:"hostname"`
+	Type       string `json:"type"`
+	Value      string `json:"value"`
+	TtlSeconds int64  `json:"ttlSeconds"`
+}
+type OpenAPIServiceDNSObservation struct {
+	Records    []OpenAPIServiceDNSRecord `json:"records"`
+	ObservedAt time.Time                 `json:"observedAt"`
+	DetailCode *string                   `json:"detailCode,omitempty"`
+}
+type OpenAPIServiceDNSCanonicalTarget struct {
+	ProjectId       string `json:"projectId"`
+	EnvironmentId   string `json:"environmentId"`
+	DeploymentId    string `json:"deploymentId"`
+	WorkerId        string `json:"workerId"`
+	WorkerOrigin    string `json:"workerOrigin"`
+	VerificationUrl string `json:"verificationUrl"`
+}
+type OpenAPIServiceDNSCanonicalState struct {
+	DomainId                   string                            `json:"domainId"`
+	Hostname                   string                            `json:"hostname"`
+	DomainConfigurationVersion int64                             `json:"domainConfigurationVersion"`
+	Generation                 int64                             `json:"generation"`
+	State                      string                            `json:"state"`
+	ActiveTarget               *OpenAPIServiceDNSCanonicalTarget `json:"activeTarget,omitempty"`
+	CurrentPlanId              *string                           `json:"currentPlanId,omitempty"`
+	LastVerifiedRecords        []OpenAPIServiceDNSRecord         `json:"lastVerifiedRecords"`
+	LastVerifiedAt             *time.Time                        `json:"lastVerifiedAt,omitempty"`
+	ConsecutiveFailures        int64                             `json:"consecutiveFailures"`
+	ConsecutiveSuccesses       int64                             `json:"consecutiveSuccesses"`
+	FailoverAttempts           int64                             `json:"failoverAttempts"`
+	CooldownUntil              *time.Time                        `json:"cooldownUntil,omitempty"`
+	NextHealthCheckAt          *time.Time                        `json:"nextHealthCheckAt,omitempty"`
+	CreatedAt                  time.Time                         `json:"createdAt"`
+	UpdatedAt                  time.Time                         `json:"updatedAt"`
+}
+type OpenAPIServiceDNSProviderBinding struct {
+	Provider   string `json:"provider"`
+	AccountRef string `json:"accountRef"`
+	ZoneRef    string `json:"zoneRef"`
+}
+type OpenAPIServiceDNSPlan struct {
+	Id                                 string                            `json:"id"`
+	DomainId                           string                            `json:"domainId"`
+	Kind                               string                            `json:"kind"`
+	State                              string                            `json:"state"`
+	ExpectedDomainConfigurationVersion int64                             `json:"expectedDomainConfigurationVersion"`
+	ExpectedCanonicalGeneration        int64                             `json:"expectedCanonicalGeneration"`
+	ExpectedActiveDeploymentId         *string                           `json:"expectedActiveDeploymentId,omitempty"`
+	Target                             OpenAPIServiceDNSCanonicalTarget  `json:"target"`
+	ProviderMode                       string                            `json:"providerMode"`
+	ProviderBinding                    *OpenAPIServiceDNSProviderBinding `json:"providerBinding,omitempty"`
+	ProviderChangeRef                  *string                           `json:"providerChangeRef,omitempty"`
+	DesiredRecords                     []OpenAPIServiceDNSRecord         `json:"desiredRecords"`
+	PreviousRecords                    []OpenAPIServiceDNSRecord         `json:"previousRecords"`
+	CurrentObservation                 OpenAPIServiceDNSObservation      `json:"currentObservation"`
+	Reason                             string                            `json:"reason"`
+	PropagationSuccesses               int64                             `json:"propagationSuccesses"`
+	NextCheckAt                        *time.Time                        `json:"nextCheckAt,omitempty"`
+	PropagationDeadline                *time.Time                        `json:"propagationDeadline,omitempty"`
+	FailureCode                        *string                           `json:"failureCode,omitempty"`
+	FailureDetail                      *string                           `json:"failureDetail,omitempty"`
+	SourceHealthObservedAt             *time.Time                        `json:"sourceHealthObservedAt,omitempty"`
+	RollbackOfPlanId                   *string                           `json:"rollbackOfPlanId,omitempty"`
+	RouteConfigurationOperationId      *string                           `json:"routeConfigurationOperationId,omitempty"`
+	CreatedAt                          time.Time                         `json:"createdAt"`
+	AppliedAt                          *time.Time                        `json:"appliedAt,omitempty"`
+	CompletedAt                        *time.Time                        `json:"completedAt,omitempty"`
+	UpdatedAt                          time.Time                         `json:"updatedAt"`
+	Receipt                            *OpenAPIOperationReceipt          `json:"receipt,omitempty"`
+}
+type OpenAPIServiceDNSPlanList struct {
+	Items []OpenAPIServiceDNSPlan `json:"items"`
+}
+type OpenAPICreateServiceDNSPlanRequest struct {
+	Kind                               string  `json:"kind"`
+	TargetProjectId                    string  `json:"targetProjectId"`
+	TargetEnvironmentId                string  `json:"targetEnvironmentId"`
+	ExpectedTargetDeploymentId         string  `json:"expectedTargetDeploymentId"`
+	ExpectedDomainConfigurationVersion int64   `json:"expectedDomainConfigurationVersion"`
+	ExpectedCanonicalGeneration        int64   `json:"expectedCanonicalGeneration"`
+	ExpectedActiveDeploymentId         *string `json:"expectedActiveDeploymentId,omitempty"`
+	TtlSeconds                         int64   `json:"ttlSeconds"`
+	Reason                             string  `json:"reason"`
+}
+type OpenAPIApplyServiceDNSPlanRequest struct {
+	ProviderBinding OpenAPIServiceDNSProviderBinding `json:"providerBinding"`
+}
+type OpenAPIServiceDNSProviderRecordResult struct {
+	Hostname   string `json:"hostname"`
+	Type       string `json:"type"`
+	Value      string `json:"value"`
+	TtlSeconds int64  `json:"ttlSeconds"`
+	Status     string `json:"status"`
+}
+type OpenAPIReportServiceDNSProviderResultRequest struct {
+	Outcome           string                                  `json:"outcome"`
+	ProviderChangeRef *string                                 `json:"providerChangeRef,omitempty"`
+	Records           []OpenAPIServiceDNSProviderRecordResult `json:"records"`
+	DetailCode        *string                                 `json:"detailCode,omitempty"`
+}
+type OpenAPIRollbackServiceDNSPlanRequest struct {
+	ExpectedCanonicalGeneration int64 `json:"expectedCanonicalGeneration"`
+}
+type OpenAPIServiceDNSFailoverTarget struct {
+	ProjectId     string  `json:"projectId"`
+	EnvironmentId string  `json:"environmentId"`
+	Priority      int64   `json:"priority"`
+	WorkerId      *string `json:"workerId,omitempty"`
+}
+type OpenAPIServiceDNSFailoverTargetInput struct {
+	ProjectId     string `json:"projectId"`
+	EnvironmentId string `json:"environmentId"`
+	Priority      int64  `json:"priority"`
+}
+type OpenAPIServiceDNSFailoverPolicy struct {
+	DomainId                   string                            `json:"domainId"`
+	Mode                       string                            `json:"mode"`
+	FailureThreshold           int64                             `json:"failureThreshold"`
+	RecoveryThreshold          int64                             `json:"recoveryThreshold"`
+	CooldownSeconds            int64                             `json:"cooldownSeconds"`
+	MaximumFailoverAttempts    int64                             `json:"maximumFailoverAttempts"`
+	PropagationTimeoutSeconds  int64                             `json:"propagationTimeoutSeconds"`
+	TtlSeconds                 int64                             `json:"ttlSeconds"`
+	HealthCheckIntervalSeconds int64                             `json:"healthCheckIntervalSeconds"`
+	Version                    int64                             `json:"version"`
+	Targets                    []OpenAPIServiceDNSFailoverTarget `json:"targets"`
+	CreatedAt                  time.Time                         `json:"createdAt"`
+	UpdatedAt                  time.Time                         `json:"updatedAt"`
+	Receipt                    *OpenAPIOperationReceipt          `json:"receipt,omitempty"`
+}
+type OpenAPIUpdateServiceDNSFailoverPolicyRequest struct {
+	Mode                               string                                 `json:"mode"`
+	FailureThreshold                   int64                                  `json:"failureThreshold"`
+	RecoveryThreshold                  int64                                  `json:"recoveryThreshold"`
+	CooldownSeconds                    int64                                  `json:"cooldownSeconds"`
+	MaximumFailoverAttempts            int64                                  `json:"maximumFailoverAttempts"`
+	PropagationTimeoutSeconds          int64                                  `json:"propagationTimeoutSeconds"`
+	TtlSeconds                         int64                                  `json:"ttlSeconds"`
+	HealthCheckIntervalSeconds         int64                                  `json:"healthCheckIntervalSeconds"`
+	ExpectedDomainConfigurationVersion int64                                  `json:"expectedDomainConfigurationVersion"`
+	ExpectedCanonicalGeneration        int64                                  `json:"expectedCanonicalGeneration"`
+	Targets                            []OpenAPIServiceDNSFailoverTargetInput `json:"targets"`
+}
+type OpenAPIRequestServiceDNSFailoverRequest struct {
+	TargetProjectId                    string `json:"targetProjectId"`
+	TargetEnvironmentId                string `json:"targetEnvironmentId"`
+	ExpectedTargetDeploymentId         string `json:"expectedTargetDeploymentId"`
+	ExpectedDomainConfigurationVersion int64  `json:"expectedDomainConfigurationVersion"`
+	ExpectedCanonicalGeneration        int64  `json:"expectedCanonicalGeneration"`
+	ExpectedActiveDeploymentId         string `json:"expectedActiveDeploymentId"`
+	Approved                           bool   `json:"approved"`
+	Reason                             string `json:"reason"`
+}
 type OpenAPIAdoptGitHubRepositoryRequestBody = OpenAPIGitHubRepositoryAdoptionRequest
 type OpenAPIAdoptGitHubRepositoryResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIApplyPostGripConfigurationPlanRequestBody = OpenAPIApplyPostGripConfigurationPlanRequest
 type OpenAPIApplyPostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationStackOperation
+type OpenAPIApplyServiceDNSPlanRequestBody = OpenAPIApplyServiceDNSPlanRequest
+type OpenAPIApplyServiceDNSPlanResponseBody = OpenAPIServiceDNSPlan
 type OpenAPIApplyServiceVariablesRequestBody = OpenAPIApplyServiceVariablesRequest
 type OpenAPIApplyServiceVariablesResponseBody = OpenAPIServiceVariablesApplyResponse
 type OpenAPIAttachTargetServiceRequestBody = OpenAPIAttachTargetServiceRequest
@@ -1171,6 +1328,8 @@ type OpenAPIClearTargetServiceConnectionRequestBody = OpenAPINoBody
 type OpenAPIClearTargetServiceConnectionResponseBody = OpenAPIServiceTargetMutationResponse
 type OpenAPICreatePostGripConfigurationPlanRequestBody = OpenAPICreatePostGripConfigurationPlanRequest
 type OpenAPICreatePostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
+type OpenAPICreateServiceDNSPlanRequestBody = OpenAPICreateServiceDNSPlanRequest
+type OpenAPICreateServiceDNSPlanResponseBody = OpenAPIServiceDNSPlan
 type OpenAPICreateServiceDomainRequestBody = OpenAPICreateServiceDomainRequest
 type OpenAPICreateServiceDomainResponseBody = OpenAPIServiceDomainMutationResponse
 type OpenAPICreateServiceEnvironmentRequestBody = OpenAPICreateServiceEnvironmentRequest
@@ -1211,6 +1370,12 @@ type OpenAPIGetServiceBuildLogSettingsRequestBody = OpenAPINoBody
 type OpenAPIGetServiceBuildLogSettingsResponseBody = OpenAPIServiceBuildLogStatus
 type OpenAPIGetServiceConfigurationOperationRequestBody = OpenAPINoBody
 type OpenAPIGetServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperation
+type OpenAPIGetServiceDNSCanonicalStateRequestBody = OpenAPINoBody
+type OpenAPIGetServiceDNSCanonicalStateResponseBody = OpenAPIServiceDNSCanonicalState
+type OpenAPIGetServiceDNSFailoverPolicyRequestBody = OpenAPINoBody
+type OpenAPIGetServiceDNSFailoverPolicyResponseBody = OpenAPIServiceDNSFailoverPolicy
+type OpenAPIGetServiceDNSPlanRequestBody = OpenAPINoBody
+type OpenAPIGetServiceDNSPlanResponseBody = OpenAPIServiceDNSPlan
 type OpenAPIGetServiceDeploymentRequestBody = OpenAPINoBody
 type OpenAPIGetServiceDeploymentResponseBody = OpenAPIDeployment
 type OpenAPIGetServiceDomainVerificationRequestBody = OpenAPINoBody
@@ -1241,6 +1406,8 @@ type OpenAPIListPostGripConfigurationStackOperationActionsRequestBody = OpenAPIN
 type OpenAPIListPostGripConfigurationStackOperationActionsResponseBody = OpenAPIPostGripConfigurationStackOperationActionList
 type OpenAPIListServiceConfigurationOperationsRequestBody = OpenAPINoBody
 type OpenAPIListServiceConfigurationOperationsResponseBody = OpenAPIServiceConfigurationOperationList
+type OpenAPIListServiceDNSPlansRequestBody = OpenAPINoBody
+type OpenAPIListServiceDNSPlansResponseBody = OpenAPIServiceDNSPlanList
 type OpenAPIListServiceDeploymentsRequestBody = OpenAPINoBody
 type OpenAPIListServiceDeploymentsResponseBody = OpenAPIDeploymentList
 type OpenAPIListServiceDomainsRequestBody = OpenAPINoBody
@@ -1279,6 +1446,10 @@ type OpenAPIRedeployServiceRequestBody = OpenAPIRedeployServiceRequest
 type OpenAPIRedeployServiceResponseBody = OpenAPIDeploymentOperationResponse
 type OpenAPIRefreshServiceRepositoryCredentialRequestBody = OpenAPINoBody
 type OpenAPIRefreshServiceRepositoryCredentialResponseBody = OpenAPIServiceRepositoryMutationResponse
+type OpenAPIReportServiceDNSProviderResultRequestBody = OpenAPIReportServiceDNSProviderResultRequest
+type OpenAPIReportServiceDNSProviderResultResponseBody = OpenAPIServiceDNSPlan
+type OpenAPIRequestServiceDNSFailoverRequestBody = OpenAPIRequestServiceDNSFailoverRequest
+type OpenAPIRequestServiceDNSFailoverResponseBody = OpenAPIServiceDNSPlan
 type OpenAPIResolveServiceRequestBody = OpenAPINoBody
 type OpenAPIResolveServiceResponseBody = OpenAPIService
 type OpenAPIResolveServiceEnvironmentRequestBody = OpenAPINoBody
@@ -1291,6 +1462,8 @@ type OpenAPIRetryPostGripConfigurationStackOperationRequestBody = OpenAPINoBody
 type OpenAPIRetryPostGripConfigurationStackOperationResponseBody = OpenAPIPostGripConfigurationStackOperation
 type OpenAPIRetryServiceConfigurationOperationRequestBody = OpenAPINoBody
 type OpenAPIRetryServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperation
+type OpenAPIRollbackServiceDNSPlanRequestBody = OpenAPIRollbackServiceDNSPlanRequest
+type OpenAPIRollbackServiceDNSPlanResponseBody = OpenAPIServiceDNSPlan
 type OpenAPIRollbackServiceDeploymentRequestBody = OpenAPINoBody
 type OpenAPIRollbackServiceDeploymentResponseBody = OpenAPIDeploymentOperationResponse
 type OpenAPIStartServiceRuntimeRequestBody = OpenAPIRuntimeOperationRequest
@@ -1305,6 +1478,8 @@ type OpenAPIUnbindServiceVolumeRequestBody = OpenAPINoBody
 type OpenAPIUnbindServiceVolumeResponseBody = OpenAPIServiceVolumeBindingMutationResponse
 type OpenAPIUpdateServiceBuildLogSettingsRequestBody = OpenAPIServiceBuildLogSettingsRequest
 type OpenAPIUpdateServiceBuildLogSettingsResponseBody = OpenAPIServiceBuildLogSettingsMutationResponse
+type OpenAPIUpdateServiceDNSFailoverPolicyRequestBody = OpenAPIUpdateServiceDNSFailoverPolicyRequest
+type OpenAPIUpdateServiceDNSFailoverPolicyResponseBody = OpenAPIServiceDNSFailoverPolicy
 type OpenAPIUpdateServiceDomainRequestBody = OpenAPIUpdateServiceDomainRequest
 type OpenAPIUpdateServiceDomainResponseBody = OpenAPIServiceDomainMutationResponse
 type OpenAPIUpdateServiceEnvironmentRequestBody = OpenAPIUpdateServiceEnvironmentRequest
@@ -1519,5 +1694,22 @@ type PostGripConfigurationStackOperationSummary = OpenAPIPostGripConfigurationSt
 type PostGripConfigurationStackOperation = OpenAPIPostGripConfigurationStackOperation
 type PostGripConfigurationStackOperationAction = OpenAPIPostGripConfigurationStackOperationAction
 type PostGripConfigurationStackOperationActionList = OpenAPIPostGripConfigurationStackOperationActionList
+type ServiceDNSRecord = OpenAPIServiceDNSRecord
+type ServiceDNSObservation = OpenAPIServiceDNSObservation
+type ServiceDNSCanonicalTarget = OpenAPIServiceDNSCanonicalTarget
+type ServiceDNSCanonicalState = OpenAPIServiceDNSCanonicalState
+type ServiceDNSProviderBinding = OpenAPIServiceDNSProviderBinding
+type ServiceDNSPlan = OpenAPIServiceDNSPlan
+type ServiceDNSPlanList = OpenAPIServiceDNSPlanList
+type CreateServiceDNSPlanRequest = OpenAPICreateServiceDNSPlanRequest
+type ApplyServiceDNSPlanRequest = OpenAPIApplyServiceDNSPlanRequest
+type ServiceDNSProviderRecordResult = OpenAPIServiceDNSProviderRecordResult
+type ReportServiceDNSProviderResultRequest = OpenAPIReportServiceDNSProviderResultRequest
+type RollbackServiceDNSPlanRequest = OpenAPIRollbackServiceDNSPlanRequest
+type ServiceDNSFailoverTarget = OpenAPIServiceDNSFailoverTarget
+type ServiceDNSFailoverTargetInput = OpenAPIServiceDNSFailoverTargetInput
+type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
+type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
+type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "13c78464957178b5d73f27ba2953c29506ddbb4637832c445c0174381c778c5b"
+const openAPITypesSpecSHA256 = "c02fb6a11a38c6b1015e83ccb4ed92de7d795844e4cd8600549a054cbaee417b"

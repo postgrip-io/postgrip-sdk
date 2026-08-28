@@ -1323,6 +1323,96 @@
         "runner": "streaming-protocol"
       }
     },
+    "applyServiceDNSPlan": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/applyServiceDNSPlan.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "createServiceDNSPlan": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createServiceDNSPlan.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceDNSCanonicalState": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceDNSCanonicalState.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceDNSFailoverPolicy": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceDNSFailoverPolicy.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceDNSPlan": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceDNSPlan.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceDNSPlans": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceDNSPlans.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "reportServiceDNSProviderResult": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/reportServiceDNSProviderResult.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "requestServiceDNSFailover": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/requestServiceDNSFailover.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "rollbackServiceDNSPlan": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/rollbackServiceDNSPlan.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "updateServiceDNSFailoverPolicy": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/updateServiceDNSFailoverPolicy.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "getServiceDomainVerification": {
       "cleanup": "none",
       "curlEligible": true,

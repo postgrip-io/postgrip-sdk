@@ -66,6 +66,12 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
         "listServiceDomains", "createServiceDomain", "updateServiceDomain", "deleteServiceDomain",
         "getServiceDomainVerification", "verifyServiceDomain",
     ),
+    "DNS": (
+        "getServiceDNSCanonicalState", "listServiceDNSPlans", "createServiceDNSPlan",
+        "getServiceDNSPlan", "applyServiceDNSPlan", "reportServiceDNSProviderResult",
+        "rollbackServiceDNSPlan", "getServiceDNSFailoverPolicy",
+        "updateServiceDNSFailoverPolicy", "requestServiceDNSFailover",
+    ),
     "Variables": (
         "listServiceVariables", "createServiceVariable", "updateServiceVariable",
         "deleteServiceVariable", "putServiceVariableValue", "clearServiceVariableValue",

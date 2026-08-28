@@ -34,6 +34,7 @@ type ProjectsClient struct{ client *Client }
 type ServiceEnvironmentsClient struct{ client *Client }
 type ManagedVolumesClient struct{ client *Client }
 type ServiceDomainsClient struct{ client *Client }
+type ServiceDNSClient struct{ client *Client }
 type ServiceVariablesClient struct{ client *Client }
 type ServiceRepositoriesClient struct{ client *Client }
 type ServicePromotionsClient struct{ client *Client }
@@ -48,6 +49,7 @@ func (c *Client) EnvironmentAdministration() ServiceEnvironmentsClient {
 }
 func (c *Client) ManagedVolumes() ManagedVolumesClient { return ManagedVolumesClient{client: c} }
 func (c *Client) ServiceDomains() ServiceDomainsClient { return ServiceDomainsClient{client: c} }
+func (c *Client) ServiceDNS() ServiceDNSClient         { return ServiceDNSClient{client: c} }
 func (c *Client) ServiceVariables() ServiceVariablesClient {
 	return ServiceVariablesClient{client: c}
 }
@@ -255,6 +257,64 @@ func (c ServiceDomainsClient) Verify(ctx context.Context, projectID, environment
 		return OpenAPIVerifyServiceDomainResponseBody{}, err
 	}
 	return c.client.OpenAPI().VerifyServiceDomain(ctx, projectID, environmentID, domainID, OpenAPIVerifyServiceDomainHeaders{IdempotencyKey: options.IdempotencyKey})
+}
+
+func (c ServiceDNSClient) CanonicalState(ctx context.Context, projectID, environmentID, domainID string) (OpenAPIGetServiceDNSCanonicalStateResponseBody, error) {
+	return c.client.OpenAPI().GetServiceDNSCanonicalState(ctx, projectID, environmentID, domainID)
+}
+
+func (c ServiceDNSClient) Plans(ctx context.Context, projectID, environmentID, domainID string) (OpenAPIListServiceDNSPlansResponseBody, error) {
+	return c.client.OpenAPI().ListServiceDNSPlans(ctx, projectID, environmentID, domainID)
+}
+
+func (c ServiceDNSClient) CreatePlan(ctx context.Context, projectID, environmentID, domainID string, body OpenAPICreateServiceDNSPlanRequestBody, options MutationOptions) (OpenAPICreateServiceDNSPlanResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPICreateServiceDNSPlanResponseBody{}, err
+	}
+	return c.client.OpenAPI().CreateServiceDNSPlan(ctx, projectID, environmentID, domainID, OpenAPICreateServiceDNSPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceDNSClient) Plan(ctx context.Context, projectID, environmentID, domainID, planID string) (OpenAPIGetServiceDNSPlanResponseBody, error) {
+	return c.client.OpenAPI().GetServiceDNSPlan(ctx, projectID, environmentID, domainID, planID)
+}
+
+func (c ServiceDNSClient) Apply(ctx context.Context, projectID, environmentID, domainID, planID string, body OpenAPIApplyServiceDNSPlanRequestBody, options MutationOptions) (OpenAPIApplyServiceDNSPlanResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIApplyServiceDNSPlanResponseBody{}, err
+	}
+	return c.client.OpenAPI().ApplyServiceDNSPlan(ctx, projectID, environmentID, domainID, planID, OpenAPIApplyServiceDNSPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceDNSClient) ReportProviderResult(ctx context.Context, projectID, environmentID, domainID, planID string, body OpenAPIReportServiceDNSProviderResultRequestBody, options MutationOptions) (OpenAPIReportServiceDNSProviderResultResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIReportServiceDNSProviderResultResponseBody{}, err
+	}
+	return c.client.OpenAPI().ReportServiceDNSProviderResult(ctx, projectID, environmentID, domainID, planID, OpenAPIReportServiceDNSProviderResultHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceDNSClient) Rollback(ctx context.Context, projectID, environmentID, domainID, planID string, body OpenAPIRollbackServiceDNSPlanRequestBody, options MutationOptions) (OpenAPIRollbackServiceDNSPlanResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIRollbackServiceDNSPlanResponseBody{}, err
+	}
+	return c.client.OpenAPI().RollbackServiceDNSPlan(ctx, projectID, environmentID, domainID, planID, OpenAPIRollbackServiceDNSPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceDNSClient) FailoverPolicy(ctx context.Context, projectID, environmentID, domainID string) (OpenAPIGetServiceDNSFailoverPolicyResponseBody, error) {
+	return c.client.OpenAPI().GetServiceDNSFailoverPolicy(ctx, projectID, environmentID, domainID)
+}
+
+func (c ServiceDNSClient) UpdateFailoverPolicy(ctx context.Context, projectID, environmentID, domainID string, body OpenAPIUpdateServiceDNSFailoverPolicyRequestBody, options MutationOptions) (OpenAPIUpdateServiceDNSFailoverPolicyResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIUpdateServiceDNSFailoverPolicyResponseBody{}, err
+	}
+	return c.client.OpenAPI().UpdateServiceDNSFailoverPolicy(ctx, projectID, environmentID, domainID, OpenAPIUpdateServiceDNSFailoverPolicyHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceDNSClient) Failover(ctx context.Context, projectID, environmentID, domainID string, body OpenAPIRequestServiceDNSFailoverRequestBody, options MutationOptions) (OpenAPIRequestServiceDNSFailoverResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIRequestServiceDNSFailoverResponseBody{}, err
+	}
+	return c.client.OpenAPI().RequestServiceDNSFailover(ctx, projectID, environmentID, domainID, OpenAPIRequestServiceDNSFailoverHeaders{IdempotencyKey: options.IdempotencyKey}, body)
 }
 
 func (c ServiceVariablesClient) List(ctx context.Context, projectID, environmentID string) (OpenAPIListServiceVariablesResponseBody, error) {

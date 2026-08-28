@@ -266,7 +266,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 70 administration operations and sends concurrency fences', async () => {
+  it('groups all 80 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -278,7 +278,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(70);
+    expect(methodCount).toBe(80);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -322,7 +322,7 @@ describe('ServiceClient', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('executes all 70 administration facades through the authenticated transport', async () => {
+  it('executes all 80 administration facades through the authenticated transport', async () => {
     let requestCount = 0;
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestCount += 1;
@@ -371,6 +371,16 @@ describe('ServiceClient', () => {
       () => admin.domains.delete('project-1', 'environment-1', 'domain-1', write),
       () => admin.domains.verification('project-1', 'environment-1', 'domain-1'),
       () => admin.domains.verify('project-1', 'environment-1', 'domain-1', mutation),
+      () => admin.dns.canonicalState('project-1', 'environment-1', 'domain-1'),
+      () => admin.dns.plans('project-1', 'environment-1', 'domain-1'),
+      () => admin.dns.createPlan('project-1', 'environment-1', 'domain-1', body, mutation),
+      () => admin.dns.plan('project-1', 'environment-1', 'domain-1', 'plan-1'),
+      () => admin.dns.apply('project-1', 'environment-1', 'domain-1', 'plan-1', body, mutation),
+      () => admin.dns.reportProviderResult('project-1', 'environment-1', 'domain-1', 'plan-1', body, mutation),
+      () => admin.dns.rollback('project-1', 'environment-1', 'domain-1', 'plan-1', body, mutation),
+      () => admin.dns.failoverPolicy('project-1', 'environment-1', 'domain-1'),
+      () => admin.dns.updateFailoverPolicy('project-1', 'environment-1', 'domain-1', body, mutation),
+      () => admin.dns.failover('project-1', 'environment-1', 'domain-1', body, mutation),
       () => admin.variables.list('project-1', 'environment-1'),
       () => admin.variables.create('project-1', 'environment-1', body, write),
       () => admin.variables.update('project-1', 'environment-1', 'variable-1', body, write),
@@ -413,7 +423,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(70);
+    expect(requestCount).toBe(80);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

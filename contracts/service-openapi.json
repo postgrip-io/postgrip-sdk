@@ -3572,25 +3572,49 @@
     "/api/v1/services/integrations/github/repositories": {
       "get": {
         "operationId": "listGitHubAppRepositories",
-        "tags": ["Administration"],
+        "tags": [
+          "Administration"
+        ],
         "summary": "List GitHub App Repositories",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
-        "x-postgrip-required-scopes": [["services:config:read"]],
-        "security": [{"postgripToken": []}],
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
         "parameters": [
-          {"$ref": "#/components/parameters/GitHubRepositoryLimit"},
-          {"$ref": "#/components/parameters/Cursor"}
+          {
+            "$ref": "#/components/parameters/GitHubRepositoryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
         ],
         "responses": {
           "200": {
             "description": "Bounded repositories visible through the tenant GitHub App installation",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/GitHubRepositoryList"}}}
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubRepositoryList"
+                }
+              }
+            }
           },
-          "default": {"$ref": "#/components/responses/Error"}
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
         },
         "x-postgrip-operation-class": "tenant-api",
-        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "cursor",
@@ -3601,29 +3625,59 @@
     "/api/v1/services/project/{serviceId}/repository/github/adoption-preview": {
       "post": {
         "operationId": "previewGitHubRepositoryAdoption",
-        "tags": ["Administration"],
+        "tags": [
+          "Administration"
+        ],
         "summary": "Preview GitHub Repository Adoption",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
-        "x-postgrip-required-scopes": [["services:config:read"]],
-        "security": [{"postgripToken": []}],
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
         "parameters": [
-          {"$ref": "#/components/parameters/ServiceId"},
-          {"$ref": "#/components/parameters/IdempotencyKey"}
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/GitHubRepositoryAdoptionPreviewRequest"}}}
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitHubRepositoryAdoptionPreviewRequest"
+              }
+            }
+          }
         },
         "responses": {
           "201": {
             "description": "Immutable, expiring adoption preview",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/GitHubRepositoryAdoptionPreview"}}}
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubRepositoryAdoptionPreview"
+                }
+              }
+            }
           },
-          "default": {"$ref": "#/components/responses/Error"}
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
         },
         "x-postgrip-operation-class": "tenant-api",
-        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
         "x-postgrip-safety": "mutation",
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
@@ -3634,30 +3688,63 @@
     "/api/v1/services/project/{serviceId}/repository/github/adopt": {
       "post": {
         "operationId": "adoptGitHubRepository",
-        "tags": ["Administration"],
+        "tags": [
+          "Administration"
+        ],
         "summary": "Adopt GitHub Repository",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
-        "x-postgrip-required-scopes": [["services:config:write", "services:secrets:write"]],
-        "security": [{"postgripToken": []}],
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:write",
+            "services:secrets:write"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
         "parameters": [
-          {"$ref": "#/components/parameters/ServiceId"},
-          {"$ref": "#/components/parameters/IdempotencyKey"},
-          {"$ref": "#/components/parameters/IfMatch"}
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
         ],
         "requestBody": {
           "required": true,
-          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/GitHubRepositoryAdoptionRequest"}}}
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitHubRepositoryAdoptionRequest"
+              }
+            }
+          }
         },
         "responses": {
           "202": {
             "description": "GitHub adoption configuration operation",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceConfigurationOperation"}}}
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceConfigurationOperation"
+                }
+              }
+            }
           },
-          "default": {"$ref": "#/components/responses/Error"}
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
         },
         "x-postgrip-operation-class": "tenant-api",
-        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
         "x-postgrip-safety": "mutation",
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
@@ -5354,6 +5441,663 @@
         "x-postgrip-idempotency": "required",
         "x-postgrip-retry": "bounded"
       }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns": {
+      "get": {
+        "operationId": "getServiceDNSCanonicalState",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get Canonical DNS State",
+        "description": "Returns the domain-version- and generation-fenced canonical target independently of the environment primary-domain display preference.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSCanonicalState"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans": {
+      "get": {
+        "operationId": "listServiceDNSPlans",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "List DNS Plans",
+        "description": "Lists immutable derived DNS plans and their propagation, verification, rollback, or intervention state.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSPlanList"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      },
+      "post": {
+        "operationId": "createServiceDNSPlan",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Create DNS Plan",
+        "description": "Derives an exact CNAME or address record plus ownership TXT proof from a tenant-owned configured hostname and current ready release. The caller cannot submit arbitrary record names, types, or targets.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServiceDNSPlanRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}": {
+      "get": {
+        "operationId": "getServiceDNSPlan",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get DNS Plan",
+        "description": "Returns one immutable DNS plan including current observation, desired records, last-verified rollback records, and safe failure detail.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/DNSPlanId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/apply": {
+      "post": {
+        "operationId": "applyServiceDNSPlan",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Start External DNS Apply",
+        "description": "Binds an opaque provider/account/zone identity and releases only the immutable derived record set after the target route and every state fence pass. Provider credentials are never accepted.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/DNSPlanId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Operation accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyServiceDNSPlanRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/provider-result": {
+      "post": {
+        "operationId": "reportServiceDNSProviderResult",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Report External DNS Provider Result",
+        "description": "Accepts an observed result only when it reports every derived record exactly once and contains no extra mutation. Successful reports enter bounded propagation and public verification.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/DNSPlanId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Operation accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportServiceDNSProviderResultRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback": {
+      "post": {
+        "operationId": "rollbackServiceDNSPlan",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Create Bounded DNS Rollback",
+        "description": "Creates an immutable rollback plan from the last publicly verified record set. If that target is no longer current and ready, the operation reports intervention-required instead of inventing a recovery target.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/DNSPlanId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollbackServiceDNSPlanRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy": {
+      "get": {
+        "operationId": "getServiceDNSFailoverPolicy",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get DNS Failover Policy",
+        "description": "Returns approved endpoints and bounded health threshold, hysteresis, cooldown, attempt, TTL, and propagation settings.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSFailoverPolicy"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      },
+      "put": {
+        "operationId": "updateServiceDNSFailoverPolicy",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Update DNS Failover Policy",
+        "description": "Configures only tenant-owned current-ready endpoint identities. Enabled policies require distinct Workers and never accept provider credentials.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:write",
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSFailoverPolicy"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceDNSFailoverPolicyRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers": {
+      "post": {
+        "operationId": "requestServiceDNSFailover",
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Request Canonical DNS Failover",
+        "description": "Creates a fenced failover or failback plan for an explicitly approved endpoint. External apply remains separate and DNS TTL means the result is never reported as instantaneous global cutover.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:operate"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/DomainId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceDNSPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestServiceDNSFailoverRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
     }
   },
   "components": {
@@ -5590,6 +6334,16 @@
           "type": "string",
           "format": "uuid"
         }
+      },
+      "DNSPlanId": {
+        "name": "planId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Immutable provider-neutral DNS plan identifier."
       }
     },
     "responses": {
@@ -7219,90 +7973,273 @@
       "GitHubRepositoryPermission": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["contents"],
+        "required": [
+          "contents"
+        ],
         "properties": {
-          "contents": {"type": "string"}
+          "contents": {
+            "type": "string"
+          }
         }
       },
       "GitHubRepository": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "id", "owner", "name", "fullName", "defaultBranch", "private",
-          "installationRef", "adoptionState", "permissions", "missingPermissions"
+          "id",
+          "owner",
+          "name",
+          "fullName",
+          "defaultBranch",
+          "private",
+          "installationRef",
+          "adoptionState",
+          "permissions",
+          "missingPermissions"
         ],
         "properties": {
-          "id": {"type": "integer", "format": "int64", "minimum": 1},
-          "owner": {"type": "string", "minLength": 1},
-          "name": {"type": "string", "minLength": 1},
-          "fullName": {"type": "string", "minLength": 3},
-          "defaultBranch": {"type": "string", "minLength": 1},
-          "private": {"type": "boolean"},
-          "installationRef": {"type": "string", "pattern": "^github-installation:[1-9][0-9]*$", "example": "github-installation:1"},
-          "adoptionState": {"type": "string", "enum": ["available", "adopted", "blocked", "adopted-other-project"]},
-          "adoptedProjectId": {"type": "string", "format": "uuid"},
-          "permissions": {"$ref": "#/components/schemas/GitHubRepositoryPermission"},
-          "missingPermissions": {"type": "array", "maxItems": 20, "items": {"type": "string"}}
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fullName": {
+            "type": "string",
+            "minLength": 3
+          },
+          "defaultBranch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "installationRef": {
+            "type": "string",
+            "pattern": "^github-installation:[1-9][0-9]*$",
+            "example": "github-installation:1"
+          },
+          "adoptionState": {
+            "type": "string",
+            "enum": [
+              "available",
+              "adopted",
+              "blocked",
+              "adopted-other-project"
+            ]
+          },
+          "adoptedProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/GitHubRepositoryPermission"
+          },
+          "missingPermissions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string"
+            }
+          }
         }
       },
       "GitHubRepositoryList": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["items", "nextCursor"],
+        "required": [
+          "items",
+          "nextCursor"
+        ],
         "properties": {
-          "items": {"type": "array", "maxItems": 100, "items": {"$ref": "#/components/schemas/GitHubRepository"}},
-          "nextCursor": {"type": "string"}
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/GitHubRepository"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
         }
       },
       "GitHubRepositoryAdoptionPreviewRequest": {
         "type": "object",
         "additionalProperties": false,
-        "example": {"repositoryId": 1, "automaticDeployments": true},
-        "required": ["automaticDeployments"],
+        "example": {
+          "repositoryId": 1,
+          "automaticDeployments": true
+        },
+        "required": [
+          "automaticDeployments"
+        ],
         "properties": {
-          "repositoryId": {"type": "integer", "format": "int64", "minimum": 1},
-          "repository": {"type": "string", "minLength": 3, "maxLength": 201, "pattern": "^[^/\\s]+/[^/\\s]+$"},
-          "automaticDeployments": {"type": "boolean"}
+          "repositoryId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 201,
+            "pattern": "^[^/\\s]+/[^/\\s]+$"
+          },
+          "automaticDeployments": {
+            "type": "boolean"
+          }
         },
         "oneOf": [
-          {"required": ["repositoryId"], "not": {"required": ["repository"]}},
-          {"required": ["repository"], "not": {"required": ["repositoryId"]}}
+          {
+            "required": [
+              "repositoryId"
+            ],
+            "not": {
+              "required": [
+                "repository"
+              ]
+            }
+          },
+          {
+            "required": [
+              "repository"
+            ],
+            "not": {
+              "required": [
+                "repositoryId"
+              ]
+            }
+          }
         ]
       },
       "GitHubRepositoryAdoptionPreview": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "id", "digest", "projectId", "repositoryEtag", "repository",
-          "targetWorkerIds", "automaticDeployments", "requiredPermissions",
-          "missingPermissions", "webhookChange", "changes", "state",
-          "expiresAt", "receipt"
+          "id",
+          "digest",
+          "projectId",
+          "repositoryEtag",
+          "repository",
+          "targetWorkerIds",
+          "automaticDeployments",
+          "requiredPermissions",
+          "missingPermissions",
+          "webhookChange",
+          "changes",
+          "state",
+          "expiresAt",
+          "receipt"
         ],
         "properties": {
-          "id": {"type": "string", "format": "uuid"},
-          "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-          "projectId": {"type": "string", "format": "uuid"},
-          "repositoryEtag": {"type": "string", "minLength": 1},
-          "repository": {"$ref": "#/components/schemas/GitHubRepository"},
-          "targetWorkerIds": {"type": "array", "maxItems": 100, "items": {"type": "string", "format": "uuid"}},
-          "automaticDeployments": {"type": "boolean"},
-          "requiredPermissions": {"type": "array", "maxItems": 20, "items": {"type": "string"}},
-          "missingPermissions": {"type": "array", "maxItems": 20, "items": {"type": "string"}},
-          "webhookChange": {"type": "string", "enum": ["disable", "verify-global", "create", "repair", "rotate", "none"]},
-          "changes": {"type": "array", "maxItems": 100, "items": {"type": "string"}},
-          "state": {"type": "string", "enum": ["ready", "blocked"]},
-          "expiresAt": {"type": "string", "format": "date-time"},
-          "receipt": {"$ref": "#/components/schemas/OperationReceipt"}
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "repositoryEtag": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repository": {
+            "$ref": "#/components/schemas/GitHubRepository"
+          },
+          "targetWorkerIds": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "automaticDeployments": {
+            "type": "boolean"
+          },
+          "requiredPermissions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string"
+            }
+          },
+          "missingPermissions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string"
+            }
+          },
+          "webhookChange": {
+            "type": "string",
+            "enum": [
+              "disable",
+              "verify-global",
+              "create",
+              "repair",
+              "rotate",
+              "none"
+            ]
+          },
+          "changes": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "string"
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "blocked"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          }
         }
       },
       "GitHubRepositoryAdoptionRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["previewId", "previewDigest", "repositoryEtag"],
+        "required": [
+          "previewId",
+          "previewDigest",
+          "repositoryEtag"
+        ],
         "properties": {
-          "previewId": {"type": "string", "format": "uuid"},
-          "previewDigest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-          "repositoryEtag": {"type": "string", "minLength": 1}
+          "previewId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "previewDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "repositoryEtag": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "ServiceRepository": {
@@ -9810,7 +10747,9 @@
           },
           "connection": {
             "type": "string",
-            "enum": ["github-app"]
+            "enum": [
+              "github-app"
+            ]
           },
           "hasSourceCredential": {
             "type": "boolean"
@@ -9822,16 +10761,26 @@
           },
           "githubWebhookMode": {
             "type": "string",
-            "enum": ["github-app-global", "project-specific"]
+            "enum": [
+              "github-app-global",
+              "project-specific"
+            ]
           },
           "githubWebhookStatus": {
             "type": "string",
-            "enum": ["pending", "verified", "repairing", "failed"]
+            "enum": [
+              "pending",
+              "verified",
+              "repairing",
+              "failed"
+            ]
           },
           "missingPermissions": {
             "type": "array",
             "maxItems": 20,
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           },
           "kind": {
             "type": "string"
@@ -10532,6 +11481,849 @@
           },
           "nextCursor": {
             "type": "string"
+          }
+        }
+      },
+      "ServiceDNSRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hostname",
+          "type",
+          "value",
+          "ttlSeconds"
+        ],
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253,
+            "pattern": "^[a-z0-9_][a-z0-9_.-]*$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "A",
+              "AAAA",
+              "CNAME",
+              "TXT"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3600
+          }
+        }
+      },
+      "ServiceDNSObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "records",
+          "observedAt"
+        ],
+        "properties": {
+          "records": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSRecord"
+            }
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "detailCode": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "ServiceDNSCanonicalTarget": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectId",
+          "environmentId",
+          "deploymentId",
+          "workerId",
+          "workerOrigin",
+          "verificationUrl"
+        ],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workerOrigin": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
+            "example": "https://worker.example.com"
+          },
+          "verificationUrl": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
+            "example": "https://worker.example.com/deploy/project/environment/"
+          }
+        }
+      },
+      "ServiceDNSCanonicalState": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domainId",
+          "hostname",
+          "domainConfigurationVersion",
+          "generation",
+          "state",
+          "lastVerifiedRecords",
+          "consecutiveFailures",
+          "consecutiveSuccesses",
+          "failoverAttempts",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "domainId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hostname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253
+          },
+          "domainConfigurationVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "generation": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "inactive",
+              "planning",
+              "awaiting_external_apply",
+              "propagating",
+              "verifying",
+              "active",
+              "degraded",
+              "rollback_required",
+              "intervention_required"
+            ]
+          },
+          "activeTarget": {
+            "$ref": "#/components/schemas/ServiceDNSCanonicalTarget"
+          },
+          "currentPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lastVerifiedRecords": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSRecord"
+            }
+          },
+          "lastVerifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "consecutiveFailures": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "consecutiveSuccesses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failoverAttempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cooldownUntil": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "nextHealthCheckAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceDNSProviderBinding": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "accountRef",
+          "zoneRef"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "accountRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "zoneRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "ServiceDNSPlan": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "domainId",
+          "kind",
+          "state",
+          "expectedDomainConfigurationVersion",
+          "expectedCanonicalGeneration",
+          "target",
+          "providerMode",
+          "desiredRecords",
+          "previousRecords",
+          "currentObservation",
+          "reason",
+          "propagationSuccesses",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domainId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "activate",
+              "failover",
+              "failback",
+              "rollback"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "awaiting_external_apply",
+              "propagating",
+              "verifying",
+              "active",
+              "rollback_required",
+              "rolled_back",
+              "failed",
+              "stale",
+              "intervention_required"
+            ]
+          },
+          "expectedDomainConfigurationVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedCanonicalGeneration": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedActiveDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target": {
+            "$ref": "#/components/schemas/ServiceDNSCanonicalTarget"
+          },
+          "providerMode": {
+            "type": "string",
+            "const": "external"
+          },
+          "providerBinding": {
+            "$ref": "#/components/schemas/ServiceDNSProviderBinding"
+          },
+          "providerChangeRef": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "desiredRecords": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSRecord"
+            }
+          },
+          "previousRecords": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSRecord"
+            }
+          },
+          "currentObservation": {
+            "$ref": "#/components/schemas/ServiceDNSObservation"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "propagationSuccesses": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "nextCheckAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "propagationDeadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "failureCode": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "failureDetail": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "sourceHealthObservedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rollbackOfPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "routeConfigurationOperationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          }
+        }
+      },
+      "ServiceDNSPlanList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSPlan"
+            }
+          }
+        }
+      },
+      "CreateServiceDNSPlanRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "targetProjectId",
+          "targetEnvironmentId",
+          "expectedTargetDeploymentId",
+          "expectedDomainConfigurationVersion",
+          "expectedCanonicalGeneration",
+          "ttlSeconds",
+          "reason"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "activate",
+              "failover",
+              "failback"
+            ]
+          },
+          "targetProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetEnvironmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedTargetDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedDomainConfigurationVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedCanonicalGeneration": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedActiveDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 3600
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "initial_activation",
+              "operator_failover",
+              "operator_failback",
+              "planned_migration"
+            ]
+          }
+        }
+      },
+      "ApplyServiceDNSPlanRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "providerBinding"
+        ],
+        "properties": {
+          "providerBinding": {
+            "$ref": "#/components/schemas/ServiceDNSProviderBinding"
+          }
+        }
+      },
+      "ServiceDNSProviderRecordResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hostname",
+          "type",
+          "value",
+          "ttlSeconds",
+          "status"
+        ],
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "A",
+              "AAAA",
+              "CNAME",
+              "TXT"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 3600
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "applied",
+              "failed"
+            ]
+          }
+        }
+      },
+      "ReportServiceDNSProviderResultRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome",
+          "records"
+        ],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "applied",
+              "failed",
+              "partial"
+            ]
+          },
+          "providerChangeRef": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "records": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSProviderRecordResult"
+            }
+          },
+          "detailCode": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      },
+      "RollbackServiceDNSPlanRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expectedCanonicalGeneration"
+        ],
+        "properties": {
+          "expectedCanonicalGeneration": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        }
+      },
+      "ServiceDNSFailoverTarget": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectId",
+          "environmentId",
+          "priority"
+        ],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ServiceDNSFailoverTargetInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectId",
+          "environmentId",
+          "priority"
+        ],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "ServiceDNSFailoverPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domainId",
+          "mode",
+          "failureThreshold",
+          "recoveryThreshold",
+          "cooldownSeconds",
+          "maximumFailoverAttempts",
+          "propagationTimeoutSeconds",
+          "ttlSeconds",
+          "healthCheckIntervalSeconds",
+          "version",
+          "targets",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "domainId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "operator_approved",
+              "automatic_external"
+            ]
+          },
+          "failureThreshold": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 20
+          },
+          "recoveryThreshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "cooldownSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400
+          },
+          "maximumFailoverAttempts": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "propagationTimeoutSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 3600
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 3600
+          },
+          "healthCheckIntervalSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 3600
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "targets": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSFailoverTarget"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          }
+        }
+      },
+      "UpdateServiceDNSFailoverPolicyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mode",
+          "failureThreshold",
+          "recoveryThreshold",
+          "cooldownSeconds",
+          "maximumFailoverAttempts",
+          "propagationTimeoutSeconds",
+          "ttlSeconds",
+          "healthCheckIntervalSeconds",
+          "expectedDomainConfigurationVersion",
+          "expectedCanonicalGeneration",
+          "targets"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "operator_approved",
+              "automatic_external"
+            ]
+          },
+          "failureThreshold": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 20
+          },
+          "recoveryThreshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "cooldownSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400
+          },
+          "maximumFailoverAttempts": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "propagationTimeoutSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 3600
+          },
+          "ttlSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 3600
+          },
+          "healthCheckIntervalSeconds": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 3600
+          },
+          "expectedDomainConfigurationVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedCanonicalGeneration": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "targets": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "$ref": "#/components/schemas/ServiceDNSFailoverTargetInput"
+            }
+          }
+        }
+      },
+      "RequestServiceDNSFailoverRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "targetProjectId",
+          "targetEnvironmentId",
+          "expectedTargetDeploymentId",
+          "expectedDomainConfigurationVersion",
+          "expectedCanonicalGeneration",
+          "expectedActiveDeploymentId",
+          "approved",
+          "reason"
+        ],
+        "properties": {
+          "targetProjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targetEnvironmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedTargetDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedDomainConfigurationVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedCanonicalGeneration": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "expectedActiveDeploymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "approved": {
+            "type": "boolean",
+            "const": true
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "operator_failover",
+              "operator_failback"
+            ]
           }
         }
       }

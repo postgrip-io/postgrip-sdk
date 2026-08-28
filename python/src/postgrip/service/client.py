@@ -26,6 +26,7 @@ from .administration_types import (
     AsyncDeclarativeConfigurationAdministration,
     AsyncConfigurationOperationsAdministration,
     AsyncDomainsAdministration,
+    AsyncDNSAdministration,
     AsyncEnvironmentsAdministration,
     AsyncManagedVolumesAdministration,
     AsyncProjectsAdministration,
@@ -37,6 +38,7 @@ from .administration_types import (
     ConfigurationOperationsAdministration,
     DeclarativeConfigurationAdministration,
     DomainsAdministration,
+    DNSAdministration,
     EnvironmentsAdministration,
     ManagedVolumesAdministration,
     ProjectsAdministration,
@@ -99,6 +101,13 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     "domains": (
         "list_service_domains", "create_service_domain", "update_service_domain", "delete_service_domain",
         "get_service_domain_verification", "verify_service_domain",
+    ),
+    "dns": (
+        "get_service_d_n_s_canonical_state", "list_service_d_n_s_plans",
+        "create_service_d_n_s_plan", "get_service_d_n_s_plan", "apply_service_d_n_s_plan",
+        "report_service_d_n_s_provider_result", "rollback_service_d_n_s_plan",
+        "get_service_d_n_s_failover_policy", "update_service_d_n_s_failover_policy",
+        "request_service_d_n_s_failover",
     ),
     "variables": (
         "list_service_variables", "create_service_variable", "update_service_variable",
@@ -310,13 +319,14 @@ class _AdministrationGroup:
 
 
 class ServiceAdministration:
-    """Grouped access to all 70 generated Service-administration operations."""
+    """Grouped access to all 80 generated Service-administration operations."""
 
     target_services: TargetServicesAdministration
     projects: ProjectsAdministration
     environments: EnvironmentsAdministration
     managed_volumes: ManagedVolumesAdministration
     domains: DomainsAdministration
+    dns: DNSAdministration
     variables: VariablesAdministration
     repositories: RepositoriesAdministration
     promotions: PromotionsAdministration
@@ -331,6 +341,7 @@ class ServiceAdministration:
         self.environments = cast(EnvironmentsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["environments"]))
         self.managed_volumes = cast(ManagedVolumesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["managed_volumes"]))
         self.domains = cast(DomainsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["domains"]))
+        self.dns = cast(DNSAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["dns"]))
         self.variables = cast(VariablesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["variables"]))
         self.repositories = cast(RepositoriesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["repositories"]))
         self.promotions = cast(PromotionsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["promotions"]))
@@ -347,6 +358,7 @@ class AsyncServiceAdministration:
     environments: AsyncEnvironmentsAdministration
     managed_volumes: AsyncManagedVolumesAdministration
     domains: AsyncDomainsAdministration
+    dns: AsyncDNSAdministration
     variables: AsyncVariablesAdministration
     repositories: AsyncRepositoriesAdministration
     promotions: AsyncPromotionsAdministration
@@ -360,6 +372,7 @@ class AsyncServiceAdministration:
         self.environments = cast(AsyncEnvironmentsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.environments)))
         self.managed_volumes = cast(AsyncManagedVolumesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.managed_volumes)))
         self.domains = cast(AsyncDomainsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.domains)))
+        self.dns = cast(AsyncDNSAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.dns)))
         self.variables = cast(AsyncVariablesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.variables)))
         self.repositories = cast(AsyncRepositoriesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.repositories)))
         self.promotions = cast(AsyncPromotionsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.promotions)))
