@@ -36,8 +36,19 @@ def load_settings(environ: Mapping[str, str]) -> tuple[str, str, str, str, str]:
         raise SystemExit("POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE=true is required")
     base_url = required(environ, "POSTGRIP_SERVICE_URL")
     parsed = urlparse(base_url)
-    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
-        raise SystemExit("POSTGRIP_SERVICE_URL must be an HTTPS origin without credentials")
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or parsed.username
+        or parsed.password
+        or "?" in base_url
+        or "#" in base_url
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise SystemExit(
+            "POSTGRIP_SERVICE_URL must be an HTTPS origin without credentials, query, or fragment"
+        )
     token = required(environ, "POSTGRIP_TOKEN")
     service_id = required(environ, "POSTGRIP_SERVICE_ID")
     environment_id = required(environ, "POSTGRIP_SERVICE_ENVIRONMENT_ID")
@@ -75,6 +86,8 @@ def self_test() -> None:
         {**fixture, "POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE": "false"},
         {**fixture, "POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN": "different"},
         {**fixture, "POSTGRIP_SERVICE_URL": "http://services.example.test"},
+        {**fixture, "POSTGRIP_SERVICE_URL": "https://services.example.test?target=other"},
+        {**fixture, "POSTGRIP_SERVICE_URL": "https://services.example.test#other"},
     ):
         try:
             load_settings(unsafe)
