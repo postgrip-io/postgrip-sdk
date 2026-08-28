@@ -1378,4 +1378,4 @@ func (c *OpenAPIClient) ValidatePostGripConfiguration(ctx context.Context, body 
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 86
 
-const openAPIClientSpecSHA256 = "9b0540cbb1dc50155ba12d7adb3211666a002d03e65ee0b2f0f711c48e84e482"
+const openAPIClientSpecSHA256 = "392660cc1fad9ad6799c6c76d1935efc2279f0a2450c036ec6b661bf76ba7117"
