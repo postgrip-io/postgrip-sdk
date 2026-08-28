@@ -5847,7 +5847,7 @@
           },
           "cutoverState": {
             "type": "string",
-            "description": "The deployment's role in the production cutover lifecycle. A candidate is building but cannot receive traffic, cutover is ready and switching, live is the routed deployment, retained is the one last known-good rollback target, historical is a completed deployment whose runtime is not retained, and terminal is an incomplete deployment that is neither routed nor retained.",
+            "description": "The deployment's role in the production cutover lifecycle. A candidate is building but cannot receive traffic, cutover is ready and switching, rollback_candidate is an explicit rollback that is queued or building and cannot receive traffic, rollback_cutover is an explicit rollback whose target is ready and switching, live is the routed deployment, retained is the one last known-good rollback target, historical is a completed deployment whose runtime is not retained, and terminal is an incomplete deployment that is neither routed nor retained.",
             "enum": [
               "candidate",
               "cutover",

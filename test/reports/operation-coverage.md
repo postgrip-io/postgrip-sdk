@@ -1,6 +1,6 @@
 # Unified SDK operation coverage
 
-Contract bundle: `31afa210eb0c84c807b9b70a2c1a748ac135c171a82f9de57a2b118303499b94`
+Contract bundle: `8b76eed875370597f7e70a4541ec71d039fef1b56204e04189cc25d8ddad9c38`
 
 | Operations | Documented | SDK-generated | cURL | Protocol exceptions | Recorded-tested | Nightly-owned | Pre-release-owned | Production-smoke-owned |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
