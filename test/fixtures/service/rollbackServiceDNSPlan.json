@@ -33,16 +33,16 @@
       },
       "desiredRecords": [
         {
-          "hostname": "string",
-          "ttlSeconds": 30,
-          "type": "A",
-          "value": "string"
+          "hostname": "app.example.com",
+          "ttlSeconds": 60,
+          "type": "CNAME",
+          "value": "worker.example.com"
         },
         {
-          "hostname": "string",
-          "ttlSeconds": 30,
-          "type": "A",
-          "value": "string"
+          "hostname": "_postgrip.app.example.com",
+          "ttlSeconds": 60,
+          "type": "TXT",
+          "value": "postgrip-domain=11111111-1111-4111-8111-111111111111;proof=0123456789abcdef0123456789abcdef"
         }
       ],
       "domainId": "11111111-1111-4111-8111-111111111111",

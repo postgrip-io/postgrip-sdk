@@ -11558,7 +11558,7 @@
           "value": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 512
+            "maxLength": 65535
           },
           "ttlSeconds": {
             "type": "integer",
@@ -11843,9 +11843,61 @@
             "type": "array",
             "minItems": 2,
             "maxItems": 2,
+            "example": [
+              {
+                "hostname": "app.example.com",
+                "type": "CNAME",
+                "value": "worker.example.com",
+                "ttlSeconds": 60
+              },
+              {
+                "hostname": "_postgrip.app.example.com",
+                "type": "TXT",
+                "value": "postgrip-domain=11111111-1111-4111-8111-111111111111;proof=0123456789abcdef0123456789abcdef",
+                "ttlSeconds": 60
+              }
+            ],
             "items": {
               "$ref": "#/components/schemas/ServiceDNSRecord"
-            }
+            },
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "additionalProperties": {},
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "A",
+                        "AAAA",
+                        "CNAME"
+                      ]
+                    }
+                  }
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "additionalProperties": {},
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "TXT"
+                    }
+                  }
+                },
+                "minContains": 1,
+                "maxContains": 1
+              }
+            ]
           },
           "previousRecords": {
             "type": "array",
@@ -12076,15 +12128,162 @@
             "type": "array",
             "minItems": 2,
             "maxItems": 2,
+            "example": [
+              {
+                "hostname": "app.example.com",
+                "type": "CNAME",
+                "value": "worker.example.com",
+                "ttlSeconds": 60,
+                "status": "applied"
+              },
+              {
+                "hostname": "_postgrip.app.example.com",
+                "type": "TXT",
+                "value": "postgrip-domain=11111111-1111-4111-8111-111111111111;proof=0123456789abcdef0123456789abcdef",
+                "ttlSeconds": 60,
+                "status": "applied"
+              }
+            ],
             "items": {
               "$ref": "#/components/schemas/ServiceDNSProviderRecordResult"
-            }
+            },
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "additionalProperties": {},
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "A",
+                        "AAAA",
+                        "CNAME"
+                      ]
+                    }
+                  }
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "additionalProperties": {},
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "TXT"
+                    }
+                  }
+                },
+                "minContains": 1,
+                "maxContains": 1
+              }
+            ]
           },
           "detailCode": {
             "type": "string",
             "maxLength": 64
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "additionalProperties": {},
+              "properties": {
+                "outcome": {
+                  "const": "applied"
+                }
+              }
+            },
+            "then": {
+              "additionalProperties": {},
+              "properties": {
+                "records": {
+                  "items": {
+                    "additionalProperties": {},
+                    "properties": {
+                      "status": {
+                        "const": "applied"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "additionalProperties": {},
+              "properties": {
+                "outcome": {
+                  "const": "failed"
+                }
+              }
+            },
+            "then": {
+              "additionalProperties": {},
+              "properties": {
+                "records": {
+                  "items": {
+                    "additionalProperties": {},
+                    "properties": {
+                      "status": {
+                        "const": "failed"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "additionalProperties": {},
+              "properties": {
+                "outcome": {
+                  "const": "partial"
+                }
+              }
+            },
+            "then": {
+              "additionalProperties": {},
+              "properties": {
+                "records": {
+                  "allOf": [
+                    {
+                      "contains": {
+                        "additionalProperties": {},
+                        "properties": {
+                          "status": {
+                            "const": "applied"
+                          }
+                        }
+                      },
+                      "minContains": 1
+                    },
+                    {
+                      "contains": {
+                        "additionalProperties": {},
+                        "properties": {
+                          "status": {
+                            "const": "failed"
+                          }
+                        }
+                      },
+                      "minContains": 1
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
       },
       "RollbackServiceDNSPlanRequest": {
         "type": "object",
@@ -12241,7 +12440,30 @@
           "receipt": {
             "$ref": "#/components/schemas/OperationReceipt"
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "additionalProperties": {},
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "operator_approved",
+                    "automatic_external"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "additionalProperties": {},
+              "properties": {
+                "targets": {
+                  "minItems": 2
+                }
+              }
+            }
+          }
+        ]
       },
       "UpdateServiceDNSFailoverPolicyRequest": {
         "type": "object",
@@ -12326,7 +12548,30 @@
               "$ref": "#/components/schemas/ServiceDNSFailoverTargetInput"
             }
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "additionalProperties": {},
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "operator_approved",
+                    "automatic_external"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "additionalProperties": {},
+              "properties": {
+                "targets": {
+                  "minItems": 2
+                }
+              }
+            }
+          }
+        ]
       },
       "RequestServiceDNSFailoverRequest": {
         "type": "object",
