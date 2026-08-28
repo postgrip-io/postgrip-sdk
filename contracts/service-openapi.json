@@ -11550,7 +11550,6 @@
           "ref",
           "name",
           "kind",
-          "assignedWorker",
           "containerPort",
           "domains",
           "variables"

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 	"time"
@@ -63,5 +64,19 @@ func TestServiceEnvironmentSupportsAutomaticPlacement(t *testing.T) {
 	encoded, err = json.Marshal(placement)
 	if err != nil || string(encoded) != `{"workerId":"11111111-1111-4111-8111-111111111111","mode":"automatic","reason":"most-recent-eligible"}` {
 		t.Fatalf("placement=%s err=%v", encoded, err)
+	}
+}
+
+func TestPostGripConfigurationEnvironmentSupportsAutomaticPlacement(t *testing.T) {
+	environment := OpenAPIPostGripConfigurationEnvironment{
+		Ref: "production", Name: "Production", Kind: "production", ContainerPort: 3000,
+		Domains: []OpenAPIPostGripConfigurationDomain{}, Variables: []OpenAPIPostGripConfigurationVariable{},
+	}
+	encoded, err := json.Marshal(environment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(encoded, []byte(`"assignedWorker"`)) {
+		t.Fatalf("automatic declarative placement emitted assignedWorker: %s", encoded)
 	}
 }

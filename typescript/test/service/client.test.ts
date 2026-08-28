@@ -5,6 +5,7 @@ import {
   ServiceClient,
   referenceFor,
   type OpenAPIRequestBody,
+  type OpenAPIComponents,
   type GetServiceRepositoryResponseBody,
   type GetServiceEnvironmentResponseBody,
 } from '../../src/service/index.js';
@@ -53,6 +54,8 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<string | undefined>();
     expectTypeOf<NonNullable<GetServiceEnvironmentResponseBody['placement']>['mode']>()
       .toEqualTypeOf<'automatic' | 'project-default' | 'explicit' | 'reassigned' | 'legacy'>();
+    expectTypeOf<OpenAPIComponents['PostGripConfigurationEnvironment']['assignedWorker']>()
+      .toEqualTypeOf<OpenAPIComponents['PostGripConfigurationWorkerSelector'] | undefined>();
   });
 
   it('preserves const approval fields in generated request types', () => {
