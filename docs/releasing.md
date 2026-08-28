@@ -22,6 +22,14 @@ scenario secret described in [Live integration tiers](live-testing.md). The
 scheduled `sdk-live-nightly` environment uses the same fixture-manager format.
 Neither environment may point at production.
 
+The optional Service domain verification job reads its fixture only after the
+protected environment is loaded. Configure `POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID`,
+set the independent `POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN` variable to that exact
+ID, and set `POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE=true`. Keep the confirmation
+and disposable opt-in as separately reviewed environment variables; do not
+derive either one in the workflow. The job safely skips when no domain ID is
+configured.
+
 ## Before creating tags
 
 1. Merge and deploy the coordinated server PR. Record its commit and deployment

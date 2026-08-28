@@ -5916,7 +5916,6 @@
           },
           "aliases": {
             "type": "array",
-            "maxItems": 100,
             "items": {
               "type": "string",
               "format": "uri",
@@ -6009,7 +6008,6 @@
           },
           "aliases": {
             "type": "array",
-            "maxItems": 100,
             "items": {
               "type": "string",
               "format": "uri",
