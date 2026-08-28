@@ -24,6 +24,150 @@ type OpenAPIOperationReceipt struct {
 	AuditEventId  *string `json:"auditEventId,omitempty"`
 	Replayed      bool    `json:"replayed"`
 }
+type OpenAPIServiceReleaseVerificationPolicy string
+type OpenAPIServiceReleaseGroupState string
+type OpenAPIServiceReleaseGroupMemberState string
+type OpenAPIServiceReleaseGroupMemberRequest struct {
+	Key                         string                                   `json:"key"`
+	ProjectId                   string                                   `json:"projectId"`
+	EnvironmentId               string                                   `json:"environmentId"`
+	ExpectedCommitSha           *string                                  `json:"expectedCommitSha,omitempty"`
+	Branch                      *string                                  `json:"branch,omitempty"`
+	SourceDeploymentId          *string                                  `json:"sourceDeploymentId,omitempty"`
+	ExpectedArtifactIdentity    *string                                  `json:"expectedArtifactIdentity,omitempty"`
+	ExpectedCurrentDeploymentId *string                                  `json:"expectedCurrentDeploymentId,omitempty"`
+	Required                    *bool                                    `json:"required,omitempty"`
+	Reversible                  *bool                                    `json:"reversible,omitempty"`
+	VerificationPolicy          *OpenAPIServiceReleaseVerificationPolicy `json:"verificationPolicy,omitempty"`
+	DependsOn                   []string                                 `json:"dependsOn,omitempty"`
+}
+
+func (value OpenAPIServiceReleaseGroupMemberRequest) MarshalJSON() ([]byte, error) {
+	if !((value.ExpectedCommitSha != nil && value.Branch != nil) || (value.SourceDeploymentId != nil && value.ExpectedArtifactIdentity != nil)) {
+		return nil, errors.New("OpenAPIServiceReleaseGroupMemberRequest must satisfy one required property alternative")
+	}
+	type wire OpenAPIServiceReleaseGroupMemberRequest
+	return json.Marshal(wire(value))
+}
+
+type OpenAPIPreviewServiceReleaseGroupRequest struct {
+	Name          string                                    `json:"name"`
+	SuccessPolicy *string                                   `json:"successPolicy,omitempty"`
+	FailurePolicy *string                                   `json:"failurePolicy,omitempty"`
+	Members       []OpenAPIServiceReleaseGroupMemberRequest `json:"members"`
+}
+type OpenAPICreateServiceReleaseGroupRequest struct {
+	PreviewToken string `json:"previewToken"`
+}
+type OpenAPIServiceReleaseGroupPreviewMember struct {
+	Key                       string                                  `json:"key"`
+	ProjectId                 string                                  `json:"projectId"`
+	EnvironmentId             string                                  `json:"environmentId"`
+	WorkerId                  string                                  `json:"workerId"`
+	ProjectVersion            int64                                   `json:"projectVersion"`
+	EnvironmentVersion        int64                                   `json:"environmentVersion"`
+	ExpectedCommitSha         string                                  `json:"expectedCommitSha"`
+	Branch                    string                                  `json:"branch"`
+	SourceDeploymentId        *string                                 `json:"sourceDeploymentId,omitempty"`
+	ExpectedArtifactIdentity  *string                                 `json:"expectedArtifactIdentity,omitempty"`
+	CurrentDeploymentId       *string                                 `json:"currentDeploymentId,omitempty"`
+	Required                  bool                                    `json:"required"`
+	Reversible                bool                                    `json:"reversible"`
+	VerificationPolicy        OpenAPIServiceReleaseVerificationPolicy `json:"verificationPolicy"`
+	DependsOn                 []string                                `json:"dependsOn"`
+	VerificationDomainId      *string                                 `json:"verificationDomainId,omitempty"`
+	VerificationDomainVersion *int64                                  `json:"verificationDomainVersion,omitempty"`
+	VerificationUrl           *string                                 `json:"verificationUrl,omitempty"`
+}
+type OpenAPIServiceReleaseGroupPreview struct {
+	Name               string                                    `json:"name"`
+	SuccessPolicy      string                                    `json:"successPolicy"`
+	FailurePolicy      string                                    `json:"failurePolicy"`
+	Members            []OpenAPIServiceReleaseGroupPreviewMember `json:"members"`
+	RequestFingerprint string                                    `json:"requestFingerprint"`
+	PreviewToken       string                                    `json:"previewToken"`
+	ExpiresAt          time.Time                                 `json:"expiresAt"`
+}
+type OpenAPIServiceReleaseGroupMemberReceipt struct {
+	DeploymentId string    `json:"deploymentId"`
+	CommandId    string    `json:"commandId"`
+	JobRunId     string    `json:"jobRunId"`
+	DispatchedAt time.Time `json:"dispatchedAt"`
+}
+type OpenAPIServiceReleaseGroupMember struct {
+	Id                          string                                   `json:"id"`
+	Key                         string                                   `json:"key"`
+	ProjectId                   string                                   `json:"projectId"`
+	EnvironmentId               string                                   `json:"environmentId"`
+	WorkerId                    string                                   `json:"workerId"`
+	Required                    bool                                     `json:"required"`
+	Reversible                  bool                                     `json:"reversible"`
+	VerificationPolicy          OpenAPIServiceReleaseVerificationPolicy  `json:"verificationPolicy"`
+	DependsOn                   []string                                 `json:"dependsOn"`
+	ExpectedCommitSha           string                                   `json:"expectedCommitSha"`
+	Branch                      string                                   `json:"branch"`
+	SourceDeploymentId          *string                                  `json:"sourceDeploymentId,omitempty"`
+	ExpectedArtifactIdentity    *string                                  `json:"expectedArtifactIdentity,omitempty"`
+	ExpectedProjectVersion      int64                                    `json:"expectedProjectVersion"`
+	ExpectedEnvironmentVersion  int64                                    `json:"expectedEnvironmentVersion"`
+	ExpectedCurrentDeploymentId *string                                  `json:"expectedCurrentDeploymentId,omitempty"`
+	VerificationDomainId        *string                                  `json:"verificationDomainId,omitempty"`
+	VerificationDomainVersion   *int64                                   `json:"verificationDomainVersion,omitempty"`
+	VerificationUrl             *string                                  `json:"verificationUrl,omitempty"`
+	State                       OpenAPIServiceReleaseGroupMemberState    `json:"state"`
+	DeploymentId                *string                                  `json:"deploymentId,omitempty"`
+	PreviousDeploymentId        *string                                  `json:"previousDeploymentId,omitempty"`
+	CompensationDeploymentId    *string                                  `json:"compensationDeploymentId,omitempty"`
+	DispatchReceipt             *OpenAPIServiceReleaseGroupMemberReceipt `json:"dispatchReceipt,omitempty"`
+	CompensationReceipt         *OpenAPIServiceReleaseGroupMemberReceipt `json:"compensationReceipt,omitempty"`
+	Attempt                     int64                                    `json:"attempt"`
+	VerificationAttempts        int64                                    `json:"verificationAttempts"`
+	VerificationDeadline        *time.Time                               `json:"verificationDeadline,omitempty"`
+	NextVerificationAt          *time.Time                               `json:"nextVerificationAt,omitempty"`
+	ErrorCode                   *string                                  `json:"errorCode,omitempty"`
+	ErrorDetail                 *string                                  `json:"errorDetail,omitempty"`
+	DispatchedAt                *time.Time                               `json:"dispatchedAt,omitempty"`
+	VerifiedAt                  *time.Time                               `json:"verifiedAt,omitempty"`
+	CompletedAt                 *time.Time                               `json:"completedAt,omitempty"`
+	CreatedAt                   time.Time                                `json:"createdAt"`
+	UpdatedAt                   time.Time                                `json:"updatedAt"`
+}
+type OpenAPIServiceReleaseGroup struct {
+	Id                 string                             `json:"id"`
+	Name               string                             `json:"name"`
+	State              OpenAPIServiceReleaseGroupState    `json:"state"`
+	SuccessPolicy      string                             `json:"successPolicy"`
+	FailurePolicy      string                             `json:"failurePolicy"`
+	RequestFingerprint string                             `json:"requestFingerprint"`
+	RetryCount         int64                              `json:"retryCount"`
+	FailureCode        *string                            `json:"failureCode,omitempty"`
+	FailureDetail      *string                            `json:"failureDetail,omitempty"`
+	CancelRequestedAt  *time.Time                         `json:"cancelRequestedAt,omitempty"`
+	StartedAt          *time.Time                         `json:"startedAt,omitempty"`
+	CompletedAt        *time.Time                         `json:"completedAt,omitempty"`
+	CreatedAt          time.Time                          `json:"createdAt"`
+	UpdatedAt          time.Time                          `json:"updatedAt"`
+	Members            []OpenAPIServiceReleaseGroupMember `json:"members"`
+	Receipt            *OpenAPIOperationReceipt           `json:"receipt,omitempty"`
+}
+type OpenAPIServiceReleaseGroupList struct {
+	Items      []OpenAPIServiceReleaseGroup `json:"items"`
+	NextCursor string                       `json:"nextCursor"`
+}
+type OpenAPIServiceReleaseGroupEvent struct {
+	Id           string    `json:"id"`
+	MemberId     *string   `json:"memberId,omitempty"`
+	Kind         string    `json:"kind"`
+	State        string    `json:"state"`
+	Code         *string   `json:"code,omitempty"`
+	Detail       *string   `json:"detail,omitempty"`
+	DeploymentId *string   `json:"deploymentId,omitempty"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+type OpenAPIServiceReleaseGroupEventList struct {
+	Items      []OpenAPIServiceReleaseGroupEvent `json:"items"`
+	NextCursor string                            `json:"nextCursor"`
+}
 type OpenAPIServiceSource string
 type OpenAPIServiceKind string
 type OpenAPIServiceMode string
@@ -1386,6 +1530,8 @@ type OpenAPIBindServiceVolumeRequestBody = OpenAPIBindServiceVolumeRequest
 type OpenAPIBindServiceVolumeResponseBody = OpenAPIServiceVolumeBindingMutationResponse
 type OpenAPICancelServiceDeploymentRequestBody = OpenAPINoBody
 type OpenAPICancelServiceDeploymentResponseBody = OpenAPIDeploymentOperationResponse
+type OpenAPICancelServiceReleaseGroupRequestBody = OpenAPINoBody
+type OpenAPICancelServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroup
 type OpenAPICheckServiceRequestBody = OpenAPICheckServiceRequest
 type OpenAPICheckServiceResponseBody = OpenAPIServiceOperationResponse
 type OpenAPIClearServiceRepositoryCredentialRequestBody = OpenAPINoBody
@@ -1404,6 +1550,8 @@ type OpenAPICreateServiceEnvironmentRequestBody = OpenAPICreateServiceEnvironmen
 type OpenAPICreateServiceEnvironmentResponseBody = OpenAPIServiceEnvironmentMutationResponse
 type OpenAPICreateServiceProjectRequestBody = OpenAPICreateServiceProjectRequest
 type OpenAPICreateServiceProjectResponseBody = OpenAPIServiceProjectMutationResponse
+type OpenAPICreateServiceReleaseGroupRequestBody = OpenAPICreateServiceReleaseGroupRequest
+type OpenAPICreateServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroup
 type OpenAPICreateServiceVariableRequestBody = OpenAPICreateServiceVariableRequest
 type OpenAPICreateServiceVariableResponseBody = OpenAPIServiceVariableMutationResponse
 type OpenAPICreateServiceVolumeRequestBody = OpenAPICreateServiceVolumeRequest
@@ -1454,6 +1602,8 @@ type OpenAPIGetServiceEnvironmentRemovalImpactRequestBody = OpenAPINoBody
 type OpenAPIGetServiceEnvironmentRemovalImpactResponseBody = OpenAPIServiceRemovalImpact
 type OpenAPIGetServiceProjectRemovalImpactRequestBody = OpenAPINoBody
 type OpenAPIGetServiceProjectRemovalImpactResponseBody = OpenAPIServiceRemovalImpact
+type OpenAPIGetServiceReleaseGroupRequestBody = OpenAPINoBody
+type OpenAPIGetServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroup
 type OpenAPIGetServiceRepositoryRequestBody = OpenAPINoBody
 type OpenAPIGetServiceRepositoryResponseBody = OpenAPIServiceRepository
 type OpenAPIGetServiceRuntimeLogSettingsRequestBody = OpenAPINoBody
@@ -1486,6 +1636,10 @@ type OpenAPIListServiceLogsRequestBody = OpenAPINoBody
 type OpenAPIListServiceLogsResponseBody = OpenAPILogList
 type OpenAPIListServicePromotionsRequestBody = OpenAPINoBody
 type OpenAPIListServicePromotionsResponseBody = OpenAPIDeploymentList
+type OpenAPIListServiceReleaseGroupEventsRequestBody = OpenAPINoBody
+type OpenAPIListServiceReleaseGroupEventsResponseBody = OpenAPIServiceReleaseGroupEventList
+type OpenAPIListServiceReleaseGroupsRequestBody = OpenAPINoBody
+type OpenAPIListServiceReleaseGroupsResponseBody = OpenAPIServiceReleaseGroupList
 type OpenAPIListServiceVariablesRequestBody = OpenAPINoBody
 type OpenAPIListServiceVariablesResponseBody = OpenAPIServiceVariableList
 type OpenAPIListServiceVolumesRequestBody = OpenAPINoBody
@@ -1500,6 +1654,8 @@ type OpenAPIPreviewServiceEnvironmentReassignmentRequestBody = OpenAPIServiceEnv
 type OpenAPIPreviewServiceEnvironmentReassignmentResponseBody = OpenAPIServiceEnvironmentReassignmentPreview
 type OpenAPIPreviewServicePromotionRequestBody = OpenAPINoBody
 type OpenAPIPreviewServicePromotionResponseBody = OpenAPIServicePromotionPreview
+type OpenAPIPreviewServiceReleaseGroupRequestBody = OpenAPIPreviewServiceReleaseGroupRequest
+type OpenAPIPreviewServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroupPreview
 type OpenAPIPromoteServiceDeploymentRequestBody = OpenAPIPromoteServiceDeploymentRequest
 type OpenAPIPromoteServiceDeploymentResponseBody = OpenAPIDeploymentOperationResponse
 type OpenAPIPutServiceRepositoryCredentialRequestBody = OpenAPIServiceRepositoryCredentialRequest
@@ -1530,6 +1686,8 @@ type OpenAPIRetryPostGripConfigurationStackOperationRequestBody = OpenAPINoBody
 type OpenAPIRetryPostGripConfigurationStackOperationResponseBody = OpenAPIPostGripConfigurationStackOperation
 type OpenAPIRetryServiceConfigurationOperationRequestBody = OpenAPINoBody
 type OpenAPIRetryServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperation
+type OpenAPIRetryServiceReleaseGroupRequestBody = OpenAPINoBody
+type OpenAPIRetryServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroup
 type OpenAPIRollbackServiceDNSPlanRequestBody = OpenAPIRollbackServiceDNSPlanRequest
 type OpenAPIRollbackServiceDNSPlanResponseBody = OpenAPIServiceDNSRollbackPlan
 type OpenAPIRollbackServiceDeploymentRequestBody = OpenAPINoBody
@@ -1572,65 +1730,103 @@ type OpenAPIVerifyServiceDomainResponseBody = OpenAPIServiceDomainVerification
 // OpenAPI-prefixed constants expose every generated enum value without
 // colliding with the ergonomic SDK's compatibility constants.
 const (
-	OpenAPIServiceSourceTarget                           OpenAPIServiceSource      = "target"
-	OpenAPIServiceSourceProject                          OpenAPIServiceSource      = "project"
-	OpenAPIServiceKindPostgresql                         OpenAPIServiceKind        = "postgresql"
-	OpenAPIServiceKindSqlite                             OpenAPIServiceKind        = "sqlite"
-	OpenAPIServiceKindWeb                                OpenAPIServiceKind        = "web"
-	OpenAPIServiceKindBackend                            OpenAPIServiceKind        = "backend"
-	OpenAPIServiceKindZvec                               OpenAPIServiceKind        = "zvec"
-	OpenAPIServiceKindLadybugdb                          OpenAPIServiceKind        = "ladybugdb"
-	OpenAPIServiceKindNodedb                             OpenAPIServiceKind        = "nodedb"
-	OpenAPIServiceModeConnected                          OpenAPIServiceMode        = "connected"
-	OpenAPIServiceModeManaged                            OpenAPIServiceMode        = "managed"
-	OpenAPIServiceModeDeployed                           OpenAPIServiceMode        = "deployed"
-	OpenAPIServiceStatusValueReady                       OpenAPIServiceStatusValue = "ready"
-	OpenAPIServiceStatusValueDegraded                    OpenAPIServiceStatusValue = "degraded"
-	OpenAPIServiceStatusValueUnreachable                 OpenAPIServiceStatusValue = "unreachable"
-	OpenAPIServiceStatusValueDeploying                   OpenAPIServiceStatusValue = "deploying"
-	OpenAPIServiceStatusValueFailed                      OpenAPIServiceStatusValue = "failed"
-	OpenAPIServiceStatusValueStopped                     OpenAPIServiceStatusValue = "stopped"
-	OpenAPIServiceStatusValueUnassigned                  OpenAPIServiceStatusValue = "unassigned"
-	OpenAPIServiceStatusValueMixed                       OpenAPIServiceStatusValue = "mixed"
-	OpenAPIServiceStatusValueUnknown                     OpenAPIServiceStatusValue = "unknown"
-	OpenAPIServiceCapabilityCheck                        OpenAPIServiceCapability  = "check"
-	OpenAPIServiceCapabilityEnvironmentsRead             OpenAPIServiceCapability  = "environments:read"
-	OpenAPIServiceCapabilityDeploymentsRead              OpenAPIServiceCapability  = "deployments:read"
-	OpenAPIServiceCapabilityLogsBuildRead                OpenAPIServiceCapability  = "logs:build:read"
-	OpenAPIServiceCapabilityLogsRuntimeRead              OpenAPIServiceCapability  = "logs:runtime:read"
-	OpenAPIServiceCapabilityLogsRuntimeFollow            OpenAPIServiceCapability  = "logs:runtime:follow"
-	OpenAPIServiceCapabilityDeploy                       OpenAPIServiceCapability  = "deploy"
-	OpenAPIServiceCapabilityRedeploy                     OpenAPIServiceCapability  = "redeploy"
-	OpenAPIServiceCapabilityCancel                       OpenAPIServiceCapability  = "cancel"
-	OpenAPIServiceCapabilityRollback                     OpenAPIServiceCapability  = "rollback"
-	OpenAPIServiceCapabilityRuntimeStart                 OpenAPIServiceCapability  = "runtime:start"
-	OpenAPIServiceCapabilityRuntimeStop                  OpenAPIServiceCapability  = "runtime:stop"
-	OpenAPIServiceCapabilityRuntimeRestart               OpenAPIServiceCapability  = "runtime:restart"
-	OpenAPIServiceCapabilityServiceUpdate                OpenAPIServiceCapability  = "service:update"
-	OpenAPIServiceCapabilityServiceDelete                OpenAPIServiceCapability  = "service:delete"
-	OpenAPIServiceCapabilityEnvironmentsWrite            OpenAPIServiceCapability  = "environments:write"
-	OpenAPIServiceCapabilityEnvironmentsReassign         OpenAPIServiceCapability  = "environments:reassign"
-	OpenAPIServiceCapabilityVolumesRead                  OpenAPIServiceCapability  = "volumes:read"
-	OpenAPIServiceCapabilityVolumesWrite                 OpenAPIServiceCapability  = "volumes:write"
-	OpenAPIServiceCapabilityVolumesAdmin                 OpenAPIServiceCapability  = "volumes:admin"
-	OpenAPIServiceCapabilityDomainsRead                  OpenAPIServiceCapability  = "domains:read"
-	OpenAPIServiceCapabilityDomainsWrite                 OpenAPIServiceCapability  = "domains:write"
-	OpenAPIServiceCapabilityVariablesRead                OpenAPIServiceCapability  = "variables:read"
-	OpenAPIServiceCapabilityVariablesWrite               OpenAPIServiceCapability  = "variables:write"
-	OpenAPIServiceCapabilityRepositoryRead               OpenAPIServiceCapability  = "repository:read"
-	OpenAPIServiceCapabilityRepositoryWrite              OpenAPIServiceCapability  = "repository:write"
-	OpenAPIServiceCapabilityPromotionsRead               OpenAPIServiceCapability  = "promotions:read"
-	OpenAPIServiceCapabilityPromotionsCreate             OpenAPIServiceCapability  = "promotions:create"
-	OpenAPIServiceCapabilityRetentionRead                OpenAPIServiceCapability  = "retention:read"
-	OpenAPIServiceCapabilityRetentionWrite               OpenAPIServiceCapability  = "retention:write"
-	OpenAPIServiceCapabilityLogsMaintain                 OpenAPIServiceCapability  = "logs:maintain"
-	OpenAPIServiceCapabilityConfigurationOperationsRead  OpenAPIServiceCapability  = "configuration-operations:read"
-	OpenAPIServiceCapabilityConfigurationOperationsRetry OpenAPIServiceCapability  = "configuration-operations:retry"
+	OpenAPIServiceReleaseVerificationPolicyDeploymentReady    OpenAPIServiceReleaseVerificationPolicy = "deployment_ready"
+	OpenAPIServiceReleaseVerificationPolicyPublic             OpenAPIServiceReleaseVerificationPolicy = "public"
+	OpenAPIServiceReleaseGroupStatePending                    OpenAPIServiceReleaseGroupState         = "pending"
+	OpenAPIServiceReleaseGroupStateRunning                    OpenAPIServiceReleaseGroupState         = "running"
+	OpenAPIServiceReleaseGroupStateVerifying                  OpenAPIServiceReleaseGroupState         = "verifying"
+	OpenAPIServiceReleaseGroupStateCancelling                 OpenAPIServiceReleaseGroupState         = "cancelling"
+	OpenAPIServiceReleaseGroupStateCompensating               OpenAPIServiceReleaseGroupState         = "compensating"
+	OpenAPIServiceReleaseGroupStateSucceeded                  OpenAPIServiceReleaseGroupState         = "succeeded"
+	OpenAPIServiceReleaseGroupStateRecovered                  OpenAPIServiceReleaseGroupState         = "recovered"
+	OpenAPIServiceReleaseGroupStateCancelled                  OpenAPIServiceReleaseGroupState         = "cancelled"
+	OpenAPIServiceReleaseGroupStateInterventionRequired       OpenAPIServiceReleaseGroupState         = "intervention_required"
+	OpenAPIServiceReleaseGroupMemberStatePending              OpenAPIServiceReleaseGroupMemberState   = "pending"
+	OpenAPIServiceReleaseGroupMemberStateDispatching          OpenAPIServiceReleaseGroupMemberState   = "dispatching"
+	OpenAPIServiceReleaseGroupMemberStateDeploying            OpenAPIServiceReleaseGroupMemberState   = "deploying"
+	OpenAPIServiceReleaseGroupMemberStateVerifying            OpenAPIServiceReleaseGroupMemberState   = "verifying"
+	OpenAPIServiceReleaseGroupMemberStateVerified             OpenAPIServiceReleaseGroupMemberState   = "verified"
+	OpenAPIServiceReleaseGroupMemberStateFailed               OpenAPIServiceReleaseGroupMemberState   = "failed"
+	OpenAPIServiceReleaseGroupMemberStateCancelling           OpenAPIServiceReleaseGroupMemberState   = "cancelling"
+	OpenAPIServiceReleaseGroupMemberStateCancelled            OpenAPIServiceReleaseGroupMemberState   = "cancelled"
+	OpenAPIServiceReleaseGroupMemberStateCompensating         OpenAPIServiceReleaseGroupMemberState   = "compensating"
+	OpenAPIServiceReleaseGroupMemberStateCompensated          OpenAPIServiceReleaseGroupMemberState   = "compensated"
+	OpenAPIServiceReleaseGroupMemberStateSucceeded            OpenAPIServiceReleaseGroupMemberState   = "succeeded"
+	OpenAPIServiceReleaseGroupMemberStateSkipped              OpenAPIServiceReleaseGroupMemberState   = "skipped"
+	OpenAPIServiceReleaseGroupMemberStateInterventionRequired OpenAPIServiceReleaseGroupMemberState   = "intervention_required"
+	OpenAPIServiceSourceTarget                                OpenAPIServiceSource                    = "target"
+	OpenAPIServiceSourceProject                               OpenAPIServiceSource                    = "project"
+	OpenAPIServiceKindPostgresql                              OpenAPIServiceKind                      = "postgresql"
+	OpenAPIServiceKindSqlite                                  OpenAPIServiceKind                      = "sqlite"
+	OpenAPIServiceKindWeb                                     OpenAPIServiceKind                      = "web"
+	OpenAPIServiceKindBackend                                 OpenAPIServiceKind                      = "backend"
+	OpenAPIServiceKindZvec                                    OpenAPIServiceKind                      = "zvec"
+	OpenAPIServiceKindLadybugdb                               OpenAPIServiceKind                      = "ladybugdb"
+	OpenAPIServiceKindNodedb                                  OpenAPIServiceKind                      = "nodedb"
+	OpenAPIServiceModeConnected                               OpenAPIServiceMode                      = "connected"
+	OpenAPIServiceModeManaged                                 OpenAPIServiceMode                      = "managed"
+	OpenAPIServiceModeDeployed                                OpenAPIServiceMode                      = "deployed"
+	OpenAPIServiceStatusValueReady                            OpenAPIServiceStatusValue               = "ready"
+	OpenAPIServiceStatusValueDegraded                         OpenAPIServiceStatusValue               = "degraded"
+	OpenAPIServiceStatusValueUnreachable                      OpenAPIServiceStatusValue               = "unreachable"
+	OpenAPIServiceStatusValueDeploying                        OpenAPIServiceStatusValue               = "deploying"
+	OpenAPIServiceStatusValueFailed                           OpenAPIServiceStatusValue               = "failed"
+	OpenAPIServiceStatusValueStopped                          OpenAPIServiceStatusValue               = "stopped"
+	OpenAPIServiceStatusValueUnassigned                       OpenAPIServiceStatusValue               = "unassigned"
+	OpenAPIServiceStatusValueMixed                            OpenAPIServiceStatusValue               = "mixed"
+	OpenAPIServiceStatusValueUnknown                          OpenAPIServiceStatusValue               = "unknown"
+	OpenAPIServiceCapabilityCheck                             OpenAPIServiceCapability                = "check"
+	OpenAPIServiceCapabilityEnvironmentsRead                  OpenAPIServiceCapability                = "environments:read"
+	OpenAPIServiceCapabilityDeploymentsRead                   OpenAPIServiceCapability                = "deployments:read"
+	OpenAPIServiceCapabilityLogsBuildRead                     OpenAPIServiceCapability                = "logs:build:read"
+	OpenAPIServiceCapabilityLogsRuntimeRead                   OpenAPIServiceCapability                = "logs:runtime:read"
+	OpenAPIServiceCapabilityLogsRuntimeFollow                 OpenAPIServiceCapability                = "logs:runtime:follow"
+	OpenAPIServiceCapabilityDeploy                            OpenAPIServiceCapability                = "deploy"
+	OpenAPIServiceCapabilityRedeploy                          OpenAPIServiceCapability                = "redeploy"
+	OpenAPIServiceCapabilityCancel                            OpenAPIServiceCapability                = "cancel"
+	OpenAPIServiceCapabilityRollback                          OpenAPIServiceCapability                = "rollback"
+	OpenAPIServiceCapabilityRuntimeStart                      OpenAPIServiceCapability                = "runtime:start"
+	OpenAPIServiceCapabilityRuntimeStop                       OpenAPIServiceCapability                = "runtime:stop"
+	OpenAPIServiceCapabilityRuntimeRestart                    OpenAPIServiceCapability                = "runtime:restart"
+	OpenAPIServiceCapabilityServiceUpdate                     OpenAPIServiceCapability                = "service:update"
+	OpenAPIServiceCapabilityServiceDelete                     OpenAPIServiceCapability                = "service:delete"
+	OpenAPIServiceCapabilityEnvironmentsWrite                 OpenAPIServiceCapability                = "environments:write"
+	OpenAPIServiceCapabilityEnvironmentsReassign              OpenAPIServiceCapability                = "environments:reassign"
+	OpenAPIServiceCapabilityVolumesRead                       OpenAPIServiceCapability                = "volumes:read"
+	OpenAPIServiceCapabilityVolumesWrite                      OpenAPIServiceCapability                = "volumes:write"
+	OpenAPIServiceCapabilityVolumesAdmin                      OpenAPIServiceCapability                = "volumes:admin"
+	OpenAPIServiceCapabilityDomainsRead                       OpenAPIServiceCapability                = "domains:read"
+	OpenAPIServiceCapabilityDomainsWrite                      OpenAPIServiceCapability                = "domains:write"
+	OpenAPIServiceCapabilityVariablesRead                     OpenAPIServiceCapability                = "variables:read"
+	OpenAPIServiceCapabilityVariablesWrite                    OpenAPIServiceCapability                = "variables:write"
+	OpenAPIServiceCapabilityRepositoryRead                    OpenAPIServiceCapability                = "repository:read"
+	OpenAPIServiceCapabilityRepositoryWrite                   OpenAPIServiceCapability                = "repository:write"
+	OpenAPIServiceCapabilityPromotionsRead                    OpenAPIServiceCapability                = "promotions:read"
+	OpenAPIServiceCapabilityPromotionsCreate                  OpenAPIServiceCapability                = "promotions:create"
+	OpenAPIServiceCapabilityRetentionRead                     OpenAPIServiceCapability                = "retention:read"
+	OpenAPIServiceCapabilityRetentionWrite                    OpenAPIServiceCapability                = "retention:write"
+	OpenAPIServiceCapabilityLogsMaintain                      OpenAPIServiceCapability                = "logs:maintain"
+	OpenAPIServiceCapabilityConfigurationOperationsRead       OpenAPIServiceCapability                = "configuration-operations:read"
+	OpenAPIServiceCapabilityConfigurationOperationsRetry      OpenAPIServiceCapability                = "configuration-operations:retry"
 )
 
 // Compatibility names preserve the existing SDK surface while making the
 // generated OpenAPI models its implementation.
 type OperationReceipt = OpenAPIOperationReceipt
+type ServiceReleaseVerificationPolicy = OpenAPIServiceReleaseVerificationPolicy
+type ServiceReleaseGroupState = OpenAPIServiceReleaseGroupState
+type ServiceReleaseGroupMemberState = OpenAPIServiceReleaseGroupMemberState
+type ServiceReleaseGroupMemberRequest = OpenAPIServiceReleaseGroupMemberRequest
+type PreviewServiceReleaseGroupRequest = OpenAPIPreviewServiceReleaseGroupRequest
+type CreateServiceReleaseGroupRequest = OpenAPICreateServiceReleaseGroupRequest
+type ServiceReleaseGroupPreviewMember = OpenAPIServiceReleaseGroupPreviewMember
+type ServiceReleaseGroupPreview = OpenAPIServiceReleaseGroupPreview
+type ServiceReleaseGroupMemberReceipt = OpenAPIServiceReleaseGroupMemberReceipt
+type ServiceReleaseGroupMember = OpenAPIServiceReleaseGroupMember
+type ServiceReleaseGroup = OpenAPIServiceReleaseGroup
+type ServiceReleaseGroupList = OpenAPIServiceReleaseGroupList
+type ServiceReleaseGroupEvent = OpenAPIServiceReleaseGroupEvent
+type ServiceReleaseGroupEventList = OpenAPIServiceReleaseGroupEventList
 type ServiceSource = OpenAPIServiceSource
 type ServiceKind = OpenAPIServiceKind
 type ServiceMode = OpenAPIServiceMode
@@ -1783,4 +1979,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "b4530e626b4b3f0675a9948d05f3d9eabef68672d1bc86835bb27816a1915793"
+const openAPITypesSpecSHA256 = "4333b23356fe842d4dbf86c69750f56e0670c9512a18071cb2bd6a30ac987e68"

@@ -6,7 +6,7 @@ from io import BytesIO
 import inspect
 import json
 from threading import Event
-from typing import Literal, get_type_hints
+from typing import Literal, get_args, get_type_hints
 import unittest
 from urllib.error import HTTPError
 from urllib.parse import urlparse
@@ -23,6 +23,7 @@ from postgrip.service.administration_types import (
 from postgrip.service.client import _NoRedirect
 from postgrip.service.openapi import (
     OpenAPIRequestServiceDNSFailoverRequest,
+    OpenAPIServiceReleaseGroupMemberRequest,
     OpenAPIServiceDNSFailoverTarget,
     OpenAPIServiceDNSRollbackPlan,
     OperationId,
@@ -67,6 +68,13 @@ class AdministrationTypeTests(unittest.TestCase):
         target_hints = get_type_hints(OpenAPIServiceDNSFailoverTarget)
         self.assertEqual(rollback_hints["kind"], Literal["rollback"])
         self.assertIn("workerId", target_hints)
+
+    def test_release_members_preserve_revision_source_alternatives(self) -> None:
+        alternatives = get_args(OpenAPIServiceReleaseGroupMemberRequest)
+        self.assertEqual(len(alternatives), 2)
+        required = [value.__required_keys__ for value in alternatives]
+        self.assertIn(frozenset({"key", "projectId", "environmentId", "expectedCommitSha", "branch"}), required)
+        self.assertIn(frozenset({"key", "projectId", "environmentId", "sourceDeploymentId", "expectedArtifactIdentity"}), required)
 
 
 def api_error(status: int, code: str = "BUSY", retry_after: str = "0") -> HTTPError:
@@ -292,6 +300,25 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.retry_after, 0.001)
         self.assertEqual(len(opener.requests), 2)
 
+    def test_safe_release_preview_post_retries_without_idempotency_key(self) -> None:
+        opener = FakeOpener([api_error(503), {}])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgt_test-token", opener=opener,
+            enable_retries=True, retry_max_attempts=2,
+        )  # type: ignore[arg-type]
+        body = {
+            "name": "release",
+            "members": [
+                {"key": "api", "projectId": "project-1", "environmentId": "environment-1", "expectedCommitSha": "abc1234", "branch": "main"},
+                {"key": "web", "projectId": "project-2", "environmentId": "environment-2", "expectedCommitSha": "abc1234", "branch": "main"},
+            ],
+        }
+        with patch("postgrip.service.client.time.sleep"):
+            client.administration.release_groups.preview_service_release_group(body)
+        self.assertEqual(len(opener.requests), 2)
+        self.assertEqual(opener.requests[0].method, "POST")
+        self.assertIsNone(opener.requests[0].get_header("Idempotency-key"))
+
     def test_non_finite_retry_after_uses_jitter(self) -> None:
         opener = FakeOpener([api_error(503, retry_after="NaN"), SERVICE])
         client = ServiceClient(
@@ -408,6 +435,7 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.variables,
             client.administration.repositories,
             client.administration.promotions,
+            client.administration.release_groups,
             client.administration.retention,
             client.administration.configuration_operations,
             client.administration.declarative_configuration,
@@ -423,7 +451,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 80)
+        self.assertEqual(len(exposed), 87)
 
         client.administration.target_services.attach_target_service(
             {

@@ -1,0 +1,80 @@
+{
+  "operationId": "retryServiceReleaseGroup",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {
+      "Idempotency-Key": "recorded-retryServiceReleaseGroup"
+    },
+    "pathParameters": {
+      "releaseGroupId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "createdAt": "2026-01-01T00:00:00Z",
+      "failurePolicy": "compensate",
+      "id": "11111111-1111-4111-8111-111111111111",
+      "members": [
+        {
+          "attempt": 1,
+          "branch": "string",
+          "createdAt": "2026-01-01T00:00:00Z",
+          "dependsOn": [
+            "string"
+          ],
+          "environmentId": "11111111-1111-4111-8111-111111111111",
+          "expectedCommitSha": "string",
+          "expectedEnvironmentVersion": 1,
+          "expectedProjectVersion": 1,
+          "id": "11111111-1111-4111-8111-111111111111",
+          "key": "string",
+          "projectId": "11111111-1111-4111-8111-111111111111",
+          "required": true,
+          "reversible": true,
+          "state": "pending",
+          "updatedAt": "2026-01-01T00:00:00Z",
+          "verificationAttempts": 1,
+          "verificationPolicy": "deployment_ready",
+          "workerId": "11111111-1111-4111-8111-111111111111"
+        },
+        {
+          "attempt": 1,
+          "branch": "string",
+          "createdAt": "2026-01-01T00:00:00Z",
+          "dependsOn": [
+            "string"
+          ],
+          "environmentId": "11111111-1111-4111-8111-111111111111",
+          "expectedCommitSha": "string",
+          "expectedEnvironmentVersion": 1,
+          "expectedProjectVersion": 1,
+          "id": "11111111-1111-4111-8111-111111111111",
+          "key": "string",
+          "projectId": "11111111-1111-4111-8111-111111111111",
+          "required": true,
+          "reversible": true,
+          "state": "pending",
+          "updatedAt": "2026-01-01T00:00:00Z",
+          "verificationAttempts": 1,
+          "verificationPolicy": "deployment_ready",
+          "workerId": "11111111-1111-4111-8111-111111111111"
+        }
+      ],
+      "name": "string",
+      "requestFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "retryCount": 1,
+      "state": "pending",
+      "successPolicy": "all_required",
+      "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_retryServiceReleaseGroup"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -32,6 +32,7 @@ from .administration_types import (
     AsyncProjectsAdministration,
     AsyncPromotionsAdministration,
     AsyncRepositoriesAdministration,
+    AsyncReleaseGroupsAdministration,
     AsyncRetentionAdministration,
     AsyncTargetServicesAdministration,
     AsyncVariablesAdministration,
@@ -44,6 +45,7 @@ from .administration_types import (
     ProjectsAdministration,
     PromotionsAdministration,
     RepositoriesAdministration,
+    ReleaseGroupsAdministration,
     RetentionAdministration,
     TargetServicesAdministration,
     VariablesAdministration,
@@ -122,6 +124,11 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "promotions": (
         "list_service_promotions", "preview_service_promotion", "promote_service_deployment",
+    ),
+    "release_groups": (
+        "list_service_release_groups", "preview_service_release_group", "create_service_release_group",
+        "get_service_release_group", "list_service_release_group_events", "cancel_service_release_group",
+        "retry_service_release_group",
     ),
     "retention": (
         "get_service_build_log_settings", "update_service_build_log_settings", "trim_service_build_logs",
@@ -319,7 +326,7 @@ class _AdministrationGroup:
 
 
 class ServiceAdministration:
-    """Grouped access to all 80 generated Service-administration operations."""
+    """Grouped access to all 87 generated Service-administration operations."""
 
     target_services: TargetServicesAdministration
     projects: ProjectsAdministration
@@ -330,6 +337,7 @@ class ServiceAdministration:
     variables: VariablesAdministration
     repositories: RepositoriesAdministration
     promotions: PromotionsAdministration
+    release_groups: ReleaseGroupsAdministration
     retention: RetentionAdministration
     configuration_operations: ConfigurationOperationsAdministration
     declarative_configuration: DeclarativeConfigurationAdministration
@@ -345,6 +353,7 @@ class ServiceAdministration:
         self.variables = cast(VariablesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["variables"]))
         self.repositories = cast(RepositoriesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["repositories"]))
         self.promotions = cast(PromotionsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["promotions"]))
+        self.release_groups = cast(ReleaseGroupsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["release_groups"]))
         self.retention = cast(RetentionAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["retention"]))
         self.configuration_operations = cast(ConfigurationOperationsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["configuration_operations"]))
         self.declarative_configuration = cast(DeclarativeConfigurationAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["declarative_configuration"]))
@@ -362,6 +371,7 @@ class AsyncServiceAdministration:
     variables: AsyncVariablesAdministration
     repositories: AsyncRepositoriesAdministration
     promotions: AsyncPromotionsAdministration
+    release_groups: AsyncReleaseGroupsAdministration
     retention: AsyncRetentionAdministration
     configuration_operations: AsyncConfigurationOperationsAdministration
     declarative_configuration: AsyncDeclarativeConfigurationAdministration
@@ -376,6 +386,7 @@ class AsyncServiceAdministration:
         self.variables = cast(AsyncVariablesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.variables)))
         self.repositories = cast(AsyncRepositoriesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.repositories)))
         self.promotions = cast(AsyncPromotionsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.promotions)))
+        self.release_groups = cast(AsyncReleaseGroupsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.release_groups)))
         self.retention = cast(AsyncRetentionAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.retention)))
         self.configuration_operations = cast(AsyncConfigurationOperationsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.configuration_operations)))
         self.declarative_configuration = cast(AsyncDeclarativeConfigurationAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.declarative_configuration)))
@@ -685,7 +696,10 @@ class ServiceClient:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         clean_body = {key: value for key, value in (body or {}).items() if value is not None} if body is not None else None
         operation = resolve_openapi_operation(operation_id, path, clean_query)
-        attempts = self._retry_max_attempts if self._enable_retries and (operation.method == "GET" or idempotency_key) else 1
+        retry_safe = operation.retry == "bounded" and (
+            operation.safety == "read-only" or idempotency_key is not None
+        )
+        attempts = self._retry_max_attempts if self._enable_retries and retry_safe else 1
         endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
         encoded_body = json.dumps(clean_body).encode() if clean_body is not None else None
         cancel_event = _REQUEST_CANCEL_EVENT.get()

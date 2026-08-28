@@ -210,6 +210,26 @@ describe('ServiceClient', () => {
     expect(error).toMatchObject({ retryAfterMs: 1 });
   });
 
+  it('retries the contract-safe release preview POST', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 503, headers: { 'Retry-After': '0' } }))
+      .mockResolvedValueOnce(Response.json({}));
+    const api = new ServiceClient({
+      baseUrl: 'https://services.example.test', token: 'pgt_test-token', fetch: fetchImpl,
+      enableRetries: true, retry: { maxAttempts: 2 },
+    });
+    await api.administration.releaseGroups.preview({
+      name: 'release',
+      members: [
+        { key: 'api', projectId: 'project-1', environmentId: 'environment-1', expectedCommitSha: 'abc1234', branch: 'main' },
+        { key: 'web', projectId: 'project-2', environmentId: 'environment-2', expectedCommitSha: 'abc1234', branch: 'main' },
+      ],
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[0]?.[1]?.method).toBe('POST');
+    expect(new Headers(fetchImpl.mock.calls[0]?.[1]?.headers).has('Idempotency-Key')).toBe(false);
+  });
+
   it('cancels during retry backoff', async () => {
     const fetchImpl = vi.fn(async () => new Response('{}', {
       status: 503, headers: { 'Retry-After': '30' },
@@ -298,7 +318,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 80 administration operations and sends concurrency fences', async () => {
+  it('groups all 87 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -310,7 +330,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(80);
+    expect(methodCount).toBe(87);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -354,14 +374,14 @@ describe('ServiceClient', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('executes all 80 administration facades through the authenticated transport', async () => {
+  it('executes all 87 administration facades through the authenticated transport', async () => {
     let requestCount = 0;
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestCount += 1;
       const headers = new Headers(init?.headers);
       expect(headers.get('Authorization')).toBe('Bearer pgt_test-token');
       const path = new URL(String(_input)).pathname;
-      if ((init?.method ?? 'GET') !== 'GET' && path !== '/api/v1/services/configuration/validate') {
+      if ((init?.method ?? 'GET') !== 'GET' && path !== '/api/v1/services/configuration/validate' && path !== '/api/v1/services/release-groups/preview') {
         expect(headers.get('Idempotency-Key')).toBe('operation-1');
       }
       return Response.json({});
@@ -428,6 +448,13 @@ describe('ServiceClient', () => {
       () => admin.repositories.listGitHub(),
       () => admin.repositories.previewGitHubAdoption('project-1', body, mutation),
       () => admin.repositories.adoptGitHub('project-1', body, write),
+      () => admin.releaseGroups.list(),
+      () => admin.releaseGroups.preview(body),
+      () => admin.releaseGroups.create(body, mutation),
+      () => admin.releaseGroups.get('release-group-1'),
+      () => admin.releaseGroups.events('release-group-1'),
+      () => admin.releaseGroups.cancel('release-group-1', mutation),
+      () => admin.releaseGroups.retry('release-group-1', mutation),
       () => admin.promotions.list('project-1'),
       () => admin.promotions.preview('project-1', body),
       () => admin.promotions.create('project-1', body, mutation),
@@ -455,7 +482,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(80);
+    expect(requestCount).toBe(87);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

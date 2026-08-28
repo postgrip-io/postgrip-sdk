@@ -25,7 +25,7 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer pgt_test-token" {
 			t.Fatalf("authorization=%q", r.Header.Get("Authorization"))
 		}
-		if r.Method != http.MethodGet && r.URL.Path != "/api/v1/services/configuration/validate" && r.Header.Get("Idempotency-Key") != "operation-1" {
+		if r.Method != http.MethodGet && r.URL.Path != "/api/v1/services/configuration/validate" && r.URL.Path != "/api/v1/services/release-groups/preview" && r.Header.Get("Idempotency-Key") != "operation-1" {
 			t.Fatalf("idempotency=%q for %s", r.Header.Get("Idempotency-Key"), r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -112,6 +112,15 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(promotions.Preview(ctx, "project-1", OpenAPIPreviewServicePromotionQuery{})))
 	mustServiceResult(t, serviceResultError(promotions.Create(ctx, "project-1", OpenAPIPromoteServiceDeploymentRequestBody{}, write)))
 
+	releaseGroups := client.ServiceReleaseGroups()
+	mustServiceResult(t, serviceResultError(releaseGroups.List(ctx, OpenAPIListServiceReleaseGroupsQuery{})))
+	mustServiceResult(t, serviceResultError(releaseGroups.Preview(ctx, OpenAPIPreviewServiceReleaseGroupRequestBody{})))
+	mustServiceResult(t, serviceResultError(releaseGroups.Create(ctx, OpenAPICreateServiceReleaseGroupRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(releaseGroups.Get(ctx, "release-group-1")))
+	mustServiceResult(t, serviceResultError(releaseGroups.Events(ctx, "release-group-1", OpenAPIListServiceReleaseGroupEventsQuery{})))
+	mustServiceResult(t, serviceResultError(releaseGroups.Cancel(ctx, "release-group-1", mutation)))
+	mustServiceResult(t, serviceResultError(releaseGroups.Retry(ctx, "release-group-1", mutation)))
+
 	retention := client.ServiceRetention()
 	mustServiceResult(t, serviceResultError(retention.GetBuild(ctx, "project-1")))
 	mustServiceResult(t, serviceResultError(retention.UpdateBuild(ctx, "project-1", OpenAPIUpdateServiceBuildLogSettingsRequestBody{}, write)))
@@ -139,8 +148,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
 	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
 
-	if calls.Load() != 80 {
-		t.Fatalf("transport calls=%d, want 80", calls.Load())
+	if calls.Load() != 87 {
+		t.Fatalf("transport calls=%d, want 87", calls.Load())
 	}
 }
 

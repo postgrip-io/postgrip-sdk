@@ -83,6 +83,11 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
         "listGitHubAppRepositories", "previewGitHubRepositoryAdoption", "adoptGitHubRepository",
     ),
     "Promotions": ("listServicePromotions", "previewServicePromotion", "promoteServiceDeployment"),
+    "ReleaseGroups": (
+        "listServiceReleaseGroups", "previewServiceReleaseGroup", "createServiceReleaseGroup",
+        "getServiceReleaseGroup", "listServiceReleaseGroupEvents", "cancelServiceReleaseGroup",
+        "retryServiceReleaseGroup",
+    ),
     "Retention": (
         "getServiceBuildLogSettings", "updateServiceBuildLogSettings", "trimServiceBuildLogs",
         "flushServiceBuildLogs", "getServiceRuntimeLogSettings", "updateServiceRuntimeLogSettings",
@@ -397,6 +402,37 @@ def go_struct_fields(schema: dict[str, Any]) -> str:
     return "\n".join(fields)
 
 
+def schema_required_alternatives(schema: dict[str, Any]) -> list[list[str]]:
+    alternatives: list[list[str]] = []
+    for branch in schema.get("anyOf", []):
+        required = branch.get("required")
+        if not isinstance(required, list) or not required:
+            return []
+        if any(name not in schema.get("properties", {}) for name in required):
+            return []
+        alternatives.append(required)
+    return alternatives if len(alternatives) > 1 else []
+
+
+def go_object_schema_source(type_name: str, schema: dict[str, Any]) -> str:
+    source = f"type {type_name} struct {{\n{go_struct_fields(schema)}\n}}"
+    alternatives = schema_required_alternatives(schema)
+    base_required = set(schema.get("required", []))
+    if not alternatives or any(name in base_required for branch in alternatives for name in branch):
+        return source
+    conditions = " || ".join(
+        "(" + " && ".join(f"value.{pascal_name(name)} != nil" for name in branch) + ")"
+        for branch in alternatives
+    )
+    return source + f'''\n\nfunc (value {type_name}) MarshalJSON() ([]byte, error) {{
+\tif !({conditions}) {{
+\t\treturn nil, errors.New("{type_name} must satisfy one required property alternative")
+\t}}
+\ttype wire {type_name}
+\treturn json.Marshal(wire(value))
+}}'''
+
+
 def go_worker_selector_source(type_name: str) -> str:
     return f'''type {type_name} struct {{
 \tId *string `json:"id,omitempty"`
@@ -459,7 +495,7 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
             declarations.append(go_worker_selector_source(type_name))
             compatibility_alias = f"type {pascal_name(name)} = {type_name}"
         elif schema.get("type") == "object" or "properties" in schema:
-            declarations.append(f"type {type_name} struct {{\n{go_struct_fields(schema)}\n}}")
+            declarations.append(go_object_schema_source(type_name, schema))
             compatibility_alias = f"type {pascal_name(name)} = {type_name}"
         elif not schema:
             declarations.append(f"type {type_name} = any")
@@ -819,6 +855,31 @@ def typescript_schema_type(schema: dict[str, Any], indent: str = "") -> str:
         return " | ".join(json.dumps(value) for value in schema["enum"])
     if schema.get("oneOf") or schema.get("anyOf"):
         variants = schema.get("oneOf") or schema.get("anyOf")
+        base_schema = {
+            key: value for key, value in schema.items() if key not in ("oneOf", "anyOf")
+        }
+        # OpenAPI commonly places shared object properties on the composed
+        # schema and uses each branch only to tighten required fields. Render
+        # the complete object in every branch instead of collapsing these
+        # useful request models to `unknown | unknown`.
+        if base_schema.get("type") == "object" or base_schema.get("properties"):
+            rendered_variants: list[str] = []
+            for variant in variants:
+                if not isinstance(variant, dict):
+                    rendered_variants.append(typescript_schema_type(variant, indent))
+                    continue
+                branch = dict(base_schema)
+                branch["required"] = list(dict.fromkeys([
+                    *base_schema.get("required", []),
+                    *variant.get("required", []),
+                ]))
+                if isinstance(variant.get("properties"), dict):
+                    branch["properties"] = {
+                        **base_schema.get("properties", {}),
+                        **variant["properties"],
+                    }
+                rendered_variants.append(typescript_schema_type(branch, indent))
+            return " | ".join(rendered_variants)
         return " | ".join(typescript_schema_type(value, indent) for value in variants)
     if schema.get("allOf"):
         base_schema = {key: value for key, value in schema.items() if key != "allOf"}
@@ -930,23 +991,32 @@ def python_types_source(spec: dict[str, Any], rows: list[dict[str, Any]]) -> str
         schema = merged_all_of_object_schema(spec, schema)
         type_name = f"_Schema{pascal_name(name)}"
         if schema.get("type") == "object" or "properties" in schema:
-            required = set(schema.get("required", []))
-            required_fields = []
-            optional_fields = []
-            for property_name, property_schema in schema.get("properties", {}).items():
-                annotation = python_schema_type(property_schema)
-                target = required_fields if property_name in required else optional_fields
-                target.append(f"    {property_name}: {annotation}")
-            if optional_fields:
-                optional_name = f"{type_name}Optional"
-                declarations.append(
-                    f"class {optional_name}(TypedDict, total=False):\n" + "\n".join(optional_fields)
-                )
-                body = "\n".join(required_fields) if required_fields else "    pass"
-                declarations.append(f"class {type_name}({optional_name}):\n{body}")
-            else:
-                body = "\n".join(required_fields) if required_fields else "    pass"
-                declarations.append(f"class {type_name}(TypedDict):\n{body}")
+            alternatives = schema_required_alternatives(schema)
+            required_sets = [set(schema.get("required", [])) | set(branch) for branch in alternatives]
+            if not required_sets:
+                required_sets = [set(schema.get("required", []))]
+            branch_names: list[str] = []
+            for index, required in enumerate(required_sets, 1):
+                branch_name = type_name if len(required_sets) == 1 else f"{type_name}Alternative{index}"
+                required_fields = []
+                optional_fields = []
+                for property_name, property_schema in schema.get("properties", {}).items():
+                    annotation = python_schema_type(property_schema)
+                    target = required_fields if property_name in required else optional_fields
+                    target.append(f"    {property_name}: {annotation}")
+                if optional_fields:
+                    optional_name = f"{branch_name}Optional"
+                    declarations.append(
+                        f"class {optional_name}(TypedDict, total=False):\n" + "\n".join(optional_fields)
+                    )
+                    body = "\n".join(required_fields) if required_fields else "    pass"
+                    declarations.append(f"class {branch_name}({optional_name}):\n{body}")
+                else:
+                    body = "\n".join(required_fields) if required_fields else "    pass"
+                    declarations.append(f"class {branch_name}(TypedDict):\n{body}")
+                branch_names.append(branch_name)
+            if len(branch_names) > 1:
+                declarations.append(f"{type_name}: TypeAlias = " + " | ".join(branch_names))
         else:
             declarations.append(f"{type_name}: TypeAlias = {python_schema_type(schema)}")
         public_aliases.append(f"OpenAPI{pascal_name(name)}: TypeAlias = {type_name}")
@@ -1153,6 +1223,7 @@ def go_source(rows: list[dict[str, Any]], digest: str, bundle_digest: str) -> st
         table_rows.append(
             f'\topenAPI{go_name(row["id"])}: {{Method: {json.dumps(row["method"])}, '
             f'Path: {json.dumps(row["path"])}, AuthLane: {json.dumps(row["auth"])}, '
+            f'Safety: {json.dumps(row["safety"])}, Retry: {json.dumps(row["retry"])}, '
             f'Signing: {json.dumps(row["signing"])}, StreamingRequest: {str(row["streaming"]).lower()}, '
             f'WebSocket: {str(row["websocket"]).lower()}, RequestSchema: {json.dumps(schema_label(row["request_schema"]))}, '
             f'ResponseSchema: {json.dumps(schema_label(row["response_schema"]))}, PathParameters: []string{{{parameters}}}}},'
@@ -1188,6 +1259,8 @@ type openAPIOperation struct {{
 \tMethod           string
 \tPath             string
 \tAuthLane         string
+\tSafety           string
+\tRetry            string
 \tSigning          string
 \tStreamingRequest bool
 \tWebSocket        bool
@@ -1237,6 +1310,8 @@ def typescript_source(
             "method": row["method"],
             "path": row["path"],
             "authLane": row["auth"],
+            "safety": row["safety"],
+            "retry": row["retry"],
             "signing": row["signing"] or None,
             "streamingRequest": row["streaming"],
             "webSocket": row["websocket"],
@@ -1404,6 +1479,8 @@ export interface ResolvedOpenAPIOperation {{
   readonly method: string;
   readonly path: string;
   readonly authLane: OpenAPIAuthLane;
+  readonly safety: string;
+  readonly retry: string;
   readonly signing?: string;
   readonly streamingRequest: boolean;
   readonly webSocket: boolean;
@@ -1432,6 +1509,8 @@ export function resolveOpenAPIOperation(
     method: source.method,
     path: resolvedPath,
     authLane: source.authLane,
+    safety: source.safety,
+    retry: source.retry,
     ...(source.signing ? {{ signing: source.signing }} : {{}}),
     streamingRequest: source.streamingRequest,
     webSocket: source.webSocket,
@@ -1451,7 +1530,7 @@ def python_source(
         params = repr(tuple(row["parameters"]))
         table_rows.append(
             f'    OperationId.{snake_name(row["id"])}: OpenAPIOperation('
-            f'{row["method"]!r}, {row["path"]!r}, {row["auth"]!r}, {row["signing"]!r}, '
+            f'{row["method"]!r}, {row["path"]!r}, {row["auth"]!r}, {row["safety"]!r}, {row["retry"]!r}, {row["signing"]!r}, '
             f'{row["streaming"]!r}, {row["websocket"]!r}, '
             f'{schema_label(row["request_schema"])!r}, {schema_label(row["response_schema"])!r}, {params}),'
         )
@@ -1516,6 +1595,8 @@ class OpenAPIOperation:
     method: str
     path: str
     auth_lane: str
+    safety: str
+    retry: str
     signing: str
     streaming_request: bool
     websocket: bool
@@ -1530,6 +1611,8 @@ class ResolvedOpenAPIOperation:
     method: str
     path: str
     auth_lane: str
+    safety: str
+    retry: str
     signing: str
     streaming_request: bool
     websocket: bool
@@ -1590,6 +1673,8 @@ def resolve_openapi_operation(
         method=source.method,
         path=resolved_path,
         auth_lane=source.auth_lane,
+        safety=source.safety,
+        retry=source.retry,
         signing=source.signing,
         streaming_request=source.streaming_request,
         websocket=source.websocket,
