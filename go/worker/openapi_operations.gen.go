@@ -10,7 +10,7 @@ import (
 
 const (
 	OpenAPISpecSHA256           = "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
-	OpenAPIContractBundleSHA256 = "d871319cfc32fb12a40c711ab3fa43b1544f1d1548b2fe1ad46648c5811338e3"
+	OpenAPIContractBundleSHA256 = "121b3065b252d38030b53ffb3a51a434469d67c545b18ee2eb185e4aef68d28f"
 	OpenAPIOperationCount       = 13
 )
 
@@ -39,6 +39,8 @@ type openAPIOperation struct {
 	Method           string
 	Path             string
 	AuthLane         string
+	Safety           string
+	Retry            string
 	Signing          string
 	StreamingRequest bool
 	WebSocket        bool
@@ -48,19 +50,19 @@ type openAPIOperation struct {
 }
 
 var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{
-	openAPICheckWorker:                 {Method: "POST", Path: "/api/v1/workers/{workerId}/check", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "CheckWorkerResponse", PathParameters: []string{"workerId"}},
-	openAPICreateWorker:                {Method: "POST", Path: "/api/v1/workers", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateWorkerRequest", ResponseSchema: "CreateWorkerResponse", PathParameters: []string{}},
-	openAPIGetWorker:                   {Method: "GET", Path: "/api/v1/workers/{workerId}", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Worker", PathParameters: []string{"workerId"}},
-	openAPIGetWorkerJob:                {Method: "GET", Path: "/api/v1/workers/{workerId}/jobs/{jobId}", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Job", PathParameters: []string{"workerId", "jobId"}},
-	openAPIListWorkerAssignments:       {Method: "GET", Path: "/api/v1/workers/{workerId}/assignments", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "AssignmentList", PathParameters: []string{"workerId"}},
-	openAPIListWorkerJobs:              {Method: "GET", Path: "/api/v1/workers/{workerId}/jobs", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "JobList", PathParameters: []string{"workerId"}},
-	openAPIListWorkerOperationalLogs:   {Method: "GET", Path: "/api/v1/workers/{workerId}/operational-logs", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "OperationalLogList", PathParameters: []string{"workerId"}},
-	openAPIListWorkerSecurityLogs:      {Method: "GET", Path: "/api/v1/workers/{workerId}/security-logs", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "SecurityLogList", PathParameters: []string{"workerId"}},
-	openAPIListWorkers:                 {Method: "GET", Path: "/api/v1/workers", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerList", PathParameters: []string{}},
-	openAPIPlaceWorkerInMaintenance:    {Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}},
-	openAPIResumeWorkerFromMaintenance: {Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance/resume", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}},
-	openAPIUpgradeWorker:               {Method: "POST", Path: "/api/v1/workers/{workerId}/upgrade", AuthLane: "worker-management", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "UpgradeWorkerResponse", PathParameters: []string{"workerId"}},
-	openAPIWorkerOrchestratorHealth:    {Method: "GET", Path: "/health", AuthLane: "public", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "HealthResponse", PathParameters: []string{}},
+	openAPICheckWorker:                 {Method: "POST", Path: "/api/v1/workers/{workerId}/check", AuthLane: "worker-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "CheckWorkerResponse", PathParameters: []string{"workerId"}},
+	openAPICreateWorker:                {Method: "POST", Path: "/api/v1/workers", AuthLane: "worker-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateWorkerRequest", ResponseSchema: "CreateWorkerResponse", PathParameters: []string{}},
+	openAPIGetWorker:                   {Method: "GET", Path: "/api/v1/workers/{workerId}", AuthLane: "worker-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Worker", PathParameters: []string{"workerId"}},
+	openAPIGetWorkerJob:                {Method: "GET", Path: "/api/v1/workers/{workerId}/jobs/{jobId}", AuthLane: "worker-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Job", PathParameters: []string{"workerId", "jobId"}},
+	openAPIListWorkerAssignments:       {Method: "GET", Path: "/api/v1/workers/{workerId}/assignments", AuthLane: "worker-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "AssignmentList", PathParameters: []string{"workerId"}},
+	openAPIListWorkerJobs:              {Method: "GET", Path: "/api/v1/workers/{workerId}/jobs", AuthLane: "worker-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "JobList", PathParameters: []string{"workerId"}},
+	openAPIListWorkerOperationalLogs:   {Method: "GET", Path: "/api/v1/workers/{workerId}/operational-logs", AuthLane: "worker-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "OperationalLogList", PathParameters: []string{"workerId"}},
+	openAPIListWorkerSecurityLogs:      {Method: "GET", Path: "/api/v1/workers/{workerId}/security-logs", AuthLane: "worker-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "SecurityLogList", PathParameters: []string{"workerId"}},
+	openAPIListWorkers:                 {Method: "GET", Path: "/api/v1/workers", AuthLane: "worker-management", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerList", PathParameters: []string{}},
+	openAPIPlaceWorkerInMaintenance:    {Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance", AuthLane: "worker-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}},
+	openAPIResumeWorkerFromMaintenance: {Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance/resume", AuthLane: "worker-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}},
+	openAPIUpgradeWorker:               {Method: "POST", Path: "/api/v1/workers/{workerId}/upgrade", AuthLane: "worker-management", Safety: "mutation", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "UpgradeWorkerResponse", PathParameters: []string{"workerId"}},
+	openAPIWorkerOrchestratorHealth:    {Method: "GET", Path: "/health", AuthLane: "public", Safety: "read-only", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "HealthResponse", PathParameters: []string{}},
 }
 
 func resolveOpenAPIOperation(id openAPIOperationID, pathParameters map[string]string, query url.Values) (openAPIOperation, error) {

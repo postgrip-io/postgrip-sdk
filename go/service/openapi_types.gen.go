@@ -41,6 +41,15 @@ type OpenAPIServiceReleaseGroupMemberRequest struct {
 	VerificationPolicy          *OpenAPIServiceReleaseVerificationPolicy `json:"verificationPolicy,omitempty"`
 	DependsOn                   []string                                 `json:"dependsOn,omitempty"`
 }
+
+func (value OpenAPIServiceReleaseGroupMemberRequest) MarshalJSON() ([]byte, error) {
+	if !((value.ExpectedCommitSha != nil && value.Branch != nil) || (value.SourceDeploymentId != nil && value.ExpectedArtifactIdentity != nil)) {
+		return nil, errors.New("OpenAPIServiceReleaseGroupMemberRequest must satisfy one required property alternative")
+	}
+	type wire OpenAPIServiceReleaseGroupMemberRequest
+	return json.Marshal(wire(value))
+}
+
 type OpenAPIPreviewServiceReleaseGroupRequest struct {
 	Name          string                                    `json:"name"`
 	SuccessPolicy *string                                   `json:"successPolicy,omitempty"`
@@ -55,6 +64,7 @@ type OpenAPIServiceReleaseGroupPreviewMember struct {
 	ProjectId                 string                                  `json:"projectId"`
 	EnvironmentId             string                                  `json:"environmentId"`
 	WorkerId                  string                                  `json:"workerId"`
+	ProjectVersion            int64                                   `json:"projectVersion"`
 	EnvironmentVersion        int64                                   `json:"environmentVersion"`
 	ExpectedCommitSha         string                                  `json:"expectedCommitSha"`
 	Branch                    string                                  `json:"branch"`
@@ -98,6 +108,7 @@ type OpenAPIServiceReleaseGroupMember struct {
 	Branch                      string                                   `json:"branch"`
 	SourceDeploymentId          *string                                  `json:"sourceDeploymentId,omitempty"`
 	ExpectedArtifactIdentity    *string                                  `json:"expectedArtifactIdentity,omitempty"`
+	ExpectedProjectVersion      int64                                    `json:"expectedProjectVersion"`
 	ExpectedEnvironmentVersion  int64                                    `json:"expectedEnvironmentVersion"`
 	ExpectedCurrentDeploymentId *string                                  `json:"expectedCurrentDeploymentId,omitempty"`
 	VerificationDomainId        *string                                  `json:"verificationDomainId,omitempty"`
@@ -1968,4 +1979,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "bfcc999223f092746a422fdad8c98df14fcb1af76add477fb059e35d583945e5"
+const openAPITypesSpecSHA256 = "4333b23356fe842d4dbf86c69750f56e0670c9512a18071cb2bd6a30ac987e68"

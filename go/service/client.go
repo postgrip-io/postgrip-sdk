@@ -180,7 +180,8 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 	}
 	idempotencyKey := headers.Get("Idempotency-Key")
 	maxAttempts := 1
-	if c.retriesEnabled && (operation.Method == http.MethodGet || idempotencyKey != "") {
+	retrySafe := operation.Retry == "bounded" && (operation.Safety == "read-only" || idempotencyKey != "")
+	if c.retriesEnabled && retrySafe {
 		maxAttempts = c.retryPolicy.maxAttempts
 	}
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
@@ -209,7 +210,7 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 			return nil
 		}
 		apiErr, retryAfterSet := decodeAPIError(response, responseBody, c.retryPolicy.retryAfterMax)
-		if attempt < maxAttempts && retryableStatus(operation.Method, idempotencyKey, response.StatusCode) {
+		if attempt < maxAttempts && retryableStatus(operation, idempotencyKey, response.StatusCode) {
 			retryAfter, retryAfterSet := retryAfterForStatus(response.StatusCode, apiErr.RetryAfter, retryAfterSet)
 			if err := waitRetry(ctx, retryDelay(attempt, retryAfter, retryAfterSet, c.retryPolicy)); err != nil {
 				return err
@@ -288,8 +289,8 @@ func parseRetryAfter(value string, maximum time.Duration) (time.Duration, bool) 
 	return 0, false
 }
 
-func retryableStatus(method, key string, status int) bool {
-	if method != http.MethodGet && key == "" {
+func retryableStatus(operation openAPIOperation, key string, status int) bool {
+	if operation.Retry != "bounded" || operation.Safety != "read-only" && key == "" {
 		return false
 	}
 	return status == 408 || status == 429 || status == 502 || status == 503 || status == 504

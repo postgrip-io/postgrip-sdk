@@ -248,8 +248,9 @@ func (p OpenAPIListServiceReleaseGroupEventsQuery) values() url.Values {
 }
 
 type OpenAPIListServiceReleaseGroupsQuery struct {
-	Limit  *int64
-	Cursor *string
+	Limit     *int64
+	Cursor    *string
+	ProjectId *string
 }
 
 func (p OpenAPIListServiceReleaseGroupsQuery) values() url.Values {
@@ -259,6 +260,9 @@ func (p OpenAPIListServiceReleaseGroupsQuery) values() url.Values {
 	}
 	if p.Cursor != nil {
 		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	if p.ProjectId != nil {
+		values.Set("projectId", fmt.Sprint(*p.ProjectId))
 	}
 	return values
 }
@@ -1605,4 +1609,4 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 105
 
-const openAPIClientSpecSHA256 = "bfcc999223f092746a422fdad8c98df14fcb1af76add477fb059e35d583945e5"
+const openAPIClientSpecSHA256 = "4333b23356fe842d4dbf86c69750f56e0670c9512a18071cb2bd6a30ac987e68"

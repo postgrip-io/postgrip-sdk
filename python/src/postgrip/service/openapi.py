@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'bfcc999223f092746a422fdad8c98df14fcb1af76add477fb059e35d583945e5'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = 'd871319cfc32fb12a40c711ab3fa43b1544f1d1548b2fe1ad46648c5811338e3'
+OPENAPI_SPEC_SHA256 = '4333b23356fe842d4dbf86c69750f56e0670c9512a18071cb2bd6a30ac987e68'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '121b3065b252d38030b53ffb3a51a434469d67c545b18ee2eb185e4aef68d28f'
 OPENAPI_OPERATION_COUNT = 105
 OPENAPI_CLIENT_OPERATION_COUNT = 105
 
@@ -145,9 +145,7 @@ _SchemaServiceReleaseGroupState: TypeAlias = Literal['pending', 'running', 'veri
 
 _SchemaServiceReleaseGroupMemberState: TypeAlias = Literal['pending', 'dispatching', 'deploying', 'verifying', 'verified', 'failed', 'cancelling', 'cancelled', 'compensating', 'compensated', 'succeeded', 'skipped', 'intervention_required']
 
-class _SchemaServiceReleaseGroupMemberRequestOptional(TypedDict, total=False):
-    expectedCommitSha: str
-    branch: str
+class _SchemaServiceReleaseGroupMemberRequestAlternative1Optional(TypedDict, total=False):
     sourceDeploymentId: str
     expectedArtifactIdentity: str
     expectedCurrentDeploymentId: str
@@ -156,10 +154,30 @@ class _SchemaServiceReleaseGroupMemberRequestOptional(TypedDict, total=False):
     verificationPolicy: _SchemaServiceReleaseVerificationPolicy
     dependsOn: list[str]
 
-class _SchemaServiceReleaseGroupMemberRequest(_SchemaServiceReleaseGroupMemberRequestOptional):
+class _SchemaServiceReleaseGroupMemberRequestAlternative1(_SchemaServiceReleaseGroupMemberRequestAlternative1Optional):
     key: str
     projectId: str
     environmentId: str
+    expectedCommitSha: str
+    branch: str
+
+class _SchemaServiceReleaseGroupMemberRequestAlternative2Optional(TypedDict, total=False):
+    expectedCommitSha: str
+    branch: str
+    expectedCurrentDeploymentId: str
+    required: bool
+    reversible: bool
+    verificationPolicy: _SchemaServiceReleaseVerificationPolicy
+    dependsOn: list[str]
+
+class _SchemaServiceReleaseGroupMemberRequestAlternative2(_SchemaServiceReleaseGroupMemberRequestAlternative2Optional):
+    key: str
+    projectId: str
+    environmentId: str
+    sourceDeploymentId: str
+    expectedArtifactIdentity: str
+
+_SchemaServiceReleaseGroupMemberRequest: TypeAlias = _SchemaServiceReleaseGroupMemberRequestAlternative1 | _SchemaServiceReleaseGroupMemberRequestAlternative2
 
 class _SchemaPreviewServiceReleaseGroupRequestOptional(TypedDict, total=False):
     successPolicy: Literal['all_required']
@@ -185,6 +203,7 @@ class _SchemaServiceReleaseGroupPreviewMember(_SchemaServiceReleaseGroupPreviewM
     projectId: str
     environmentId: str
     workerId: str
+    projectVersion: int
     environmentVersion: int
     expectedCommitSha: str
     branch: str
@@ -240,6 +259,7 @@ class _SchemaServiceReleaseGroupMember(_SchemaServiceReleaseGroupMemberOptional)
     dependsOn: list[str]
     expectedCommitSha: str
     branch: str
+    expectedProjectVersion: int
     expectedEnvironmentVersion: int
     state: _SchemaServiceReleaseGroupMemberState
     attempt: int
@@ -2185,6 +2205,8 @@ class OpenAPIOperation:
     method: str
     path: str
     auth_lane: str
+    safety: str
+    retry: str
     signing: str
     streaming_request: bool
     websocket: bool
@@ -2199,6 +2221,8 @@ class ResolvedOpenAPIOperation:
     method: str
     path: str
     auth_lane: str
+    safety: str
+    retry: str
     signing: str
     streaming_request: bool
     websocket: bool
@@ -2207,111 +2231,111 @@ class ResolvedOpenAPIOperation:
 
 
 _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
-    OperationId.ADOPT_GIT_HUB_REPOSITORY: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/github/adopt', 'service-management', '', False, False, 'GitHubRepositoryAdoptionRequest', 'ServiceConfigurationOperation', ('serviceId',)),
-    OperationId.APPLY_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/apply', 'service-management', '', False, False, 'ApplyPostGripConfigurationPlanRequest', 'PostGripConfigurationStackOperation', ('stackKey', 'planId')),
-    OperationId.APPLY_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/apply', 'service-management', '', False, False, 'ApplyServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
-    OperationId.APPLY_SERVICE_VARIABLES: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/variables/apply', 'service-management', '', False, False, 'ApplyServiceVariablesRequest', 'ServiceVariablesApplyResponse', ('serviceId',)),
-    OperationId.ATTACH_TARGET_SERVICE: OpenAPIOperation('POST', '/api/v1/services/targets', 'service-management', '', False, False, 'AttachTargetServiceRequest', 'ServiceTargetMutationResponse', ()),
-    OperationId.BIND_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings', 'service-management', '', False, False, 'BindServiceVolumeRequest', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId')),
-    OperationId.CANCEL_SERVICE_DEPLOYMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}/cancel', 'service-management', '', False, False, '', 'DeploymentOperationResponse', ('serviceId', 'deploymentId')),
-    OperationId.CANCEL_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups/{releaseGroupId}/cancel', 'service-management', '', False, False, '', 'ServiceReleaseGroup', ('releaseGroupId',)),
-    OperationId.CHECK_SERVICE: OpenAPIOperation('POST', '/api/v1/services/{source}/{serviceId}/check', 'service-management', '', False, False, 'CheckServiceRequest', 'ServiceOperationResponse', ('source', 'serviceId')),
-    OperationId.CLEAR_SERVICE_REPOSITORY_CREDENTIAL: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}', 'service-management', '', False, False, '', 'ServiceRepositoryMutationResponse', ('serviceId', 'credentialKind')),
-    OperationId.CLEAR_SERVICE_VARIABLE_VALUE: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value', 'service-management', '', False, False, '', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
-    OperationId.CLEAR_TARGET_SERVICE_CONNECTION: OpenAPIOperation('DELETE', '/api/v1/services/target/{serviceId}/connection', 'service-management', '', False, False, '', 'ServiceTargetMutationResponse', ('serviceId',)),
-    OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/plans', 'service-management', '', False, False, 'CreatePostGripConfigurationPlanRequest', 'PostGripConfigurationPlan', ('stackKey',)),
-    OperationId.CREATE_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', '', False, False, 'CreateServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.CREATE_SERVICE_DOMAIN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', '', False, False, 'CreateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId')),
-    OperationId.CREATE_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments', 'service-management', '', False, False, 'CreateServiceEnvironmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId',)),
-    OperationId.CREATE_SERVICE_PROJECT: OpenAPIOperation('POST', '/api/v1/services/projects', 'service-management', '', False, False, 'CreateServiceProjectRequest', 'ServiceProjectMutationResponse', ()),
-    OperationId.CREATE_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups', 'service-management', '', False, False, 'CreateServiceReleaseGroupRequest', 'ServiceReleaseGroup', ()),
-    OperationId.CREATE_SERVICE_VARIABLE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables', 'service-management', '', False, False, 'CreateServiceVariableRequest', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId')),
-    OperationId.CREATE_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/volumes', 'service-management', '', False, False, 'CreateServiceVolumeRequest', 'ServiceVolumeMutationResponse', ('serviceId',)),
-    OperationId.DELETE_SERVICE_DOMAIN: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}', 'service-management', '', False, False, '', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.DELETE_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/delete', 'service-management', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId', 'environmentId')),
-    OperationId.DELETE_SERVICE_PROJECT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/delete', 'service-management', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId',)),
-    OperationId.DELETE_SERVICE_VARIABLE: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}', 'service-management', '', False, False, '', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
-    OperationId.DELETE_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/volumes/{volumeRef}/delete', 'service-management', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId', 'volumeRef')),
-    OperationId.DEPLOY_SERVICE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/deploy', 'service-management', '', False, False, 'DeployServiceRequest', 'DeploymentOperationResponse', ('serviceId',)),
-    OperationId.DETACH_TARGET_SERVICE: OpenAPIOperation('POST', '/api/v1/services/target/{serviceId}/delete', 'service-management', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId',)),
-    OperationId.FLUSH_SERVICE_BUILD_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/build/flush', 'service-management', '', False, False, '', 'ServiceBuildLogMaintenanceResponse', ('serviceId',)),
-    OperationId.FLUSH_SERVICE_RUNTIME_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/runtime/flush', 'service-management', '', False, False, '', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
-    OperationId.GET_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}', 'service-management', '', False, False, '', 'PostGripConfigurationPlan', ('stackKey', 'planId')),
-    OperationId.GET_POST_GRIP_CONFIGURATION_STACK: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}', 'service-management', '', False, False, '', 'PostGripConfigurationStack', ('stackKey',)),
-    OperationId.GET_POST_GRIP_CONFIGURATION_STACK_OPERATION: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}', 'service-management', '', False, False, '', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
-    OperationId.GET_SERVICE: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}', 'service-management', '', False, False, '', 'Service', ('source', 'serviceId')),
-    OperationId.GET_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', '', False, False, '', 'ServiceBuildLogStatus', ('serviceId',)),
-    OperationId.GET_SERVICE_CONFIGURATION_OPERATION: OpenAPIOperation('GET', '/api/v1/services/configuration-operations/{operationId}', 'service-management', '', False, False, '', 'ServiceConfigurationOperation', ('operationId',)),
-    OperationId.GET_SERVICE_DNS_CANONICAL_STATE: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns', 'service-management', '', False, False, '', 'ServiceDNSCanonicalState', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.GET_SERVICE_DNS_FAILOVER_POLICY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', '', False, False, '', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.GET_SERVICE_DNS_PLAN: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}', 'service-management', '', False, False, '', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
-    OperationId.GET_SERVICE_DEPLOYMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}', 'service-management', '', False, False, '', 'Deployment', ('serviceId', 'deploymentId')),
-    OperationId.GET_SERVICE_DOMAIN_VERIFICATION: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verification', 'service-management', '', False, False, '', 'ServiceDomainVerification', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.GET_SERVICE_ENVIRONMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}', 'service-management', '', False, False, '', 'ServiceEnvironmentConfiguration', ('serviceId', 'environmentId')),
-    OperationId.GET_SERVICE_ENVIRONMENT_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/removal-impact', 'service-management', '', False, False, '', 'ServiceRemovalImpact', ('serviceId', 'environmentId')),
-    OperationId.GET_SERVICE_PROJECT_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/removal-impact', 'service-management', '', False, False, '', 'ServiceRemovalImpact', ('serviceId',)),
-    OperationId.GET_SERVICE_RELEASE_GROUP: OpenAPIOperation('GET', '/api/v1/services/release-groups/{releaseGroupId}', 'service-management', '', False, False, '', 'ServiceReleaseGroup', ('releaseGroupId',)),
-    OperationId.GET_SERVICE_REPOSITORY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/repository', 'service-management', '', False, False, '', 'ServiceRepository', ('serviceId',)),
-    OperationId.GET_SERVICE_RUNTIME_LOG_SETTINGS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/logs/runtime/settings', 'service-management', '', False, False, '', 'ServiceRuntimeLogStatus', ('serviceId',)),
-    OperationId.GET_SERVICE_STATUS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/status', 'service-management', '', False, False, '', 'ServiceStatus', ('source', 'serviceId')),
-    OperationId.GET_SERVICE_VOLUME: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/volumes/{volumeRef}', 'service-management', '', False, False, '', 'ServiceVolume', ('serviceId', 'volumeRef')),
-    OperationId.GET_SERVICE_VOLUME_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/volumes/{volumeRef}/removal-impact', 'service-management', '', False, False, '', 'ServiceRemovalImpact', ('serviceId', 'volumeRef')),
-    OperationId.GET_TARGET_SERVICE_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/target/{serviceId}/removal-impact', 'service-management', '', False, False, '', 'ServiceRemovalImpact', ('serviceId',)),
-    OperationId.LIST_GIT_HUB_APP_REPOSITORIES: OpenAPIOperation('GET', '/api/v1/services/integrations/github/repositories', 'service-management', '', False, False, '', 'GitHubRepositoryList', ()),
-    OperationId.LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions', 'service-management', '', False, False, '', 'PostGripConfigurationPlanActionList', ('stackKey', 'planId')),
-    OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions', 'service-management', '', False, False, '', 'PostGripConfigurationStackOperationActionList', ('stackKey', 'operationId')),
-    OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-operations', 'service-management', '', False, False, '', 'ServiceConfigurationOperationList', ()),
-    OperationId.LIST_SERVICE_DNS_PLANS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', '', False, False, '', 'ServiceDNSPlanList', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.LIST_SERVICE_DEPLOYMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/deployments', 'service-management', '', False, False, '', 'DeploymentList', ('source', 'serviceId')),
-    OperationId.LIST_SERVICE_DOMAINS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', '', False, False, '', 'ServiceDomainList', ('serviceId', 'environmentId')),
-    OperationId.LIST_SERVICE_ENVIRONMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/environments', 'service-management', '', False, False, '', 'EnvironmentList', ('source', 'serviceId')),
-    OperationId.LIST_SERVICE_LOGS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/logs', 'service-management', '', False, False, '', 'LogList', ('source', 'serviceId')),
-    OperationId.LIST_SERVICE_PROMOTIONS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/promotions', 'service-management', '', False, False, '', 'DeploymentList', ('serviceId',)),
-    OperationId.LIST_SERVICE_RELEASE_GROUP_EVENTS: OpenAPIOperation('GET', '/api/v1/services/release-groups/{releaseGroupId}/events', 'service-management', '', False, False, '', 'ServiceReleaseGroupEventList', ('releaseGroupId',)),
-    OperationId.LIST_SERVICE_RELEASE_GROUPS: OpenAPIOperation('GET', '/api/v1/services/release-groups', 'service-management', '', False, False, '', 'ServiceReleaseGroupList', ()),
-    OperationId.LIST_SERVICE_VARIABLES: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables', 'service-management', '', False, False, '', 'ServiceVariableList', ('serviceId', 'environmentId')),
-    OperationId.LIST_SERVICE_VOLUMES: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/volumes', 'service-management', '', False, False, '', 'ServiceVolumeList', ('serviceId',)),
-    OperationId.LIST_SERVICES: OpenAPIOperation('GET', '/api/v1/services', 'service-management', '', False, False, '', 'ServiceList', ()),
-    OperationId.PREVIEW_GIT_HUB_REPOSITORY_ADOPTION: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/github/adoption-preview', 'service-management', '', False, False, 'GitHubRepositoryAdoptionPreviewRequest', 'GitHubRepositoryAdoptionPreview', ('serviceId',)),
-    OperationId.PREVIEW_SERVICE_DEPLOY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/deploy/preview', 'service-management', '', False, False, '', 'DeployPreview', ('serviceId',)),
-    OperationId.PREVIEW_SERVICE_ENVIRONMENT_REASSIGNMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/reassignment-preview', 'service-management', '', False, False, 'ServiceEnvironmentReassignmentPreviewRequest', 'ServiceEnvironmentReassignmentPreview', ('serviceId', 'environmentId')),
-    OperationId.PREVIEW_SERVICE_PROMOTION: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/promotions/preview', 'service-management', '', False, False, '', 'ServicePromotionPreview', ('serviceId',)),
-    OperationId.PREVIEW_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups/preview', 'service-management', '', False, False, 'PreviewServiceReleaseGroupRequest', 'ServiceReleaseGroupPreview', ()),
-    OperationId.PROMOTE_SERVICE_DEPLOYMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/promotions', 'service-management', '', False, False, 'PromoteServiceDeploymentRequest', 'DeploymentOperationResponse', ('serviceId',)),
-    OperationId.PUT_SERVICE_REPOSITORY_CREDENTIAL: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}', 'service-management', '', False, False, 'ServiceRepositoryCredentialRequest', 'ServiceRepositoryMutationResponse', ('serviceId', 'credentialKind')),
-    OperationId.PUT_SERVICE_VARIABLE_VALUE: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value', 'service-management', '', False, False, 'ServiceVariableValueRequest', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
-    OperationId.PUT_TARGET_SERVICE_CONNECTION: OpenAPIOperation('PUT', '/api/v1/services/target/{serviceId}/connection', 'service-management', '', False, False, 'TargetServiceConnectionRequest', 'ServiceTargetMutationResponse', ('serviceId',)),
-    OperationId.REASSIGN_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/reassign', 'service-management', '', False, False, 'ServiceEnvironmentReassignmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId', 'environmentId')),
-    OperationId.REDEPLOY_SERVICE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/redeploy', 'service-management', '', False, False, 'RedeployServiceRequest', 'DeploymentOperationResponse', ('serviceId',)),
-    OperationId.REFRESH_SERVICE_REPOSITORY_CREDENTIAL: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}/refresh', 'service-management', '', False, False, '', 'ServiceRepositoryMutationResponse', ('serviceId', 'credentialKind')),
-    OperationId.REPORT_SERVICE_DNS_PROVIDER_RESULT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/provider-result', 'service-management', '', False, False, 'ReportServiceDNSProviderResultRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
-    OperationId.REQUEST_SERVICE_DNS_FAILOVER: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers', 'service-management', '', False, False, 'RequestServiceDNSFailoverRequest', 'ServiceDNSFailoverPlan', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.RESOLVE_SERVICE: OpenAPIOperation('GET', '/api/v1/services/resolve', 'service-management', '', False, False, '', 'Service', ()),
-    OperationId.RESOLVE_SERVICE_ENVIRONMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/resolve', 'service-management', '', False, False, '', 'Environment', ('serviceId',)),
-    OperationId.RESTART_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/restart', 'service-management', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
-    OperationId.RESUBMIT_POST_GRIP_CONFIGURATION_SECRET_INPUTS: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/secret-inputs', 'service-management', '', False, False, 'ResubmitPostGripConfigurationSecretInputsRequest', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
-    OperationId.RETRY_POST_GRIP_CONFIGURATION_STACK_OPERATION: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/retry', 'service-management', '', False, False, '', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
-    OperationId.RETRY_SERVICE_CONFIGURATION_OPERATION: OpenAPIOperation('POST', '/api/v1/services/configuration-operations/{operationId}/retry', 'service-management', '', False, False, '', 'ServiceConfigurationOperation', ('operationId',)),
-    OperationId.RETRY_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups/{releaseGroupId}/retry', 'service-management', '', False, False, '', 'ServiceReleaseGroup', ('releaseGroupId',)),
-    OperationId.ROLLBACK_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback', 'service-management', '', False, False, 'RollbackServiceDNSPlanRequest', 'ServiceDNSRollbackPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
-    OperationId.ROLLBACK_SERVICE_DEPLOYMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback', 'service-management', '', False, False, '', 'DeploymentOperationResponse', ('serviceId', 'deploymentId')),
-    OperationId.START_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/start', 'service-management', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
-    OperationId.STOP_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/stop', 'service-management', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
-    OperationId.TRIM_SERVICE_BUILD_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/build/trim', 'service-management', '', False, False, '', 'ServiceBuildLogMaintenanceResponse', ('serviceId',)),
-    OperationId.TRIM_SERVICE_RUNTIME_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/runtime/trim', 'service-management', '', False, False, '', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
-    OperationId.UNBIND_SERVICE_VOLUME: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}', 'service-management', '', False, False, '', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId', 'volumeRef')),
-    OperationId.UPDATE_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', '', False, False, 'ServiceBuildLogSettingsRequest', 'ServiceBuildLogSettingsMutationResponse', ('serviceId',)),
-    OperationId.UPDATE_SERVICE_DNS_FAILOVER_POLICY: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', '', False, False, 'UpdateServiceDNSFailoverPolicyRequest', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.UPDATE_SERVICE_DOMAIN: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}', 'service-management', '', False, False, 'UpdateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId', 'domainId')),
-    OperationId.UPDATE_SERVICE_ENVIRONMENT: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}', 'service-management', '', False, False, 'UpdateServiceEnvironmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId', 'environmentId')),
-    OperationId.UPDATE_SERVICE_PROJECT: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}', 'service-management', '', False, False, 'UpdateServiceProjectRequest', 'ServiceProjectMutationResponse', ('serviceId',)),
-    OperationId.UPDATE_SERVICE_REPOSITORY: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/repository', 'service-management', '', False, False, 'UpdateServiceRepositoryRequest', 'ServiceRepositoryMutationResponse', ('serviceId',)),
-    OperationId.UPDATE_SERVICE_RUNTIME_LOG_SETTINGS: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/logs/runtime/settings', 'service-management', '', False, False, 'ServiceRuntimeLogSettingsRequest', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
-    OperationId.UPDATE_SERVICE_VARIABLE: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}', 'service-management', '', False, False, 'UpdateServiceVariableRequest', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
-    OperationId.UPDATE_SERVICE_VOLUME_BINDING: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}', 'service-management', '', False, False, 'UpdateServiceVolumeBindingRequest', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId', 'volumeRef')),
-    OperationId.UPDATE_TARGET_SERVICE: OpenAPIOperation('PATCH', '/api/v1/services/target/{serviceId}', 'service-management', '', False, False, 'UpdateTargetServiceRequest', 'ServiceTargetMutationResponse', ('serviceId',)),
-    OperationId.VALIDATE_POST_GRIP_CONFIGURATION: OpenAPIOperation('POST', '/api/v1/services/configuration/validate', 'service-management', '', False, False, 'ValidatePostGripConfigurationRequest', 'PostGripConfigurationValidationResult', ()),
-    OperationId.VERIFY_SERVICE_DOMAIN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verify', 'service-management', '', False, False, '', 'ServiceDomainVerification', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.ADOPT_GIT_HUB_REPOSITORY: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/github/adopt', 'service-management', 'mutation', 'bounded', '', False, False, 'GitHubRepositoryAdoptionRequest', 'ServiceConfigurationOperation', ('serviceId',)),
+    OperationId.APPLY_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/apply', 'service-management', 'mutation', 'bounded', '', False, False, 'ApplyPostGripConfigurationPlanRequest', 'PostGripConfigurationStackOperation', ('stackKey', 'planId')),
+    OperationId.APPLY_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/apply', 'service-management', 'mutation', 'bounded', '', False, False, 'ApplyServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.APPLY_SERVICE_VARIABLES: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/variables/apply', 'service-management', 'mutation', 'bounded', '', False, False, 'ApplyServiceVariablesRequest', 'ServiceVariablesApplyResponse', ('serviceId',)),
+    OperationId.ATTACH_TARGET_SERVICE: OpenAPIOperation('POST', '/api/v1/services/targets', 'service-management', 'mutation', 'bounded', '', False, False, 'AttachTargetServiceRequest', 'ServiceTargetMutationResponse', ()),
+    OperationId.BIND_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings', 'service-management', 'mutation', 'bounded', '', False, False, 'BindServiceVolumeRequest', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId')),
+    OperationId.CANCEL_SERVICE_DEPLOYMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}/cancel', 'service-management', 'mutation', 'bounded', '', False, False, '', 'DeploymentOperationResponse', ('serviceId', 'deploymentId')),
+    OperationId.CANCEL_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups/{releaseGroupId}/cancel', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceReleaseGroup', ('releaseGroupId',)),
+    OperationId.CHECK_SERVICE: OpenAPIOperation('POST', '/api/v1/services/{source}/{serviceId}/check', 'service-management', 'mutation', 'bounded', '', False, False, 'CheckServiceRequest', 'ServiceOperationResponse', ('source', 'serviceId')),
+    OperationId.CLEAR_SERVICE_REPOSITORY_CREDENTIAL: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceRepositoryMutationResponse', ('serviceId', 'credentialKind')),
+    OperationId.CLEAR_SERVICE_VARIABLE_VALUE: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
+    OperationId.CLEAR_TARGET_SERVICE_CONNECTION: OpenAPIOperation('DELETE', '/api/v1/services/target/{serviceId}/connection', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceTargetMutationResponse', ('serviceId',)),
+    OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/plans', 'service-management', 'read-only', 'bounded', '', False, False, 'CreatePostGripConfigurationPlanRequest', 'PostGripConfigurationPlan', ('stackKey',)),
+    OperationId.CREATE_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.CREATE_SERVICE_DOMAIN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId')),
+    OperationId.CREATE_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceEnvironmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId',)),
+    OperationId.CREATE_SERVICE_PROJECT: OpenAPIOperation('POST', '/api/v1/services/projects', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceProjectRequest', 'ServiceProjectMutationResponse', ()),
+    OperationId.CREATE_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceReleaseGroupRequest', 'ServiceReleaseGroup', ()),
+    OperationId.CREATE_SERVICE_VARIABLE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceVariableRequest', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId')),
+    OperationId.CREATE_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/volumes', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceVolumeRequest', 'ServiceVolumeMutationResponse', ('serviceId',)),
+    OperationId.DELETE_SERVICE_DOMAIN: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.DELETE_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/delete', 'service-management', 'destructive', 'bounded', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId', 'environmentId')),
+    OperationId.DELETE_SERVICE_PROJECT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/delete', 'service-management', 'destructive', 'bounded', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId',)),
+    OperationId.DELETE_SERVICE_VARIABLE: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
+    OperationId.DELETE_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/volumes/{volumeRef}/delete', 'service-management', 'destructive', 'bounded', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId', 'volumeRef')),
+    OperationId.DEPLOY_SERVICE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/deploy', 'service-management', 'mutation', 'bounded', '', False, False, 'DeployServiceRequest', 'DeploymentOperationResponse', ('serviceId',)),
+    OperationId.DETACH_TARGET_SERVICE: OpenAPIOperation('POST', '/api/v1/services/target/{serviceId}/delete', 'service-management', 'mutation', 'bounded', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId',)),
+    OperationId.FLUSH_SERVICE_BUILD_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/build/flush', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceBuildLogMaintenanceResponse', ('serviceId',)),
+    OperationId.FLUSH_SERVICE_RUNTIME_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/runtime/flush', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
+    OperationId.GET_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationPlan', ('stackKey', 'planId')),
+    OperationId.GET_POST_GRIP_CONFIGURATION_STACK: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationStack', ('stackKey',)),
+    OperationId.GET_POST_GRIP_CONFIGURATION_STACK_OPERATION: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
+    OperationId.GET_SERVICE: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'Service', ('source', 'serviceId')),
+    OperationId.GET_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceBuildLogStatus', ('serviceId',)),
+    OperationId.GET_SERVICE_CONFIGURATION_OPERATION: OpenAPIOperation('GET', '/api/v1/services/configuration-operations/{operationId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceConfigurationOperation', ('operationId',)),
+    OperationId.GET_SERVICE_DNS_CANONICAL_STATE: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDNSCanonicalState', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.GET_SERVICE_DNS_FAILOVER_POLICY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.GET_SERVICE_DNS_PLAN: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.GET_SERVICE_DEPLOYMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'Deployment', ('serviceId', 'deploymentId')),
+    OperationId.GET_SERVICE_DOMAIN_VERIFICATION: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verification', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDomainVerification', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.GET_SERVICE_ENVIRONMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceEnvironmentConfiguration', ('serviceId', 'environmentId')),
+    OperationId.GET_SERVICE_ENVIRONMENT_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/removal-impact', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceRemovalImpact', ('serviceId', 'environmentId')),
+    OperationId.GET_SERVICE_PROJECT_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/removal-impact', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceRemovalImpact', ('serviceId',)),
+    OperationId.GET_SERVICE_RELEASE_GROUP: OpenAPIOperation('GET', '/api/v1/services/release-groups/{releaseGroupId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceReleaseGroup', ('releaseGroupId',)),
+    OperationId.GET_SERVICE_REPOSITORY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/repository', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceRepository', ('serviceId',)),
+    OperationId.GET_SERVICE_RUNTIME_LOG_SETTINGS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/logs/runtime/settings', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceRuntimeLogStatus', ('serviceId',)),
+    OperationId.GET_SERVICE_STATUS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/status', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceStatus', ('source', 'serviceId')),
+    OperationId.GET_SERVICE_VOLUME: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/volumes/{volumeRef}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceVolume', ('serviceId', 'volumeRef')),
+    OperationId.GET_SERVICE_VOLUME_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/volumes/{volumeRef}/removal-impact', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceRemovalImpact', ('serviceId', 'volumeRef')),
+    OperationId.GET_TARGET_SERVICE_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/services/target/{serviceId}/removal-impact', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceRemovalImpact', ('serviceId',)),
+    OperationId.LIST_GIT_HUB_APP_REPOSITORIES: OpenAPIOperation('GET', '/api/v1/services/integrations/github/repositories', 'service-management', 'read-only', 'bounded', '', False, False, '', 'GitHubRepositoryList', ()),
+    OperationId.LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationPlanActionList', ('stackKey', 'planId')),
+    OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationStackOperationActionList', ('stackKey', 'operationId')),
+    OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-operations', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceConfigurationOperationList', ()),
+    OperationId.LIST_SERVICE_DNS_PLANS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDNSPlanList', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.LIST_SERVICE_DEPLOYMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/deployments', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeploymentList', ('source', 'serviceId')),
+    OperationId.LIST_SERVICE_DOMAINS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDomainList', ('serviceId', 'environmentId')),
+    OperationId.LIST_SERVICE_ENVIRONMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/environments', 'service-management', 'read-only', 'bounded', '', False, False, '', 'EnvironmentList', ('source', 'serviceId')),
+    OperationId.LIST_SERVICE_LOGS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/logs', 'service-management', 'read-only', 'bounded', '', False, False, '', 'LogList', ('source', 'serviceId')),
+    OperationId.LIST_SERVICE_PROMOTIONS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/promotions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeploymentList', ('serviceId',)),
+    OperationId.LIST_SERVICE_RELEASE_GROUP_EVENTS: OpenAPIOperation('GET', '/api/v1/services/release-groups/{releaseGroupId}/events', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceReleaseGroupEventList', ('releaseGroupId',)),
+    OperationId.LIST_SERVICE_RELEASE_GROUPS: OpenAPIOperation('GET', '/api/v1/services/release-groups', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceReleaseGroupList', ()),
+    OperationId.LIST_SERVICE_VARIABLES: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceVariableList', ('serviceId', 'environmentId')),
+    OperationId.LIST_SERVICE_VOLUMES: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/volumes', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceVolumeList', ('serviceId',)),
+    OperationId.LIST_SERVICES: OpenAPIOperation('GET', '/api/v1/services', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceList', ()),
+    OperationId.PREVIEW_GIT_HUB_REPOSITORY_ADOPTION: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/github/adoption-preview', 'service-management', 'mutation', 'bounded', '', False, False, 'GitHubRepositoryAdoptionPreviewRequest', 'GitHubRepositoryAdoptionPreview', ('serviceId',)),
+    OperationId.PREVIEW_SERVICE_DEPLOY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/deploy/preview', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeployPreview', ('serviceId',)),
+    OperationId.PREVIEW_SERVICE_ENVIRONMENT_REASSIGNMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/reassignment-preview', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceEnvironmentReassignmentPreviewRequest', 'ServiceEnvironmentReassignmentPreview', ('serviceId', 'environmentId')),
+    OperationId.PREVIEW_SERVICE_PROMOTION: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/promotions/preview', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServicePromotionPreview', ('serviceId',)),
+    OperationId.PREVIEW_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups/preview', 'service-management', 'read-only', 'bounded', '', False, False, 'PreviewServiceReleaseGroupRequest', 'ServiceReleaseGroupPreview', ()),
+    OperationId.PROMOTE_SERVICE_DEPLOYMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/promotions', 'service-management', 'mutation', 'bounded', '', False, False, 'PromoteServiceDeploymentRequest', 'DeploymentOperationResponse', ('serviceId',)),
+    OperationId.PUT_SERVICE_REPOSITORY_CREDENTIAL: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceRepositoryCredentialRequest', 'ServiceRepositoryMutationResponse', ('serviceId', 'credentialKind')),
+    OperationId.PUT_SERVICE_VARIABLE_VALUE: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceVariableValueRequest', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
+    OperationId.PUT_TARGET_SERVICE_CONNECTION: OpenAPIOperation('PUT', '/api/v1/services/target/{serviceId}/connection', 'service-management', 'mutation', 'bounded', '', False, False, 'TargetServiceConnectionRequest', 'ServiceTargetMutationResponse', ('serviceId',)),
+    OperationId.REASSIGN_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/reassign', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceEnvironmentReassignmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId', 'environmentId')),
+    OperationId.REDEPLOY_SERVICE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/redeploy', 'service-management', 'mutation', 'bounded', '', False, False, 'RedeployServiceRequest', 'DeploymentOperationResponse', ('serviceId',)),
+    OperationId.REFRESH_SERVICE_REPOSITORY_CREDENTIAL: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}/refresh', 'service-management', 'mutation', 'bounded', '', False, False, '', 'ServiceRepositoryMutationResponse', ('serviceId', 'credentialKind')),
+    OperationId.REPORT_SERVICE_DNS_PROVIDER_RESULT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/provider-result', 'service-management', 'mutation', 'bounded', '', False, False, 'ReportServiceDNSProviderResultRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.REQUEST_SERVICE_DNS_FAILOVER: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failovers', 'service-management', 'destructive', 'bounded', '', False, False, 'RequestServiceDNSFailoverRequest', 'ServiceDNSFailoverPlan', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.RESOLVE_SERVICE: OpenAPIOperation('GET', '/api/v1/services/resolve', 'service-management', 'read-only', 'bounded', '', False, False, '', 'Service', ()),
+    OperationId.RESOLVE_SERVICE_ENVIRONMENT: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/resolve', 'service-management', 'read-only', 'bounded', '', False, False, '', 'Environment', ('serviceId',)),
+    OperationId.RESTART_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/restart', 'service-management', 'mutation', 'bounded', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
+    OperationId.RESUBMIT_POST_GRIP_CONFIGURATION_SECRET_INPUTS: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/secret-inputs', 'service-management', 'mutation', 'bounded', '', False, False, 'ResubmitPostGripConfigurationSecretInputsRequest', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
+    OperationId.RETRY_POST_GRIP_CONFIGURATION_STACK_OPERATION: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/retry', 'service-management', 'mutation', 'bounded', '', False, False, '', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
+    OperationId.RETRY_SERVICE_CONFIGURATION_OPERATION: OpenAPIOperation('POST', '/api/v1/services/configuration-operations/{operationId}/retry', 'service-management', 'mutation', 'bounded', '', False, False, '', 'ServiceConfigurationOperation', ('operationId',)),
+    OperationId.RETRY_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups/{releaseGroupId}/retry', 'service-management', 'mutation', 'bounded', '', False, False, '', 'ServiceReleaseGroup', ('releaseGroupId',)),
+    OperationId.ROLLBACK_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans/{planId}/rollback', 'service-management', 'destructive', 'bounded', '', False, False, 'RollbackServiceDNSPlanRequest', 'ServiceDNSRollbackPlan', ('serviceId', 'environmentId', 'domainId', 'planId')),
+    OperationId.ROLLBACK_SERVICE_DEPLOYMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback', 'service-management', 'mutation', 'bounded', '', False, False, '', 'DeploymentOperationResponse', ('serviceId', 'deploymentId')),
+    OperationId.START_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/start', 'service-management', 'mutation', 'bounded', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
+    OperationId.STOP_SERVICE_RUNTIME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/stop', 'service-management', 'mutation', 'bounded', '', False, False, 'RuntimeOperationRequest', 'ServiceOperationResponse', ('serviceId', 'environmentId')),
+    OperationId.TRIM_SERVICE_BUILD_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/build/trim', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceBuildLogMaintenanceResponse', ('serviceId',)),
+    OperationId.TRIM_SERVICE_RUNTIME_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/runtime/trim', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
+    OperationId.UNBIND_SERVICE_VOLUME: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId', 'volumeRef')),
+    OperationId.UPDATE_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceBuildLogSettingsRequest', 'ServiceBuildLogSettingsMutationResponse', ('serviceId',)),
+    OperationId.UPDATE_SERVICE_DNS_FAILOVER_POLICY: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceDNSFailoverPolicyRequest', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.UPDATE_SERVICE_DOMAIN: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId', 'domainId')),
+    OperationId.UPDATE_SERVICE_ENVIRONMENT: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceEnvironmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId', 'environmentId')),
+    OperationId.UPDATE_SERVICE_PROJECT: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceProjectRequest', 'ServiceProjectMutationResponse', ('serviceId',)),
+    OperationId.UPDATE_SERVICE_REPOSITORY: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/repository', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceRepositoryRequest', 'ServiceRepositoryMutationResponse', ('serviceId',)),
+    OperationId.UPDATE_SERVICE_RUNTIME_LOG_SETTINGS: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/logs/runtime/settings', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceRuntimeLogSettingsRequest', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
+    OperationId.UPDATE_SERVICE_VARIABLE: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceVariableRequest', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
+    OperationId.UPDATE_SERVICE_VOLUME_BINDING: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceVolumeBindingRequest', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId', 'volumeRef')),
+    OperationId.UPDATE_TARGET_SERVICE: OpenAPIOperation('PATCH', '/api/v1/services/target/{serviceId}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateTargetServiceRequest', 'ServiceTargetMutationResponse', ('serviceId',)),
+    OperationId.VALIDATE_POST_GRIP_CONFIGURATION: OpenAPIOperation('POST', '/api/v1/services/configuration/validate', 'service-management', 'read-only', 'bounded', '', False, False, 'ValidatePostGripConfigurationRequest', 'PostGripConfigurationValidationResult', ()),
+    OperationId.VERIFY_SERVICE_DOMAIN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/verify', 'service-management', 'mutation', 'bounded', '', False, False, '', 'ServiceDomainVerification', ('serviceId', 'environmentId', 'domainId')),
 }
 
 
@@ -2657,10 +2681,11 @@ class OpenAPIClient:
         if cursor is not None: _query['cursor'] = cursor
         return cast(ListServiceReleaseGroupEventsResponseBody, self._transport(OperationId.LIST_SERVICE_RELEASE_GROUP_EVENTS, path_parameters={'releaseGroupId': release_group_id}, query=_query))
 
-    def list_service_release_groups(self, *, limit: int | None = None, cursor: str | None = None) -> ListServiceReleaseGroupsResponseBody:
+    def list_service_release_groups(self, *, limit: int | None = None, cursor: str | None = None, project_id: str | None = None) -> ListServiceReleaseGroupsResponseBody:
         _query: dict[str, Any] = {}
         if limit is not None: _query['limit'] = limit
         if cursor is not None: _query['cursor'] = cursor
+        if project_id is not None: _query['projectId'] = project_id
         return cast(ListServiceReleaseGroupsResponseBody, self._transport(OperationId.LIST_SERVICE_RELEASE_GROUPS, query=_query))
 
     def list_service_variables(self, service_id: str, environment_id: str) -> ListServiceVariablesResponseBody:
@@ -2948,6 +2973,8 @@ def resolve_openapi_operation(
         method=source.method,
         path=resolved_path,
         auth_lane=source.auth_lane,
+        safety=source.safety,
+        retry=source.retry,
         signing=source.signing,
         streaming_request=source.streaming_request,
         websocket=source.websocket,

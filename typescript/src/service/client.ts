@@ -590,7 +590,9 @@ export class ServiceClient {
     const operation = resolveOpenAPIOperation(operationId, options.path, query);
     const endpoint = new URL(`${this.baseUrl.href.replace(/\/+$/, '')}${operation.path}`);
     const encodedBody = options.body === undefined ? undefined : JSON.stringify(options.body);
-    const maxAttempts = this.retriesEnabled && (operation.method === 'GET' || options.idempotencyKey)
+    const retrySafe = operation.retry === 'bounded'
+      && (operation.safety === 'read-only' || Boolean(options.idempotencyKey));
+    const maxAttempts = this.retriesEnabled && retrySafe
       ? this.retryPolicy.maxAttempts
       : 1;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {

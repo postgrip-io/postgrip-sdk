@@ -654,6 +654,16 @@
           },
           {
             "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "description": "Only return release groups containing this project.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -7015,6 +7025,7 @@
           "projectId",
           "environmentId",
           "workerId",
+          "projectVersion",
           "environmentVersion",
           "expectedCommitSha",
           "branch",
@@ -7038,6 +7049,11 @@
           "workerId": {
             "type": "string",
             "format": "uuid"
+          },
+          "projectVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "environmentVersion": {
             "type": "integer",
@@ -7182,6 +7198,7 @@
           "dependsOn",
           "expectedCommitSha",
           "branch",
+          "expectedProjectVersion",
           "expectedEnvironmentVersion",
           "state",
           "attempt",
@@ -7236,6 +7253,11 @@
           },
           "expectedArtifactIdentity": {
             "type": "string"
+          },
+          "expectedProjectVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
           },
           "expectedEnvironmentVersion": {
             "type": "integer",

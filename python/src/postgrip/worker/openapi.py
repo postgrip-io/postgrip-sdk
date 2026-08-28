@@ -9,7 +9,7 @@ from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDi
 from urllib.parse import quote, urlencode
 
 OPENAPI_SPEC_SHA256 = 'afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = 'd871319cfc32fb12a40c711ab3fa43b1544f1d1548b2fe1ad46648c5811338e3'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '121b3065b252d38030b53ffb3a51a434469d67c545b18ee2eb185e4aef68d28f'
 OPENAPI_OPERATION_COUNT = 13
 OPENAPI_CLIENT_OPERATION_COUNT = 13
 
@@ -283,6 +283,8 @@ class OpenAPIOperation:
     method: str
     path: str
     auth_lane: str
+    safety: str
+    retry: str
     signing: str
     streaming_request: bool
     websocket: bool
@@ -297,6 +299,8 @@ class ResolvedOpenAPIOperation:
     method: str
     path: str
     auth_lane: str
+    safety: str
+    retry: str
     signing: str
     streaming_request: bool
     websocket: bool
@@ -305,19 +309,19 @@ class ResolvedOpenAPIOperation:
 
 
 _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
-    OperationId.CHECK_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/check', 'worker-management', '', False, False, '', 'CheckWorkerResponse', ('workerId',)),
-    OperationId.CREATE_WORKER: OpenAPIOperation('POST', '/api/v1/workers', 'worker-management', '', False, False, 'CreateWorkerRequest', 'CreateWorkerResponse', ()),
-    OperationId.GET_WORKER: OpenAPIOperation('GET', '/api/v1/workers/{workerId}', 'worker-management', '', False, False, '', 'Worker', ('workerId',)),
-    OperationId.GET_WORKER_JOB: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs/{jobId}', 'worker-management', '', False, False, '', 'Job', ('workerId', 'jobId')),
-    OperationId.LIST_WORKER_ASSIGNMENTS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/assignments', 'worker-management', '', False, False, '', 'AssignmentList', ('workerId',)),
-    OperationId.LIST_WORKER_JOBS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs', 'worker-management', '', False, False, '', 'JobList', ('workerId',)),
-    OperationId.LIST_WORKER_OPERATIONAL_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/operational-logs', 'worker-management', '', False, False, '', 'OperationalLogList', ('workerId',)),
-    OperationId.LIST_WORKER_SECURITY_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/security-logs', 'worker-management', '', False, False, '', 'SecurityLogList', ('workerId',)),
-    OperationId.LIST_WORKERS: OpenAPIOperation('GET', '/api/v1/workers', 'worker-management', '', False, False, '', 'WorkerList', ()),
-    OperationId.PLACE_WORKER_IN_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance', 'worker-management', '', False, False, '', 'WorkerOperationResponse', ('workerId',)),
-    OperationId.RESUME_WORKER_FROM_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance/resume', 'worker-management', '', False, False, '', 'WorkerOperationResponse', ('workerId',)),
-    OperationId.UPGRADE_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/upgrade', 'worker-management', '', False, False, '', 'UpgradeWorkerResponse', ('workerId',)),
-    OperationId.WORKER_ORCHESTRATOR_HEALTH: OpenAPIOperation('GET', '/health', 'public', '', False, False, '', 'HealthResponse', ()),
+    OperationId.CHECK_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/check', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'CheckWorkerResponse', ('workerId',)),
+    OperationId.CREATE_WORKER: OpenAPIOperation('POST', '/api/v1/workers', 'worker-management', 'mutation', 'bounded', '', False, False, 'CreateWorkerRequest', 'CreateWorkerResponse', ()),
+    OperationId.GET_WORKER: OpenAPIOperation('GET', '/api/v1/workers/{workerId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Worker', ('workerId',)),
+    OperationId.GET_WORKER_JOB: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs/{jobId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Job', ('workerId', 'jobId')),
+    OperationId.LIST_WORKER_ASSIGNMENTS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/assignments', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'AssignmentList', ('workerId',)),
+    OperationId.LIST_WORKER_JOBS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'JobList', ('workerId',)),
+    OperationId.LIST_WORKER_OPERATIONAL_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/operational-logs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'OperationalLogList', ('workerId',)),
+    OperationId.LIST_WORKER_SECURITY_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/security-logs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'SecurityLogList', ('workerId',)),
+    OperationId.LIST_WORKERS: OpenAPIOperation('GET', '/api/v1/workers', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerList', ()),
+    OperationId.PLACE_WORKER_IN_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',)),
+    OperationId.RESUME_WORKER_FROM_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance/resume', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',)),
+    OperationId.UPGRADE_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/upgrade', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'UpgradeWorkerResponse', ('workerId',)),
+    OperationId.WORKER_ORCHESTRATOR_HEALTH: OpenAPIOperation('GET', '/health', 'public', 'read-only', 'bounded', '', False, False, '', 'HealthResponse', ()),
 }
 
 
@@ -482,6 +486,8 @@ def resolve_openapi_operation(
         method=source.method,
         path=resolved_path,
         auth_lane=source.auth_lane,
+        safety=source.safety,
+        retry=source.retry,
         signing=source.signing,
         streaming_request=source.streaming_request,
         websocket=source.websocket,

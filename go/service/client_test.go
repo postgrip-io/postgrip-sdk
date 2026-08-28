@@ -333,6 +333,51 @@ func TestRetryConfigurationCapsAttemptsAndRetryAfter(t *testing.T) {
 	}
 }
 
+func TestSafeReleasePreviewRetriesWithoutAnIdempotencyKey(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if calls.Add(1) == 1 {
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"code":"BUSY","message":"try later","requestId":"request-id"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}), func(config *Config) {
+		config.EnableRetries = true
+		config.RetryMaxAttempts = 2
+	})
+	commit, branch := "abc1234", "main"
+	body := OpenAPIPreviewServiceReleaseGroupRequestBody{
+		Name: "release",
+		Members: []OpenAPIServiceReleaseGroupMemberRequest{
+			{Key: "api", ProjectId: "project-1", EnvironmentId: "environment-1", ExpectedCommitSha: &commit, Branch: &branch},
+			{Key: "web", ProjectId: "project-2", EnvironmentId: "environment-2", ExpectedCommitSha: &commit, Branch: &branch},
+		},
+	}
+	if _, err := client.ServiceReleaseGroups().Preview(context.Background(), body); err != nil || calls.Load() != 2 {
+		t.Fatalf("err = %v, calls = %d", err, calls.Load())
+	}
+}
+
+func TestReleasePreviewRejectsMembersWithoutARevisionSource(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		_, _ = w.Write([]byte(`{}`))
+	}), nil)
+	body := OpenAPIPreviewServiceReleaseGroupRequestBody{
+		Name: "release",
+		Members: []OpenAPIServiceReleaseGroupMemberRequest{
+			{Key: "api", ProjectId: "project-1", EnvironmentId: "environment-1"},
+		},
+	}
+	_, err := client.ServiceReleaseGroups().Preview(context.Background(), body)
+	if err == nil || !strings.Contains(err.Error(), "required property alternative") || calls.Load() != 0 {
+		t.Fatalf("err = %v, calls = %d", err, calls.Load())
+	}
+}
+
 func TestRetryAfterPreservesZeroAndCapsOversizedValues(t *testing.T) {
 	policy := serviceRetryLimits{maxDelay: 2 * time.Second, retryAfterMax: 30 * time.Second}
 	response := &http.Response{StatusCode: http.StatusServiceUnavailable, Header: http.Header{"Retry-After": []string{"0"}}}

@@ -696,7 +696,10 @@ class ServiceClient:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         clean_body = {key: value for key, value in (body or {}).items() if value is not None} if body is not None else None
         operation = resolve_openapi_operation(operation_id, path, clean_query)
-        attempts = self._retry_max_attempts if self._enable_retries and (operation.method == "GET" or idempotency_key) else 1
+        retry_safe = operation.retry == "bounded" and (
+            operation.safety == "read-only" or idempotency_key is not None
+        )
+        attempts = self._retry_max_attempts if self._enable_retries and retry_safe else 1
         endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
         encoded_body = json.dumps(clean_body).encode() if clean_body is not None else None
         cancel_event = _REQUEST_CANCEL_EVENT.get()

@@ -210,6 +210,26 @@ describe('ServiceClient', () => {
     expect(error).toMatchObject({ retryAfterMs: 1 });
   });
 
+  it('retries the contract-safe release preview POST', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 503, headers: { 'Retry-After': '0' } }))
+      .mockResolvedValueOnce(Response.json({}));
+    const api = new ServiceClient({
+      baseUrl: 'https://services.example.test', token: 'pgt_test-token', fetch: fetchImpl,
+      enableRetries: true, retry: { maxAttempts: 2 },
+    });
+    await api.administration.releaseGroups.preview({
+      name: 'release',
+      members: [
+        { key: 'api', projectId: 'project-1', environmentId: 'environment-1', expectedCommitSha: 'abc1234', branch: 'main' },
+        { key: 'web', projectId: 'project-2', environmentId: 'environment-2', expectedCommitSha: 'abc1234', branch: 'main' },
+      ],
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[0]?.[1]?.method).toBe('POST');
+    expect(new Headers(fetchImpl.mock.calls[0]?.[1]?.headers).has('Idempotency-Key')).toBe(false);
+  });
+
   it('cancels during retry backoff', async () => {
     const fetchImpl = vi.fn(async () => new Response('{}', {
       status: 503, headers: { 'Retry-After': '30' },
