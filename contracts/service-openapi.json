@@ -12071,7 +12071,7 @@
           },
           "outputDir": {
             "type": "string",
-            "description": "Repository-relative static build output directory. Empty values use the imperative default; non-empty values cannot be absolute, resolve to the repository root, or traverse parent directories. Static deployments require build in WORKER_CAPABILITIES and WORKER_UNSAFE_HOST_BUILDS_ENABLED=true on the assigned Worker."
+            "description": "Static build output directory relative to the repository's configured projectPath. Empty values use the imperative default; non-empty values cannot be absolute, resolve to the project workspace root, or traverse parent directories. Static deployments require build in WORKER_CAPABILITIES and WORKER_UNSAFE_HOST_BUILDS_ENABLED=true on the assigned Worker."
           },
           "containerPort": {
             "type": "integer",
