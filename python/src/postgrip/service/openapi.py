@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'eb3eb6c5abde5e7f39a7467ed21140ff2ced8ccd17581defc5fe0b819821ad19'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = 'e8c1b7b8e7c1ea51d2f8201bf867b82a40cceac4c674479550d096f88135cd53'
+OPENAPI_SPEC_SHA256 = '27e286164b9382e283da6de22cbe3c728cb15372363afadf027a8e8795ef19e0'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'aa2e7e8b6f0156a7234bed7053b7669c9fdd3798f0cb366afafeb1400ccb35b4'
 OPENAPI_OPERATION_COUNT = 110
 OPENAPI_CLIENT_OPERATION_COUNT = 110
 
@@ -1285,12 +1285,12 @@ class _SchemaPostGripConfigurationEnvironmentOptional(TypedDict, total=False):
     assignedWorker: _SchemaPostGripConfigurationWorkerSelector
     buildCommand: str
     outputDir: str
+    containerPort: int
 
 class _SchemaPostGripConfigurationEnvironment(_SchemaPostGripConfigurationEnvironmentOptional):
     ref: str
     name: str
     kind: Literal['production', 'preview', 'development']
-    containerPort: int
     domains: list[_SchemaPostGripConfigurationDomain]
     variables: list[_SchemaPostGripConfigurationVariable]
 
