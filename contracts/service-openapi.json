@@ -46,7 +46,7 @@
           "Applications"
         ],
         "summary": "List service applications",
-        "description": "Lists tenant-scoped application groupings. The response ETag is the current Service catalog fence and can be supplied to createServiceApp.",
+        "description": "Lists tenant-scoped application groupings. catalogEtag and the equivalent response ETag header contain the current Service catalog fence for createServiceApp.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -9721,7 +9721,9 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "items"
+          "items",
+          "catalogVersion",
+          "catalogEtag"
         ],
         "properties": {
           "items": {
@@ -9729,6 +9731,15 @@
             "items": {
               "$ref": "#/components/schemas/ServiceApp"
             }
+          },
+          "catalogVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "catalogEtag": {
+            "type": "string",
+            "minLength": 1
           }
         }
       },

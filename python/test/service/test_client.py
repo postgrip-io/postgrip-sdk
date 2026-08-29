@@ -497,6 +497,21 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(request.get_header("Idempotency-key"), "attach-1")
         self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
 
+    def test_apps_list_exposes_catalog_fence(self) -> None:
+        opener = FakeOpener([{
+            "items": [],
+            "catalogVersion": 7,
+            "catalogEtag": '"service-catalog:7"',
+        }])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgt_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+
+        response = client.administration.apps.list_service_apps()
+
+        self.assertEqual(response["catalogVersion"], 7)
+        self.assertEqual(response["catalogEtag"], '"service-catalog:7"')
+
     def test_every_administration_facade_executes_through_the_transport(self) -> None:
         opener = FakeOpener([{} for _ in range(85)])
         client = ServiceClient(

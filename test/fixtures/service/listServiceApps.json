@@ -10,6 +10,8 @@
   },
   "response": {
     "body": {
+      "catalogEtag": "string",
+      "catalogVersion": 1,
       "items": [
         {
           "createdAt": "2026-01-01T00:00:00Z",

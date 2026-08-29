@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'f9ff035b1ed2e959263fa89f481065ca250f0ec2608140ec7b42c677b0a6dea3'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '98c8ed10e0ecb902c68c9ffabcb6ba943ab3e2a2aafac9f9abe70d74268db6a9'
+OPENAPI_SPEC_SHA256 = '4fdaca55068cc59dede2023dc2ea980547550ffaaf3808c8bc4f02435098488f'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'd9e50199dc1cda4d3f54d754e65fb72c5aad6f9e4e51894bb97f0bb5c567fe3c'
 OPENAPI_OPERATION_COUNT = 110
 OPENAPI_CLIENT_OPERATION_COUNT = 110
 
@@ -798,6 +798,8 @@ class _SchemaServiceApp(_SchemaServiceAppOptional):
 
 class _SchemaServiceAppList(TypedDict):
     items: list[_SchemaServiceApp]
+    catalogVersion: int
+    catalogEtag: str
 
 class _SchemaCreateServiceAppRequestOptional(TypedDict, total=False):
     description: str

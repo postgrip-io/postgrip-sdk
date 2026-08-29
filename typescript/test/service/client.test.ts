@@ -367,6 +367,17 @@ describe('ServiceClient', () => {
     }, { idempotencyKey: 'attach-1', ifMatch: '"service-catalog:4"' });
   });
 
+  it('exposes the catalog fence needed to create an app', async () => {
+    const fetchImpl = vi.fn(async () => Response.json({
+      items: [],
+      catalogVersion: 7,
+      catalogEtag: '"service-catalog:7"',
+    })) as typeof globalThis.fetch;
+    const response = await client(fetchImpl).administration.apps.list();
+    expect(response.catalogVersion).toBe(7);
+    expect(response.catalogEtag).toBe('"service-catalog:7"');
+  });
+
   it('uses per-environment fences instead of If-Match for bulk variable apply', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/project/project-id/variables/apply');

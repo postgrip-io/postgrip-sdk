@@ -580,7 +580,9 @@ type OpenAPIServiceApp struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 type OpenAPIServiceAppList struct {
-	Items []OpenAPIServiceApp `json:"items"`
+	Items          []OpenAPIServiceApp `json:"items"`
+	CatalogVersion int64               `json:"catalogVersion"`
+	CatalogEtag    string              `json:"catalogEtag"`
 }
 type OpenAPICreateServiceAppRequest struct {
 	Name        string  `json:"name"`
@@ -2059,4 +2061,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "f9ff035b1ed2e959263fa89f481065ca250f0ec2608140ec7b42c677b0a6dea3"
+const openAPITypesSpecSHA256 = "4fdaca55068cc59dede2023dc2ea980547550ffaaf3808c8bc4f02435098488f"
