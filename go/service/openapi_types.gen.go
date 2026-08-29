@@ -1171,7 +1171,7 @@ type OpenAPICreatePostGripConfigurationPlanRequest struct {
 	DesiredStateDigest     string                       `json:"desiredStateDigest"`
 	AllowAdoption          bool                         `json:"allowAdoption"`
 	Prune                  bool                         `json:"prune"`
-	AllowRemoval           bool                         `json:"allowRemoval"`
+	AllowRemoval           *bool                        `json:"allowRemoval,omitempty"`
 	RemovalDataDisposition *string                      `json:"removalDataDisposition,omitempty"`
 	ExpiresInSeconds       *int64                       `json:"expiresInSeconds,omitempty"`
 }
@@ -1324,7 +1324,7 @@ type OpenAPIApplyPostGripConfigurationPlanRequest struct {
 	PlanDigest             string            `json:"planDigest"`
 	AllowAdoption          bool              `json:"allowAdoption"`
 	Prune                  bool              `json:"prune"`
-	AllowRemoval           bool              `json:"allowRemoval"`
+	AllowRemoval           *bool             `json:"allowRemoval,omitempty"`
 	RemovalDataDisposition *string           `json:"removalDataDisposition,omitempty"`
 	SecretInputs           map[string]string `json:"secretInputs"`
 }
@@ -2093,4 +2093,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "6df405c0f7ceffe8351e199dde53f5d00a6e9b759039c0733848fca9ac71f2bb"
+const openAPITypesSpecSHA256 = "c9fe98a0fc56d92e93bf0eb5fc0480dc2074f9b65fc49b108154059b9845c2f2"
