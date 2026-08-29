@@ -12031,7 +12031,6 @@
           "ref",
           "name",
           "kind",
-          "containerPort",
           "domains",
           "variables"
         ],
@@ -12069,6 +12068,10 @@
           "buildCommand": {
             "type": "string",
             "maxLength": 4096
+          },
+          "outputDir": {
+            "type": "string",
+            "description": "Repository-relative static build output directory. Empty values use the imperative default; non-empty values cannot be absolute, resolve to the repository root, or traverse parent directories. Static deployments require build in WORKER_CAPABILITIES and WORKER_UNSAFE_HOST_BUILDS_ENABLED=true on the assigned Worker."
           },
           "containerPort": {
             "type": "integer",
@@ -12133,7 +12136,9 @@
           },
           "deploymentMode": {
             "type": "string",
+            "description": "Static mode is supported only for web projects whose framework does not require Docker.",
             "enum": [
+              "static",
               "docker",
               "nixpacks"
             ]
@@ -12504,6 +12509,9 @@
             "type": "string"
           },
           "buildCommand": {
+            "type": "string"
+          },
+          "outputDir": {
             "type": "string"
           },
           "containerPort": {

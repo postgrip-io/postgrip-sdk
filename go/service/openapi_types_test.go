@@ -69,7 +69,7 @@ func TestServiceEnvironmentSupportsAutomaticPlacement(t *testing.T) {
 
 func TestPostGripConfigurationEnvironmentSupportsAutomaticPlacement(t *testing.T) {
 	environment := OpenAPIPostGripConfigurationEnvironment{
-		Ref: "production", Name: "Production", Kind: "production", ContainerPort: 3000,
+		Ref: "production", Name: "Production", Kind: "production",
 		Domains: []OpenAPIPostGripConfigurationDomain{}, Variables: []OpenAPIPostGripConfigurationVariable{},
 	}
 	encoded, err := json.Marshal(environment)
@@ -78,5 +78,8 @@ func TestPostGripConfigurationEnvironmentSupportsAutomaticPlacement(t *testing.T
 	}
 	if bytes.Contains(encoded, []byte(`"assignedWorker"`)) {
 		t.Fatalf("automatic declarative placement emitted assignedWorker: %s", encoded)
+	}
+	if bytes.Contains(encoded, []byte(`"containerPort"`)) {
+		t.Fatalf("portless declarative environment emitted containerPort: %s", encoded)
 	}
 }

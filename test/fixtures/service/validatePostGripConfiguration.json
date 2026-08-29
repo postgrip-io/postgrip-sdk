@@ -12,10 +12,9 @@
         "spec": {
           "projects": [
             {
-              "deploymentMode": "docker",
+              "deploymentMode": "static",
               "environments": [
                 {
-                  "containerPort": 1,
                   "domains": [
                     {
                       "domain": "string",
@@ -69,10 +68,9 @@
         "spec": {
           "projects": [
             {
-              "deploymentMode": "docker",
+              "deploymentMode": "static",
               "environments": [
                 {
-                  "containerPort": 1,
                   "domains": [
                     {
                       "domain": "string",
