@@ -4,6 +4,7 @@
   "request": {
     "body": {
       "allowAdoption": true,
+      "allowRemoval": false,
       "configuration": {
         "apiVersion": "postgrip.io/v1alpha1",
         "kind": "Configuration",
@@ -66,6 +67,7 @@
   "response": {
     "body": {
       "allowAdoption": true,
+      "allowRemoval": true,
       "baseStackRevision": 1,
       "createdAt": "2026-01-01T00:00:00Z",
       "desiredStateDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

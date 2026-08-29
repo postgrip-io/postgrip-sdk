@@ -10643,6 +10643,7 @@
           "version",
           "workerIds",
           "environmentIds",
+          "deploymentCount",
           "activeDeploymentIds",
           "canonicalDnsDomainIds",
           "domainCount",
@@ -10676,6 +10677,11 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "deploymentCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           },
           "activeDeploymentIds": {
             "type": "array",
@@ -12314,7 +12320,8 @@
           "configuration",
           "desiredStateDigest",
           "allowAdoption",
-          "prune"
+          "prune",
+          "allowRemoval"
         ],
         "properties": {
           "configuration": {
@@ -12329,6 +12336,19 @@
           },
           "prune": {
             "type": "boolean"
+          },
+          "allowRemoval": {
+            "type": "boolean",
+            "example": false,
+            "description": "Explicitly authorizes removal of stack-owned projects and environments that are absent from the manifest. Requires prune=true."
+          },
+          "removalDataDisposition": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "delete"
+            ],
+            "description": "Required when an explicitly removed project or environment has managed volumes. The selected disposition is fenced into the immutable plan."
           },
           "expiresInSeconds": {
             "type": "integer",
@@ -12545,6 +12565,118 @@
           }
         }
       },
+      "PostGripConfigurationRemovalImpact": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resourceKind",
+          "resourceId",
+          "version",
+          "workerIds",
+          "environmentIds",
+          "deploymentCount",
+          "activeDeploymentIds",
+          "canonicalDnsDomainIds",
+          "domainCount",
+          "variableCount",
+          "hasRepositoryCredential",
+          "managed",
+          "volumes"
+        ],
+        "properties": {
+          "resourceKind": {
+            "type": "string",
+            "enum": [
+              "project",
+              "environment"
+            ]
+          },
+          "resourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dataDisposition": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "delete"
+            ]
+          },
+          "repositoryProvider": {
+            "type": "string"
+          },
+          "workerIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "environmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "deploymentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "deploymentCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "activeDeploymentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "canonicalDnsDomainIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "domainCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "variableCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "hasRepositoryCredential": {
+            "type": "boolean"
+          },
+          "managed": {
+            "type": "boolean"
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRemovalVolumeImpact"
+            }
+          }
+        }
+      },
       "PostGripConfigurationPlanAction": {
         "type": "object",
         "additionalProperties": false,
@@ -12643,6 +12775,9 @@
           },
           "secretVersion": {
             "type": "string"
+          },
+          "removalImpact": {
+            "$ref": "#/components/schemas/PostGripConfigurationRemovalImpact"
           }
         }
       },
@@ -12656,6 +12791,7 @@
           "desiredStateDigest",
           "allowAdoption",
           "prune",
+          "allowRemoval",
           "actions"
         ],
         "properties": {
@@ -12680,6 +12816,16 @@
           "prune": {
             "type": "boolean"
           },
+          "allowRemoval": {
+            "type": "boolean"
+          },
+          "removalDataDisposition": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "delete"
+            ]
+          },
           "actions": {
             "type": "array",
             "items": {
@@ -12700,6 +12846,7 @@
           "planDigest",
           "allowAdoption",
           "prune",
+          "allowRemoval",
           "state",
           "summary",
           "createdAt",
@@ -12737,6 +12884,16 @@
           },
           "prune": {
             "type": "boolean"
+          },
+          "allowRemoval": {
+            "type": "boolean"
+          },
+          "removalDataDisposition": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "delete"
+            ]
           },
           "state": {
             "type": "string",
@@ -12895,6 +13052,7 @@
           "planDigest",
           "allowAdoption",
           "prune",
+          "allowRemoval",
           "secretInputs"
         ],
         "properties": {
@@ -12907,6 +13065,17 @@
           },
           "prune": {
             "type": "boolean"
+          },
+          "allowRemoval": {
+            "type": "boolean",
+            "example": false
+          },
+          "removalDataDisposition": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "delete"
+            ]
           },
           "secretInputs": {
             "type": "object",

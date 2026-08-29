@@ -39,7 +39,7 @@ dependency for Agent signing; interactive sandbox WebSockets use the optional
 
 See the repository [quick start](../README.md), [authentication
 model](../docs/authentication.md), and [generated API
-reference](../docs/reference/782f9c8e8e4d1678cbf527943abc2b4534abfe42b01525aabd6483b2c499d98d/README.md).
+reference](../docs/reference/6ed478c9018006a0a7aa08992d482a354045317a2faedcf09f01c2a190b70e53/README.md).
 Durable public Worker creation is covered in the [Worker bootstrap
 guide](../docs/worker-bootstrap.md).
 
