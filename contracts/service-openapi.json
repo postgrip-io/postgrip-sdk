@@ -12339,6 +12339,7 @@
           },
           "allowRemoval": {
             "type": "boolean",
+            "example": false,
             "description": "Explicitly authorizes removal of stack-owned projects and environments that are absent from the manifest. Requires prune=true."
           },
           "removalDataDisposition": {
@@ -13066,7 +13067,8 @@
             "type": "boolean"
           },
           "allowRemoval": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": false
           },
           "removalDataDisposition": {
             "type": "string",

@@ -4,7 +4,7 @@
   "request": {
     "body": {
       "allowAdoption": true,
-      "allowRemoval": true,
+      "allowRemoval": false,
       "configuration": {
         "apiVersion": "postgrip.io/v1alpha1",
         "kind": "Configuration",
