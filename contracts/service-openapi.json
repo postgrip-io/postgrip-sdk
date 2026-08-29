@@ -12070,6 +12070,10 @@
             "type": "string",
             "maxLength": 4096
           },
+          "outputDir": {
+            "type": "string",
+            "description": "Repository-relative static build output directory. Static deployments require build in WORKER_CAPABILITIES and WORKER_UNSAFE_HOST_BUILDS_ENABLED=true on the assigned Worker."
+          },
           "containerPort": {
             "type": "integer",
             "minimum": 1,
@@ -12134,6 +12138,7 @@
           "deploymentMode": {
             "type": "string",
             "enum": [
+              "static",
               "docker",
               "nixpacks"
             ]
@@ -12504,6 +12509,9 @@
             "type": "string"
           },
           "buildCommand": {
+            "type": "string"
+          },
+          "outputDir": {
             "type": "string"
           },
           "containerPort": {

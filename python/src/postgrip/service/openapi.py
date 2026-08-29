@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '4fdaca55068cc59dede2023dc2ea980547550ffaaf3808c8bc4f02435098488f'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = 'd9e50199dc1cda4d3f54d754e65fb72c5aad6f9e4e51894bb97f0bb5c567fe3c'
+OPENAPI_SPEC_SHA256 = 'eb3eb6c5abde5e7f39a7467ed21140ff2ced8ccd17581defc5fe0b819821ad19'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'e8c1b7b8e7c1ea51d2f8201bf867b82a40cceac4c674479550d096f88135cd53'
 OPENAPI_OPERATION_COUNT = 110
 OPENAPI_CLIENT_OPERATION_COUNT = 110
 
@@ -1284,6 +1284,7 @@ class _SchemaPostGripConfigurationEnvironmentOptional(TypedDict, total=False):
     branchPattern: str
     assignedWorker: _SchemaPostGripConfigurationWorkerSelector
     buildCommand: str
+    outputDir: str
 
 class _SchemaPostGripConfigurationEnvironment(_SchemaPostGripConfigurationEnvironmentOptional):
     ref: str
@@ -1301,7 +1302,7 @@ class _SchemaPostGripConfigurationProject(_SchemaPostGripConfigurationProjectOpt
     name: str
     slug: str
     framework: str
-    deploymentMode: Literal['docker', 'nixpacks']
+    deploymentMode: Literal['static', 'docker', 'nixpacks']
     projectType: Literal['web', 'backend']
     repository: _SchemaPostGripConfigurationRepository
     environments: list[_SchemaPostGripConfigurationEnvironment]
@@ -1389,6 +1390,7 @@ class _SchemaPostGripConfigurationResourceProjectionOptional(TypedDict, total=Fa
     placementMode: Literal['automatic', 'project-default', 'explicit', 'reassigned', 'legacy']
     placementReason: str
     buildCommand: str
+    outputDir: str
     containerPort: int
     domain: str
     isPrimary: bool

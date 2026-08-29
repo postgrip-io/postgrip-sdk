@@ -1117,6 +1117,7 @@ type OpenAPIPostGripConfigurationEnvironment struct {
 	BranchPattern  *string                                     `json:"branchPattern,omitempty"`
 	AssignedWorker *OpenAPIPostGripConfigurationWorkerSelector `json:"assignedWorker,omitempty"`
 	BuildCommand   *string                                     `json:"buildCommand,omitempty"`
+	OutputDir      *string                                     `json:"outputDir,omitempty"`
 	ContainerPort  int64                                       `json:"containerPort"`
 	Domains        []OpenAPIPostGripConfigurationDomain        `json:"domains"`
 	Variables      []OpenAPIPostGripConfigurationVariable      `json:"variables"`
@@ -1211,6 +1212,7 @@ type OpenAPIPostGripConfigurationResourceProjection struct {
 	PlacementMode         *string  `json:"placementMode,omitempty"`
 	PlacementReason       *string  `json:"placementReason,omitempty"`
 	BuildCommand          *string  `json:"buildCommand,omitempty"`
+	OutputDir             *string  `json:"outputDir,omitempty"`
 	ContainerPort         *int64   `json:"containerPort,omitempty"`
 	Domain                *string  `json:"domain,omitempty"`
 	IsPrimary             *bool    `json:"isPrimary,omitempty"`
@@ -2061,4 +2063,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "4fdaca55068cc59dede2023dc2ea980547550ffaaf3808c8bc4f02435098488f"
+const openAPITypesSpecSHA256 = "eb3eb6c5abde5e7f39a7467ed21140ff2ced8ccd17581defc5fe0b819821ad19"
