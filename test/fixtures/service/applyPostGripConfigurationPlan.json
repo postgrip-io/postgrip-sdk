@@ -4,7 +4,6 @@
   "request": {
     "body": {
       "allowAdoption": true,
-      "allowRemoval": false,
       "planDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "prune": true,
       "secretInputs": {}

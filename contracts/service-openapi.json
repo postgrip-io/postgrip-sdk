@@ -12320,8 +12320,7 @@
           "configuration",
           "desiredStateDigest",
           "allowAdoption",
-          "prune",
-          "allowRemoval"
+          "prune"
         ],
         "properties": {
           "configuration": {
@@ -13052,7 +13051,6 @@
           "planDigest",
           "allowAdoption",
           "prune",
-          "allowRemoval",
           "secretInputs"
         ],
         "properties": {

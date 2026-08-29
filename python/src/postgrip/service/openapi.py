@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '6df405c0f7ceffe8351e199dde53f5d00a6e9b759039c0733848fca9ac71f2bb'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '6ed478c9018006a0a7aa08992d482a354045317a2faedcf09f01c2a190b70e53'
+OPENAPI_SPEC_SHA256 = 'c9fe98a0fc56d92e93bf0eb5fc0480dc2074f9b65fc49b108154059b9845c2f2'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '6615d580fefdc98d3f5ac8bb4a420355100f6dbacfc9a505afaa9ccec9d3db7f'
 OPENAPI_OPERATION_COUNT = 110
 OPENAPI_CLIENT_OPERATION_COUNT = 110
 
@@ -1343,6 +1343,7 @@ class _SchemaPostGripConfigurationValidationResult(TypedDict):
     resolvedWorkers: list[_SchemaPostGripConfigurationResolvedWorker]
 
 class _SchemaCreatePostGripConfigurationPlanRequestOptional(TypedDict, total=False):
+    allowRemoval: bool
     removalDataDisposition: Literal['retain', 'delete']
     expiresInSeconds: int
 
@@ -1351,7 +1352,6 @@ class _SchemaCreatePostGripConfigurationPlanRequest(_SchemaCreatePostGripConfigu
     desiredStateDigest: str
     allowAdoption: bool
     prune: bool
-    allowRemoval: bool
 
 class _SchemaPostGripConfigurationPlanSummary(TypedDict):
     total: int
@@ -1512,13 +1512,13 @@ class _SchemaPostGripConfigurationStack(_SchemaPostGripConfigurationStackOptiona
     updatedAt: str
 
 class _SchemaApplyPostGripConfigurationPlanRequestOptional(TypedDict, total=False):
+    allowRemoval: bool
     removalDataDisposition: Literal['retain', 'delete']
 
 class _SchemaApplyPostGripConfigurationPlanRequest(_SchemaApplyPostGripConfigurationPlanRequestOptional):
     planDigest: str
     allowAdoption: bool
     prune: bool
-    allowRemoval: bool
     secretInputs: dict[str, str]
 
 class _SchemaResubmitPostGripConfigurationSecretInputsRequest(TypedDict):
