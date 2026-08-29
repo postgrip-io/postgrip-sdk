@@ -2063,4 +2063,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "27e286164b9382e283da6de22cbe3c728cb15372363afadf027a8e8795ef19e0"
+const openAPITypesSpecSHA256 = "1423d2461ee03f63839075a403538f212346cf543baa19fba5142efffa2e3962"
