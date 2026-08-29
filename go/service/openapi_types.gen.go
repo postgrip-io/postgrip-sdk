@@ -777,6 +777,7 @@ type OpenAPIServiceRemovalImpact struct {
 	Version                 int64                               `json:"version"`
 	WorkerIds               []string                            `json:"workerIds"`
 	EnvironmentIds          []string                            `json:"environmentIds"`
+	DeploymentCount         int64                               `json:"deploymentCount"`
 	ActiveDeploymentIds     []string                            `json:"activeDeploymentIds"`
 	CanonicalDnsDomainIds   []string                            `json:"canonicalDnsDomainIds"`
 	DomainCount             int64                               `json:"domainCount"`
@@ -1166,11 +1167,13 @@ type OpenAPIPostGripConfigurationValidationResult struct {
 	ResolvedWorkers        []OpenAPIPostGripConfigurationResolvedWorker  `json:"resolvedWorkers"`
 }
 type OpenAPICreatePostGripConfigurationPlanRequest struct {
-	Configuration      OpenAPIPostGripConfiguration `json:"configuration"`
-	DesiredStateDigest string                       `json:"desiredStateDigest"`
-	AllowAdoption      bool                         `json:"allowAdoption"`
-	Prune              bool                         `json:"prune"`
-	ExpiresInSeconds   *int64                       `json:"expiresInSeconds,omitempty"`
+	Configuration          OpenAPIPostGripConfiguration `json:"configuration"`
+	DesiredStateDigest     string                       `json:"desiredStateDigest"`
+	AllowAdoption          bool                         `json:"allowAdoption"`
+	Prune                  bool                         `json:"prune"`
+	AllowRemoval           bool                         `json:"allowRemoval"`
+	RemovalDataDisposition *string                      `json:"removalDataDisposition,omitempty"`
+	ExpiresInSeconds       *int64                       `json:"expiresInSeconds,omitempty"`
 }
 type OpenAPIPostGripConfigurationPlanSummary struct {
 	Total           int64 `json:"total"`
@@ -1223,6 +1226,25 @@ type OpenAPIPostGripConfigurationResourceProjection struct {
 	InputName             *string  `json:"inputName,omitempty"`
 	SecretVersion         *string  `json:"secretVersion,omitempty"`
 }
+type OpenAPIPostGripConfigurationRemovalImpact struct {
+	ResourceKind            string                              `json:"resourceKind"`
+	ResourceId              string                              `json:"resourceId"`
+	ProjectId               *string                             `json:"projectId,omitempty"`
+	Version                 int64                               `json:"version"`
+	DataDisposition         *string                             `json:"dataDisposition,omitempty"`
+	RepositoryProvider      *string                             `json:"repositoryProvider,omitempty"`
+	WorkerIds               []string                            `json:"workerIds"`
+	EnvironmentIds          []string                            `json:"environmentIds"`
+	DeploymentIds           []string                            `json:"deploymentIds,omitempty"`
+	DeploymentCount         int64                               `json:"deploymentCount"`
+	ActiveDeploymentIds     []string                            `json:"activeDeploymentIds"`
+	CanonicalDnsDomainIds   []string                            `json:"canonicalDnsDomainIds"`
+	DomainCount             int64                               `json:"domainCount"`
+	VariableCount           int64                               `json:"variableCount"`
+	HasRepositoryCredential bool                                `json:"hasRepositoryCredential"`
+	Managed                 bool                                `json:"managed"`
+	Volumes                 []OpenAPIServiceRemovalVolumeImpact `json:"volumes"`
+}
 type OpenAPIPostGripConfigurationPlanAction struct {
 	Id             string                                          `json:"id"`
 	Kind           string                                          `json:"kind"`
@@ -1239,31 +1261,36 @@ type OpenAPIPostGripConfigurationPlanAction struct {
 	Drift          string                                          `json:"drift"`
 	SecretInputId  *string                                         `json:"secretInputId,omitempty"`
 	SecretVersion  *string                                         `json:"secretVersion,omitempty"`
+	RemovalImpact  *OpenAPIPostGripConfigurationRemovalImpact      `json:"removalImpact,omitempty"`
 }
 type OpenAPIPostGripConfigurationPlanDigestInput struct {
-	SchemaVersion      string                                   `json:"schemaVersion"`
-	StackKey           string                                   `json:"stackKey"`
-	BaseStackRevision  int64                                    `json:"baseStackRevision"`
-	DesiredStateDigest string                                   `json:"desiredStateDigest"`
-	AllowAdoption      bool                                     `json:"allowAdoption"`
-	Prune              bool                                     `json:"prune"`
-	Actions            []OpenAPIPostGripConfigurationPlanAction `json:"actions"`
+	SchemaVersion          string                                   `json:"schemaVersion"`
+	StackKey               string                                   `json:"stackKey"`
+	BaseStackRevision      int64                                    `json:"baseStackRevision"`
+	DesiredStateDigest     string                                   `json:"desiredStateDigest"`
+	AllowAdoption          bool                                     `json:"allowAdoption"`
+	Prune                  bool                                     `json:"prune"`
+	AllowRemoval           bool                                     `json:"allowRemoval"`
+	RemovalDataDisposition *string                                  `json:"removalDataDisposition,omitempty"`
+	Actions                []OpenAPIPostGripConfigurationPlanAction `json:"actions"`
 }
 type OpenAPIPostGripConfigurationPlan struct {
-	Id                 string                                  `json:"id"`
-	StackId            *string                                 `json:"stackId,omitempty"`
-	StackKey           string                                  `json:"stackKey"`
-	BaseStackRevision  int64                                   `json:"baseStackRevision"`
-	SchemaVersion      string                                  `json:"schemaVersion"`
-	DesiredStateDigest string                                  `json:"desiredStateDigest"`
-	PlanDigest         string                                  `json:"planDigest"`
-	AllowAdoption      bool                                    `json:"allowAdoption"`
-	Prune              bool                                    `json:"prune"`
-	State              string                                  `json:"state"`
-	Summary            OpenAPIPostGripConfigurationPlanSummary `json:"summary"`
-	CreatedAt          time.Time                               `json:"createdAt"`
-	ExpiresAt          time.Time                               `json:"expiresAt"`
-	Receipt            *OpenAPIOperationReceipt                `json:"receipt,omitempty"`
+	Id                     string                                  `json:"id"`
+	StackId                *string                                 `json:"stackId,omitempty"`
+	StackKey               string                                  `json:"stackKey"`
+	BaseStackRevision      int64                                   `json:"baseStackRevision"`
+	SchemaVersion          string                                  `json:"schemaVersion"`
+	DesiredStateDigest     string                                  `json:"desiredStateDigest"`
+	PlanDigest             string                                  `json:"planDigest"`
+	AllowAdoption          bool                                    `json:"allowAdoption"`
+	Prune                  bool                                    `json:"prune"`
+	AllowRemoval           bool                                    `json:"allowRemoval"`
+	RemovalDataDisposition *string                                 `json:"removalDataDisposition,omitempty"`
+	State                  string                                  `json:"state"`
+	Summary                OpenAPIPostGripConfigurationPlanSummary `json:"summary"`
+	CreatedAt              time.Time                               `json:"createdAt"`
+	ExpiresAt              time.Time                               `json:"expiresAt"`
+	Receipt                *OpenAPIOperationReceipt                `json:"receipt,omitempty"`
 }
 type OpenAPIPostGripConfigurationPlanActionList struct {
 	Items      []OpenAPIPostGripConfigurationPlanAction `json:"items"`
@@ -1294,10 +1321,12 @@ type OpenAPIPostGripConfigurationStack struct {
 	UpdatedAt          time.Time                                   `json:"updatedAt"`
 }
 type OpenAPIApplyPostGripConfigurationPlanRequest struct {
-	PlanDigest    string            `json:"planDigest"`
-	AllowAdoption bool              `json:"allowAdoption"`
-	Prune         bool              `json:"prune"`
-	SecretInputs  map[string]string `json:"secretInputs"`
+	PlanDigest             string            `json:"planDigest"`
+	AllowAdoption          bool              `json:"allowAdoption"`
+	Prune                  bool              `json:"prune"`
+	AllowRemoval           bool              `json:"allowRemoval"`
+	RemovalDataDisposition *string           `json:"removalDataDisposition,omitempty"`
+	SecretInputs           map[string]string `json:"secretInputs"`
 }
 type OpenAPIResubmitPostGripConfigurationSecretInputsRequest struct {
 	SecretInputs map[string]string `json:"secretInputs"`
@@ -2029,6 +2058,7 @@ type PostGripConfigurationValidationResult = OpenAPIPostGripConfigurationValidat
 type CreatePostGripConfigurationPlanRequest = OpenAPICreatePostGripConfigurationPlanRequest
 type PostGripConfigurationPlanSummary = OpenAPIPostGripConfigurationPlanSummary
 type PostGripConfigurationResourceProjection = OpenAPIPostGripConfigurationResourceProjection
+type PostGripConfigurationRemovalImpact = OpenAPIPostGripConfigurationRemovalImpact
 type PostGripConfigurationPlanAction = OpenAPIPostGripConfigurationPlanAction
 type PostGripConfigurationPlanDigestInput = OpenAPIPostGripConfigurationPlanDigestInput
 type PostGripConfigurationPlan = OpenAPIPostGripConfigurationPlan
@@ -2063,4 +2093,4 @@ type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
 
-const openAPITypesSpecSHA256 = "1423d2461ee03f63839075a403538f212346cf543baa19fba5142efffa2e3962"
+const openAPITypesSpecSHA256 = "a813a3901cde6565c42775544b5a8fbde279ab333ff3ad08d8f5a65199c065e3"
