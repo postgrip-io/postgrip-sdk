@@ -29,6 +29,7 @@ func (o WriteOptions) validate(conditional bool) error {
 	return nil
 }
 
+type AppsClient struct{ client *Client }
 type TargetServicesClient struct{ client *Client }
 type ProjectsClient struct{ client *Client }
 type ServiceEnvironmentsClient struct{ client *Client }
@@ -43,6 +44,7 @@ type ServiceRetentionClient struct{ client *Client }
 type ServiceConfigurationOperationsClient struct{ client *Client }
 type DeclarativeConfigurationClient struct{ client *Client }
 
+func (c *Client) Apps() AppsClient                     { return AppsClient{client: c} }
 func (c *Client) TargetServices() TargetServicesClient { return TargetServicesClient{client: c} }
 func (c *Client) Projects() ProjectsClient             { return ProjectsClient{client: c} }
 func (c *Client) EnvironmentAdministration() ServiceEnvironmentsClient {
@@ -71,6 +73,35 @@ func (c *Client) ServiceConfigurationOperations() ServiceConfigurationOperations
 }
 func (c *Client) DeclarativeConfiguration() DeclarativeConfigurationClient {
 	return DeclarativeConfigurationClient{client: c}
+}
+
+func (c AppsClient) List(ctx context.Context) (OpenAPIListServiceAppsResponseBody, error) {
+	return c.client.OpenAPI().ListServiceApps(ctx)
+}
+
+func (c AppsClient) Get(ctx context.Context, appID string) (OpenAPIGetServiceAppResponseBody, error) {
+	return c.client.OpenAPI().GetServiceApp(ctx, appID)
+}
+
+func (c AppsClient) Create(ctx context.Context, body OpenAPICreateServiceAppRequestBody, options WriteOptions) (OpenAPICreateServiceAppResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPICreateServiceAppResponseBody{}, err
+	}
+	return c.client.OpenAPI().CreateServiceApp(ctx, OpenAPICreateServiceAppHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+}
+
+func (c AppsClient) Update(ctx context.Context, appID string, body OpenAPIUpdateServiceAppRequestBody, options WriteOptions) (OpenAPIUpdateServiceAppResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIUpdateServiceAppResponseBody{}, err
+	}
+	return c.client.OpenAPI().UpdateServiceApp(ctx, appID, OpenAPIUpdateServiceAppHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+}
+
+func (c AppsClient) Delete(ctx context.Context, appID string, options WriteOptions) (OpenAPIDeleteServiceAppResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIDeleteServiceAppResponseBody{}, err
+	}
+	return c.client.OpenAPI().DeleteServiceApp(ctx, appID, OpenAPIDeleteServiceAppHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }
 
 func (c ServiceReleaseGroupsClient) List(ctx context.Context, query OpenAPIListServiceReleaseGroupsQuery) (OpenAPIListServiceReleaseGroupsResponseBody, error) {

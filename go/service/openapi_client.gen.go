@@ -513,6 +513,18 @@ func (p OpenAPICreatePostGripConfigurationPlanHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPICreateServiceAppHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPICreateServiceAppHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
 type OpenAPICreateServiceDNSPlanHeaders struct {
 	IdempotencyKey string
 }
@@ -587,6 +599,18 @@ type OpenAPICreateServiceVolumeHeaders struct {
 }
 
 func (p OpenAPICreateServiceVolumeHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
+type OpenAPIDeleteServiceAppHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPIDeleteServiceAppHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	values.Set("If-Match", fmt.Sprint(p.IfMatch))
@@ -951,6 +975,18 @@ func (p OpenAPIUnbindServiceVolumeHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIUpdateServiceAppHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPIUpdateServiceAppHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
 type OpenAPIUpdateServiceBuildLogSettingsHeaders struct {
 	IdempotencyKey string
 	IfMatch        string
@@ -1144,6 +1180,11 @@ func (c *OpenAPIClient) CreatePostGripConfigurationPlan(ctx context.Context, sta
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreatePostGripConfigurationPlan, map[string]string{"stackKey": stackKey}, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CreateServiceApp(ctx context.Context, headers OpenAPICreateServiceAppHeaders, body OpenAPICreateServiceAppRequestBody) (OpenAPICreateServiceAppResponseBody, error) {
+	var response OpenAPICreateServiceAppResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceApp, nil, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) CreateServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPICreateServiceDNSPlanHeaders, body OpenAPICreateServiceDNSPlanRequestBody) (OpenAPICreateServiceDNSPlanResponseBody, error) {
 	var response OpenAPICreateServiceDNSPlanResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
@@ -1177,6 +1218,11 @@ func (c *OpenAPIClient) CreateServiceVariable(ctx context.Context, serviceId str
 func (c *OpenAPIClient) CreateServiceVolume(ctx context.Context, serviceId string, headers OpenAPICreateServiceVolumeHeaders, body OpenAPICreateServiceVolumeRequestBody) (OpenAPICreateServiceVolumeResponseBody, error) {
 	var response OpenAPICreateServiceVolumeResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceVolume, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	return response, err
+}
+func (c *OpenAPIClient) DeleteServiceApp(ctx context.Context, appId string, headers OpenAPIDeleteServiceAppHeaders) (OpenAPIDeleteServiceAppResponseBody, error) {
+	var response OpenAPIDeleteServiceAppResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceApp, map[string]string{"appId": appId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceDomain(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIDeleteServiceDomainHeaders) (OpenAPIDeleteServiceDomainResponseBody, error) {
@@ -1242,6 +1288,11 @@ func (c *OpenAPIClient) GetPostGripConfigurationStackOperation(ctx context.Conte
 func (c *OpenAPIClient) GetService(ctx context.Context, source string, serviceId string) (OpenAPIGetServiceResponseBody, error) {
 	var response OpenAPIGetServiceResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetService, map[string]string{"source": source, "serviceId": serviceId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetServiceApp(ctx context.Context, appId string) (OpenAPIGetServiceAppResponseBody, error) {
+	var response OpenAPIGetServiceAppResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetServiceApp, map[string]string{"appId": appId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceBuildLogSettings(ctx context.Context, serviceId string) (OpenAPIGetServiceBuildLogSettingsResponseBody, error) {
@@ -1342,6 +1393,11 @@ func (c *OpenAPIClient) ListPostGripConfigurationPlanActions(ctx context.Context
 func (c *OpenAPIClient) ListPostGripConfigurationStackOperationActions(ctx context.Context, stackKey string, operationId string, query OpenAPIListPostGripConfigurationStackOperationActionsQuery) (OpenAPIListPostGripConfigurationStackOperationActionsResponseBody, error) {
 	var response OpenAPIListPostGripConfigurationStackOperationActionsResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIListPostGripConfigurationStackOperationActions, map[string]string{"stackKey": stackKey, "operationId": operationId}, query.values(), nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) ListServiceApps(ctx context.Context) (OpenAPIListServiceAppsResponseBody, error) {
+	var response OpenAPIListServiceAppsResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListServiceApps, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceConfigurationOperations(ctx context.Context, query OpenAPIListServiceConfigurationOperationsQuery) (OpenAPIListServiceConfigurationOperationsResponseBody, error) {
@@ -1544,6 +1600,11 @@ func (c *OpenAPIClient) UnbindServiceVolume(ctx context.Context, serviceId strin
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUnbindServiceVolume, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "volumeRef": volumeRef}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) UpdateServiceApp(ctx context.Context, appId string, headers OpenAPIUpdateServiceAppHeaders, body OpenAPIUpdateServiceAppRequestBody) (OpenAPIUpdateServiceAppResponseBody, error) {
+	var response OpenAPIUpdateServiceAppResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceApp, map[string]string{"appId": appId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) UpdateServiceBuildLogSettings(ctx context.Context, serviceId string, headers OpenAPIUpdateServiceBuildLogSettingsHeaders, body OpenAPIUpdateServiceBuildLogSettingsRequestBody) (OpenAPIUpdateServiceBuildLogSettingsResponseBody, error) {
 	var response OpenAPIUpdateServiceBuildLogSettingsResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceBuildLogSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
@@ -1607,6 +1668,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 105
+const OpenAPIClientOperationCount = 110
 
-const openAPIClientSpecSHA256 = "8214e2f9d30d2b37bbeced8360c6865089d3790061aba9b33e2236edd9883331"
+const openAPIClientSpecSHA256 = "4fdaca55068cc59dede2023dc2ea980547550ffaaf3808c8bc4f02435098488f"

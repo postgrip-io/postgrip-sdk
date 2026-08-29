@@ -35,6 +35,13 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	write := WriteOptions{IdempotencyKey: "operation-1", IfMatch: `"etag:1"`}
 	mutation := MutationOptions{IdempotencyKey: "operation-1"}
 
+	apps := client.Apps()
+	mustServiceResult(t, serviceResultError(apps.List(ctx)))
+	mustServiceResult(t, serviceResultError(apps.Get(ctx, "app-1")))
+	mustServiceResult(t, serviceResultError(apps.Create(ctx, OpenAPICreateServiceAppRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(apps.Update(ctx, "app-1", OpenAPIUpdateServiceAppRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(apps.Delete(ctx, "app-1", write)))
+
 	targets := client.TargetServices()
 	mustServiceResult(t, serviceResultError(targets.Attach(ctx, OpenAPIAttachTargetServiceRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(targets.Update(ctx, "target-1", OpenAPIUpdateTargetServiceRequestBody{}, write)))
@@ -148,8 +155,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
 	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
 
-	if calls.Load() != 87 {
-		t.Fatalf("transport calls=%d, want 87", calls.Load())
+	if calls.Load() != 92 {
+		t.Fatalf("transport calls=%d, want 92", calls.Load())
 	}
 }
 

@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "83e36290e5d9aaacb2acbbf76156b1ce092b940d19d46846e633c80759b70830",
+  "contractBundleDigest": "d9e50199dc1cda4d3f54d754e65fb72c5aad6f9e4e51894bb97f0bb5c567fe3c",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "8214e2f9d30d2b37bbeced8360c6865089d3790061aba9b33e2236edd9883331",
+    "service": "4fdaca55068cc59dede2023dc2ea980547550ffaaf3808c8bc4f02435098488f",
     "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
@@ -1828,6 +1828,37 @@
       "idempotency": "required",
       "method": "POST",
       "operationClass": "tenant-api",
+      "operationId": "createServiceApp",
+      "pagination": "none",
+      "path": "/api/v1/services/apps",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "CreateServiceAppRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceAppMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
       "operationId": "createServiceDNSPlan",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans",
@@ -2049,6 +2080,37 @@
       "responseSchema": "ServiceVolumeMutationResponse",
       "retry": "bounded",
       "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "deleteServiceApp",
+      "pagination": "none",
+      "path": "/api/v1/services/apps/{appId}",
+      "pathParameters": [
+        "appId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceAppDeletionResponse",
+      "retry": "bounded",
+      "safety": "destructive",
       "signing": null
     },
     {
@@ -2469,6 +2531,37 @@
         "application/json"
       ],
       "responseSchema": "Service",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceApp",
+      "pagination": "none",
+      "path": "/api/v1/services/apps/{appId}",
+      "pathParameters": [
+        "appId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceApp",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -3104,6 +3197,35 @@
         "application/json"
       ],
       "responseSchema": "PostGripConfigurationStackOperationActionList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceApps",
+      "pagination": "none",
+      "path": "/api/v1/services/apps",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceAppList",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -4401,6 +4523,39 @@
       "responseSchema": "ServiceVolumeBindingMutationResponse",
       "retry": "bounded",
       "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "updateServiceApp",
+      "pagination": "none",
+      "path": "/api/v1/services/apps/{appId}",
+      "pathParameters": [
+        "appId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateServiceAppRequest",
+      "requiredScopes": [
+        [
+          "services:config:write"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceAppMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
       "signing": null
     },
     {

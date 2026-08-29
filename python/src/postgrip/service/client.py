@@ -23,6 +23,8 @@ from .._internal.config import validate_base_url, validate_idempotency_key, vali
 from .._internal.pagination import iterate_pages, iterate_pages_async
 
 from .administration_types import (
+    AppsAdministration,
+    AsyncAppsAdministration,
     AsyncDeclarativeConfigurationAdministration,
     AsyncConfigurationOperationsAdministration,
     AsyncDomainsAdministration,
@@ -82,6 +84,10 @@ _MAXIMUM_RETRY_AFTER_DELAY = 30.0
 _REQUEST_CANCEL_EVENT: ContextVar[Event | None] = ContextVar("postgrip_service_request_cancel", default=None)
 
 _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
+    "apps": (
+        "list_service_apps", "get_service_app", "create_service_app",
+        "update_service_app", "delete_service_app",
+    ),
     "target_services": (
         "attach_target_service", "update_target_service", "get_target_service_removal_impact",
         "detach_target_service", "put_target_service_connection", "clear_target_service_connection",
@@ -326,8 +332,9 @@ class _AdministrationGroup:
 
 
 class ServiceAdministration:
-    """Grouped access to all 87 generated Service-administration operations."""
+    """Grouped access to all 92 generated Service-administration operations."""
 
+    apps: AppsAdministration
     target_services: TargetServicesAdministration
     projects: ProjectsAdministration
     environments: EnvironmentsAdministration
@@ -344,6 +351,7 @@ class ServiceAdministration:
 
     def __init__(self, transport: Callable[..., Any]) -> None:
         generated = OpenAPIClient(transport)
+        self.apps = cast(AppsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["apps"]))
         self.target_services = cast(TargetServicesAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["target_services"]))
         self.projects = cast(ProjectsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["projects"]))
         self.environments = cast(EnvironmentsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["environments"]))
@@ -362,6 +370,7 @@ class ServiceAdministration:
 class AsyncServiceAdministration:
     """Async grouped administration facade backed by the synchronous transport."""
 
+    apps: AsyncAppsAdministration
     target_services: AsyncTargetServicesAdministration
     projects: AsyncProjectsAdministration
     environments: AsyncEnvironmentsAdministration
@@ -377,6 +386,7 @@ class AsyncServiceAdministration:
     declarative_configuration: AsyncDeclarativeConfigurationAdministration
 
     def __init__(self, client: AsyncServiceClient, sync: ServiceAdministration) -> None:
+        self.apps = cast(AsyncAppsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.apps)))
         self.target_services = cast(AsyncTargetServicesAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.target_services)))
         self.projects = cast(AsyncProjectsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.projects)))
         self.environments = cast(AsyncEnvironmentsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.environments)))

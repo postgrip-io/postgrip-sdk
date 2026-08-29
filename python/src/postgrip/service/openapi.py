@@ -8,10 +8,10 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '8214e2f9d30d2b37bbeced8360c6865089d3790061aba9b33e2236edd9883331'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '83e36290e5d9aaacb2acbbf76156b1ce092b940d19d46846e633c80759b70830'
-OPENAPI_OPERATION_COUNT = 105
-OPENAPI_CLIENT_OPERATION_COUNT = 105
+OPENAPI_SPEC_SHA256 = '4fdaca55068cc59dede2023dc2ea980547550ffaaf3808c8bc4f02435098488f'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'd9e50199dc1cda4d3f54d754e65fb72c5aad6f9e4e51894bb97f0bb5c567fe3c'
+OPENAPI_OPERATION_COUNT = 110
+OPENAPI_CLIENT_OPERATION_COUNT = 110
 
 
 
@@ -29,6 +29,7 @@ class OperationId(str, Enum):
     CLEAR_SERVICE_VARIABLE_VALUE = 'clearServiceVariableValue'
     CLEAR_TARGET_SERVICE_CONNECTION = 'clearTargetServiceConnection'
     CREATE_POST_GRIP_CONFIGURATION_PLAN = 'createPostGripConfigurationPlan'
+    CREATE_SERVICE_APP = 'createServiceApp'
     CREATE_SERVICE_DNS_PLAN = 'createServiceDNSPlan'
     CREATE_SERVICE_DOMAIN = 'createServiceDomain'
     CREATE_SERVICE_ENVIRONMENT = 'createServiceEnvironment'
@@ -36,6 +37,7 @@ class OperationId(str, Enum):
     CREATE_SERVICE_RELEASE_GROUP = 'createServiceReleaseGroup'
     CREATE_SERVICE_VARIABLE = 'createServiceVariable'
     CREATE_SERVICE_VOLUME = 'createServiceVolume'
+    DELETE_SERVICE_APP = 'deleteServiceApp'
     DELETE_SERVICE_DOMAIN = 'deleteServiceDomain'
     DELETE_SERVICE_ENVIRONMENT = 'deleteServiceEnvironment'
     DELETE_SERVICE_PROJECT = 'deleteServiceProject'
@@ -49,6 +51,7 @@ class OperationId(str, Enum):
     GET_POST_GRIP_CONFIGURATION_STACK = 'getPostGripConfigurationStack'
     GET_POST_GRIP_CONFIGURATION_STACK_OPERATION = 'getPostGripConfigurationStackOperation'
     GET_SERVICE = 'getService'
+    GET_SERVICE_APP = 'getServiceApp'
     GET_SERVICE_BUILD_LOG_SETTINGS = 'getServiceBuildLogSettings'
     GET_SERVICE_CONFIGURATION_OPERATION = 'getServiceConfigurationOperation'
     GET_SERVICE_DNS_CANONICAL_STATE = 'getServiceDNSCanonicalState'
@@ -69,6 +72,7 @@ class OperationId(str, Enum):
     LIST_GIT_HUB_APP_REPOSITORIES = 'listGitHubAppRepositories'
     LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS = 'listPostGripConfigurationPlanActions'
     LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS = 'listPostGripConfigurationStackOperationActions'
+    LIST_SERVICE_APPS = 'listServiceApps'
     LIST_SERVICE_CONFIGURATION_OPERATIONS = 'listServiceConfigurationOperations'
     LIST_SERVICE_DNS_PLANS = 'listServiceDNSPlans'
     LIST_SERVICE_DEPLOYMENTS = 'listServiceDeployments'
@@ -109,6 +113,7 @@ class OperationId(str, Enum):
     TRIM_SERVICE_BUILD_LOGS = 'trimServiceBuildLogs'
     TRIM_SERVICE_RUNTIME_LOGS = 'trimServiceRuntimeLogs'
     UNBIND_SERVICE_VOLUME = 'unbindServiceVolume'
+    UPDATE_SERVICE_APP = 'updateServiceApp'
     UPDATE_SERVICE_BUILD_LOG_SETTINGS = 'updateServiceBuildLogSettings'
     UPDATE_SERVICE_DNS_FAILOVER_POLICY = 'updateServiceDNSFailoverPolicy'
     UPDATE_SERVICE_DOMAIN = 'updateServiceDomain'
@@ -779,6 +784,49 @@ class _SchemaGitHubRepositoryAdoptionRequest(TypedDict):
     previewId: str
     previewDigest: str
     repositoryEtag: str
+
+class _SchemaServiceAppOptional(TypedDict, total=False):
+    description: str
+
+class _SchemaServiceApp(_SchemaServiceAppOptional):
+    id: str
+    name: str
+    version: int
+    etag: str
+    createdAt: str
+    updatedAt: str
+
+class _SchemaServiceAppList(TypedDict):
+    items: list[_SchemaServiceApp]
+    catalogVersion: int
+    catalogEtag: str
+
+class _SchemaCreateServiceAppRequestOptional(TypedDict, total=False):
+    description: str
+
+class _SchemaCreateServiceAppRequest(_SchemaCreateServiceAppRequestOptional):
+    name: str
+
+class _SchemaUpdateServiceAppRequestOptional(TypedDict, total=False):
+    description: str
+
+class _SchemaUpdateServiceAppRequest(_SchemaUpdateServiceAppRequestOptional):
+    name: str
+
+class _SchemaServiceAppMutationResponse(TypedDict):
+    app: _SchemaServiceApp
+    effect: Literal['immediate']
+    configurationRevision: int
+    catalogRevision: int
+    receipt: _SchemaOperationReceipt
+
+class _SchemaServiceAppDeletionResponse(TypedDict):
+    effect: Literal['immediate']
+    configurationRevision: int
+    catalogRevision: int
+    detachedProjectCount: int
+    detachedTargetCount: int
+    receipt: _SchemaOperationReceipt
 
 class _SchemaServiceRepositoryOptional(TypedDict, total=False):
     projectPath: str
@@ -1806,6 +1854,12 @@ OpenAPIGitHubRepositoryList: TypeAlias = _SchemaGitHubRepositoryList
 OpenAPIGitHubRepositoryAdoptionPreviewRequest: TypeAlias = _SchemaGitHubRepositoryAdoptionPreviewRequest
 OpenAPIGitHubRepositoryAdoptionPreview: TypeAlias = _SchemaGitHubRepositoryAdoptionPreview
 OpenAPIGitHubRepositoryAdoptionRequest: TypeAlias = _SchemaGitHubRepositoryAdoptionRequest
+OpenAPIServiceApp: TypeAlias = _SchemaServiceApp
+OpenAPIServiceAppList: TypeAlias = _SchemaServiceAppList
+OpenAPICreateServiceAppRequest: TypeAlias = _SchemaCreateServiceAppRequest
+OpenAPIUpdateServiceAppRequest: TypeAlias = _SchemaUpdateServiceAppRequest
+OpenAPIServiceAppMutationResponse: TypeAlias = _SchemaServiceAppMutationResponse
+OpenAPIServiceAppDeletionResponse: TypeAlias = _SchemaServiceAppDeletionResponse
 OpenAPIServiceRepository: TypeAlias = _SchemaServiceRepository
 OpenAPIServiceAutomaticDeploymentWiring: TypeAlias = _SchemaServiceAutomaticDeploymentWiring
 OpenAPIServiceAutomaticDeploymentWiringStatus: TypeAlias = _SchemaServiceAutomaticDeploymentWiringStatus
@@ -1928,6 +1982,8 @@ ClearTargetServiceConnectionRequestBody: TypeAlias = None
 ClearTargetServiceConnectionResponseBody: TypeAlias = _SchemaServiceTargetMutationResponse
 CreatePostGripConfigurationPlanRequestBody: TypeAlias = _SchemaCreatePostGripConfigurationPlanRequest
 CreatePostGripConfigurationPlanResponseBody: TypeAlias = _SchemaPostGripConfigurationPlan
+CreateServiceAppRequestBody: TypeAlias = _SchemaCreateServiceAppRequest
+CreateServiceAppResponseBody: TypeAlias = _SchemaServiceAppMutationResponse
 CreateServiceDNSPlanRequestBody: TypeAlias = _SchemaCreateServiceDNSPlanRequest
 CreateServiceDNSPlanResponseBody: TypeAlias = _SchemaServiceDNSPlan
 CreateServiceDomainRequestBody: TypeAlias = _SchemaCreateServiceDomainRequest
@@ -1942,6 +1998,8 @@ CreateServiceVariableRequestBody: TypeAlias = _SchemaCreateServiceVariableReques
 CreateServiceVariableResponseBody: TypeAlias = _SchemaServiceVariableMutationResponse
 CreateServiceVolumeRequestBody: TypeAlias = _SchemaCreateServiceVolumeRequest
 CreateServiceVolumeResponseBody: TypeAlias = _SchemaServiceVolumeMutationResponse
+DeleteServiceAppRequestBody: TypeAlias = None
+DeleteServiceAppResponseBody: TypeAlias = _SchemaServiceAppDeletionResponse
 DeleteServiceDomainRequestBody: TypeAlias = None
 DeleteServiceDomainResponseBody: TypeAlias = _SchemaServiceDomainMutationResponse
 DeleteServiceEnvironmentRequestBody: TypeAlias = _SchemaConfirmedDeletionRequest
@@ -1968,6 +2026,8 @@ GetPostGripConfigurationStackOperationRequestBody: TypeAlias = None
 GetPostGripConfigurationStackOperationResponseBody: TypeAlias = _SchemaPostGripConfigurationStackOperation
 GetServiceRequestBody: TypeAlias = None
 GetServiceResponseBody: TypeAlias = _SchemaService
+GetServiceAppRequestBody: TypeAlias = None
+GetServiceAppResponseBody: TypeAlias = _SchemaServiceApp
 GetServiceBuildLogSettingsRequestBody: TypeAlias = None
 GetServiceBuildLogSettingsResponseBody: TypeAlias = _SchemaServiceBuildLogStatus
 GetServiceConfigurationOperationRequestBody: TypeAlias = None
@@ -2008,6 +2068,8 @@ ListPostGripConfigurationPlanActionsRequestBody: TypeAlias = None
 ListPostGripConfigurationPlanActionsResponseBody: TypeAlias = _SchemaPostGripConfigurationPlanActionList
 ListPostGripConfigurationStackOperationActionsRequestBody: TypeAlias = None
 ListPostGripConfigurationStackOperationActionsResponseBody: TypeAlias = _SchemaPostGripConfigurationStackOperationActionList
+ListServiceAppsRequestBody: TypeAlias = None
+ListServiceAppsResponseBody: TypeAlias = _SchemaServiceAppList
 ListServiceConfigurationOperationsRequestBody: TypeAlias = None
 ListServiceConfigurationOperationsResponseBody: TypeAlias = _SchemaServiceConfigurationOperationList
 ListServiceDNSPlansRequestBody: TypeAlias = None
@@ -2088,6 +2150,8 @@ TrimServiceRuntimeLogsRequestBody: TypeAlias = None
 TrimServiceRuntimeLogsResponseBody: TypeAlias = _SchemaServiceRuntimeLogMutationResponse
 UnbindServiceVolumeRequestBody: TypeAlias = None
 UnbindServiceVolumeResponseBody: TypeAlias = _SchemaServiceVolumeBindingMutationResponse
+UpdateServiceAppRequestBody: TypeAlias = _SchemaUpdateServiceAppRequest
+UpdateServiceAppResponseBody: TypeAlias = _SchemaServiceAppMutationResponse
 UpdateServiceBuildLogSettingsRequestBody: TypeAlias = _SchemaServiceBuildLogSettingsRequest
 UpdateServiceBuildLogSettingsResponseBody: TypeAlias = _SchemaServiceBuildLogSettingsMutationResponse
 UpdateServiceDNSFailoverPolicyRequestBody: TypeAlias = _SchemaUpdateServiceDNSFailoverPolicyRequest
@@ -2127,6 +2191,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.CLEAR_SERVICE_VARIABLE_VALUE: (ClearServiceVariableValueRequestBody, ClearServiceVariableValueResponseBody),
     OperationId.CLEAR_TARGET_SERVICE_CONNECTION: (ClearTargetServiceConnectionRequestBody, ClearTargetServiceConnectionResponseBody),
     OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN: (CreatePostGripConfigurationPlanRequestBody, CreatePostGripConfigurationPlanResponseBody),
+    OperationId.CREATE_SERVICE_APP: (CreateServiceAppRequestBody, CreateServiceAppResponseBody),
     OperationId.CREATE_SERVICE_DNS_PLAN: (CreateServiceDNSPlanRequestBody, CreateServiceDNSPlanResponseBody),
     OperationId.CREATE_SERVICE_DOMAIN: (CreateServiceDomainRequestBody, CreateServiceDomainResponseBody),
     OperationId.CREATE_SERVICE_ENVIRONMENT: (CreateServiceEnvironmentRequestBody, CreateServiceEnvironmentResponseBody),
@@ -2134,6 +2199,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.CREATE_SERVICE_RELEASE_GROUP: (CreateServiceReleaseGroupRequestBody, CreateServiceReleaseGroupResponseBody),
     OperationId.CREATE_SERVICE_VARIABLE: (CreateServiceVariableRequestBody, CreateServiceVariableResponseBody),
     OperationId.CREATE_SERVICE_VOLUME: (CreateServiceVolumeRequestBody, CreateServiceVolumeResponseBody),
+    OperationId.DELETE_SERVICE_APP: (DeleteServiceAppRequestBody, DeleteServiceAppResponseBody),
     OperationId.DELETE_SERVICE_DOMAIN: (DeleteServiceDomainRequestBody, DeleteServiceDomainResponseBody),
     OperationId.DELETE_SERVICE_ENVIRONMENT: (DeleteServiceEnvironmentRequestBody, DeleteServiceEnvironmentResponseBody),
     OperationId.DELETE_SERVICE_PROJECT: (DeleteServiceProjectRequestBody, DeleteServiceProjectResponseBody),
@@ -2147,6 +2213,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.GET_POST_GRIP_CONFIGURATION_STACK: (GetPostGripConfigurationStackRequestBody, GetPostGripConfigurationStackResponseBody),
     OperationId.GET_POST_GRIP_CONFIGURATION_STACK_OPERATION: (GetPostGripConfigurationStackOperationRequestBody, GetPostGripConfigurationStackOperationResponseBody),
     OperationId.GET_SERVICE: (GetServiceRequestBody, GetServiceResponseBody),
+    OperationId.GET_SERVICE_APP: (GetServiceAppRequestBody, GetServiceAppResponseBody),
     OperationId.GET_SERVICE_BUILD_LOG_SETTINGS: (GetServiceBuildLogSettingsRequestBody, GetServiceBuildLogSettingsResponseBody),
     OperationId.GET_SERVICE_CONFIGURATION_OPERATION: (GetServiceConfigurationOperationRequestBody, GetServiceConfigurationOperationResponseBody),
     OperationId.GET_SERVICE_DNS_CANONICAL_STATE: (GetServiceDNSCanonicalStateRequestBody, GetServiceDNSCanonicalStateResponseBody),
@@ -2167,6 +2234,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.LIST_GIT_HUB_APP_REPOSITORIES: (ListGitHubAppRepositoriesRequestBody, ListGitHubAppRepositoriesResponseBody),
     OperationId.LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS: (ListPostGripConfigurationPlanActionsRequestBody, ListPostGripConfigurationPlanActionsResponseBody),
     OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS: (ListPostGripConfigurationStackOperationActionsRequestBody, ListPostGripConfigurationStackOperationActionsResponseBody),
+    OperationId.LIST_SERVICE_APPS: (ListServiceAppsRequestBody, ListServiceAppsResponseBody),
     OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: (ListServiceConfigurationOperationsRequestBody, ListServiceConfigurationOperationsResponseBody),
     OperationId.LIST_SERVICE_DNS_PLANS: (ListServiceDNSPlansRequestBody, ListServiceDNSPlansResponseBody),
     OperationId.LIST_SERVICE_DEPLOYMENTS: (ListServiceDeploymentsRequestBody, ListServiceDeploymentsResponseBody),
@@ -2207,6 +2275,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.TRIM_SERVICE_BUILD_LOGS: (TrimServiceBuildLogsRequestBody, TrimServiceBuildLogsResponseBody),
     OperationId.TRIM_SERVICE_RUNTIME_LOGS: (TrimServiceRuntimeLogsRequestBody, TrimServiceRuntimeLogsResponseBody),
     OperationId.UNBIND_SERVICE_VOLUME: (UnbindServiceVolumeRequestBody, UnbindServiceVolumeResponseBody),
+    OperationId.UPDATE_SERVICE_APP: (UpdateServiceAppRequestBody, UpdateServiceAppResponseBody),
     OperationId.UPDATE_SERVICE_BUILD_LOG_SETTINGS: (UpdateServiceBuildLogSettingsRequestBody, UpdateServiceBuildLogSettingsResponseBody),
     OperationId.UPDATE_SERVICE_DNS_FAILOVER_POLICY: (UpdateServiceDNSFailoverPolicyRequestBody, UpdateServiceDNSFailoverPolicyResponseBody),
     OperationId.UPDATE_SERVICE_DOMAIN: (UpdateServiceDomainRequestBody, UpdateServiceDomainResponseBody),
@@ -2267,6 +2336,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.CLEAR_SERVICE_VARIABLE_VALUE: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId', 'variableId')),
     OperationId.CLEAR_TARGET_SERVICE_CONNECTION: OpenAPIOperation('DELETE', '/api/v1/services/target/{serviceId}/connection', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceTargetMutationResponse', ('serviceId',)),
     OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN: OpenAPIOperation('POST', '/api/v1/services/configuration-stacks/{stackKey}/plans', 'service-management', 'read-only', 'bounded', '', False, False, 'CreatePostGripConfigurationPlanRequest', 'PostGripConfigurationPlan', ('stackKey',)),
+    OperationId.CREATE_SERVICE_APP: OpenAPIOperation('POST', '/api/v1/services/apps', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceAppRequest', 'ServiceAppMutationResponse', ()),
     OperationId.CREATE_SERVICE_DNS_PLAN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceDNSPlanRequest', 'ServiceDNSPlan', ('serviceId', 'environmentId', 'domainId')),
     OperationId.CREATE_SERVICE_DOMAIN: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId')),
     OperationId.CREATE_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceEnvironmentRequest', 'ServiceEnvironmentMutationResponse', ('serviceId',)),
@@ -2274,6 +2344,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.CREATE_SERVICE_RELEASE_GROUP: OpenAPIOperation('POST', '/api/v1/services/release-groups', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceReleaseGroupRequest', 'ServiceReleaseGroup', ()),
     OperationId.CREATE_SERVICE_VARIABLE: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceVariableRequest', 'ServiceVariableMutationResponse', ('serviceId', 'environmentId')),
     OperationId.CREATE_SERVICE_VOLUME: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/volumes', 'service-management', 'mutation', 'bounded', '', False, False, 'CreateServiceVolumeRequest', 'ServiceVolumeMutationResponse', ('serviceId',)),
+    OperationId.DELETE_SERVICE_APP: OpenAPIOperation('DELETE', '/api/v1/services/apps/{appId}', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceAppDeletionResponse', ('appId',)),
     OperationId.DELETE_SERVICE_DOMAIN: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId', 'domainId')),
     OperationId.DELETE_SERVICE_ENVIRONMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/delete', 'service-management', 'destructive', 'bounded', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId', 'environmentId')),
     OperationId.DELETE_SERVICE_PROJECT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/delete', 'service-management', 'destructive', 'bounded', '', False, False, 'ConfirmedDeletionRequest', 'ServiceDeletionResponse', ('serviceId',)),
@@ -2287,6 +2358,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.GET_POST_GRIP_CONFIGURATION_STACK: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationStack', ('stackKey',)),
     OperationId.GET_POST_GRIP_CONFIGURATION_STACK_OPERATION: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationStackOperation', ('stackKey', 'operationId')),
     OperationId.GET_SERVICE: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'Service', ('source', 'serviceId')),
+    OperationId.GET_SERVICE_APP: OpenAPIOperation('GET', '/api/v1/services/apps/{appId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceApp', ('appId',)),
     OperationId.GET_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceBuildLogStatus', ('serviceId',)),
     OperationId.GET_SERVICE_CONFIGURATION_OPERATION: OpenAPIOperation('GET', '/api/v1/services/configuration-operations/{operationId}', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceConfigurationOperation', ('operationId',)),
     OperationId.GET_SERVICE_DNS_CANONICAL_STATE: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDNSCanonicalState', ('serviceId', 'environmentId', 'domainId')),
@@ -2307,6 +2379,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.LIST_GIT_HUB_APP_REPOSITORIES: OpenAPIOperation('GET', '/api/v1/services/integrations/github/repositories', 'service-management', 'read-only', 'bounded', '', False, False, '', 'GitHubRepositoryList', ()),
     OperationId.LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationPlanActionList', ('stackKey', 'planId')),
     OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationStackOperationActionList', ('stackKey', 'operationId')),
+    OperationId.LIST_SERVICE_APPS: OpenAPIOperation('GET', '/api/v1/services/apps', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceAppList', ()),
     OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-operations', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceConfigurationOperationList', ()),
     OperationId.LIST_SERVICE_DNS_PLANS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDNSPlanList', ('serviceId', 'environmentId', 'domainId')),
     OperationId.LIST_SERVICE_DEPLOYMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/deployments', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeploymentList', ('source', 'serviceId')),
@@ -2347,6 +2420,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.TRIM_SERVICE_BUILD_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/build/trim', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceBuildLogMaintenanceResponse', ('serviceId',)),
     OperationId.TRIM_SERVICE_RUNTIME_LOGS: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/logs/runtime/trim', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceRuntimeLogMutationResponse', ('serviceId',)),
     OperationId.UNBIND_SERVICE_VOLUME: OpenAPIOperation('DELETE', '/api/v1/services/project/{serviceId}/environments/{environmentId}/volume-bindings/{volumeRef}', 'service-management', 'destructive', 'bounded', '', False, False, '', 'ServiceVolumeBindingMutationResponse', ('serviceId', 'environmentId', 'volumeRef')),
+    OperationId.UPDATE_SERVICE_APP: OpenAPIOperation('PUT', '/api/v1/services/apps/{appId}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceAppRequest', 'ServiceAppMutationResponse', ('appId',)),
     OperationId.UPDATE_SERVICE_BUILD_LOG_SETTINGS: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/logs/build/settings', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceBuildLogSettingsRequest', 'ServiceBuildLogSettingsMutationResponse', ('serviceId',)),
     OperationId.UPDATE_SERVICE_DNS_FAILOVER_POLICY: OpenAPIOperation('PUT', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/failover-policy', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceDNSFailoverPolicyRequest', 'ServiceDNSFailoverPolicy', ('serviceId', 'environmentId', 'domainId')),
     OperationId.UPDATE_SERVICE_DOMAIN: OpenAPIOperation('PATCH', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}', 'service-management', 'mutation', 'bounded', '', False, False, 'UpdateServiceDomainRequest', 'ServiceDomainMutationResponse', ('serviceId', 'environmentId', 'domainId')),
@@ -2474,6 +2548,12 @@ class OpenAPIClient:
         _headers['Idempotency-Key'] = str(idempotency_key)
         return cast(CreatePostGripConfigurationPlanResponseBody, self._transport(OperationId.CREATE_POST_GRIP_CONFIGURATION_PLAN, body, path_parameters={'stackKey': stack_key}, headers=_headers))
 
+    def create_service_app(self, body: CreateServiceAppRequestBody, *, idempotency_key: str, if_match: str) -> CreateServiceAppResponseBody:
+        _headers: dict[str, str] = {}
+        _headers['Idempotency-Key'] = str(idempotency_key)
+        _headers['If-Match'] = str(if_match)
+        return cast(CreateServiceAppResponseBody, self._transport(OperationId.CREATE_SERVICE_APP, body, headers=_headers))
+
     def create_service_dns_plan(self, service_id: str, environment_id: str, domain_id: str, body: CreateServiceDNSPlanRequestBody, *, idempotency_key: str) -> CreateServiceDNSPlanResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
@@ -2513,6 +2593,12 @@ class OpenAPIClient:
         _headers['Idempotency-Key'] = str(idempotency_key)
         _headers['If-Match'] = str(if_match)
         return cast(CreateServiceVolumeResponseBody, self._transport(OperationId.CREATE_SERVICE_VOLUME, body, path_parameters={'serviceId': service_id}, headers=_headers))
+
+    def delete_service_app(self, app_id: str, *, idempotency_key: str, if_match: str) -> DeleteServiceAppResponseBody:
+        _headers: dict[str, str] = {}
+        _headers['Idempotency-Key'] = str(idempotency_key)
+        _headers['If-Match'] = str(if_match)
+        return cast(DeleteServiceAppResponseBody, self._transport(OperationId.DELETE_SERVICE_APP, path_parameters={'appId': app_id}, headers=_headers))
 
     def delete_service_domain(self, service_id: str, environment_id: str, domain_id: str, *, idempotency_key: str, if_match: str) -> DeleteServiceDomainResponseBody:
         _headers: dict[str, str] = {}
@@ -2580,6 +2666,9 @@ class OpenAPIClient:
 
     def get_service(self, source: _SchemaServiceSource, service_id: str) -> GetServiceResponseBody:
         return cast(GetServiceResponseBody, self._transport(OperationId.GET_SERVICE, path_parameters={'source': source, 'serviceId': service_id}))
+
+    def get_service_app(self, app_id: str) -> GetServiceAppResponseBody:
+        return cast(GetServiceAppResponseBody, self._transport(OperationId.GET_SERVICE_APP, path_parameters={'appId': app_id}))
 
     def get_service_build_log_settings(self, service_id: str) -> GetServiceBuildLogSettingsResponseBody:
         return cast(GetServiceBuildLogSettingsResponseBody, self._transport(OperationId.GET_SERVICE_BUILD_LOG_SETTINGS, path_parameters={'serviceId': service_id}))
@@ -2653,6 +2742,9 @@ class OpenAPIClient:
         if limit is not None: _query['limit'] = limit
         if cursor is not None: _query['cursor'] = cursor
         return cast(ListPostGripConfigurationStackOperationActionsResponseBody, self._transport(OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS, path_parameters={'stackKey': stack_key, 'operationId': operation_id}, query=_query))
+
+    def list_service_apps(self) -> ListServiceAppsResponseBody:
+        return cast(ListServiceAppsResponseBody, self._transport(OperationId.LIST_SERVICE_APPS))
 
     def list_service_configuration_operations(self, *, limit: int | None = None, cursor: str | None = None, service_ref: str | None = None, state: Literal['pending', 'applying', 'succeeded', 'failed', 'blocked'] | None = None) -> ListServiceConfigurationOperationsResponseBody:
         _query: dict[str, Any] = {}
@@ -2880,6 +2972,12 @@ class OpenAPIClient:
         _headers['If-Match'] = str(if_match)
         return cast(UnbindServiceVolumeResponseBody, self._transport(OperationId.UNBIND_SERVICE_VOLUME, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'volumeRef': volume_ref}, headers=_headers))
 
+    def update_service_app(self, app_id: str, body: UpdateServiceAppRequestBody, *, idempotency_key: str, if_match: str) -> UpdateServiceAppResponseBody:
+        _headers: dict[str, str] = {}
+        _headers['Idempotency-Key'] = str(idempotency_key)
+        _headers['If-Match'] = str(if_match)
+        return cast(UpdateServiceAppResponseBody, self._transport(OperationId.UPDATE_SERVICE_APP, body, path_parameters={'appId': app_id}, headers=_headers))
+
     def update_service_build_log_settings(self, service_id: str, body: UpdateServiceBuildLogSettingsRequestBody, *, idempotency_key: str, if_match: str) -> UpdateServiceBuildLogSettingsResponseBody:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
@@ -3006,4 +3104,4 @@ def resolve_openapi_operation(
     )
 
 
-__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIErrorResponse', 'OpenAPIOperationReceipt', 'OpenAPIServiceReleaseVerificationPolicy', 'OpenAPIServiceReleaseGroupState', 'OpenAPIServiceReleaseGroupMemberState', 'OpenAPIServiceReleaseGroupMemberRequest', 'OpenAPIPreviewServiceReleaseGroupRequest', 'OpenAPICreateServiceReleaseGroupRequest', 'OpenAPIServiceReleaseGroupPreviewMember', 'OpenAPIServiceReleaseGroupPreview', 'OpenAPIServiceReleaseGroupMemberReceipt', 'OpenAPIServiceReleaseGroupMember', 'OpenAPIServiceReleaseGroup', 'OpenAPIServiceReleaseGroupList', 'OpenAPIServiceReleaseGroupEvent', 'OpenAPIServiceReleaseGroupEventList', 'OpenAPIServiceSource', 'OpenAPIServiceKind', 'OpenAPIServiceMode', 'OpenAPIServiceStatusValue', 'OpenAPIServiceCapability', 'OpenAPIServiceWorker', 'OpenAPIServiceFacet', 'OpenAPIService', 'OpenAPIEnvironment', 'OpenAPIDeployment', 'OpenAPIServiceStatus', 'OpenAPIServiceList', 'OpenAPIEnvironmentList', 'OpenAPIDeploymentList', 'OpenAPILogEntry', 'OpenAPILogList', 'OpenAPICheckServiceRequest', 'OpenAPIDeployPreview', 'OpenAPIDeployServiceRequest', 'OpenAPIRedeployServiceRequest', 'OpenAPIRuntimeOperationRequest', 'OpenAPIServiceOperationResponse', 'OpenAPIDeploymentOperationResponse', 'OpenAPIServiceTargetMetadataRequest', 'OpenAPIServiceTargetMetadataUpdateRequest', 'OpenAPIAttachTargetServiceRequest', 'OpenAPIUpdateTargetServiceRequest', 'OpenAPITargetServiceConnectionRequest', 'OpenAPIServiceRepositoryWriteRequest', 'OpenAPICreateServiceProjectRequest', 'OpenAPIUpdateServiceProjectRequest', 'OpenAPICreateServiceEnvironmentRequest', 'OpenAPIUpdateServiceEnvironmentRequest', 'OpenAPIServiceVolumeDisposition', 'OpenAPIConfirmedDeletionRequest', 'OpenAPIServiceEnvironmentReassignmentPreviewRequest', 'OpenAPIServiceEnvironmentReassignmentRequest', 'OpenAPICreateServiceVolumeRequest', 'OpenAPIBindServiceVolumeRequest', 'OpenAPIUpdateServiceVolumeBindingRequest', 'OpenAPICreateServiceDomainRequest', 'OpenAPIUpdateServiceDomainRequest', 'OpenAPICreateServiceVariableRequest', 'OpenAPIUpdateServiceVariableRequest', 'OpenAPIServiceVariableValueRequest', 'OpenAPIServiceVariableApplyChange', 'OpenAPIApplyServiceVariablesRequest', 'OpenAPIUpdateServiceRepositoryRequest', 'OpenAPIServiceRepositoryCredentialRequest', 'OpenAPIPromoteServiceDeploymentRequest', 'OpenAPIServiceBuildLogSettingsRequest', 'OpenAPIServiceRuntimeLogSettingsRequest', 'OpenAPIServiceTarget', 'OpenAPIGitHubRepositoryPermission', 'OpenAPIGitHubRepository', 'OpenAPIGitHubRepositoryList', 'OpenAPIGitHubRepositoryAdoptionPreviewRequest', 'OpenAPIGitHubRepositoryAdoptionPreview', 'OpenAPIGitHubRepositoryAdoptionRequest', 'OpenAPIServiceRepository', 'OpenAPIServiceAutomaticDeploymentWiring', 'OpenAPIServiceAutomaticDeploymentWiringStatus', 'OpenAPIServiceProject', 'OpenAPIServiceVolumeBinding', 'OpenAPIServiceEnvironmentPlacement', 'OpenAPIServiceEnvironmentConfiguration', 'OpenAPIServiceVolume', 'OpenAPIServiceVolumeList', 'OpenAPIServiceDomain', 'OpenAPIServiceDomainList', 'OpenAPIServiceDomainLayerObservation', 'OpenAPIServiceDomainTlsObservation', 'OpenAPIServiceDomainHttpObservation', 'OpenAPIServiceDomainVerification', 'OpenAPIServiceVariable', 'OpenAPIServiceVariableList', 'OpenAPIServiceRemovalVolumeImpact', 'OpenAPIServiceRemovalImpact', 'OpenAPIServiceReassignmentVolumeImpact', 'OpenAPIServiceEnvironmentReassignmentPreview', 'OpenAPIServicePromotionPreview', 'OpenAPIServiceBuildLogStatus', 'OpenAPIServiceRuntimeLogWorkerStatus', 'OpenAPIServiceRuntimeLogStatus', 'OpenAPIServiceConfigurationTargetState', 'OpenAPIServiceConfigurationOperation', 'OpenAPIServiceConfigurationOperationList', 'OpenAPIServiceMutationResponse', 'OpenAPIServiceTargetMutationResponse', 'OpenAPIServiceProjectMutationResponse', 'OpenAPIServiceEnvironmentMutationResponse', 'OpenAPIServiceVolumeMutationResponse', 'OpenAPIServiceVolumeBindingMutationResponse', 'OpenAPIServiceDomainMutationResponse', 'OpenAPIServiceVariableMutationResponse', 'OpenAPIServiceRepositoryMutationResponse', 'OpenAPIServiceDeletionResponse', 'OpenAPIServiceRuntimeLogMutationResponse', 'OpenAPIServiceBuildLogSettingsMutationResponse', 'OpenAPIServiceBuildLogMaintenanceResponse', 'OpenAPIServiceVariableApplyResult', 'OpenAPIServiceVariablesApplyResponse', 'OpenAPIPostGripConfigurationMetadata', 'OpenAPIPostGripConfigurationWorkerSelector', 'OpenAPIPostGripConfigurationRepository', 'OpenAPIPostGripConfigurationDomain', 'OpenAPIPostGripConfigurationSecretSource', 'OpenAPIPostGripConfigurationPlainVariable', 'OpenAPIPostGripConfigurationSecretVariable', 'OpenAPIPostGripConfigurationVariable', 'OpenAPIPostGripConfigurationEnvironment', 'OpenAPIPostGripConfigurationProject', 'OpenAPIPostGripConfigurationSpec', 'OpenAPIPostGripConfiguration', 'OpenAPIPostGripConfigurationValidationIssue', 'OpenAPIPostGripConfigurationResolvedWorker', 'OpenAPIValidatePostGripConfigurationRequest', 'OpenAPIPostGripConfigurationValidationResult', 'OpenAPICreatePostGripConfigurationPlanRequest', 'OpenAPIPostGripConfigurationPlanSummary', 'OpenAPIPostGripConfigurationResourceProjection', 'OpenAPIPostGripConfigurationPlanAction', 'OpenAPIPostGripConfigurationPlanDigestInput', 'OpenAPIPostGripConfigurationPlan', 'OpenAPIPostGripConfigurationPlanActionList', 'OpenAPIPostGripConfigurationStackResource', 'OpenAPIPostGripConfigurationSecretVersion', 'OpenAPIPostGripConfigurationStack', 'OpenAPIApplyPostGripConfigurationPlanRequest', 'OpenAPIResubmitPostGripConfigurationSecretInputsRequest', 'OpenAPIPostGripConfigurationStackOperationSummary', 'OpenAPIPostGripConfigurationStackOperation', 'OpenAPIPostGripConfigurationStackOperationAction', 'OpenAPIPostGripConfigurationStackOperationActionList', 'OpenAPIServiceDNSRecord', 'OpenAPIServiceDNSObservedRecord', 'OpenAPIServiceDNSObservation', 'OpenAPIServiceDNSCanonicalTarget', 'OpenAPIServiceDNSCanonicalState', 'OpenAPIServiceDNSProviderBinding', 'OpenAPIServiceDNSPlan', 'OpenAPIServiceDNSRollbackPlan', 'OpenAPIServiceDNSFailoverPlan', 'OpenAPIServiceDNSPlanList', 'OpenAPICreateServiceDNSPlanRequest', 'OpenAPIApplyServiceDNSPlanRequest', 'OpenAPIServiceDNSProviderRecordResult', 'OpenAPIReportServiceDNSProviderResultRequest', 'OpenAPIRollbackServiceDNSPlanRequest', 'OpenAPIServiceDNSFailoverTarget', 'OpenAPIServiceDNSFailoverTargetInput', 'OpenAPIServiceDNSFailoverPolicy', 'OpenAPIUpdateServiceDNSFailoverPolicyRequest', 'OpenAPIRequestServiceDNSFailoverRequest', 'AdoptGitHubRepositoryRequestBody', 'AdoptGitHubRepositoryResponseBody', 'ApplyPostGripConfigurationPlanRequestBody', 'ApplyPostGripConfigurationPlanResponseBody', 'ApplyServiceDNSPlanRequestBody', 'ApplyServiceDNSPlanResponseBody', 'ApplyServiceVariablesRequestBody', 'ApplyServiceVariablesResponseBody', 'AttachTargetServiceRequestBody', 'AttachTargetServiceResponseBody', 'BindServiceVolumeRequestBody', 'BindServiceVolumeResponseBody', 'CancelServiceDeploymentRequestBody', 'CancelServiceDeploymentResponseBody', 'CancelServiceReleaseGroupRequestBody', 'CancelServiceReleaseGroupResponseBody', 'CheckServiceRequestBody', 'CheckServiceResponseBody', 'ClearServiceRepositoryCredentialRequestBody', 'ClearServiceRepositoryCredentialResponseBody', 'ClearServiceVariableValueRequestBody', 'ClearServiceVariableValueResponseBody', 'ClearTargetServiceConnectionRequestBody', 'ClearTargetServiceConnectionResponseBody', 'CreatePostGripConfigurationPlanRequestBody', 'CreatePostGripConfigurationPlanResponseBody', 'CreateServiceDNSPlanRequestBody', 'CreateServiceDNSPlanResponseBody', 'CreateServiceDomainRequestBody', 'CreateServiceDomainResponseBody', 'CreateServiceEnvironmentRequestBody', 'CreateServiceEnvironmentResponseBody', 'CreateServiceProjectRequestBody', 'CreateServiceProjectResponseBody', 'CreateServiceReleaseGroupRequestBody', 'CreateServiceReleaseGroupResponseBody', 'CreateServiceVariableRequestBody', 'CreateServiceVariableResponseBody', 'CreateServiceVolumeRequestBody', 'CreateServiceVolumeResponseBody', 'DeleteServiceDomainRequestBody', 'DeleteServiceDomainResponseBody', 'DeleteServiceEnvironmentRequestBody', 'DeleteServiceEnvironmentResponseBody', 'DeleteServiceProjectRequestBody', 'DeleteServiceProjectResponseBody', 'DeleteServiceVariableRequestBody', 'DeleteServiceVariableResponseBody', 'DeleteServiceVolumeRequestBody', 'DeleteServiceVolumeResponseBody', 'DeployServiceRequestBody', 'DeployServiceResponseBody', 'DetachTargetServiceRequestBody', 'DetachTargetServiceResponseBody', 'FlushServiceBuildLogsRequestBody', 'FlushServiceBuildLogsResponseBody', 'FlushServiceRuntimeLogsRequestBody', 'FlushServiceRuntimeLogsResponseBody', 'GetPostGripConfigurationPlanRequestBody', 'GetPostGripConfigurationPlanResponseBody', 'GetPostGripConfigurationStackRequestBody', 'GetPostGripConfigurationStackResponseBody', 'GetPostGripConfigurationStackOperationRequestBody', 'GetPostGripConfigurationStackOperationResponseBody', 'GetServiceRequestBody', 'GetServiceResponseBody', 'GetServiceBuildLogSettingsRequestBody', 'GetServiceBuildLogSettingsResponseBody', 'GetServiceConfigurationOperationRequestBody', 'GetServiceConfigurationOperationResponseBody', 'GetServiceDNSCanonicalStateRequestBody', 'GetServiceDNSCanonicalStateResponseBody', 'GetServiceDNSFailoverPolicyRequestBody', 'GetServiceDNSFailoverPolicyResponseBody', 'GetServiceDNSPlanRequestBody', 'GetServiceDNSPlanResponseBody', 'GetServiceDeploymentRequestBody', 'GetServiceDeploymentResponseBody', 'GetServiceDomainVerificationRequestBody', 'GetServiceDomainVerificationResponseBody', 'GetServiceEnvironmentRequestBody', 'GetServiceEnvironmentResponseBody', 'GetServiceEnvironmentRemovalImpactRequestBody', 'GetServiceEnvironmentRemovalImpactResponseBody', 'GetServiceProjectRemovalImpactRequestBody', 'GetServiceProjectRemovalImpactResponseBody', 'GetServiceReleaseGroupRequestBody', 'GetServiceReleaseGroupResponseBody', 'GetServiceRepositoryRequestBody', 'GetServiceRepositoryResponseBody', 'GetServiceRuntimeLogSettingsRequestBody', 'GetServiceRuntimeLogSettingsResponseBody', 'GetServiceStatusRequestBody', 'GetServiceStatusResponseBody', 'GetServiceVolumeRequestBody', 'GetServiceVolumeResponseBody', 'GetServiceVolumeRemovalImpactRequestBody', 'GetServiceVolumeRemovalImpactResponseBody', 'GetTargetServiceRemovalImpactRequestBody', 'GetTargetServiceRemovalImpactResponseBody', 'ListGitHubAppRepositoriesRequestBody', 'ListGitHubAppRepositoriesResponseBody', 'ListPostGripConfigurationPlanActionsRequestBody', 'ListPostGripConfigurationPlanActionsResponseBody', 'ListPostGripConfigurationStackOperationActionsRequestBody', 'ListPostGripConfigurationStackOperationActionsResponseBody', 'ListServiceConfigurationOperationsRequestBody', 'ListServiceConfigurationOperationsResponseBody', 'ListServiceDNSPlansRequestBody', 'ListServiceDNSPlansResponseBody', 'ListServiceDeploymentsRequestBody', 'ListServiceDeploymentsResponseBody', 'ListServiceDomainsRequestBody', 'ListServiceDomainsResponseBody', 'ListServiceEnvironmentsRequestBody', 'ListServiceEnvironmentsResponseBody', 'ListServiceLogsRequestBody', 'ListServiceLogsResponseBody', 'ListServicePromotionsRequestBody', 'ListServicePromotionsResponseBody', 'ListServiceReleaseGroupEventsRequestBody', 'ListServiceReleaseGroupEventsResponseBody', 'ListServiceReleaseGroupsRequestBody', 'ListServiceReleaseGroupsResponseBody', 'ListServiceVariablesRequestBody', 'ListServiceVariablesResponseBody', 'ListServiceVolumesRequestBody', 'ListServiceVolumesResponseBody', 'ListServicesRequestBody', 'ListServicesResponseBody', 'PreviewGitHubRepositoryAdoptionRequestBody', 'PreviewGitHubRepositoryAdoptionResponseBody', 'PreviewServiceDeployRequestBody', 'PreviewServiceDeployResponseBody', 'PreviewServiceEnvironmentReassignmentRequestBody', 'PreviewServiceEnvironmentReassignmentResponseBody', 'PreviewServicePromotionRequestBody', 'PreviewServicePromotionResponseBody', 'PreviewServiceReleaseGroupRequestBody', 'PreviewServiceReleaseGroupResponseBody', 'PromoteServiceDeploymentRequestBody', 'PromoteServiceDeploymentResponseBody', 'PutServiceRepositoryCredentialRequestBody', 'PutServiceRepositoryCredentialResponseBody', 'PutServiceVariableValueRequestBody', 'PutServiceVariableValueResponseBody', 'PutTargetServiceConnectionRequestBody', 'PutTargetServiceConnectionResponseBody', 'ReassignServiceEnvironmentRequestBody', 'ReassignServiceEnvironmentResponseBody', 'RedeployServiceRequestBody', 'RedeployServiceResponseBody', 'RefreshServiceRepositoryCredentialRequestBody', 'RefreshServiceRepositoryCredentialResponseBody', 'ReportServiceDNSProviderResultRequestBody', 'ReportServiceDNSProviderResultResponseBody', 'RequestServiceDNSFailoverRequestBody', 'RequestServiceDNSFailoverResponseBody', 'ResolveServiceRequestBody', 'ResolveServiceResponseBody', 'ResolveServiceEnvironmentRequestBody', 'ResolveServiceEnvironmentResponseBody', 'RestartServiceRuntimeRequestBody', 'RestartServiceRuntimeResponseBody', 'ResubmitPostGripConfigurationSecretInputsRequestBody', 'ResubmitPostGripConfigurationSecretInputsResponseBody', 'RetryPostGripConfigurationStackOperationRequestBody', 'RetryPostGripConfigurationStackOperationResponseBody', 'RetryServiceConfigurationOperationRequestBody', 'RetryServiceConfigurationOperationResponseBody', 'RetryServiceReleaseGroupRequestBody', 'RetryServiceReleaseGroupResponseBody', 'RollbackServiceDNSPlanRequestBody', 'RollbackServiceDNSPlanResponseBody', 'RollbackServiceDeploymentRequestBody', 'RollbackServiceDeploymentResponseBody', 'StartServiceRuntimeRequestBody', 'StartServiceRuntimeResponseBody', 'StopServiceRuntimeRequestBody', 'StopServiceRuntimeResponseBody', 'TrimServiceBuildLogsRequestBody', 'TrimServiceBuildLogsResponseBody', 'TrimServiceRuntimeLogsRequestBody', 'TrimServiceRuntimeLogsResponseBody', 'UnbindServiceVolumeRequestBody', 'UnbindServiceVolumeResponseBody', 'UpdateServiceBuildLogSettingsRequestBody', 'UpdateServiceBuildLogSettingsResponseBody', 'UpdateServiceDNSFailoverPolicyRequestBody', 'UpdateServiceDNSFailoverPolicyResponseBody', 'UpdateServiceDomainRequestBody', 'UpdateServiceDomainResponseBody', 'UpdateServiceEnvironmentRequestBody', 'UpdateServiceEnvironmentResponseBody', 'UpdateServiceProjectRequestBody', 'UpdateServiceProjectResponseBody', 'UpdateServiceRepositoryRequestBody', 'UpdateServiceRepositoryResponseBody', 'UpdateServiceRuntimeLogSettingsRequestBody', 'UpdateServiceRuntimeLogSettingsResponseBody', 'UpdateServiceVariableRequestBody', 'UpdateServiceVariableResponseBody', 'UpdateServiceVolumeBindingRequestBody', 'UpdateServiceVolumeBindingResponseBody', 'UpdateTargetServiceRequestBody', 'UpdateTargetServiceResponseBody', 'ValidatePostGripConfigurationRequestBody', 'ValidatePostGripConfigurationResponseBody', 'VerifyServiceDomainRequestBody', 'VerifyServiceDomainResponseBody']
+__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIErrorResponse', 'OpenAPIOperationReceipt', 'OpenAPIServiceReleaseVerificationPolicy', 'OpenAPIServiceReleaseGroupState', 'OpenAPIServiceReleaseGroupMemberState', 'OpenAPIServiceReleaseGroupMemberRequest', 'OpenAPIPreviewServiceReleaseGroupRequest', 'OpenAPICreateServiceReleaseGroupRequest', 'OpenAPIServiceReleaseGroupPreviewMember', 'OpenAPIServiceReleaseGroupPreview', 'OpenAPIServiceReleaseGroupMemberReceipt', 'OpenAPIServiceReleaseGroupMember', 'OpenAPIServiceReleaseGroup', 'OpenAPIServiceReleaseGroupList', 'OpenAPIServiceReleaseGroupEvent', 'OpenAPIServiceReleaseGroupEventList', 'OpenAPIServiceSource', 'OpenAPIServiceKind', 'OpenAPIServiceMode', 'OpenAPIServiceStatusValue', 'OpenAPIServiceCapability', 'OpenAPIServiceWorker', 'OpenAPIServiceFacet', 'OpenAPIService', 'OpenAPIEnvironment', 'OpenAPIDeployment', 'OpenAPIServiceStatus', 'OpenAPIServiceList', 'OpenAPIEnvironmentList', 'OpenAPIDeploymentList', 'OpenAPILogEntry', 'OpenAPILogList', 'OpenAPICheckServiceRequest', 'OpenAPIDeployPreview', 'OpenAPIDeployServiceRequest', 'OpenAPIRedeployServiceRequest', 'OpenAPIRuntimeOperationRequest', 'OpenAPIServiceOperationResponse', 'OpenAPIDeploymentOperationResponse', 'OpenAPIServiceTargetMetadataRequest', 'OpenAPIServiceTargetMetadataUpdateRequest', 'OpenAPIAttachTargetServiceRequest', 'OpenAPIUpdateTargetServiceRequest', 'OpenAPITargetServiceConnectionRequest', 'OpenAPIServiceRepositoryWriteRequest', 'OpenAPICreateServiceProjectRequest', 'OpenAPIUpdateServiceProjectRequest', 'OpenAPICreateServiceEnvironmentRequest', 'OpenAPIUpdateServiceEnvironmentRequest', 'OpenAPIServiceVolumeDisposition', 'OpenAPIConfirmedDeletionRequest', 'OpenAPIServiceEnvironmentReassignmentPreviewRequest', 'OpenAPIServiceEnvironmentReassignmentRequest', 'OpenAPICreateServiceVolumeRequest', 'OpenAPIBindServiceVolumeRequest', 'OpenAPIUpdateServiceVolumeBindingRequest', 'OpenAPICreateServiceDomainRequest', 'OpenAPIUpdateServiceDomainRequest', 'OpenAPICreateServiceVariableRequest', 'OpenAPIUpdateServiceVariableRequest', 'OpenAPIServiceVariableValueRequest', 'OpenAPIServiceVariableApplyChange', 'OpenAPIApplyServiceVariablesRequest', 'OpenAPIUpdateServiceRepositoryRequest', 'OpenAPIServiceRepositoryCredentialRequest', 'OpenAPIPromoteServiceDeploymentRequest', 'OpenAPIServiceBuildLogSettingsRequest', 'OpenAPIServiceRuntimeLogSettingsRequest', 'OpenAPIServiceTarget', 'OpenAPIGitHubRepositoryPermission', 'OpenAPIGitHubRepository', 'OpenAPIGitHubRepositoryList', 'OpenAPIGitHubRepositoryAdoptionPreviewRequest', 'OpenAPIGitHubRepositoryAdoptionPreview', 'OpenAPIGitHubRepositoryAdoptionRequest', 'OpenAPIServiceApp', 'OpenAPIServiceAppList', 'OpenAPICreateServiceAppRequest', 'OpenAPIUpdateServiceAppRequest', 'OpenAPIServiceAppMutationResponse', 'OpenAPIServiceAppDeletionResponse', 'OpenAPIServiceRepository', 'OpenAPIServiceAutomaticDeploymentWiring', 'OpenAPIServiceAutomaticDeploymentWiringStatus', 'OpenAPIServiceProject', 'OpenAPIServiceVolumeBinding', 'OpenAPIServiceEnvironmentPlacement', 'OpenAPIServiceEnvironmentConfiguration', 'OpenAPIServiceVolume', 'OpenAPIServiceVolumeList', 'OpenAPIServiceDomain', 'OpenAPIServiceDomainList', 'OpenAPIServiceDomainLayerObservation', 'OpenAPIServiceDomainTlsObservation', 'OpenAPIServiceDomainHttpObservation', 'OpenAPIServiceDomainVerification', 'OpenAPIServiceVariable', 'OpenAPIServiceVariableList', 'OpenAPIServiceRemovalVolumeImpact', 'OpenAPIServiceRemovalImpact', 'OpenAPIServiceReassignmentVolumeImpact', 'OpenAPIServiceEnvironmentReassignmentPreview', 'OpenAPIServicePromotionPreview', 'OpenAPIServiceBuildLogStatus', 'OpenAPIServiceRuntimeLogWorkerStatus', 'OpenAPIServiceRuntimeLogStatus', 'OpenAPIServiceConfigurationTargetState', 'OpenAPIServiceConfigurationOperation', 'OpenAPIServiceConfigurationOperationList', 'OpenAPIServiceMutationResponse', 'OpenAPIServiceTargetMutationResponse', 'OpenAPIServiceProjectMutationResponse', 'OpenAPIServiceEnvironmentMutationResponse', 'OpenAPIServiceVolumeMutationResponse', 'OpenAPIServiceVolumeBindingMutationResponse', 'OpenAPIServiceDomainMutationResponse', 'OpenAPIServiceVariableMutationResponse', 'OpenAPIServiceRepositoryMutationResponse', 'OpenAPIServiceDeletionResponse', 'OpenAPIServiceRuntimeLogMutationResponse', 'OpenAPIServiceBuildLogSettingsMutationResponse', 'OpenAPIServiceBuildLogMaintenanceResponse', 'OpenAPIServiceVariableApplyResult', 'OpenAPIServiceVariablesApplyResponse', 'OpenAPIPostGripConfigurationMetadata', 'OpenAPIPostGripConfigurationWorkerSelector', 'OpenAPIPostGripConfigurationRepository', 'OpenAPIPostGripConfigurationDomain', 'OpenAPIPostGripConfigurationSecretSource', 'OpenAPIPostGripConfigurationPlainVariable', 'OpenAPIPostGripConfigurationSecretVariable', 'OpenAPIPostGripConfigurationVariable', 'OpenAPIPostGripConfigurationEnvironment', 'OpenAPIPostGripConfigurationProject', 'OpenAPIPostGripConfigurationSpec', 'OpenAPIPostGripConfiguration', 'OpenAPIPostGripConfigurationValidationIssue', 'OpenAPIPostGripConfigurationResolvedWorker', 'OpenAPIValidatePostGripConfigurationRequest', 'OpenAPIPostGripConfigurationValidationResult', 'OpenAPICreatePostGripConfigurationPlanRequest', 'OpenAPIPostGripConfigurationPlanSummary', 'OpenAPIPostGripConfigurationResourceProjection', 'OpenAPIPostGripConfigurationPlanAction', 'OpenAPIPostGripConfigurationPlanDigestInput', 'OpenAPIPostGripConfigurationPlan', 'OpenAPIPostGripConfigurationPlanActionList', 'OpenAPIPostGripConfigurationStackResource', 'OpenAPIPostGripConfigurationSecretVersion', 'OpenAPIPostGripConfigurationStack', 'OpenAPIApplyPostGripConfigurationPlanRequest', 'OpenAPIResubmitPostGripConfigurationSecretInputsRequest', 'OpenAPIPostGripConfigurationStackOperationSummary', 'OpenAPIPostGripConfigurationStackOperation', 'OpenAPIPostGripConfigurationStackOperationAction', 'OpenAPIPostGripConfigurationStackOperationActionList', 'OpenAPIServiceDNSRecord', 'OpenAPIServiceDNSObservedRecord', 'OpenAPIServiceDNSObservation', 'OpenAPIServiceDNSCanonicalTarget', 'OpenAPIServiceDNSCanonicalState', 'OpenAPIServiceDNSProviderBinding', 'OpenAPIServiceDNSPlan', 'OpenAPIServiceDNSRollbackPlan', 'OpenAPIServiceDNSFailoverPlan', 'OpenAPIServiceDNSPlanList', 'OpenAPICreateServiceDNSPlanRequest', 'OpenAPIApplyServiceDNSPlanRequest', 'OpenAPIServiceDNSProviderRecordResult', 'OpenAPIReportServiceDNSProviderResultRequest', 'OpenAPIRollbackServiceDNSPlanRequest', 'OpenAPIServiceDNSFailoverTarget', 'OpenAPIServiceDNSFailoverTargetInput', 'OpenAPIServiceDNSFailoverPolicy', 'OpenAPIUpdateServiceDNSFailoverPolicyRequest', 'OpenAPIRequestServiceDNSFailoverRequest', 'AdoptGitHubRepositoryRequestBody', 'AdoptGitHubRepositoryResponseBody', 'ApplyPostGripConfigurationPlanRequestBody', 'ApplyPostGripConfigurationPlanResponseBody', 'ApplyServiceDNSPlanRequestBody', 'ApplyServiceDNSPlanResponseBody', 'ApplyServiceVariablesRequestBody', 'ApplyServiceVariablesResponseBody', 'AttachTargetServiceRequestBody', 'AttachTargetServiceResponseBody', 'BindServiceVolumeRequestBody', 'BindServiceVolumeResponseBody', 'CancelServiceDeploymentRequestBody', 'CancelServiceDeploymentResponseBody', 'CancelServiceReleaseGroupRequestBody', 'CancelServiceReleaseGroupResponseBody', 'CheckServiceRequestBody', 'CheckServiceResponseBody', 'ClearServiceRepositoryCredentialRequestBody', 'ClearServiceRepositoryCredentialResponseBody', 'ClearServiceVariableValueRequestBody', 'ClearServiceVariableValueResponseBody', 'ClearTargetServiceConnectionRequestBody', 'ClearTargetServiceConnectionResponseBody', 'CreatePostGripConfigurationPlanRequestBody', 'CreatePostGripConfigurationPlanResponseBody', 'CreateServiceAppRequestBody', 'CreateServiceAppResponseBody', 'CreateServiceDNSPlanRequestBody', 'CreateServiceDNSPlanResponseBody', 'CreateServiceDomainRequestBody', 'CreateServiceDomainResponseBody', 'CreateServiceEnvironmentRequestBody', 'CreateServiceEnvironmentResponseBody', 'CreateServiceProjectRequestBody', 'CreateServiceProjectResponseBody', 'CreateServiceReleaseGroupRequestBody', 'CreateServiceReleaseGroupResponseBody', 'CreateServiceVariableRequestBody', 'CreateServiceVariableResponseBody', 'CreateServiceVolumeRequestBody', 'CreateServiceVolumeResponseBody', 'DeleteServiceAppRequestBody', 'DeleteServiceAppResponseBody', 'DeleteServiceDomainRequestBody', 'DeleteServiceDomainResponseBody', 'DeleteServiceEnvironmentRequestBody', 'DeleteServiceEnvironmentResponseBody', 'DeleteServiceProjectRequestBody', 'DeleteServiceProjectResponseBody', 'DeleteServiceVariableRequestBody', 'DeleteServiceVariableResponseBody', 'DeleteServiceVolumeRequestBody', 'DeleteServiceVolumeResponseBody', 'DeployServiceRequestBody', 'DeployServiceResponseBody', 'DetachTargetServiceRequestBody', 'DetachTargetServiceResponseBody', 'FlushServiceBuildLogsRequestBody', 'FlushServiceBuildLogsResponseBody', 'FlushServiceRuntimeLogsRequestBody', 'FlushServiceRuntimeLogsResponseBody', 'GetPostGripConfigurationPlanRequestBody', 'GetPostGripConfigurationPlanResponseBody', 'GetPostGripConfigurationStackRequestBody', 'GetPostGripConfigurationStackResponseBody', 'GetPostGripConfigurationStackOperationRequestBody', 'GetPostGripConfigurationStackOperationResponseBody', 'GetServiceRequestBody', 'GetServiceResponseBody', 'GetServiceAppRequestBody', 'GetServiceAppResponseBody', 'GetServiceBuildLogSettingsRequestBody', 'GetServiceBuildLogSettingsResponseBody', 'GetServiceConfigurationOperationRequestBody', 'GetServiceConfigurationOperationResponseBody', 'GetServiceDNSCanonicalStateRequestBody', 'GetServiceDNSCanonicalStateResponseBody', 'GetServiceDNSFailoverPolicyRequestBody', 'GetServiceDNSFailoverPolicyResponseBody', 'GetServiceDNSPlanRequestBody', 'GetServiceDNSPlanResponseBody', 'GetServiceDeploymentRequestBody', 'GetServiceDeploymentResponseBody', 'GetServiceDomainVerificationRequestBody', 'GetServiceDomainVerificationResponseBody', 'GetServiceEnvironmentRequestBody', 'GetServiceEnvironmentResponseBody', 'GetServiceEnvironmentRemovalImpactRequestBody', 'GetServiceEnvironmentRemovalImpactResponseBody', 'GetServiceProjectRemovalImpactRequestBody', 'GetServiceProjectRemovalImpactResponseBody', 'GetServiceReleaseGroupRequestBody', 'GetServiceReleaseGroupResponseBody', 'GetServiceRepositoryRequestBody', 'GetServiceRepositoryResponseBody', 'GetServiceRuntimeLogSettingsRequestBody', 'GetServiceRuntimeLogSettingsResponseBody', 'GetServiceStatusRequestBody', 'GetServiceStatusResponseBody', 'GetServiceVolumeRequestBody', 'GetServiceVolumeResponseBody', 'GetServiceVolumeRemovalImpactRequestBody', 'GetServiceVolumeRemovalImpactResponseBody', 'GetTargetServiceRemovalImpactRequestBody', 'GetTargetServiceRemovalImpactResponseBody', 'ListGitHubAppRepositoriesRequestBody', 'ListGitHubAppRepositoriesResponseBody', 'ListPostGripConfigurationPlanActionsRequestBody', 'ListPostGripConfigurationPlanActionsResponseBody', 'ListPostGripConfigurationStackOperationActionsRequestBody', 'ListPostGripConfigurationStackOperationActionsResponseBody', 'ListServiceAppsRequestBody', 'ListServiceAppsResponseBody', 'ListServiceConfigurationOperationsRequestBody', 'ListServiceConfigurationOperationsResponseBody', 'ListServiceDNSPlansRequestBody', 'ListServiceDNSPlansResponseBody', 'ListServiceDeploymentsRequestBody', 'ListServiceDeploymentsResponseBody', 'ListServiceDomainsRequestBody', 'ListServiceDomainsResponseBody', 'ListServiceEnvironmentsRequestBody', 'ListServiceEnvironmentsResponseBody', 'ListServiceLogsRequestBody', 'ListServiceLogsResponseBody', 'ListServicePromotionsRequestBody', 'ListServicePromotionsResponseBody', 'ListServiceReleaseGroupEventsRequestBody', 'ListServiceReleaseGroupEventsResponseBody', 'ListServiceReleaseGroupsRequestBody', 'ListServiceReleaseGroupsResponseBody', 'ListServiceVariablesRequestBody', 'ListServiceVariablesResponseBody', 'ListServiceVolumesRequestBody', 'ListServiceVolumesResponseBody', 'ListServicesRequestBody', 'ListServicesResponseBody', 'PreviewGitHubRepositoryAdoptionRequestBody', 'PreviewGitHubRepositoryAdoptionResponseBody', 'PreviewServiceDeployRequestBody', 'PreviewServiceDeployResponseBody', 'PreviewServiceEnvironmentReassignmentRequestBody', 'PreviewServiceEnvironmentReassignmentResponseBody', 'PreviewServicePromotionRequestBody', 'PreviewServicePromotionResponseBody', 'PreviewServiceReleaseGroupRequestBody', 'PreviewServiceReleaseGroupResponseBody', 'PromoteServiceDeploymentRequestBody', 'PromoteServiceDeploymentResponseBody', 'PutServiceRepositoryCredentialRequestBody', 'PutServiceRepositoryCredentialResponseBody', 'PutServiceVariableValueRequestBody', 'PutServiceVariableValueResponseBody', 'PutTargetServiceConnectionRequestBody', 'PutTargetServiceConnectionResponseBody', 'ReassignServiceEnvironmentRequestBody', 'ReassignServiceEnvironmentResponseBody', 'RedeployServiceRequestBody', 'RedeployServiceResponseBody', 'RefreshServiceRepositoryCredentialRequestBody', 'RefreshServiceRepositoryCredentialResponseBody', 'ReportServiceDNSProviderResultRequestBody', 'ReportServiceDNSProviderResultResponseBody', 'RequestServiceDNSFailoverRequestBody', 'RequestServiceDNSFailoverResponseBody', 'ResolveServiceRequestBody', 'ResolveServiceResponseBody', 'ResolveServiceEnvironmentRequestBody', 'ResolveServiceEnvironmentResponseBody', 'RestartServiceRuntimeRequestBody', 'RestartServiceRuntimeResponseBody', 'ResubmitPostGripConfigurationSecretInputsRequestBody', 'ResubmitPostGripConfigurationSecretInputsResponseBody', 'RetryPostGripConfigurationStackOperationRequestBody', 'RetryPostGripConfigurationStackOperationResponseBody', 'RetryServiceConfigurationOperationRequestBody', 'RetryServiceConfigurationOperationResponseBody', 'RetryServiceReleaseGroupRequestBody', 'RetryServiceReleaseGroupResponseBody', 'RollbackServiceDNSPlanRequestBody', 'RollbackServiceDNSPlanResponseBody', 'RollbackServiceDeploymentRequestBody', 'RollbackServiceDeploymentResponseBody', 'StartServiceRuntimeRequestBody', 'StartServiceRuntimeResponseBody', 'StopServiceRuntimeRequestBody', 'StopServiceRuntimeResponseBody', 'TrimServiceBuildLogsRequestBody', 'TrimServiceBuildLogsResponseBody', 'TrimServiceRuntimeLogsRequestBody', 'TrimServiceRuntimeLogsResponseBody', 'UnbindServiceVolumeRequestBody', 'UnbindServiceVolumeResponseBody', 'UpdateServiceAppRequestBody', 'UpdateServiceAppResponseBody', 'UpdateServiceBuildLogSettingsRequestBody', 'UpdateServiceBuildLogSettingsResponseBody', 'UpdateServiceDNSFailoverPolicyRequestBody', 'UpdateServiceDNSFailoverPolicyResponseBody', 'UpdateServiceDomainRequestBody', 'UpdateServiceDomainResponseBody', 'UpdateServiceEnvironmentRequestBody', 'UpdateServiceEnvironmentResponseBody', 'UpdateServiceProjectRequestBody', 'UpdateServiceProjectResponseBody', 'UpdateServiceRepositoryRequestBody', 'UpdateServiceRepositoryResponseBody', 'UpdateServiceRuntimeLogSettingsRequestBody', 'UpdateServiceRuntimeLogSettingsResponseBody', 'UpdateServiceVariableRequestBody', 'UpdateServiceVariableResponseBody', 'UpdateServiceVolumeBindingRequestBody', 'UpdateServiceVolumeBindingResponseBody', 'UpdateTargetServiceRequestBody', 'UpdateTargetServiceResponseBody', 'ValidatePostGripConfigurationRequestBody', 'ValidatePostGripConfigurationResponseBody', 'VerifyServiceDomainRequestBody', 'VerifyServiceDomainResponseBody']

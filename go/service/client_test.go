@@ -189,8 +189,27 @@ func TestBulkVariableApplyUsesPerEnvironmentFencesWithoutIfMatch(t *testing.T) {
 	}
 }
 
+func TestAppsListExposesCatalogFence(t *testing.T) {
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/services/apps" || r.Method != http.MethodGet {
+			t.Fatalf("request=%s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[],"catalogVersion":7,"catalogEtag":"\"service-catalog:7\""}`))
+	}), nil)
+
+	response, err := client.Apps().List(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.CatalogVersion != 7 || response.CatalogEtag != `"service-catalog:7"` {
+		t.Fatalf("catalog fence=%d %q", response.CatalogVersion, response.CatalogEtag)
+	}
+}
+
 func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
 	types := []reflect.Type{
+		reflect.TypeOf(AppsClient{}),
 		reflect.TypeOf(TargetServicesClient{}),
 		reflect.TypeOf(ProjectsClient{}),
 		reflect.TypeOf(ServiceEnvironmentsClient{}),
@@ -209,8 +228,8 @@ func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
 	for _, facadeType := range types {
 		operationCount += facadeType.NumMethod()
 	}
-	if operationCount != 87 {
-		t.Fatalf("administration facade operations = %d, want 87", operationCount)
+	if operationCount != 92 {
+		t.Fatalf("administration facade operations = %d, want 92", operationCount)
 	}
 }
 

@@ -33,7 +33,7 @@ reassignments use a fresh impact/preview token; durable worker fan-out returns a
 configuration-operation ID that can be inspected or retried through
 `ServiceConfigurationOperations()`.
 
-The grouped administration clients cover targets, projects, environments,
+The grouped administration clients cover apps, targets, projects, environments,
 managed volumes, domains, variables, repository settings, promotions,
 retention, and configuration operations. Credential values are write-only and
 never appear in response models. Deployments should first call `PreviewDeploy`,

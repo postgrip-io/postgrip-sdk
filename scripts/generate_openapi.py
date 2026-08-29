@@ -44,6 +44,10 @@ GO_PROTOCOL_SCHEMAS = {
 GO_PROTOCOL_TYPE_OVERRIDES = {"WorkflowIdReusePolicy": "WorkflowIDReusePolicy"}
 GO_COMPATIBILITY_EXCLUDED_SCHEMAS = {"ErrorResponse"}
 SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
+    "Apps": (
+        "listServiceApps", "getServiceApp", "createServiceApp", "updateServiceApp",
+        "deleteServiceApp",
+    ),
     "TargetServices": (
         "attachTargetService", "updateTargetService", "getTargetServiceRemovalImpact",
         "detachTargetService", "putTargetServiceConnection", "clearTargetServiceConnection",
