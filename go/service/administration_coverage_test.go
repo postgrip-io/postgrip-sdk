@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -29,11 +30,16 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 			t.Fatalf("idempotency=%q for %s", r.Header.Get("Idempotency-Key"), r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "/variables/export") || strings.HasSuffix(r.URL.Path, "/webhook-events") || strings.HasSuffix(r.URL.Path, "/integrations/github/branches") {
+			_, _ = fmt.Fprint(w, `[]`)
+			return
+		}
 		_, _ = fmt.Fprint(w, `{}`)
 	}), nil)
 	ctx := context.Background()
 	write := WriteOptions{IdempotencyKey: "operation-1", IfMatch: `"etag:1"`}
 	mutation := MutationOptions{IdempotencyKey: "operation-1"}
+	repositoryID := int64(1)
 
 	apps := client.Apps()
 	mustServiceResult(t, serviceResultError(apps.List(ctx)))
@@ -64,6 +70,9 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(environments.Reassign(ctx, "project-1", "environment-1", OpenAPIReassignServiceEnvironmentRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(environments.RemovalImpact(ctx, "project-1", "environment-1")))
 	mustServiceResult(t, serviceResultError(environments.Delete(ctx, "project-1", "environment-1", OpenAPIDeleteServiceEnvironmentRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(environments.GetCompose(ctx, "project-1", "environment-1")))
+	mustServiceResult(t, serviceResultError(environments.PutCompose(ctx, "project-1", "environment-1", OpenAPIPutServiceComposeFileRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(environments.DeleteCompose(ctx, "project-1", "environment-1", mutation)))
 
 	volumes := client.ManagedVolumes()
 	mustServiceResult(t, serviceResultError(volumes.List(ctx, "project-1")))
@@ -103,6 +112,7 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(variables.PutValue(ctx, "project-1", "environment-1", "variable-1", OpenAPIPutServiceVariableValueRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(variables.ClearValue(ctx, "project-1", "environment-1", "variable-1", write)))
 	mustServiceResult(t, serviceResultError(variables.Apply(ctx, "project-1", OpenAPIApplyServiceVariablesRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(variables.Export(ctx, "project-1", "environment-1")))
 
 	repositories := client.ServiceRepositories()
 	mustServiceResult(t, serviceResultError(repositories.Get(ctx, "project-1")))
@@ -111,8 +121,10 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(repositories.ClearCredential(ctx, "project-1", "source-access", write)))
 	mustServiceResult(t, serviceResultError(repositories.RefreshCredential(ctx, "project-1", "source-access", write)))
 	mustServiceResult(t, serviceResultError(repositories.ListGitHub(ctx, OpenAPIListGitHubAppRepositoriesQuery{})))
-	mustServiceResult(t, serviceResultError(repositories.PreviewGitHubAdoption(ctx, "project-1", OpenAPIPreviewGitHubRepositoryAdoptionRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(repositories.PreviewGitHubAdoption(ctx, "project-1", OpenAPIPreviewGitHubRepositoryAdoptionRequestBody{RepositoryId: &repositoryID}, mutation)))
 	mustServiceResult(t, serviceResultError(repositories.AdoptGitHub(ctx, "project-1", OpenAPIAdoptGitHubRepositoryRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(repositories.GitHubBranches(ctx, OpenAPIListServiceGitHubBranchesQuery{})))
+	mustServiceResult(t, serviceResultError(repositories.GitHubFile(ctx, OpenAPICheckServiceGitHubRepositoryFileQuery{})))
 
 	promotions := client.ServicePromotions()
 	mustServiceResult(t, serviceResultError(promotions.List(ctx, "project-1", OpenAPIListServicePromotionsQuery{})))
@@ -155,8 +167,19 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(configuration.RetryOperation(ctx, "stack-1", "operation-1", write)))
 	mustServiceResult(t, serviceResultError(configuration.ResubmitSecretInputs(ctx, "stack-1", "operation-1", OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody{}, write)))
 
-	if calls.Load() != 92 {
-		t.Fatalf("transport calls=%d, want 92", calls.Load())
+	diagnostics := client.ServiceDiagnostics()
+	mustServiceResult(t, serviceResultError(diagnostics.Screenshot(ctx, "project-1", "deployment-1")))
+	mustServiceResult(t, serviceResultError(diagnostics.WebhookEvents(ctx, "project-1", OpenAPIListServiceWebhookDispatchEventsQuery{})))
+
+	traffic := client.ServiceTraffic()
+	mustServiceResult(t, serviceResultError(traffic.Status(ctx, "project-1", OpenAPIGetServiceTrafficStatusQuery{})))
+	mustServiceResult(t, serviceResultError(traffic.Report(ctx, "project-1", OpenAPIGetServiceTrafficReportQuery{})))
+	mustServiceResult(t, serviceResultError(traffic.UpdateSettings(ctx, "project-1", OpenAPIPutServiceTrafficSettingsRequestBody{}, mutation)))
+	mustServiceResult(t, serviceResultError(traffic.Trim(ctx, "project-1", OpenAPITrimServiceTrafficQuery{}, mutation)))
+	mustServiceResult(t, serviceResultError(traffic.Flush(ctx, "project-1", OpenAPIFlushServiceTrafficQuery{}, mutation)))
+
+	if calls.Load() != 105 {
+		t.Fatalf("transport calls=%d, want 105", calls.Load())
 	}
 }
 

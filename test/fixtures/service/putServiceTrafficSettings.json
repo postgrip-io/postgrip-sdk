@@ -1,0 +1,50 @@
+{
+  "operationId": "putServiceTrafficSettings",
+  "plane": "service",
+  "request": {
+    "body": {
+      "enabled": true,
+      "retentionDays": 1
+    },
+    "headers": {
+      "Idempotency-Key": "recorded-putServiceTrafficSettings"
+    },
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "complete": true,
+      "items": [
+        {
+          "data": {
+            "settings": {
+              "enabled": true,
+              "retentionDays": 1,
+              "tenantId": "11111111-1111-4111-8111-111111111111",
+              "updatedAt": "2026-01-01T00:00:00Z"
+            }
+          },
+          "environmentIds": [
+            "11111111-1111-4111-8111-111111111111"
+          ],
+          "workerId": "11111111-1111-4111-8111-111111111111"
+        }
+      ],
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_putServiceTrafficSettings"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

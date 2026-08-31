@@ -35,6 +35,24 @@ func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParamete
 	return c.connection.doOpenAPI(ctx, id, pathParameters, query, body, out)
 }
 
+type OpenAPICheckServiceGitHubRepositoryFileQuery struct {
+	Owner string
+	Repo  string
+	Path  string
+	Ref   *string
+}
+
+func (p OpenAPICheckServiceGitHubRepositoryFileQuery) values() url.Values {
+	values := url.Values{}
+	values.Set("owner", fmt.Sprint(p.Owner))
+	values.Set("repo", fmt.Sprint(p.Repo))
+	values.Set("path", fmt.Sprint(p.Path))
+	if p.Ref != nil {
+		values.Set("ref", fmt.Sprint(*p.Ref))
+	}
+	return values
+}
+
 type OpenAPIFlushServiceRuntimeLogsQuery struct {
 	EnvironmentId *string
 }
@@ -43,6 +61,18 @@ func (p OpenAPIFlushServiceRuntimeLogsQuery) values() url.Values {
 	values := url.Values{}
 	if p.EnvironmentId != nil {
 		values.Set("environmentId", fmt.Sprint(*p.EnvironmentId))
+	}
+	return values
+}
+
+type OpenAPIFlushServiceTrafficQuery struct {
+	Environment *string
+}
+
+func (p OpenAPIFlushServiceTrafficQuery) values() url.Values {
+	values := url.Values{}
+	if p.Environment != nil {
+		values.Set("environment", fmt.Sprint(*p.Environment))
 	}
 	return values
 }
@@ -64,6 +94,34 @@ type OpenAPIGetServiceStatusQuery struct {
 }
 
 func (p OpenAPIGetServiceStatusQuery) values() url.Values {
+	values := url.Values{}
+	if p.Environment != nil {
+		values.Set("environment", fmt.Sprint(*p.Environment))
+	}
+	return values
+}
+
+type OpenAPIGetServiceTrafficReportQuery struct {
+	Environment *string
+	Window      *string
+}
+
+func (p OpenAPIGetServiceTrafficReportQuery) values() url.Values {
+	values := url.Values{}
+	if p.Environment != nil {
+		values.Set("environment", fmt.Sprint(*p.Environment))
+	}
+	if p.Window != nil {
+		values.Set("window", fmt.Sprint(*p.Window))
+	}
+	return values
+}
+
+type OpenAPIGetServiceTrafficStatusQuery struct {
+	Environment *string
+}
+
+func (p OpenAPIGetServiceTrafficStatusQuery) values() url.Values {
 	values := url.Values{}
 	if p.Environment != nil {
 		values.Set("environment", fmt.Sprint(*p.Environment))
@@ -183,6 +241,18 @@ func (p OpenAPIListServiceEnvironmentsQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIListServiceGitHubBranchesQuery struct {
+	Owner string
+	Repo  string
+}
+
+func (p OpenAPIListServiceGitHubBranchesQuery) values() url.Values {
+	values := url.Values{}
+	values.Set("owner", fmt.Sprint(p.Owner))
+	values.Set("repo", fmt.Sprint(p.Repo))
+	return values
+}
+
 type OpenAPIListServiceLogsQuery struct {
 	Kind        *string
 	Environment *string
@@ -263,6 +333,18 @@ func (p OpenAPIListServiceReleaseGroupsQuery) values() url.Values {
 	}
 	if p.ProjectId != nil {
 		values.Set("projectId", fmt.Sprint(*p.ProjectId))
+	}
+	return values
+}
+
+type OpenAPIListServiceWebhookDispatchEventsQuery struct {
+	Limit *int64
+}
+
+func (p OpenAPIListServiceWebhookDispatchEventsQuery) values() url.Values {
+	values := url.Values{}
+	if p.Limit != nil {
+		values.Set("limit", fmt.Sprint(*p.Limit))
 	}
 	return values
 }
@@ -355,6 +437,18 @@ func (p OpenAPITrimServiceRuntimeLogsQuery) values() url.Values {
 	values := url.Values{}
 	if p.EnvironmentId != nil {
 		values.Set("environmentId", fmt.Sprint(*p.EnvironmentId))
+	}
+	return values
+}
+
+type OpenAPITrimServiceTrafficQuery struct {
+	Environment *string
+}
+
+func (p OpenAPITrimServiceTrafficQuery) values() url.Values {
+	values := url.Values{}
+	if p.Environment != nil {
+		values.Set("environment", fmt.Sprint(*p.Environment))
 	}
 	return values
 }
@@ -617,6 +711,16 @@ func (p OpenAPIDeleteServiceAppHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIDeleteServiceComposeFileHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIDeleteServiceComposeFileHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIDeleteServiceDomainHeaders struct {
 	IdempotencyKey string
 	IfMatch        string
@@ -723,6 +827,16 @@ func (p OpenAPIFlushServiceRuntimeLogsHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIFlushServiceTrafficHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIFlushServiceTrafficHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIPreviewGitHubRepositoryAdoptionHeaders struct {
 	IdempotencyKey string
 }
@@ -753,6 +867,16 @@ func (p OpenAPIPromoteServiceDeploymentHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIPutServiceComposeFileHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIPutServiceComposeFileHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIPutServiceRepositoryCredentialHeaders struct {
 	IdempotencyKey string
 	IfMatch        string
@@ -762,6 +886,16 @@ func (p OpenAPIPutServiceRepositoryCredentialHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
+type OpenAPIPutServiceTrafficSettingsHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIPutServiceTrafficSettingsHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	return values
 }
 
@@ -963,6 +1097,16 @@ func (p OpenAPITrimServiceRuntimeLogsHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPITrimServiceTrafficHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPITrimServiceTrafficHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIUnbindServiceVolumeHeaders struct {
 	IdempotencyKey string
 	IfMatch        string
@@ -1160,6 +1304,11 @@ func (c *OpenAPIClient) CheckService(ctx context.Context, source string, service
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICheckService, map[string]string{"source": source, "serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CheckServiceGitHubRepositoryFile(ctx context.Context, query OpenAPICheckServiceGitHubRepositoryFileQuery) (OpenAPICheckServiceGitHubRepositoryFileResponseBody, error) {
+	var response OpenAPICheckServiceGitHubRepositoryFileResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPICheckServiceGitHubRepositoryFile, nil, query.values(), nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ClearServiceRepositoryCredential(ctx context.Context, serviceId string, credentialKind string, headers OpenAPIClearServiceRepositoryCredentialHeaders) (OpenAPIClearServiceRepositoryCredentialResponseBody, error) {
 	var response OpenAPIClearServiceRepositoryCredentialResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, nil, &response)
@@ -1225,6 +1374,11 @@ func (c *OpenAPIClient) DeleteServiceApp(ctx context.Context, appId string, head
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceApp, map[string]string{"appId": appId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) DeleteServiceComposeFile(ctx context.Context, serviceId string, environmentId string, headers OpenAPIDeleteServiceComposeFileHeaders) (OpenAPIDeleteServiceComposeFileResponseBody, error) {
+	var response OpenAPIDeleteServiceComposeFileResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) DeleteServiceDomain(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIDeleteServiceDomainHeaders) (OpenAPIDeleteServiceDomainResponseBody, error) {
 	var response OpenAPIDeleteServiceDomainResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
@@ -1260,6 +1414,11 @@ func (c *OpenAPIClient) DetachTargetService(ctx context.Context, serviceId strin
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDetachTargetService, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ExportServiceVariables(ctx context.Context, serviceId string, environmentId string) (OpenAPIExportServiceVariablesResponseBody, error) {
+	var response OpenAPIExportServiceVariablesResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIExportServiceVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) FlushServiceBuildLogs(ctx context.Context, serviceId string, headers OpenAPIFlushServiceBuildLogsHeaders) (OpenAPIFlushServiceBuildLogsResponseBody, error) {
 	var response OpenAPIFlushServiceBuildLogsResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceBuildLogs, map[string]string{"serviceId": serviceId}, nil, nil, &response)
@@ -1268,6 +1427,11 @@ func (c *OpenAPIClient) FlushServiceBuildLogs(ctx context.Context, serviceId str
 func (c *OpenAPIClient) FlushServiceRuntimeLogs(ctx context.Context, serviceId string, query OpenAPIFlushServiceRuntimeLogsQuery, headers OpenAPIFlushServiceRuntimeLogsHeaders) (OpenAPIFlushServiceRuntimeLogsResponseBody, error) {
 	var response OpenAPIFlushServiceRuntimeLogsResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceRuntimeLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) FlushServiceTraffic(ctx context.Context, serviceId string, query OpenAPIFlushServiceTrafficQuery, headers OpenAPIFlushServiceTrafficHeaders) (OpenAPIFlushServiceTrafficResponseBody, error) {
+	var response OpenAPIFlushServiceTrafficResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceTraffic, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetPostGripConfigurationPlan(ctx context.Context, stackKey string, planId string) (OpenAPIGetPostGripConfigurationPlanResponseBody, error) {
@@ -1300,6 +1464,11 @@ func (c *OpenAPIClient) GetServiceBuildLogSettings(ctx context.Context, serviceI
 	err := c.connection.doOpenAPI(ctx, openAPIGetServiceBuildLogSettings, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) GetServiceComposeFile(ctx context.Context, serviceId string, environmentId string) (OpenAPIGetServiceComposeFileResponseBody, error) {
+	var response OpenAPIGetServiceComposeFileResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) GetServiceConfigurationOperation(ctx context.Context, operationId string) (OpenAPIGetServiceConfigurationOperationResponseBody, error) {
 	var response OpenAPIGetServiceConfigurationOperationResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
@@ -1323,6 +1492,11 @@ func (c *OpenAPIClient) GetServiceDNSPlan(ctx context.Context, serviceId string,
 func (c *OpenAPIClient) GetServiceDeployment(ctx context.Context, serviceId string, deploymentId string) (OpenAPIGetServiceDeploymentResponseBody, error) {
 	var response OpenAPIGetServiceDeploymentResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetServiceDeploymentScreenshot(ctx context.Context, serviceId string, deploymentId string) (OpenAPIGetServiceDeploymentScreenshotResponseBody, error) {
+	var response OpenAPIGetServiceDeploymentScreenshotResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDeploymentScreenshot, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceDomainVerification(ctx context.Context, serviceId string, environmentId string, domainId string) (OpenAPIGetServiceDomainVerificationResponseBody, error) {
@@ -1363,6 +1537,16 @@ func (c *OpenAPIClient) GetServiceRuntimeLogSettings(ctx context.Context, servic
 func (c *OpenAPIClient) GetServiceStatus(ctx context.Context, source string, serviceId string, query OpenAPIGetServiceStatusQuery) (OpenAPIGetServiceStatusResponseBody, error) {
 	var response OpenAPIGetServiceStatusResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIGetServiceStatus, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetServiceTrafficReport(ctx context.Context, serviceId string, query OpenAPIGetServiceTrafficReportQuery) (OpenAPIGetServiceTrafficReportResponseBody, error) {
+	var response OpenAPIGetServiceTrafficReportResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetServiceTrafficReport, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetServiceTrafficStatus(ctx context.Context, serviceId string, query OpenAPIGetServiceTrafficStatusQuery) (OpenAPIGetServiceTrafficStatusResponseBody, error) {
+	var response OpenAPIGetServiceTrafficStatusResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIGetServiceTrafficStatus, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceVolume(ctx context.Context, serviceId string, volumeRef string) (OpenAPIGetServiceVolumeResponseBody, error) {
@@ -1425,6 +1609,11 @@ func (c *OpenAPIClient) ListServiceEnvironments(ctx context.Context, source stri
 	err := c.connection.doOpenAPI(ctx, openAPIListServiceEnvironments, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ListServiceGitHubBranches(ctx context.Context, query OpenAPIListServiceGitHubBranchesQuery) (OpenAPIListServiceGitHubBranchesResponseBody, error) {
+	var response OpenAPIListServiceGitHubBranchesResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListServiceGitHubBranches, nil, query.values(), nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ListServiceLogs(ctx context.Context, source string, serviceId string, query OpenAPIListServiceLogsQuery) (OpenAPIListServiceLogsResponseBody, error) {
 	var response OpenAPIListServiceLogsResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIListServiceLogs, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
@@ -1453,6 +1642,11 @@ func (c *OpenAPIClient) ListServiceVariables(ctx context.Context, serviceId stri
 func (c *OpenAPIClient) ListServiceVolumes(ctx context.Context, serviceId string) (OpenAPIListServiceVolumesResponseBody, error) {
 	var response OpenAPIListServiceVolumesResponseBody
 	err := c.connection.doOpenAPI(ctx, openAPIListServiceVolumes, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) ListServiceWebhookDispatchEvents(ctx context.Context, serviceId string, query OpenAPIListServiceWebhookDispatchEventsQuery) (OpenAPIListServiceWebhookDispatchEventsResponseBody, error) {
+	var response OpenAPIListServiceWebhookDispatchEventsResponseBody
+	err := c.connection.doOpenAPI(ctx, openAPIListServiceWebhookDispatchEvents, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServices(ctx context.Context, query OpenAPIListServicesQuery) (OpenAPIListServicesResponseBody, error) {
@@ -1490,9 +1684,19 @@ func (c *OpenAPIClient) PromoteServiceDeployment(ctx context.Context, serviceId 
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPromoteServiceDeployment, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) PutServiceComposeFile(ctx context.Context, serviceId string, environmentId string, headers OpenAPIPutServiceComposeFileHeaders, body OpenAPIPutServiceComposeFileRequestBody) (OpenAPIPutServiceComposeFileResponseBody, error) {
+	var response OpenAPIPutServiceComposeFileResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) PutServiceRepositoryCredential(ctx context.Context, serviceId string, credentialKind string, headers OpenAPIPutServiceRepositoryCredentialHeaders, body OpenAPIPutServiceRepositoryCredentialRequestBody) (OpenAPIPutServiceRepositoryCredentialResponseBody, error) {
 	var response OpenAPIPutServiceRepositoryCredentialResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, body, &response)
+	return response, err
+}
+func (c *OpenAPIClient) PutServiceTrafficSettings(ctx context.Context, serviceId string, headers OpenAPIPutServiceTrafficSettingsHeaders, body OpenAPIPutServiceTrafficSettingsRequestBody) (OpenAPIPutServiceTrafficSettingsResponseBody, error) {
+	var response OpenAPIPutServiceTrafficSettingsResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceTrafficSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PutServiceVariableValue(ctx context.Context, serviceId string, environmentId string, variableId string, headers OpenAPIPutServiceVariableValueHeaders, body OpenAPIPutServiceVariableValueRequestBody) (OpenAPIPutServiceVariableValueResponseBody, error) {
@@ -1595,6 +1799,11 @@ func (c *OpenAPIClient) TrimServiceRuntimeLogs(ctx context.Context, serviceId st
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceRuntimeLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) TrimServiceTraffic(ctx context.Context, serviceId string, query OpenAPITrimServiceTrafficQuery, headers OpenAPITrimServiceTrafficHeaders) (OpenAPITrimServiceTrafficResponseBody, error) {
+	var response OpenAPITrimServiceTrafficResponseBody
+	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceTraffic, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) UnbindServiceVolume(ctx context.Context, serviceId string, environmentId string, volumeRef string, headers OpenAPIUnbindServiceVolumeHeaders) (OpenAPIUnbindServiceVolumeResponseBody, error) {
 	var response OpenAPIUnbindServiceVolumeResponseBody
 	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUnbindServiceVolume, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "volumeRef": volumeRef}, nil, nil, &response)
@@ -1668,6 +1877,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 110
+const OpenAPIClientOperationCount = 123
 
-const openAPIClientSpecSHA256 = "c9fe98a0fc56d92e93bf0eb5fc0480dc2074f9b65fc49b108154059b9845c2f2"
+const openAPIClientSpecSHA256 = "6025a5fd77c3754d17c553dc72509452741748555b4137950ad5a47153b8f717"

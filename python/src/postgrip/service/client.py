@@ -26,6 +26,7 @@ from .administration_types import (
     AppsAdministration,
     AsyncAppsAdministration,
     AsyncDeclarativeConfigurationAdministration,
+    AsyncDiagnosticsAdministration,
     AsyncConfigurationOperationsAdministration,
     AsyncDomainsAdministration,
     AsyncDNSAdministration,
@@ -36,10 +37,12 @@ from .administration_types import (
     AsyncRepositoriesAdministration,
     AsyncReleaseGroupsAdministration,
     AsyncRetentionAdministration,
+    AsyncTrafficAdministration,
     AsyncTargetServicesAdministration,
     AsyncVariablesAdministration,
     ConfigurationOperationsAdministration,
     DeclarativeConfigurationAdministration,
+    DiagnosticsAdministration,
     DomainsAdministration,
     DNSAdministration,
     EnvironmentsAdministration,
@@ -49,6 +52,7 @@ from .administration_types import (
     RepositoriesAdministration,
     ReleaseGroupsAdministration,
     RetentionAdministration,
+    TrafficAdministration,
     TargetServicesAdministration,
     VariablesAdministration,
 )
@@ -78,6 +82,7 @@ from .openapi import (
 
 _RETRYABLE_STATUS = {408, 429, 502, 503, 504}
 _MAX_RESPONSE_BYTES = 4 << 20
+_MAX_SCREENSHOT_RESPONSE_BYTES = 24 << 20
 _MAXIMUM_RETRY_ATTEMPTS = 3
 _MAXIMUM_RETRY_DELAY = 2.0
 _MAXIMUM_RETRY_AFTER_DELAY = 30.0
@@ -100,6 +105,7 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
         "get_service_environment", "create_service_environment", "update_service_environment",
         "preview_service_environment_reassignment", "reassign_service_environment",
         "get_service_environment_removal_impact", "delete_service_environment",
+        "get_service_compose_file", "put_service_compose_file", "delete_service_compose_file",
     ),
     "managed_volumes": (
         "list_service_volumes", "create_service_volume", "get_service_volume",
@@ -120,13 +126,14 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     "variables": (
         "list_service_variables", "create_service_variable", "update_service_variable",
         "delete_service_variable", "put_service_variable_value", "clear_service_variable_value",
-        "apply_service_variables",
+        "apply_service_variables", "export_service_variables",
     ),
     "repositories": (
         "get_service_repository", "update_service_repository", "put_service_repository_credential",
         "clear_service_repository_credential", "refresh_service_repository_credential",
         "list_git_hub_app_repositories", "preview_git_hub_repository_adoption",
-        "adopt_git_hub_repository",
+        "adopt_git_hub_repository", "list_service_git_hub_branches",
+        "check_service_git_hub_repository_file",
     ),
     "promotions": (
         "list_service_promotions", "preview_service_promotion", "promote_service_deployment",
@@ -140,6 +147,13 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
         "get_service_build_log_settings", "update_service_build_log_settings", "trim_service_build_logs",
         "flush_service_build_logs", "get_service_runtime_log_settings",
         "update_service_runtime_log_settings", "trim_service_runtime_logs", "flush_service_runtime_logs",
+    ),
+    "diagnostics": (
+        "get_service_deployment_screenshot", "list_service_webhook_dispatch_events",
+    ),
+    "traffic": (
+        "get_service_traffic_status", "get_service_traffic_report", "put_service_traffic_settings",
+        "trim_service_traffic", "flush_service_traffic",
     ),
     "configuration_operations": (
         "list_service_configuration_operations", "get_service_configuration_operation",
@@ -332,7 +346,7 @@ class _AdministrationGroup:
 
 
 class ServiceAdministration:
-    """Grouped access to all 92 generated Service-administration operations."""
+    """Grouped access to all 105 generated Service-administration operations."""
 
     apps: AppsAdministration
     target_services: TargetServicesAdministration
@@ -346,6 +360,8 @@ class ServiceAdministration:
     promotions: PromotionsAdministration
     release_groups: ReleaseGroupsAdministration
     retention: RetentionAdministration
+    diagnostics: DiagnosticsAdministration
+    traffic: TrafficAdministration
     configuration_operations: ConfigurationOperationsAdministration
     declarative_configuration: DeclarativeConfigurationAdministration
 
@@ -363,6 +379,8 @@ class ServiceAdministration:
         self.promotions = cast(PromotionsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["promotions"]))
         self.release_groups = cast(ReleaseGroupsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["release_groups"]))
         self.retention = cast(RetentionAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["retention"]))
+        self.diagnostics = cast(DiagnosticsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["diagnostics"]))
+        self.traffic = cast(TrafficAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["traffic"]))
         self.configuration_operations = cast(ConfigurationOperationsAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["configuration_operations"]))
         self.declarative_configuration = cast(DeclarativeConfigurationAdministration, _AdministrationGroup(generated, _ADMINISTRATION_OPERATION_GROUPS["declarative_configuration"]))
 
@@ -382,6 +400,8 @@ class AsyncServiceAdministration:
     promotions: AsyncPromotionsAdministration
     release_groups: AsyncReleaseGroupsAdministration
     retention: AsyncRetentionAdministration
+    diagnostics: AsyncDiagnosticsAdministration
+    traffic: AsyncTrafficAdministration
     configuration_operations: AsyncConfigurationOperationsAdministration
     declarative_configuration: AsyncDeclarativeConfigurationAdministration
 
@@ -398,6 +418,8 @@ class AsyncServiceAdministration:
         self.promotions = cast(AsyncPromotionsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.promotions)))
         self.release_groups = cast(AsyncReleaseGroupsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.release_groups)))
         self.retention = cast(AsyncRetentionAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.retention)))
+        self.diagnostics = cast(AsyncDiagnosticsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.diagnostics)))
+        self.traffic = cast(AsyncTrafficAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.traffic)))
         self.configuration_operations = cast(AsyncConfigurationOperationsAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.configuration_operations)))
         self.declarative_configuration = cast(AsyncDeclarativeConfigurationAdministration, _AsyncAdministrationGroup(client, cast(_AdministrationGroup, sync.declarative_configuration)))
 
@@ -725,7 +747,12 @@ class ServiceClient:
             })
             try:
                 with self._opener.open(request, timeout=self._timeout) as response:
-                    return _decode_success(response)
+                    maximum_bytes = (
+                        _MAX_SCREENSHOT_RESPONSE_BYTES
+                        if operation_id is OperationId.GET_SERVICE_DEPLOYMENT_SCREENSHOT
+                        else _MAX_RESPONSE_BYTES
+                    )
+                    return _decode_success(response, maximum_bytes)
             except HTTPError as error:
                 if cancel_event is not None and cancel_event.is_set():
                     raise _RequestCancelled from None
@@ -915,9 +942,9 @@ class AsyncServiceClient:
         return await self._run(self._sync.restart, project_id, environment_id, **options)
 
 
-def _decode_success(response: Any) -> Any:
-    body = response.read(_MAX_RESPONSE_BYTES + 1)
-    if len(body) > _MAX_RESPONSE_BYTES:
+def _decode_success(response: Any, maximum_bytes: int = _MAX_RESPONSE_BYTES) -> Any:
+    body = response.read(maximum_bytes + 1)
+    if len(body) > maximum_bytes:
         raise ValueError("PostGrip Service response is too large")
     return json.loads(body) if body.strip() else None
 

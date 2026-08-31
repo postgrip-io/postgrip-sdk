@@ -1,0 +1,27 @@
+{
+  "operationId": "checkServiceGitHubRepositoryFile",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {
+      "owner": "string",
+      "path": "string",
+      "ref": "string",
+      "repo": "string"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "exists": true
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_checkServiceGitHubRepositoryFile"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

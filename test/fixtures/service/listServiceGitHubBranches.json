@@ -1,0 +1,27 @@
+{
+  "operationId": "listServiceGitHubBranches",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {
+      "owner": "string",
+      "repo": "string"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": [
+      {
+        "name": "string"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listServiceGitHubBranches"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -281,6 +281,15 @@ describe('ServiceClient', () => {
     expect(String(error)).not.toContain(oversized.slice(0, 20));
   });
 
+  it('uses the schema-sized response limit for deployment screenshots', async () => {
+    const dataBase64 = 'A'.repeat((4 << 20) + 4);
+    const fetchImpl = vi.fn(async () => Response.json({ contentType: 'image/png', dataBase64 })) as typeof globalThis.fetch;
+
+    const response = await client(fetchImpl).administration.diagnostics.screenshot('project-id', 'deployment-id');
+
+    expect(response.dataBase64).toHaveLength(dataBase64.length);
+  });
+
   it('does not follow redirects or forward the bearer', async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       expect(init?.redirect).toBe('manual');
@@ -343,7 +352,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 92 administration operations and sends concurrency fences', async () => {
+  it('groups all 105 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -355,7 +364,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(92);
+    expect(methodCount).toBe(105);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -410,7 +419,7 @@ describe('ServiceClient', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('executes all 92 administration facades through the authenticated transport', async () => {
+  it('executes all 105 administration facades through the authenticated transport', async () => {
     let requestCount = 0;
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestCount += 1;
@@ -450,6 +459,9 @@ describe('ServiceClient', () => {
       () => admin.environments.reassign('project-1', 'environment-1', body, write),
       () => admin.environments.removalImpact('project-1', 'environment-1'),
       () => admin.environments.delete('project-1', 'environment-1', body, write),
+      () => admin.environments.getCompose('project-1', 'environment-1'),
+      () => admin.environments.putCompose('project-1', 'environment-1', body, mutation),
+      () => admin.environments.deleteCompose('project-1', 'environment-1', mutation),
       () => admin.volumes.list('project-1'),
       () => admin.volumes.create('project-1', body, write),
       () => admin.volumes.get('project-1', 'volume-1'),
@@ -481,6 +493,7 @@ describe('ServiceClient', () => {
       () => admin.variables.putValue('project-1', 'environment-1', 'variable-1', body, write),
       () => admin.variables.clearValue('project-1', 'environment-1', 'variable-1', write),
       () => admin.variables.apply('project-1', body, mutation),
+      () => admin.variables.export('project-1', 'environment-1'),
       () => admin.repositories.get('project-1'),
       () => admin.repositories.update('project-1', body, write),
       () => admin.repositories.putCredential('project-1', 'source-access', body, write),
@@ -489,6 +502,8 @@ describe('ServiceClient', () => {
       () => admin.repositories.listGitHub(),
       () => admin.repositories.previewGitHubAdoption('project-1', body, mutation),
       () => admin.repositories.adoptGitHub('project-1', body, write),
+      () => admin.repositories.listGitHubBranches(body),
+      () => admin.repositories.checkGitHubFile(body),
       () => admin.releaseGroups.list(),
       () => admin.releaseGroups.preview(body),
       () => admin.releaseGroups.create(body, mutation),
@@ -507,6 +522,13 @@ describe('ServiceClient', () => {
       () => admin.retention.updateRuntime('project-1', body, body, write),
       () => admin.retention.trimRuntime('project-1', body, write),
       () => admin.retention.flushRuntime('project-1', body, write),
+      () => admin.diagnostics.screenshot('project-1', 'deployment-1'),
+      () => admin.diagnostics.webhookEvents('project-1'),
+      () => admin.traffic.status('project-1'),
+      () => admin.traffic.report('project-1'),
+      () => admin.traffic.updateSettings('project-1', body, mutation),
+      () => admin.traffic.trim('project-1', body, mutation),
+      () => admin.traffic.flush('project-1', body, mutation),
       () => admin.configurationOperations.list(),
       () => admin.configurationOperations.get('operation-1'),
       () => admin.configurationOperations.retry('operation-1', write),
@@ -523,7 +545,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(92);
+    expect(requestCount).toBe(105);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

@@ -33,7 +33,7 @@ subpath.
 
 See the repository [quick start](../README.md), [authentication
 model](../docs/authentication.md), and [generated API
-reference](../docs/reference/6615d580fefdc98d3f5ac8bb4a420355100f6dbacfc9a505afaa9ccec9d3db7f/README.md).
+reference](../docs/reference/e87cf4a389d51e12f842ecf22ad3bb5d68ec0ec4798febf79b1e256fa80945bb/README.md).
 Durable public Worker creation is covered in the [Worker bootstrap
 guide](../docs/worker-bootstrap.md).
 

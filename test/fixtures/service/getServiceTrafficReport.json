@@ -1,0 +1,78 @@
+{
+  "operationId": "getServiceTrafficReport",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {
+      "environment": "11111111-1111-4111-8111-111111111111",
+      "window": "1h"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "complete": true,
+      "items": [
+        {
+          "data": {
+            "bucketUnit": "string",
+            "byEnvironmentId": [
+              {
+                "bytes": 1,
+                "key": "string",
+                "requests": 1
+              }
+            ],
+            "summary": {
+              "avgLatencyMs": 1.0,
+              "bytes": 1,
+              "hosts": 1,
+              "requests": 1,
+              "status2xx": 1,
+              "status3xx": 1,
+              "status4xx": 1,
+              "status5xx": 1
+            },
+            "timeSeries": [
+              {
+                "avgLatencyMs": 1.0,
+                "bucketStart": "2026-01-01T00:00:00Z",
+                "bytes": 1,
+                "requests": 1
+              }
+            ],
+            "topHosts": [
+              {
+                "bytes": 1,
+                "key": "string",
+                "requests": 1
+              }
+            ],
+            "topPaths": [
+              {
+                "bytes": 1,
+                "key": "string",
+                "requests": 1
+              }
+            ],
+            "window": "1h"
+          },
+          "environmentIds": [
+            "11111111-1111-4111-8111-111111111111"
+          ],
+          "workerId": "11111111-1111-4111-8111-111111111111"
+        }
+      ]
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getServiceTrafficReport"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

@@ -72,6 +72,8 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return schema["const"]
     if schema.get("enum"):
         return schema["enum"][0]
+    if schema.get("contentEncoding") == "base64":
+        return "cG9zdGdyaXA="
     if "$ref" in schema:
         reference = schema["$ref"]
         if reference in seen:
@@ -86,7 +88,20 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return merged
     for alternative in ("oneOf", "anyOf"):
         if schema.get(alternative):
-            return sample(document, schema[alternative][0], seen)
+            selected = schema[alternative][0]
+            if (schema.get("type") == "object" or schema.get("properties")) and isinstance(selected, dict):
+                branch = {key: value for key, value in schema.items() if key not in ("oneOf", "anyOf")}
+                branch["required"] = list(dict.fromkeys([
+                    *schema.get("required", []),
+                    *selected.get("required", []),
+                ]))
+                if isinstance(selected.get("properties"), dict):
+                    branch["properties"] = {
+                        **schema.get("properties", {}),
+                        **selected["properties"],
+                    }
+                return sample(document, branch, seen)
+            return sample(document, selected, seen)
     schema_type = schema.get("type")
     if not schema_type and "properties" in schema:
         schema_type = "object"
@@ -123,9 +138,29 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return "RECORDED_VALUE"
     if pattern == "^(target|project):[0-9a-fA-F-]{36}$":
         return "project:11111111-1111-4111-8111-111111111111"
+    if pattern == "^/":
+        return "/data"
     if pattern in {"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$", "^[!-~]+$"}:
         return "recorded"
     return "string".ljust(max(int(schema.get("minLength", 0)), 6), "x")
+
+
+def operation_response_sample(document: dict[str, Any], operation: dict[str, Any], media: dict[str, Any]) -> Any:
+    value = media.get("example", sample(document, media.get("schema", {})))
+    if operation.get("operationId") != "flushServiceTraffic":
+        return value
+
+    def mark_flush(node: Any) -> Any:
+        if isinstance(node, dict):
+            return {
+                key: "flush" if key == "operation" and item == "trim" else mark_flush(item)
+                for key, item in node.items()
+            }
+        if isinstance(node, list):
+            return [mark_flush(item) for item in node]
+        return node
+
+    return mark_flush(value)
 
 
 def operations(document: dict[str, Any]) -> list[dict[str, Any]]:
@@ -189,7 +224,7 @@ def response_rows(document: dict[str, Any], operation: dict[str, Any]) -> tuple[
         description = str(response.get("description", "")).replace("|", "\\|").replace("\n", " ") or "—"
         rows.append(f"| `{status}` | {description} | `{media_type or '—'}` | `{schema_name(schema)}` |")
         if success_example is None and str(status).startswith("2"):
-            success_example = media.get("example", sample(document, schema)) if media else None
+            success_example = operation_response_sample(document, operation, media) if media else None
     return rows, success_example
 
 

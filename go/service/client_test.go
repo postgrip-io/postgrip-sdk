@@ -223,13 +223,15 @@ func TestAdministrationFacadeCoversAllAdministrationOperations(t *testing.T) {
 		reflect.TypeOf(ServiceRetentionClient{}),
 		reflect.TypeOf(ServiceConfigurationOperationsClient{}),
 		reflect.TypeOf(DeclarativeConfigurationClient{}),
+		reflect.TypeOf(ServiceDiagnosticsClient{}),
+		reflect.TypeOf(ServiceTrafficClient{}),
 	}
 	operationCount := 0
 	for _, facadeType := range types {
 		operationCount += facadeType.NumMethod()
 	}
-	if operationCount != 92 {
-		t.Fatalf("administration facade operations = %d, want 92", operationCount)
+	if operationCount != 105 {
+		t.Fatalf("administration facade operations = %d, want 105", operationCount)
 	}
 }
 
@@ -397,6 +399,18 @@ func TestReleasePreviewRejectsMembersWithoutARevisionSource(t *testing.T) {
 	}
 }
 
+func TestTrafficStatusRejectsAmbiguousWorkerResult(t *testing.T) {
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[{"workerId":"11111111-1111-4111-8111-111111111111","environmentIds":[],"data":{},"error":{"code":"WORKER_ERROR","message":"failed"}}],"complete":false}`))
+	}), nil)
+
+	_, err := client.ServiceTraffic().Status(context.Background(), "project-1", OpenAPIGetServiceTrafficStatusQuery{})
+	if err == nil || !strings.Contains(err.Error(), "required property alternative") {
+		t.Fatalf("ambiguous traffic result err = %v", err)
+	}
+}
+
 func TestRetryAfterPreservesZeroAndCapsOversizedValues(t *testing.T) {
 	policy := serviceRetryLimits{maxDelay: 2 * time.Second, retryAfterMax: 30 * time.Second}
 	response := &http.Response{StatusCode: http.StatusServiceUnavailable, Header: http.Header{"Retry-After": []string{"0"}}}
@@ -449,6 +463,27 @@ func TestResponseBodyLimit(t *testing.T) {
 	_, err := client.Resolve(context.Background(), "api")
 	if err == nil || !strings.Contains(err.Error(), "too large") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestScreenshotUsesSchemaSizedResponseLimit(t *testing.T) {
+	data := strings.Repeat("A", maxResponseBytes+4)
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]string{
+			"contentType": "image/png",
+			"dataBase64":  data,
+		}); err != nil {
+			t.Fatalf("encode screenshot response: %v", err)
+		}
+	}), nil)
+
+	response, err := client.ServiceDiagnostics().Screenshot(context.Background(), "project-id", "deployment-id")
+	if err != nil {
+		t.Fatalf("screenshot: %v", err)
+	}
+	if response.DataBase64 != data {
+		t.Fatalf("screenshot data length = %d, want %d", len(response.DataBase64), len(data))
 	}
 }
 

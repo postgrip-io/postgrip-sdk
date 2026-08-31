@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "6615d580fefdc98d3f5ac8bb4a420355100f6dbacfc9a505afaa9ccec9d3db7f",
+  "contractBundleDigest": "e87cf4a389d51e12f842ecf22ad3bb5d68ec0ec4798febf79b1e256fa80945bb",
   "contractDigests": {
     "agent": "86aa7d831437544f83f26486212b297565f621d784f2850c5c9af391e3f68018",
-    "service": "c9fe98a0fc56d92e93bf0eb5fc0480dc2074f9b65fc49b108154059b9845c2f2",
+    "service": "6025a5fd77c3754d17c553dc72509452741748555b4137950ad5a47153b8f717",
     "worker": "afb2f195907615f4b3de7f9615c66c24ca6a90c7f14ac98d446337bd0779e432"
   },
   "operations": [
@@ -1693,6 +1693,35 @@
         "postgrip-token"
       ],
       "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "checkServiceGitHubRepositoryFile",
+      "pagination": "none",
+      "path": "/api/v1/services/integrations/github/file",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceGitHubFileCheck",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
       "idempotency": "required",
       "method": "DELETE",
       "operationClass": "tenant-api",
@@ -2121,6 +2150,38 @@
       "idempotency": "required",
       "method": "DELETE",
       "operationClass": "tenant-api",
+      "operationId": "deleteServiceComposeFile",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/compose",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceComposeDeleteResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
       "operationId": "deleteServiceDomain",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}",
@@ -2351,6 +2412,38 @@
         "postgrip-token"
       ],
       "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "exportServiceVariables",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/export",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
       "idempotency": "required",
       "method": "POST",
       "operationClass": "tenant-api",
@@ -2404,6 +2497,37 @@
         "application/json"
       ],
       "responseSchema": "ServiceRuntimeLogMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "flushServiceTraffic",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/traffic/flush",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTrafficMaintenanceFanout",
       "retry": "bounded",
       "safety": "destructive",
       "signing": null
@@ -2605,6 +2729,38 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getServiceComposeFile",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/compose",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceComposeFile",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getServiceConfigurationOperation",
       "pagination": "none",
       "path": "/api/v1/services/configuration-operations/{operationId}",
@@ -2756,6 +2912,38 @@
         "application/json"
       ],
       "responseSchema": "Deployment",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceDeploymentScreenshot",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/screenshot",
+      "pathParameters": [
+        "serviceId",
+        "deploymentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceDeploymentScreenshot",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -3009,6 +3197,68 @@
         "application/json"
       ],
       "responseSchema": "ServiceStatus",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceTrafficReport",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/traffic/report",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTrafficReportFanout",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getServiceTrafficStatus",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/traffic",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:logs:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTrafficStatusFanout",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -3396,6 +3646,35 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "listServiceGitHubBranches",
+      "pagination": "none",
+      "path": "/api/v1/services/integrations/github/branches",
+      "pathParameters": [],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "listServiceLogs",
       "pagination": "none",
       "path": "/api/v1/services/{source}/{serviceId}/logs",
@@ -3570,6 +3849,37 @@
         "application/json"
       ],
       "responseSchema": "ServiceVolumeList",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listServiceWebhookDispatchEvents",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/webhook-events",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
       "retry": "bounded",
       "safety": "read-only",
       "signing": null
@@ -3804,6 +4114,40 @@
       "idempotency": "required",
       "method": "PUT",
       "operationClass": "tenant-api",
+      "operationId": "putServiceComposeFile",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/compose",
+      "pathParameters": [
+        "serviceId",
+        "environmentId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "PutServiceComposeFileRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceComposeMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
       "operationId": "putServiceRepositoryCredential",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}",
@@ -3827,6 +4171,39 @@
         "application/json"
       ],
       "responseSchema": "ServiceRepositoryMutationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "putServiceTrafficSettings",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/traffic/settings",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "PutServiceTrafficSettingsRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTrafficSettingsFanout",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null
@@ -4488,6 +4865,37 @@
         "application/json"
       ],
       "responseSchema": "ServiceRuntimeLogMutationResponse",
+      "retry": "bounded",
+      "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "trimServiceTraffic",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/traffic/trim",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTrafficMaintenanceFanout",
       "retry": "bounded",
       "safety": "destructive",
       "signing": null

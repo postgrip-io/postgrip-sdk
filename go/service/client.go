@@ -20,13 +20,14 @@ import (
 )
 
 const (
-	maxResponseBytes          = 4 << 20
-	defaultRetryMaxAttempts   = 3
-	maximumRetryMaxAttempts   = 3
-	defaultRetryMaxDelay      = 2 * time.Second
-	maximumRetryMaxDelay      = 2 * time.Second
-	defaultRetryAfterMaxDelay = 30 * time.Second
-	maximumRetryAfterMaxDelay = 30 * time.Second
+	maxResponseBytes           = 4 << 20
+	maxScreenshotResponseBytes = 24 << 20
+	defaultRetryMaxAttempts    = 3
+	maximumRetryMaxAttempts    = 3
+	defaultRetryMaxDelay       = 2 * time.Second
+	maximumRetryMaxDelay       = 2 * time.Second
+	defaultRetryAfterMaxDelay  = 30 * time.Second
+	maximumRetryAfterMaxDelay  = 30 * time.Second
 )
 
 type Config struct {
@@ -195,9 +196,13 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 			}
 			return requestErr
 		}
-		responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
+		responseLimit := maxResponseBytes
+		if response.StatusCode >= 200 && response.StatusCode < 300 && id == openAPIGetServiceDeploymentScreenshot {
+			responseLimit = maxScreenshotResponseBytes
+		}
+		responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, int64(responseLimit)+1))
 		_ = response.Body.Close()
-		if readErr != nil || len(responseBody) > maxResponseBytes {
+		if readErr != nil || len(responseBody) > responseLimit {
 			return errors.New("postgrip-service: response is invalid or too large")
 		}
 		if response.StatusCode >= 200 && response.StatusCode < 300 {
