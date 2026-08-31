@@ -36,6 +36,15 @@
     },
     {
       "name": "Applications"
+    },
+    {
+      "name": "Repositories"
+    },
+    {
+      "name": "Configuration"
+    },
+    {
+      "name": "Observability"
     }
   ],
   "paths": {
@@ -6818,6 +6827,316 @@
         "x-postgrip-idempotency": "required",
         "x-postgrip-retry": "bounded"
       }
+    },
+    "/api/v1/services/integrations/github/branches": {
+      "get": {
+        "operationId": "listServiceGitHubBranches",
+        "tags": ["Repositories"],
+        "summary": "List GitHub Repository Branches",
+        "description": "Lists branches visible through the tenant's connected GitHub App installation without exposing installation credentials.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:config:read"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [
+          {"name": "owner", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
+          {"name": "repo", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}}
+        ],
+        "responses": {
+          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceGitHubBranch"}}}}},
+          "default": {"$ref": "#/components/responses/Error"}
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/integrations/github/file": {
+      "get": {
+        "operationId": "checkServiceGitHubRepositoryFile",
+        "tags": ["Repositories"],
+        "summary": "Check GitHub Repository File",
+        "description": "Checks whether a repository file exists at an optional ref through the tenant's connected GitHub installation.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:config:read"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [
+          {"name": "owner", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
+          {"name": "repo", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
+          {"name": "path", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
+          {"name": "ref", "in": "query", "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceGitHubFileCheck"}}}},
+          "default": {"$ref": "#/components/responses/Error"}
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/deployments/{deploymentId}/screenshot": {
+      "get": {
+        "operationId": "getServiceDeploymentScreenshot",
+        "tags": ["Deployments"],
+        "summary": "Download Deployment Screenshot",
+        "description": "Downloads the browser-check screenshot captured by the Worker for an exact tenant-owned deployment.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [
+          {"$ref": "#/components/parameters/ServiceId"},
+          {"$ref": "#/components/parameters/DeploymentId"}
+        ],
+        "responses": {
+          "200": {"description": "Deployment screenshot", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceDeploymentScreenshot"}}}},
+          "default": {"$ref": "#/components/responses/Error"}
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/webhook-events": {
+      "get": {
+        "operationId": "listServiceWebhookDispatchEvents",
+        "tags": ["Deployments"],
+        "summary": "List Webhook Dispatch Events",
+        "description": "Lists the bounded recent decisions produced while dispatching GitHub push and pull-request events for a service.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:read"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [
+          {"$ref": "#/components/parameters/ServiceId"},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 100}}
+        ],
+        "responses": {
+          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceWebhookDispatchEvent"}}}}},
+          "default": {"$ref": "#/components/responses/Error"}
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/compose": {
+      "get": {
+        "operationId": "getServiceComposeFile",
+        "tags": ["Configuration"],
+        "summary": "Get Environment Compose File",
+        "description": "Returns the Worker-held Compose override for an exact service environment.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:admin"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}],
+        "responses": {
+          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeFile"}}}},
+          "default": {"$ref": "#/components/responses/Error"}
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      },
+      "put": {
+        "operationId": "putServiceComposeFile",
+        "tags": ["Configuration"],
+        "summary": "Replace Environment Compose File",
+        "description": "Validates and replaces the Worker-held Compose override. This administrative operation can materially change workload execution.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:admin"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}, {"$ref": "#/components/parameters/IdempotencyKey"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PutServiceComposeFileRequest"}}}},
+        "responses": {
+          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeMutationResponse"}}}},
+          "default": {"$ref": "#/components/responses/Error"}
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      },
+      "delete": {
+        "operationId": "deleteServiceComposeFile",
+        "tags": ["Configuration"],
+        "summary": "Delete Environment Compose File",
+        "description": "Deletes the Worker-held Compose override so the next read or deployment can restore generated defaults.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:admin"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}, {"$ref": "#/components/parameters/IdempotencyKey"}],
+        "responses": {"200": {"description": "Compose override deleted", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeDeleteResponse"}}}}, "default": {"$ref": "#/components/responses/Error"}},
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/export": {
+      "get": {
+        "operationId": "exportServiceVariables",
+        "tags": ["Configuration"],
+        "summary": "Export Environment Variables",
+        "description": "Returns saved non-secret values from the assigned Worker. Secret values are represented only by metadata and are never returned.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:admin"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}],
+        "responses": {
+          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceVariableExportItem"}}}}},
+          "default": {"$ref": "#/components/responses/Error"}
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/traffic": {
+      "get": {
+        "operationId": "getServiceTrafficStatus",
+        "tags": ["Observability"],
+        "summary": "Get Service Traffic Status",
+        "description": "Returns traffic telemetry status from every Worker assigned to the project or selected environment.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:logs:read"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/OptionalEnvironment"}],
+        "responses": {"200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceTrafficStatusFanout"}}}}, "default": {"$ref": "#/components/responses/Error"}},
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/traffic/report": {
+      "get": {
+        "operationId": "getServiceTrafficReport",
+        "tags": ["Observability"],
+        "summary": "Get Service Traffic Report",
+        "description": "Returns bounded traffic time-series and breakdown data from every assigned Worker.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:logs:read"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [
+          {"$ref": "#/components/parameters/ServiceId"},
+          {"$ref": "#/components/parameters/OptionalEnvironment"},
+          {"name": "window", "in": "query", "schema": {"type": "string", "enum": ["1h", "24h", "7d", "30d"], "default": "24h"}}
+        ],
+        "responses": {"200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceTrafficReportFanout"}}}}, "default": {"$ref": "#/components/responses/Error"}},
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/traffic/settings": {
+      "put": {
+        "operationId": "putServiceTrafficSettings",
+        "tags": ["Observability"],
+        "summary": "Update Service Traffic Settings",
+        "description": "Updates project-scoped traffic collection and retention settings on every assigned Worker.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:admin"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/IdempotencyKey"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PutServiceTrafficSettingsRequest"}}}},
+        "responses": {"200": {"description": "Per-Worker results", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceTrafficSettingsFanout"}}}}, "default": {"$ref": "#/components/responses/Error"}},
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/traffic/trim": {
+      "post": {
+        "operationId": "trimServiceTraffic",
+        "tags": ["Observability"],
+        "summary": "Trim Service Traffic Telemetry",
+        "description": "Deletes traffic rollups older than the configured retention window on every selected Worker.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:admin"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/OptionalEnvironment"}, {"$ref": "#/components/parameters/IdempotencyKey"}],
+        "responses": {"200": {"description": "Per-Worker results", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceTrafficMaintenanceFanout"}}}}, "default": {"$ref": "#/components/responses/Error"}},
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/traffic/flush": {
+      "post": {
+        "operationId": "flushServiceTraffic",
+        "tags": ["Observability"],
+        "summary": "Flush Service Traffic Telemetry",
+        "description": "Deletes all project or selected-environment traffic rollups on every selected Worker.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [["services:admin"]],
+        "security": [{"postgripToken": []}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/OptionalEnvironment"}, {"$ref": "#/components/parameters/IdempotencyKey"}],
+        "responses": {"200": {"description": "Per-Worker results", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceTrafficMaintenanceFanout"}}}}, "default": {"$ref": "#/components/responses/Error"}},
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": ["postgrip-token"],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
     }
   },
   "components": {
@@ -6860,6 +7179,15 @@
         "name": "environmentId",
         "in": "path",
         "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "OptionalEnvironment": {
+        "name": "environment",
+        "in": "query",
+        "description": "Resolved environment UUID. When omitted, the operation covers every assigned environment in the project.",
         "schema": {
           "type": "string",
           "format": "uuid"
@@ -8854,6 +9182,13 @@
             "minimum": 1,
             "maximum": 65535
           },
+          "volumes": {
+            "type": "array",
+              "description": "Worker-scoped ephemeral bind mounts. The server derives tenant/project/environment-scoped storage paths from containerPath; Worker-local paths are never accepted or returned.",
+            "items": {
+              "$ref": "#/components/schemas/ServiceEphemeralVolumeMountInput"
+            }
+          },
           "includePaths": {
             "type": "string"
           },
@@ -8902,6 +9237,14 @@
           },
           "clearContainerPort": {
             "type": "boolean"
+          },
+          "volumes": {
+            "type": "array",
+            "description": "Replaces the environment's Worker-scoped ephemeral bind mounts. This field requires services:admin.",
+            "x-postgrip-presence-aware": true,
+            "items": {
+              "$ref": "#/components/schemas/ServiceEphemeralVolumeMountInput"
+            }
           },
           "includePaths": {
             "type": "string"
@@ -10095,6 +10438,7 @@
           "previewBrowserCheckEnabled",
           "buildCommand",
           "outputDir",
+          "volumes",
           "volumeBindings",
           "version",
           "createdAt",
@@ -10143,6 +10487,12 @@
           },
           "containerPort": {
             "type": "integer"
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceEphemeralVolumeMount"
+            }
           },
           "includePaths": {
             "type": "string"
@@ -14564,6 +14914,435 @@
               "operator_failback"
             ]
           }
+        }
+      },
+      "ServiceEphemeralVolumeMount": {
+        "type": "object",
+        "description": "Public projection of a Worker-scoped ephemeral mount. Worker-local storage paths are intentionally omitted.",
+        "additionalProperties": false,
+        "required": [
+          "containerPath"
+        ],
+        "properties": {
+          "containerPath": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^/"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "ServiceEphemeralVolumeMountInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "containerPath"
+        ],
+        "properties": {
+          "containerPath": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^/"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "ServiceGitHubBranch": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ServiceGitHubFileCheck": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "exists"
+        ],
+        "properties": {
+          "exists": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ServiceDeploymentScreenshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contentType",
+          "dataBase64"
+        ],
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dataBase64": {
+            "type": "string",
+            "contentEncoding": "base64",
+            "maxLength": 22369624
+          }
+        }
+      },
+      "ServiceWebhookDispatchEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "environmentId",
+          "deploymentId",
+          "eventType",
+          "action",
+          "branch",
+          "commitSha",
+          "prNumber",
+          "decision",
+          "reason",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "tenantId": {"type": "string", "format": "uuid"},
+          "projectId": {"type": "string", "format": "uuid"},
+          "environmentId": {"anyOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]},
+          "deploymentId": {"anyOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]},
+          "eventType": {"type": "string"},
+          "action": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "branch": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "commitSha": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "prNumber": {"anyOf": [{"type": "integer", "format": "int32"}, {"type": "null"}]},
+          "decision": {"type": "string"},
+          "reason": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+          "createdAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ServiceComposeFile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectId",
+          "envId",
+          "content"
+        ],
+        "properties": {
+          "projectId": {"type": "string", "format": "uuid"},
+          "envId": {"type": "string", "format": "uuid"},
+          "content": {"type": "string"},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "PutServiceComposeFileRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "maxLength": 262144
+          }
+        }
+      },
+      "ServiceComposeMutationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["compose", "receipt"],
+        "properties": {
+          "compose": {"$ref": "#/components/schemas/ServiceComposeFile"},
+          "receipt": {"$ref": "#/components/schemas/OperationReceipt"}
+        }
+      },
+      "ServiceComposeDeleteResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["deleted", "receipt"],
+        "properties": {
+          "deleted": {"type": "boolean"},
+          "receipt": {"$ref": "#/components/schemas/OperationReceipt"}
+        }
+      },
+      "ServiceVariableExportItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "projectId",
+          "environmentId",
+          "name",
+          "hasValue",
+          "isSecret",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "projectId": {"type": "string", "format": "uuid"},
+          "environmentId": {"type": "string", "format": "uuid"},
+          "name": {"type": "string"},
+          "hasValue": {"type": "boolean"},
+          "isSecret": {"type": "boolean"},
+          "value": {
+            "type": "string",
+            "description": "Present only for variables explicitly marked non-secret."
+          },
+          "createdAt": {"type": "string", "format": "date-time"},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ServiceTrafficWorkerError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {"type": "string"},
+          "message": {"type": "string"}
+        }
+      },
+      "ServiceTrafficSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tenantId", "enabled", "retentionDays", "updatedAt"],
+        "properties": {
+          "tenantId": {"type": "string", "format": "uuid"},
+          "enabled": {"type": "boolean"},
+          "retentionDays": {"type": "integer", "minimum": 1, "maximum": 365},
+          "updatedAt": {"type": "string", "format": "date-time"},
+          "lastTrimmedAt": {"type": "string", "format": "date-time"},
+          "lastFlushedAt": {"type": "string", "format": "date-time"},
+          "lastCompactedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ServiceTrafficStorageSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["databaseBytes", "rollupRows", "totalRequests", "distinctHosts"],
+        "properties": {
+          "databaseBytes": {"type": "integer", "format": "int64"},
+          "rollupRows": {"type": "integer", "format": "int64"},
+          "totalRequests": {"type": "integer", "format": "int64"},
+          "distinctHosts": {"type": "integer", "format": "int64"},
+          "oldestBucket": {"type": "string", "format": "date-time"},
+          "newestBucket": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ServiceTrafficSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requestsLastHour", "requestsLast24Hours", "bytesLast24Hours", "status2xxLast24Hours", "status3xxLast24Hours", "status4xxLast24Hours", "status5xxLast24Hours", "avgLatencyMsLast24Hours", "hostsLast24Hours"],
+        "properties": {
+          "requestsLastHour": {"type": "integer", "format": "int64"},
+          "requestsLast24Hours": {"type": "integer", "format": "int64"},
+          "bytesLast24Hours": {"type": "integer", "format": "int64"},
+          "status2xxLast24Hours": {"type": "integer", "format": "int64"},
+          "status3xxLast24Hours": {"type": "integer", "format": "int64"},
+          "status4xxLast24Hours": {"type": "integer", "format": "int64"},
+          "status5xxLast24Hours": {"type": "integer", "format": "int64"},
+          "avgLatencyMsLast24Hours": {"type": "number", "format": "double"},
+          "hostsLast24Hours": {"type": "integer", "format": "int64"}
+        }
+      },
+      "ServiceTrafficStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["settings", "storage", "summary"],
+        "properties": {
+          "settings": {"$ref": "#/components/schemas/ServiceTrafficSettings"},
+          "storage": {"$ref": "#/components/schemas/ServiceTrafficStorageSummary"},
+          "summary": {"$ref": "#/components/schemas/ServiceTrafficSummary"}
+        }
+      },
+      "ServiceTrafficReportSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requests", "bytes", "status2xx", "status3xx", "status4xx", "status5xx", "avgLatencyMs", "hosts"],
+        "properties": {
+          "requests": {"type": "integer", "format": "int64"},
+          "bytes": {"type": "integer", "format": "int64"},
+          "status2xx": {"type": "integer", "format": "int64"},
+          "status3xx": {"type": "integer", "format": "int64"},
+          "status4xx": {"type": "integer", "format": "int64"},
+          "status5xx": {"type": "integer", "format": "int64"},
+          "avgLatencyMs": {"type": "number", "format": "double"},
+          "hosts": {"type": "integer", "format": "int64"}
+        }
+      },
+      "ServiceTrafficBreakdownItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "requests", "bytes"],
+        "properties": {
+          "key": {"type": "string"},
+          "requests": {"type": "integer", "format": "int64"},
+          "bytes": {"type": "integer", "format": "int64"}
+        }
+      },
+      "ServiceTrafficTimeSeriesPoint": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["bucketStart", "requests", "bytes", "avgLatencyMs"],
+        "properties": {
+          "bucketStart": {"type": "string", "format": "date-time"},
+          "requests": {"type": "integer", "format": "int64"},
+          "bytes": {"type": "integer", "format": "int64"},
+          "avgLatencyMs": {"type": "number", "format": "double"}
+        }
+      },
+      "ServiceTrafficReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["window", "bucketUnit", "summary", "timeSeries", "topPaths", "topHosts", "byEnvironmentId"],
+        "properties": {
+          "window": {"type": "string", "enum": ["1h", "24h", "7d", "30d"]},
+          "bucketUnit": {"type": "string"},
+          "summary": {"$ref": "#/components/schemas/ServiceTrafficReportSummary"},
+          "timeSeries": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficTimeSeriesPoint"}},
+          "topPaths": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficBreakdownItem"}},
+          "topHosts": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficBreakdownItem"}},
+          "byEnvironmentId": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficBreakdownItem"}}
+        }
+      },
+      "ServiceTrafficMaintenanceResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["deletedRows", "compacted", "storage", "settings", "operation", "completedAt"],
+        "properties": {
+          "deletedRows": {"type": "integer", "format": "int64"},
+          "compacted": {"type": "boolean"},
+          "storage": {"$ref": "#/components/schemas/ServiceTrafficStorageSummary"},
+          "settings": {"$ref": "#/components/schemas/ServiceTrafficSettings"},
+          "operation": {"type": "string", "enum": ["trim", "flush"]},
+          "completedAt": {"type": "string", "format": "date-time"},
+          "retentionCutoff": {"type": "string"}
+        }
+      },
+      "PutServiceTrafficSettingsRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["enabled", "retentionDays"],
+        "properties": {
+          "enabled": {"type": "boolean"},
+          "retentionDays": {"type": "integer", "minimum": 1, "maximum": 365}
+        }
+      },
+      "ServiceTrafficSettingsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["settings"],
+        "properties": {
+          "settings": {"$ref": "#/components/schemas/ServiceTrafficSettings"}
+        }
+      },
+      "ServiceTrafficStatusWorkerResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["workerId", "environmentIds"],
+        "oneOf": [
+          {"required": ["data"]},
+          {"required": ["error"]}
+        ],
+        "properties": {
+          "workerId": {"type": "string", "format": "uuid"},
+          "environmentIds": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+          "data": {"$ref": "#/components/schemas/ServiceTrafficStatus"},
+          "error": {"$ref": "#/components/schemas/ServiceTrafficWorkerError"}
+        }
+      },
+      "ServiceTrafficReportWorkerResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["workerId", "environmentIds"],
+        "oneOf": [
+          {"required": ["data"]},
+          {"required": ["error"]}
+        ],
+        "properties": {
+          "workerId": {"type": "string", "format": "uuid"},
+          "environmentIds": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+          "data": {"$ref": "#/components/schemas/ServiceTrafficReport"},
+          "error": {"$ref": "#/components/schemas/ServiceTrafficWorkerError"}
+        }
+      },
+      "ServiceTrafficSettingsWorkerResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["workerId", "environmentIds"],
+        "oneOf": [
+          {"required": ["data"]},
+          {"required": ["error"]}
+        ],
+        "properties": {
+          "workerId": {"type": "string", "format": "uuid"},
+          "environmentIds": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+          "data": {"$ref": "#/components/schemas/ServiceTrafficSettingsResponse"},
+          "error": {"$ref": "#/components/schemas/ServiceTrafficWorkerError"}
+        }
+      },
+      "ServiceTrafficMaintenanceWorkerResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["workerId", "environmentIds"],
+        "oneOf": [
+          {"required": ["data"]},
+          {"required": ["error"]}
+        ],
+        "properties": {
+          "workerId": {"type": "string", "format": "uuid"},
+          "environmentIds": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+          "data": {"$ref": "#/components/schemas/ServiceTrafficMaintenanceResult"},
+          "error": {"$ref": "#/components/schemas/ServiceTrafficWorkerError"}
+        }
+      },
+      "ServiceTrafficStatusFanout": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "complete"],
+        "properties": {
+          "items": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficStatusWorkerResult"}},
+          "complete": {"type": "boolean"}
+        }
+      },
+      "ServiceTrafficReportFanout": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "complete"],
+        "properties": {
+          "items": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficReportWorkerResult"}},
+          "complete": {"type": "boolean"}
+        }
+      },
+      "ServiceTrafficSettingsFanout": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "complete", "receipt"],
+        "properties": {
+          "items": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficSettingsWorkerResult"}},
+          "complete": {"type": "boolean"},
+          "receipt": {"$ref": "#/components/schemas/OperationReceipt"}
+        }
+      },
+      "ServiceTrafficMaintenanceFanout": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "complete", "receipt"],
+        "properties": {
+          "items": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficMaintenanceWorkerResult"}},
+          "complete": {"type": "boolean"},
+          "receipt": {"$ref": "#/components/schemas/OperationReceipt"}
         }
       }
     }

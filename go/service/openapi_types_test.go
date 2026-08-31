@@ -67,6 +67,17 @@ func TestServiceEnvironmentSupportsAutomaticPlacement(t *testing.T) {
 	}
 }
 
+func TestUpdateServiceEnvironmentPreservesEmptyVolumeReplacement(t *testing.T) {
+	volumes := []OpenAPIServiceEphemeralVolumeMountInput{}
+	encoded, err := json.Marshal(OpenAPIUpdateServiceEnvironmentRequest{Volumes: &volumes})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != `{"volumes":[]}` {
+		t.Fatalf("empty volume replacement=%s", encoded)
+	}
+}
+
 func TestPostGripConfigurationEnvironmentSupportsAutomaticPlacement(t *testing.T) {
 	environment := OpenAPIPostGripConfigurationEnvironment{
 		Ref: "production", Name: "Production", Kind: "production",

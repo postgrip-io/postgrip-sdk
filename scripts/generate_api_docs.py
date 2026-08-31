@@ -86,7 +86,20 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return merged
     for alternative in ("oneOf", "anyOf"):
         if schema.get(alternative):
-            return sample(document, schema[alternative][0], seen)
+            selected = schema[alternative][0]
+            if (schema.get("type") == "object" or schema.get("properties")) and isinstance(selected, dict):
+                branch = {key: value for key, value in schema.items() if key not in ("oneOf", "anyOf")}
+                branch["required"] = list(dict.fromkeys([
+                    *schema.get("required", []),
+                    *selected.get("required", []),
+                ]))
+                if isinstance(selected.get("properties"), dict):
+                    branch["properties"] = {
+                        **schema.get("properties", {}),
+                        **selected["properties"],
+                    }
+                return sample(document, branch, seen)
+            return sample(document, selected, seen)
     schema_type = schema.get("type")
     if not schema_type and "properties" in schema:
         schema_type = "object"
@@ -123,6 +136,8 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return "RECORDED_VALUE"
     if pattern == "^(target|project):[0-9a-fA-F-]{36}$":
         return "project:11111111-1111-4111-8111-111111111111"
+    if pattern == "^/":
+        return "/data"
     if pattern in {"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$", "^[!-~]+$"}:
         return "recorded"
     return "string".ljust(max(int(schema.get("minLength", 0)), 6), "x")

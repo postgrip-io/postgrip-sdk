@@ -43,8 +43,15 @@ type OpenAPIServiceReleaseGroupMemberRequest struct {
 }
 
 func (value OpenAPIServiceReleaseGroupMemberRequest) MarshalJSON() ([]byte, error) {
-	if !((value.ExpectedCommitSha != nil && value.Branch != nil) || (value.SourceDeploymentId != nil && value.ExpectedArtifactIdentity != nil)) {
-		return nil, errors.New("OpenAPIServiceReleaseGroupMemberRequest must satisfy one required property alternative")
+	matches := 0
+	if value.ExpectedCommitSha != nil && value.Branch != nil {
+		matches++
+	}
+	if value.SourceDeploymentId != nil && value.ExpectedArtifactIdentity != nil {
+		matches++
+	}
+	if matches == 0 {
+		return nil, errors.New("OpenAPIServiceReleaseGroupMemberRequest must satisfy at least one required property alternative")
 	}
 	type wire OpenAPIServiceReleaseGroupMemberRequest
 	return json.Marshal(wire(value))
@@ -380,33 +387,35 @@ type OpenAPIUpdateServiceProjectRequest struct {
 	ClearDefaultWorker *bool   `json:"clearDefaultWorker,omitempty"`
 }
 type OpenAPICreateServiceEnvironmentRequest struct {
-	Name                       string  `json:"name"`
-	Kind                       string  `json:"kind"`
-	BranchPattern              *string `json:"branchPattern,omitempty"`
-	PreviewPathSegment         *string `json:"previewPathSegment,omitempty"`
-	PreviewTtlHours            *int64  `json:"previewTtlHours,omitempty"`
-	PreviewBrowserCheckEnabled *bool   `json:"previewBrowserCheckEnabled,omitempty"`
-	AssignedWorkerId           *string `json:"assignedWorkerId,omitempty"`
-	BuildCommand               *string `json:"buildCommand,omitempty"`
-	OutputDir                  *string `json:"outputDir,omitempty"`
-	ContainerPort              *int64  `json:"containerPort,omitempty"`
-	IncludePaths               *string `json:"includePaths,omitempty"`
-	RunAs                      *string `json:"runAs,omitempty"`
+	Name                       string                                    `json:"name"`
+	Kind                       string                                    `json:"kind"`
+	BranchPattern              *string                                   `json:"branchPattern,omitempty"`
+	PreviewPathSegment         *string                                   `json:"previewPathSegment,omitempty"`
+	PreviewTtlHours            *int64                                    `json:"previewTtlHours,omitempty"`
+	PreviewBrowserCheckEnabled *bool                                     `json:"previewBrowserCheckEnabled,omitempty"`
+	AssignedWorkerId           *string                                   `json:"assignedWorkerId,omitempty"`
+	BuildCommand               *string                                   `json:"buildCommand,omitempty"`
+	OutputDir                  *string                                   `json:"outputDir,omitempty"`
+	ContainerPort              *int64                                    `json:"containerPort,omitempty"`
+	Volumes                    []OpenAPIServiceEphemeralVolumeMountInput `json:"volumes,omitempty"`
+	IncludePaths               *string                                   `json:"includePaths,omitempty"`
+	RunAs                      *string                                   `json:"runAs,omitempty"`
 }
 type OpenAPIUpdateServiceEnvironmentRequest struct {
-	Name                       *string `json:"name,omitempty"`
-	Kind                       *string `json:"kind,omitempty"`
-	BranchPattern              *string `json:"branchPattern,omitempty"`
-	PreviewPathSegment         *string `json:"previewPathSegment,omitempty"`
-	PreviewTtlHours            *int64  `json:"previewTtlHours,omitempty"`
-	ClearPreviewTtl            *bool   `json:"clearPreviewTtl,omitempty"`
-	PreviewBrowserCheckEnabled *bool   `json:"previewBrowserCheckEnabled,omitempty"`
-	BuildCommand               *string `json:"buildCommand,omitempty"`
-	OutputDir                  *string `json:"outputDir,omitempty"`
-	ContainerPort              *int64  `json:"containerPort,omitempty"`
-	ClearContainerPort         *bool   `json:"clearContainerPort,omitempty"`
-	IncludePaths               *string `json:"includePaths,omitempty"`
-	RunAs                      *string `json:"runAs,omitempty"`
+	Name                       *string                                    `json:"name,omitempty"`
+	Kind                       *string                                    `json:"kind,omitempty"`
+	BranchPattern              *string                                    `json:"branchPattern,omitempty"`
+	PreviewPathSegment         *string                                    `json:"previewPathSegment,omitempty"`
+	PreviewTtlHours            *int64                                     `json:"previewTtlHours,omitempty"`
+	ClearPreviewTtl            *bool                                      `json:"clearPreviewTtl,omitempty"`
+	PreviewBrowserCheckEnabled *bool                                      `json:"previewBrowserCheckEnabled,omitempty"`
+	BuildCommand               *string                                    `json:"buildCommand,omitempty"`
+	OutputDir                  *string                                    `json:"outputDir,omitempty"`
+	ContainerPort              *int64                                     `json:"containerPort,omitempty"`
+	ClearContainerPort         *bool                                      `json:"clearContainerPort,omitempty"`
+	Volumes                    *[]OpenAPIServiceEphemeralVolumeMountInput `json:"volumes,omitempty"`
+	IncludePaths               *string                                    `json:"includePaths,omitempty"`
+	RunAs                      *string                                    `json:"runAs,omitempty"`
 }
 type OpenAPIServiceVolumeDisposition struct {
 	VolumeRef            string  `json:"volumeRef"`
@@ -549,6 +558,22 @@ type OpenAPIGitHubRepositoryAdoptionPreviewRequest struct {
 	Repository           *string `json:"repository,omitempty"`
 	AutomaticDeployments bool    `json:"automaticDeployments"`
 }
+
+func (value OpenAPIGitHubRepositoryAdoptionPreviewRequest) MarshalJSON() ([]byte, error) {
+	matches := 0
+	if value.RepositoryId != nil {
+		matches++
+	}
+	if value.Repository != nil {
+		matches++
+	}
+	if matches != 1 {
+		return nil, errors.New("OpenAPIGitHubRepositoryAdoptionPreviewRequest must satisfy exactly one required property alternative")
+	}
+	type wire OpenAPIGitHubRepositoryAdoptionPreviewRequest
+	return json.Marshal(wire(value))
+}
+
 type OpenAPIGitHubRepositoryAdoptionPreview struct {
 	Id                   string                  `json:"id"`
 	Digest               string                  `json:"digest"`
@@ -659,26 +684,27 @@ type OpenAPIServiceEnvironmentPlacement struct {
 	Reason   string `json:"reason"`
 }
 type OpenAPIServiceEnvironmentConfiguration struct {
-	Id                         string                              `json:"id"`
-	ProjectId                  string                              `json:"projectId"`
-	Name                       string                              `json:"name"`
-	Kind                       string                              `json:"kind"`
-	BranchPattern              *string                             `json:"branchPattern,omitempty"`
-	PreviewPathSegment         string                              `json:"previewPathSegment"`
-	PreviewTtlHours            *int64                              `json:"previewTtlHours,omitempty"`
-	PreviewBrowserCheckEnabled bool                                `json:"previewBrowserCheckEnabled"`
-	AssignedWorkerId           *string                             `json:"assignedWorkerId,omitempty"`
-	Placement                  *OpenAPIServiceEnvironmentPlacement `json:"placement,omitempty"`
-	BuildCommand               string                              `json:"buildCommand"`
-	OutputDir                  string                              `json:"outputDir"`
-	ContainerPort              *int64                              `json:"containerPort,omitempty"`
-	IncludePaths               *string                             `json:"includePaths,omitempty"`
-	RunAs                      *string                             `json:"runAs,omitempty"`
-	VolumeBindings             []OpenAPIServiceVolumeBinding       `json:"volumeBindings"`
-	Version                    int64                               `json:"version"`
-	CreatedAt                  time.Time                           `json:"createdAt"`
-	UpdatedAt                  time.Time                           `json:"updatedAt"`
-	Etag                       string                              `json:"etag"`
+	Id                         string                               `json:"id"`
+	ProjectId                  string                               `json:"projectId"`
+	Name                       string                               `json:"name"`
+	Kind                       string                               `json:"kind"`
+	BranchPattern              *string                              `json:"branchPattern,omitempty"`
+	PreviewPathSegment         string                               `json:"previewPathSegment"`
+	PreviewTtlHours            *int64                               `json:"previewTtlHours,omitempty"`
+	PreviewBrowserCheckEnabled bool                                 `json:"previewBrowserCheckEnabled"`
+	AssignedWorkerId           *string                              `json:"assignedWorkerId,omitempty"`
+	Placement                  *OpenAPIServiceEnvironmentPlacement  `json:"placement,omitempty"`
+	BuildCommand               string                               `json:"buildCommand"`
+	OutputDir                  string                               `json:"outputDir"`
+	ContainerPort              *int64                               `json:"containerPort,omitempty"`
+	Volumes                    []OpenAPIServiceEphemeralVolumeMount `json:"volumes"`
+	IncludePaths               *string                              `json:"includePaths,omitempty"`
+	RunAs                      *string                              `json:"runAs,omitempty"`
+	VolumeBindings             []OpenAPIServiceVolumeBinding        `json:"volumeBindings"`
+	Version                    int64                                `json:"version"`
+	CreatedAt                  time.Time                            `json:"createdAt"`
+	UpdatedAt                  time.Time                            `json:"updatedAt"`
+	Etag                       string                               `json:"etag"`
 }
 type OpenAPIServiceVolume struct {
 	VolumeRef          string    `json:"volumeRef"`
@@ -1603,6 +1629,256 @@ type OpenAPIRequestServiceDNSFailoverRequest struct {
 	Approved                           bool   `json:"approved"`
 	Reason                             string `json:"reason"`
 }
+type OpenAPIServiceEphemeralVolumeMount struct {
+	ContainerPath string `json:"containerPath"`
+	ReadOnly      *bool  `json:"readOnly,omitempty"`
+}
+type OpenAPIServiceEphemeralVolumeMountInput struct {
+	ContainerPath string `json:"containerPath"`
+	ReadOnly      *bool  `json:"readOnly,omitempty"`
+}
+type OpenAPIServiceGitHubBranch struct {
+	Name string `json:"name"`
+}
+type OpenAPIServiceGitHubFileCheck struct {
+	Exists bool `json:"exists"`
+}
+type OpenAPIServiceDeploymentScreenshot struct {
+	ContentType string `json:"contentType"`
+	DataBase64  string `json:"dataBase64"`
+}
+type OpenAPIServiceWebhookDispatchEvent struct {
+	Id            string    `json:"id"`
+	TenantId      string    `json:"tenantId"`
+	ProjectId     string    `json:"projectId"`
+	EnvironmentId *string   `json:"environmentId"`
+	DeploymentId  *string   `json:"deploymentId"`
+	EventType     string    `json:"eventType"`
+	Action        *string   `json:"action"`
+	Branch        *string   `json:"branch"`
+	CommitSha     *string   `json:"commitSha"`
+	PrNumber      *int64    `json:"prNumber"`
+	Decision      string    `json:"decision"`
+	Reason        *string   `json:"reason"`
+	CreatedAt     time.Time `json:"createdAt"`
+}
+type OpenAPIServiceComposeFile struct {
+	ProjectId string     `json:"projectId"`
+	EnvId     string     `json:"envId"`
+	Content   string     `json:"content"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+type OpenAPIPutServiceComposeFileRequest struct {
+	Content string `json:"content"`
+}
+type OpenAPIServiceComposeMutationResponse struct {
+	Compose OpenAPIServiceComposeFile `json:"compose"`
+	Receipt OpenAPIOperationReceipt   `json:"receipt"`
+}
+type OpenAPIServiceComposeDeleteResponse struct {
+	Deleted bool                    `json:"deleted"`
+	Receipt OpenAPIOperationReceipt `json:"receipt"`
+}
+type OpenAPIServiceVariableExportItem struct {
+	Id            string    `json:"id"`
+	ProjectId     string    `json:"projectId"`
+	EnvironmentId string    `json:"environmentId"`
+	Name          string    `json:"name"`
+	HasValue      bool      `json:"hasValue"`
+	IsSecret      bool      `json:"isSecret"`
+	Value         *string   `json:"value,omitempty"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+}
+type OpenAPIServiceTrafficWorkerError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+type OpenAPIServiceTrafficSettings struct {
+	TenantId        string     `json:"tenantId"`
+	Enabled         bool       `json:"enabled"`
+	RetentionDays   int64      `json:"retentionDays"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+	LastTrimmedAt   *time.Time `json:"lastTrimmedAt,omitempty"`
+	LastFlushedAt   *time.Time `json:"lastFlushedAt,omitempty"`
+	LastCompactedAt *time.Time `json:"lastCompactedAt,omitempty"`
+}
+type OpenAPIServiceTrafficStorageSummary struct {
+	DatabaseBytes int64      `json:"databaseBytes"`
+	RollupRows    int64      `json:"rollupRows"`
+	TotalRequests int64      `json:"totalRequests"`
+	DistinctHosts int64      `json:"distinctHosts"`
+	OldestBucket  *time.Time `json:"oldestBucket,omitempty"`
+	NewestBucket  *time.Time `json:"newestBucket,omitempty"`
+}
+type OpenAPIServiceTrafficSummary struct {
+	RequestsLastHour        int64   `json:"requestsLastHour"`
+	RequestsLast24Hours     int64   `json:"requestsLast24Hours"`
+	BytesLast24Hours        int64   `json:"bytesLast24Hours"`
+	Status2xxLast24Hours    int64   `json:"status2xxLast24Hours"`
+	Status3xxLast24Hours    int64   `json:"status3xxLast24Hours"`
+	Status4xxLast24Hours    int64   `json:"status4xxLast24Hours"`
+	Status5xxLast24Hours    int64   `json:"status5xxLast24Hours"`
+	AvgLatencyMsLast24Hours float64 `json:"avgLatencyMsLast24Hours"`
+	HostsLast24Hours        int64   `json:"hostsLast24Hours"`
+}
+type OpenAPIServiceTrafficStatus struct {
+	Settings OpenAPIServiceTrafficSettings       `json:"settings"`
+	Storage  OpenAPIServiceTrafficStorageSummary `json:"storage"`
+	Summary  OpenAPIServiceTrafficSummary        `json:"summary"`
+}
+type OpenAPIServiceTrafficReportSummary struct {
+	Requests     int64   `json:"requests"`
+	Bytes        int64   `json:"bytes"`
+	Status2xx    int64   `json:"status2xx"`
+	Status3xx    int64   `json:"status3xx"`
+	Status4xx    int64   `json:"status4xx"`
+	Status5xx    int64   `json:"status5xx"`
+	AvgLatencyMs float64 `json:"avgLatencyMs"`
+	Hosts        int64   `json:"hosts"`
+}
+type OpenAPIServiceTrafficBreakdownItem struct {
+	Key      string `json:"key"`
+	Requests int64  `json:"requests"`
+	Bytes    int64  `json:"bytes"`
+}
+type OpenAPIServiceTrafficTimeSeriesPoint struct {
+	BucketStart  time.Time `json:"bucketStart"`
+	Requests     int64     `json:"requests"`
+	Bytes        int64     `json:"bytes"`
+	AvgLatencyMs float64   `json:"avgLatencyMs"`
+}
+type OpenAPIServiceTrafficReport struct {
+	Window          string                                 `json:"window"`
+	BucketUnit      string                                 `json:"bucketUnit"`
+	Summary         OpenAPIServiceTrafficReportSummary     `json:"summary"`
+	TimeSeries      []OpenAPIServiceTrafficTimeSeriesPoint `json:"timeSeries"`
+	TopPaths        []OpenAPIServiceTrafficBreakdownItem   `json:"topPaths"`
+	TopHosts        []OpenAPIServiceTrafficBreakdownItem   `json:"topHosts"`
+	ByEnvironmentId []OpenAPIServiceTrafficBreakdownItem   `json:"byEnvironmentId"`
+}
+type OpenAPIServiceTrafficMaintenanceResult struct {
+	DeletedRows     int64                               `json:"deletedRows"`
+	Compacted       bool                                `json:"compacted"`
+	Storage         OpenAPIServiceTrafficStorageSummary `json:"storage"`
+	Settings        OpenAPIServiceTrafficSettings       `json:"settings"`
+	Operation       string                              `json:"operation"`
+	CompletedAt     time.Time                           `json:"completedAt"`
+	RetentionCutoff *string                             `json:"retentionCutoff,omitempty"`
+}
+type OpenAPIPutServiceTrafficSettingsRequest struct {
+	Enabled       bool  `json:"enabled"`
+	RetentionDays int64 `json:"retentionDays"`
+}
+type OpenAPIServiceTrafficSettingsResponse struct {
+	Settings OpenAPIServiceTrafficSettings `json:"settings"`
+}
+type OpenAPIServiceTrafficStatusWorkerResult struct {
+	WorkerId       string                            `json:"workerId"`
+	EnvironmentIds []string                          `json:"environmentIds"`
+	Data           *OpenAPIServiceTrafficStatus      `json:"data,omitempty"`
+	Error          *OpenAPIServiceTrafficWorkerError `json:"error,omitempty"`
+}
+
+func (value OpenAPIServiceTrafficStatusWorkerResult) MarshalJSON() ([]byte, error) {
+	matches := 0
+	if value.Data != nil {
+		matches++
+	}
+	if value.Error != nil {
+		matches++
+	}
+	if matches != 1 {
+		return nil, errors.New("OpenAPIServiceTrafficStatusWorkerResult must satisfy exactly one required property alternative")
+	}
+	type wire OpenAPIServiceTrafficStatusWorkerResult
+	return json.Marshal(wire(value))
+}
+
+type OpenAPIServiceTrafficReportWorkerResult struct {
+	WorkerId       string                            `json:"workerId"`
+	EnvironmentIds []string                          `json:"environmentIds"`
+	Data           *OpenAPIServiceTrafficReport      `json:"data,omitempty"`
+	Error          *OpenAPIServiceTrafficWorkerError `json:"error,omitempty"`
+}
+
+func (value OpenAPIServiceTrafficReportWorkerResult) MarshalJSON() ([]byte, error) {
+	matches := 0
+	if value.Data != nil {
+		matches++
+	}
+	if value.Error != nil {
+		matches++
+	}
+	if matches != 1 {
+		return nil, errors.New("OpenAPIServiceTrafficReportWorkerResult must satisfy exactly one required property alternative")
+	}
+	type wire OpenAPIServiceTrafficReportWorkerResult
+	return json.Marshal(wire(value))
+}
+
+type OpenAPIServiceTrafficSettingsWorkerResult struct {
+	WorkerId       string                                 `json:"workerId"`
+	EnvironmentIds []string                               `json:"environmentIds"`
+	Data           *OpenAPIServiceTrafficSettingsResponse `json:"data,omitempty"`
+	Error          *OpenAPIServiceTrafficWorkerError      `json:"error,omitempty"`
+}
+
+func (value OpenAPIServiceTrafficSettingsWorkerResult) MarshalJSON() ([]byte, error) {
+	matches := 0
+	if value.Data != nil {
+		matches++
+	}
+	if value.Error != nil {
+		matches++
+	}
+	if matches != 1 {
+		return nil, errors.New("OpenAPIServiceTrafficSettingsWorkerResult must satisfy exactly one required property alternative")
+	}
+	type wire OpenAPIServiceTrafficSettingsWorkerResult
+	return json.Marshal(wire(value))
+}
+
+type OpenAPIServiceTrafficMaintenanceWorkerResult struct {
+	WorkerId       string                                  `json:"workerId"`
+	EnvironmentIds []string                                `json:"environmentIds"`
+	Data           *OpenAPIServiceTrafficMaintenanceResult `json:"data,omitempty"`
+	Error          *OpenAPIServiceTrafficWorkerError       `json:"error,omitempty"`
+}
+
+func (value OpenAPIServiceTrafficMaintenanceWorkerResult) MarshalJSON() ([]byte, error) {
+	matches := 0
+	if value.Data != nil {
+		matches++
+	}
+	if value.Error != nil {
+		matches++
+	}
+	if matches != 1 {
+		return nil, errors.New("OpenAPIServiceTrafficMaintenanceWorkerResult must satisfy exactly one required property alternative")
+	}
+	type wire OpenAPIServiceTrafficMaintenanceWorkerResult
+	return json.Marshal(wire(value))
+}
+
+type OpenAPIServiceTrafficStatusFanout struct {
+	Items    []OpenAPIServiceTrafficStatusWorkerResult `json:"items"`
+	Complete bool                                      `json:"complete"`
+}
+type OpenAPIServiceTrafficReportFanout struct {
+	Items    []OpenAPIServiceTrafficReportWorkerResult `json:"items"`
+	Complete bool                                      `json:"complete"`
+}
+type OpenAPIServiceTrafficSettingsFanout struct {
+	Items    []OpenAPIServiceTrafficSettingsWorkerResult `json:"items"`
+	Complete bool                                        `json:"complete"`
+	Receipt  OpenAPIOperationReceipt                     `json:"receipt"`
+}
+type OpenAPIServiceTrafficMaintenanceFanout struct {
+	Items    []OpenAPIServiceTrafficMaintenanceWorkerResult `json:"items"`
+	Complete bool                                           `json:"complete"`
+	Receipt  OpenAPIOperationReceipt                        `json:"receipt"`
+}
 type OpenAPIAdoptGitHubRepositoryRequestBody = OpenAPIGitHubRepositoryAdoptionRequest
 type OpenAPIAdoptGitHubRepositoryResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIApplyPostGripConfigurationPlanRequestBody = OpenAPIApplyPostGripConfigurationPlanRequest
@@ -1621,6 +1897,8 @@ type OpenAPICancelServiceReleaseGroupRequestBody = OpenAPINoBody
 type OpenAPICancelServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroup
 type OpenAPICheckServiceRequestBody = OpenAPICheckServiceRequest
 type OpenAPICheckServiceResponseBody = OpenAPIServiceOperationResponse
+type OpenAPICheckServiceGitHubRepositoryFileRequestBody = OpenAPINoBody
+type OpenAPICheckServiceGitHubRepositoryFileResponseBody = OpenAPIServiceGitHubFileCheck
 type OpenAPIClearServiceRepositoryCredentialRequestBody = OpenAPINoBody
 type OpenAPIClearServiceRepositoryCredentialResponseBody = OpenAPIServiceRepositoryMutationResponse
 type OpenAPIClearServiceVariableValueRequestBody = OpenAPINoBody
@@ -1647,6 +1925,8 @@ type OpenAPICreateServiceVolumeRequestBody = OpenAPICreateServiceVolumeRequest
 type OpenAPICreateServiceVolumeResponseBody = OpenAPIServiceVolumeMutationResponse
 type OpenAPIDeleteServiceAppRequestBody = OpenAPINoBody
 type OpenAPIDeleteServiceAppResponseBody = OpenAPIServiceAppDeletionResponse
+type OpenAPIDeleteServiceComposeFileRequestBody = OpenAPINoBody
+type OpenAPIDeleteServiceComposeFileResponseBody = OpenAPIServiceComposeDeleteResponse
 type OpenAPIDeleteServiceDomainRequestBody = OpenAPINoBody
 type OpenAPIDeleteServiceDomainResponseBody = OpenAPIServiceDomainMutationResponse
 type OpenAPIDeleteServiceEnvironmentRequestBody = OpenAPIConfirmedDeletionRequest
@@ -1661,10 +1941,14 @@ type OpenAPIDeployServiceRequestBody = OpenAPIDeployServiceRequest
 type OpenAPIDeployServiceResponseBody = OpenAPIDeploymentOperationResponse
 type OpenAPIDetachTargetServiceRequestBody = OpenAPIConfirmedDeletionRequest
 type OpenAPIDetachTargetServiceResponseBody = OpenAPIServiceDeletionResponse
+type OpenAPIExportServiceVariablesRequestBody = OpenAPINoBody
+type OpenAPIExportServiceVariablesResponseBody = []OpenAPIServiceVariableExportItem
 type OpenAPIFlushServiceBuildLogsRequestBody = OpenAPINoBody
 type OpenAPIFlushServiceBuildLogsResponseBody = OpenAPIServiceBuildLogMaintenanceResponse
 type OpenAPIFlushServiceRuntimeLogsRequestBody = OpenAPINoBody
 type OpenAPIFlushServiceRuntimeLogsResponseBody = OpenAPIServiceRuntimeLogMutationResponse
+type OpenAPIFlushServiceTrafficRequestBody = OpenAPINoBody
+type OpenAPIFlushServiceTrafficResponseBody = OpenAPIServiceTrafficMaintenanceFanout
 type OpenAPIGetPostGripConfigurationPlanRequestBody = OpenAPINoBody
 type OpenAPIGetPostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
 type OpenAPIGetPostGripConfigurationStackRequestBody = OpenAPINoBody
@@ -1677,6 +1961,8 @@ type OpenAPIGetServiceAppRequestBody = OpenAPINoBody
 type OpenAPIGetServiceAppResponseBody = OpenAPIServiceApp
 type OpenAPIGetServiceBuildLogSettingsRequestBody = OpenAPINoBody
 type OpenAPIGetServiceBuildLogSettingsResponseBody = OpenAPIServiceBuildLogStatus
+type OpenAPIGetServiceComposeFileRequestBody = OpenAPINoBody
+type OpenAPIGetServiceComposeFileResponseBody = OpenAPIServiceComposeFile
 type OpenAPIGetServiceConfigurationOperationRequestBody = OpenAPINoBody
 type OpenAPIGetServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIGetServiceDNSCanonicalStateRequestBody = OpenAPINoBody
@@ -1687,6 +1973,8 @@ type OpenAPIGetServiceDNSPlanRequestBody = OpenAPINoBody
 type OpenAPIGetServiceDNSPlanResponseBody = OpenAPIServiceDNSPlan
 type OpenAPIGetServiceDeploymentRequestBody = OpenAPINoBody
 type OpenAPIGetServiceDeploymentResponseBody = OpenAPIDeployment
+type OpenAPIGetServiceDeploymentScreenshotRequestBody = OpenAPINoBody
+type OpenAPIGetServiceDeploymentScreenshotResponseBody = OpenAPIServiceDeploymentScreenshot
 type OpenAPIGetServiceDomainVerificationRequestBody = OpenAPINoBody
 type OpenAPIGetServiceDomainVerificationResponseBody = OpenAPIServiceDomainVerification
 type OpenAPIGetServiceEnvironmentRequestBody = OpenAPINoBody
@@ -1703,6 +1991,10 @@ type OpenAPIGetServiceRuntimeLogSettingsRequestBody = OpenAPINoBody
 type OpenAPIGetServiceRuntimeLogSettingsResponseBody = OpenAPIServiceRuntimeLogStatus
 type OpenAPIGetServiceStatusRequestBody = OpenAPINoBody
 type OpenAPIGetServiceStatusResponseBody = OpenAPIServiceStatus
+type OpenAPIGetServiceTrafficReportRequestBody = OpenAPINoBody
+type OpenAPIGetServiceTrafficReportResponseBody = OpenAPIServiceTrafficReportFanout
+type OpenAPIGetServiceTrafficStatusRequestBody = OpenAPINoBody
+type OpenAPIGetServiceTrafficStatusResponseBody = OpenAPIServiceTrafficStatusFanout
 type OpenAPIGetServiceVolumeRequestBody = OpenAPINoBody
 type OpenAPIGetServiceVolumeResponseBody = OpenAPIServiceVolume
 type OpenAPIGetServiceVolumeRemovalImpactRequestBody = OpenAPINoBody
@@ -1727,6 +2019,8 @@ type OpenAPIListServiceDomainsRequestBody = OpenAPINoBody
 type OpenAPIListServiceDomainsResponseBody = OpenAPIServiceDomainList
 type OpenAPIListServiceEnvironmentsRequestBody = OpenAPINoBody
 type OpenAPIListServiceEnvironmentsResponseBody = OpenAPIEnvironmentList
+type OpenAPIListServiceGitHubBranchesRequestBody = OpenAPINoBody
+type OpenAPIListServiceGitHubBranchesResponseBody = []OpenAPIServiceGitHubBranch
 type OpenAPIListServiceLogsRequestBody = OpenAPINoBody
 type OpenAPIListServiceLogsResponseBody = OpenAPILogList
 type OpenAPIListServicePromotionsRequestBody = OpenAPINoBody
@@ -1739,6 +2033,8 @@ type OpenAPIListServiceVariablesRequestBody = OpenAPINoBody
 type OpenAPIListServiceVariablesResponseBody = OpenAPIServiceVariableList
 type OpenAPIListServiceVolumesRequestBody = OpenAPINoBody
 type OpenAPIListServiceVolumesResponseBody = OpenAPIServiceVolumeList
+type OpenAPIListServiceWebhookDispatchEventsRequestBody = OpenAPINoBody
+type OpenAPIListServiceWebhookDispatchEventsResponseBody = []OpenAPIServiceWebhookDispatchEvent
 type OpenAPIListServicesRequestBody = OpenAPINoBody
 type OpenAPIListServicesResponseBody = OpenAPIServiceList
 type OpenAPIPreviewGitHubRepositoryAdoptionRequestBody = OpenAPIGitHubRepositoryAdoptionPreviewRequest
@@ -1753,8 +2049,12 @@ type OpenAPIPreviewServiceReleaseGroupRequestBody = OpenAPIPreviewServiceRelease
 type OpenAPIPreviewServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroupPreview
 type OpenAPIPromoteServiceDeploymentRequestBody = OpenAPIPromoteServiceDeploymentRequest
 type OpenAPIPromoteServiceDeploymentResponseBody = OpenAPIDeploymentOperationResponse
+type OpenAPIPutServiceComposeFileRequestBody = OpenAPIPutServiceComposeFileRequest
+type OpenAPIPutServiceComposeFileResponseBody = OpenAPIServiceComposeMutationResponse
 type OpenAPIPutServiceRepositoryCredentialRequestBody = OpenAPIServiceRepositoryCredentialRequest
 type OpenAPIPutServiceRepositoryCredentialResponseBody = OpenAPIServiceRepositoryMutationResponse
+type OpenAPIPutServiceTrafficSettingsRequestBody = OpenAPIPutServiceTrafficSettingsRequest
+type OpenAPIPutServiceTrafficSettingsResponseBody = OpenAPIServiceTrafficSettingsFanout
 type OpenAPIPutServiceVariableValueRequestBody = OpenAPIServiceVariableValueRequest
 type OpenAPIPutServiceVariableValueResponseBody = OpenAPIServiceVariableMutationResponse
 type OpenAPIPutTargetServiceConnectionRequestBody = OpenAPITargetServiceConnectionRequest
@@ -1795,6 +2095,8 @@ type OpenAPITrimServiceBuildLogsRequestBody = OpenAPINoBody
 type OpenAPITrimServiceBuildLogsResponseBody = OpenAPIServiceBuildLogMaintenanceResponse
 type OpenAPITrimServiceRuntimeLogsRequestBody = OpenAPINoBody
 type OpenAPITrimServiceRuntimeLogsResponseBody = OpenAPIServiceRuntimeLogMutationResponse
+type OpenAPITrimServiceTrafficRequestBody = OpenAPINoBody
+type OpenAPITrimServiceTrafficResponseBody = OpenAPIServiceTrafficMaintenanceFanout
 type OpenAPIUnbindServiceVolumeRequestBody = OpenAPINoBody
 type OpenAPIUnbindServiceVolumeResponseBody = OpenAPIServiceVolumeBindingMutationResponse
 type OpenAPIUpdateServiceAppRequestBody = OpenAPIUpdateServiceAppRequest
@@ -2092,5 +2394,36 @@ type ServiceDNSFailoverTargetInput = OpenAPIServiceDNSFailoverTargetInput
 type ServiceDNSFailoverPolicy = OpenAPIServiceDNSFailoverPolicy
 type UpdateServiceDNSFailoverPolicyRequest = OpenAPIUpdateServiceDNSFailoverPolicyRequest
 type RequestServiceDNSFailoverRequest = OpenAPIRequestServiceDNSFailoverRequest
+type ServiceEphemeralVolumeMount = OpenAPIServiceEphemeralVolumeMount
+type ServiceEphemeralVolumeMountInput = OpenAPIServiceEphemeralVolumeMountInput
+type ServiceGitHubBranch = OpenAPIServiceGitHubBranch
+type ServiceGitHubFileCheck = OpenAPIServiceGitHubFileCheck
+type ServiceDeploymentScreenshot = OpenAPIServiceDeploymentScreenshot
+type ServiceWebhookDispatchEvent = OpenAPIServiceWebhookDispatchEvent
+type ServiceComposeFile = OpenAPIServiceComposeFile
+type PutServiceComposeFileRequest = OpenAPIPutServiceComposeFileRequest
+type ServiceComposeMutationResponse = OpenAPIServiceComposeMutationResponse
+type ServiceComposeDeleteResponse = OpenAPIServiceComposeDeleteResponse
+type ServiceVariableExportItem = OpenAPIServiceVariableExportItem
+type ServiceTrafficWorkerError = OpenAPIServiceTrafficWorkerError
+type ServiceTrafficSettings = OpenAPIServiceTrafficSettings
+type ServiceTrafficStorageSummary = OpenAPIServiceTrafficStorageSummary
+type ServiceTrafficSummary = OpenAPIServiceTrafficSummary
+type ServiceTrafficStatus = OpenAPIServiceTrafficStatus
+type ServiceTrafficReportSummary = OpenAPIServiceTrafficReportSummary
+type ServiceTrafficBreakdownItem = OpenAPIServiceTrafficBreakdownItem
+type ServiceTrafficTimeSeriesPoint = OpenAPIServiceTrafficTimeSeriesPoint
+type ServiceTrafficReport = OpenAPIServiceTrafficReport
+type ServiceTrafficMaintenanceResult = OpenAPIServiceTrafficMaintenanceResult
+type PutServiceTrafficSettingsRequest = OpenAPIPutServiceTrafficSettingsRequest
+type ServiceTrafficSettingsResponse = OpenAPIServiceTrafficSettingsResponse
+type ServiceTrafficStatusWorkerResult = OpenAPIServiceTrafficStatusWorkerResult
+type ServiceTrafficReportWorkerResult = OpenAPIServiceTrafficReportWorkerResult
+type ServiceTrafficSettingsWorkerResult = OpenAPIServiceTrafficSettingsWorkerResult
+type ServiceTrafficMaintenanceWorkerResult = OpenAPIServiceTrafficMaintenanceWorkerResult
+type ServiceTrafficStatusFanout = OpenAPIServiceTrafficStatusFanout
+type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
+type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
+type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "c9fe98a0fc56d92e93bf0eb5fc0480dc2074f9b65fc49b108154059b9845c2f2"
+const openAPITypesSpecSHA256 = "6025a5fd77c3754d17c553dc72509452741748555b4137950ad5a47153b8f717"

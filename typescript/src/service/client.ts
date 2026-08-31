@@ -36,6 +36,7 @@ const DEFAULT_RETRY_MAX_DELAY_MS = 2_000;
 const MAXIMUM_RETRY_MAX_DELAY_MS = 2_000;
 const DEFAULT_RETRY_AFTER_MAX_DELAY_MS = 30_000;
 const MAXIMUM_RETRY_AFTER_MAX_DELAY_MS = 30_000;
+const MAX_SCREENSHOT_RESPONSE_BYTES = 24 << 20;
 
 export interface ServiceRetryConfig {
   readonly maxAttempts?: number;
@@ -212,6 +213,12 @@ export class ServiceClient {
         this.request('getServiceEnvironmentRemovalImpact', { path: { serviceId, environmentId }, signal: options.signal }),
       delete: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'deleteServiceEnvironment'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('deleteServiceEnvironment', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+      getCompose: (serviceId: string, environmentId: string, options: RequestOptions = {}) =>
+        this.request('getServiceComposeFile', { path: { serviceId, environmentId }, signal: options.signal }),
+      putCompose: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'putServiceComposeFile'>, options: MutationOptions) =>
+        this.administrationMutation('putServiceComposeFile', { path: { serviceId, environmentId }, body, ...mutationRequest(options) }),
+      deleteCompose: (serviceId: string, environmentId: string, options: MutationOptions) =>
+        this.administrationMutation('deleteServiceComposeFile', { path: { serviceId, environmentId }, ...mutationRequest(options) }),
     },
     volumes: {
       list: (serviceId: string, options: RequestOptions = {}) => this.request('listServiceVolumes', { path: { serviceId }, signal: options.signal }),
@@ -277,6 +284,8 @@ export class ServiceClient {
         this.administrationMutation('clearServiceVariableValue', { path: { serviceId, environmentId, variableId }, ...administrationWrite(options) }, true),
       apply: (serviceId: string, body: OpenAPIRequestBody<'applyServiceVariables'>, options: MutationOptions) =>
         this.administrationMutation('applyServiceVariables', { path: { serviceId }, body, ...mutationRequest(options) }),
+      export: (serviceId: string, environmentId: string, options: RequestOptions = {}) =>
+        this.request('exportServiceVariables', { path: { serviceId, environmentId }, signal: options.signal }),
     },
     repositories: {
       get: (serviceId: string, options: RequestOptions = {}) => this.request('getServiceRepository', { path: { serviceId }, signal: options.signal }),
@@ -294,6 +303,10 @@ export class ServiceClient {
         this.administrationMutation('previewGitHubRepositoryAdoption', { path: { serviceId }, body, ...mutationRequest(options) }),
       adoptGitHub: (serviceId: string, body: OpenAPIRequestBody<'adoptGitHubRepository'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('adoptGitHubRepository', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      listGitHubBranches: (query: OpenAPIQueryParameters<'listServiceGitHubBranches'>, options: RequestOptions = {}) =>
+        this.request('listServiceGitHubBranches', { query, signal: options.signal }),
+      checkGitHubFile: (query: OpenAPIQueryParameters<'checkServiceGitHubRepositoryFile'>, options: RequestOptions = {}) =>
+        this.request('checkServiceGitHubRepositoryFile', { query, signal: options.signal }),
     },
     promotions: {
       list: (serviceId: string, query: OpenAPIQueryParameters<'listServicePromotions'> = {}, options: RequestOptions = {}) => this.request('listServicePromotions', { path: { serviceId }, query, signal: options.signal }),
@@ -330,6 +343,24 @@ export class ServiceClient {
         this.administrationMutation('trimServiceRuntimeLogs', { path: { serviceId }, query, ...administrationWrite(options) }, true),
       flushRuntime: (serviceId: string, query: OpenAPIQueryParameters<'flushServiceRuntimeLogs'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('flushServiceRuntimeLogs', { path: { serviceId }, query, ...administrationWrite(options) }, true),
+    },
+    diagnostics: {
+      screenshot: (serviceId: string, deploymentId: string, options: RequestOptions = {}) =>
+        this.request('getServiceDeploymentScreenshot', { path: { serviceId, deploymentId }, signal: options.signal }),
+      webhookEvents: (serviceId: string, query: OpenAPIQueryParameters<'listServiceWebhookDispatchEvents'> = {}, options: RequestOptions = {}) =>
+        this.request('listServiceWebhookDispatchEvents', { path: { serviceId }, query, signal: options.signal }),
+    },
+    traffic: {
+      status: (serviceId: string, query: OpenAPIQueryParameters<'getServiceTrafficStatus'> = {}, options: RequestOptions = {}) =>
+        this.request('getServiceTrafficStatus', { path: { serviceId }, query, signal: options.signal }),
+      report: (serviceId: string, query: OpenAPIQueryParameters<'getServiceTrafficReport'> = {}, options: RequestOptions = {}) =>
+        this.request('getServiceTrafficReport', { path: { serviceId }, query, signal: options.signal }),
+      updateSettings: (serviceId: string, body: OpenAPIRequestBody<'putServiceTrafficSettings'>, options: MutationOptions) =>
+        this.administrationMutation('putServiceTrafficSettings', { path: { serviceId }, body, ...mutationRequest(options) }),
+      trim: (serviceId: string, query: OpenAPIQueryParameters<'trimServiceTraffic'>, options: MutationOptions) =>
+        this.administrationMutation('trimServiceTraffic', { path: { serviceId }, query, ...mutationRequest(options) }),
+      flush: (serviceId: string, query: OpenAPIQueryParameters<'flushServiceTraffic'>, options: MutationOptions) =>
+        this.administrationMutation('flushServiceTraffic', { path: { serviceId }, query, ...mutationRequest(options) }),
     },
     configurationOperations: {
       list: (query: OpenAPIQueryParameters<'listServiceConfigurationOperations'> = {}, options: RequestOptions = {}) => this.request('listServiceConfigurationOperations', { query, signal: options.signal }),
@@ -631,7 +662,7 @@ export class ServiceClient {
         }
         throw error;
       }
-      if (response.ok) return await decodeSuccess<I>(response);
+      if (response.ok) return await decodeSuccess<I>(operationId, response);
       const apiError = await decodeError(response, this.retryPolicy.retryAfterMaxDelayMs);
       if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
         const retryAfterMs = response.status === 429 || response.status === 503
@@ -707,8 +738,10 @@ function validateETag(value: string): void {
   }
 }
 
-async function decodeSuccess<I extends OpenAPIOperationId>(response: Response): Promise<OpenAPIResponseBody<I>> {
-  const body = await readBoundedResponseBody(response, 'Service');
+async function decodeSuccess<I extends OpenAPIOperationId>(operationId: I, response: Response): Promise<OpenAPIResponseBody<I>> {
+  const body = operationId === 'getServiceDeploymentScreenshot'
+    ? await readBoundedResponseBody(response, 'Service', MAX_SCREENSHOT_RESPONSE_BYTES)
+    : await readBoundedResponseBody(response, 'Service');
   return JSON.parse(body) as OpenAPIResponseBody<I>;
 }
 

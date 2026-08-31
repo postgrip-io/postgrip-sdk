@@ -1150,6 +1150,102 @@
       ],
       "summary": "Retry a safely recovered release group"
     },
+    "checkServiceGitHubRepositoryFile": {
+      "behavior": "Checks one repository-relative path through the tenant's GitHub App installation without returning installation credentials or file contents.",
+      "lifecycle": [
+        "Treat owner, repository, path, and optional ref as exact caller-selected values."
+      ],
+      "summary": "Check a GitHub repository file"
+    },
+    "deleteServiceComposeFile": {
+      "behavior": "Deletes the Worker-held Compose override for one exact service environment; subsequent deployments use the generated default unless another override is saved.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "This changes deployment configuration and must be explicitly confirmed by automation."
+      ],
+      "summary": "Delete an environment Compose override"
+    },
+    "exportServiceVariables": {
+      "behavior": "Returns variable metadata and retrievable non-secret values from the assigned Worker. Secret values remain redacted and Worker-local.",
+      "lifecycle": [
+        "Generate dotenv files locally and preserve restrictive file permissions."
+      ],
+      "summary": "Export non-secret environment variables"
+    },
+    "flushServiceTraffic": {
+      "behavior": "Deletes all traffic telemetry rollups for the selected project or environment on every assigned Worker and returns a result for each Worker.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "A false complete field is a partial failure and must not be treated as success."
+      ],
+      "summary": "Flush service traffic telemetry"
+    },
+    "getServiceComposeFile": {
+      "behavior": "Returns the Worker-held Compose override for one exact service environment. The content can contain sensitive inline configuration.",
+      "lifecycle": [
+        "Do not log Compose content and use a protected output file when persisting it."
+      ],
+      "summary": "Get an environment Compose override"
+    },
+    "getServiceDeploymentScreenshot": {
+      "behavior": "Returns a bounded base64-encoded browser-check screenshot for an exact tenant-owned deployment after resolving its assigned Worker through the service catalog.",
+      "lifecycle": [
+        "Decode into a protected local file and do not treat image availability as proof of current public reachability."
+      ],
+      "summary": "Get a deployment browser-check screenshot"
+    },
+    "getServiceTrafficReport": {
+      "behavior": "Returns bounded time-series and path, host, and environment breakdowns from every Worker assigned to the project or selected environment.",
+      "lifecycle": [
+        "A false complete field preserves successful Worker data but indicates a partial failure."
+      ],
+      "summary": "Get a service traffic report"
+    },
+    "getServiceTrafficStatus": {
+      "behavior": "Returns traffic settings, storage totals, and recent request summaries from every Worker assigned to the project or selected environment.",
+      "lifecycle": [
+        "A false complete field preserves successful Worker data but indicates a partial failure."
+      ],
+      "summary": "Get service traffic status"
+    },
+    "listServiceGitHubBranches": {
+      "behavior": "Lists branches visible through the tenant's GitHub App installation without exposing installation credentials.",
+      "lifecycle": [
+        "Use an exact repository owner and name; branch names are untrusted display data."
+      ],
+      "summary": "List GitHub repository branches"
+    },
+    "listServiceWebhookDispatchEvents": {
+      "behavior": "Returns the bounded recent decisions made while handling GitHub push and pull-request webhook events for one service.",
+      "lifecycle": [
+        "Use event state and safe reason fields for diagnosis; this history does not contain webhook secrets."
+      ],
+      "summary": "List service webhook dispatch events"
+    },
+    "putServiceComposeFile": {
+      "behavior": "Validates and replaces the Worker-held Compose override for one exact service environment.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "This can materially change workload execution and must be explicitly confirmed by automation."
+      ],
+      "summary": "Replace an environment Compose override"
+    },
+    "putServiceTrafficSettings": {
+      "behavior": "Updates project-scoped traffic collection and retention settings on every assigned Worker and returns a result for each Worker.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "A false complete field is a partial failure and must not be treated as success."
+      ],
+      "summary": "Update service traffic settings"
+    },
+    "trimServiceTraffic": {
+      "behavior": "Deletes traffic telemetry rollups older than the configured retention window on every selected Worker and returns a result for each Worker.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "A false complete field is a partial failure and must not be treated as success."
+      ],
+      "summary": "Trim service traffic telemetry"
+    },
     "workerOrchestratorHealth": {
       "behavior": "Uses the contract-defined GET /health behavior.",
       "lifecycle": [],

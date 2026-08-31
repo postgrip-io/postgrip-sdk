@@ -60,6 +60,7 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
         "getServiceEnvironment", "createServiceEnvironment", "updateServiceEnvironment",
         "previewServiceEnvironmentReassignment", "reassignServiceEnvironment",
         "getServiceEnvironmentRemovalImpact", "deleteServiceEnvironment",
+        "getServiceComposeFile", "putServiceComposeFile", "deleteServiceComposeFile",
     ),
     "ManagedVolumes": (
         "listServiceVolumes", "createServiceVolume", "getServiceVolume",
@@ -79,12 +80,13 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "Variables": (
         "listServiceVariables", "createServiceVariable", "updateServiceVariable",
         "deleteServiceVariable", "putServiceVariableValue", "clearServiceVariableValue",
-        "applyServiceVariables",
+        "applyServiceVariables", "exportServiceVariables",
     ),
     "Repositories": (
         "getServiceRepository", "updateServiceRepository", "putServiceRepositoryCredential",
         "clearServiceRepositoryCredential", "refreshServiceRepositoryCredential",
         "listGitHubAppRepositories", "previewGitHubRepositoryAdoption", "adoptGitHubRepository",
+        "listServiceGitHubBranches", "checkServiceGitHubRepositoryFile",
     ),
     "Promotions": ("listServicePromotions", "previewServicePromotion", "promoteServiceDeployment"),
     "ReleaseGroups": (
@@ -96,6 +98,13 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
         "getServiceBuildLogSettings", "updateServiceBuildLogSettings", "trimServiceBuildLogs",
         "flushServiceBuildLogs", "getServiceRuntimeLogSettings", "updateServiceRuntimeLogSettings",
         "trimServiceRuntimeLogs", "flushServiceRuntimeLogs",
+    ),
+    "Diagnostics": (
+        "getServiceDeploymentScreenshot", "listServiceWebhookDispatchEvents",
+    ),
+    "Traffic": (
+        "getServiceTrafficStatus", "getServiceTrafficReport", "putServiceTrafficSettings",
+        "trimServiceTraffic", "flushServiceTraffic",
     ),
     "ConfigurationOperations": (
         "listServiceConfigurationOperations", "getServiceConfigurationOperation",
@@ -371,7 +380,8 @@ def go_schema_type(schema: dict[str, Any], optional: bool = False) -> str:
         return "any"
     schema_type = schema.get("type")
     if schema_type == "array":
-        return f"[]{go_schema_type(schema.get('items', {}))}"
+        value = f"[]{go_schema_type(schema.get('items', {}))}"
+        return f"*{value}" if optional and schema.get("x-postgrip-presence-aware") else value
     if schema_type == "object" or "properties" in schema or "additionalProperties" in schema:
         additional = schema.get("additionalProperties")
         if isinstance(additional, dict):
@@ -408,7 +418,7 @@ def go_struct_fields(schema: dict[str, Any]) -> str:
 
 def schema_required_alternatives(schema: dict[str, Any]) -> list[list[str]]:
     alternatives: list[list[str]] = []
-    for branch in schema.get("anyOf", []):
+    for branch in schema.get("oneOf") or schema.get("anyOf", []):
         required = branch.get("required")
         if not isinstance(required, list) or not required:
             return []
@@ -424,13 +434,18 @@ def go_object_schema_source(type_name: str, schema: dict[str, Any]) -> str:
     base_required = set(schema.get("required", []))
     if not alternatives or any(name in base_required for branch in alternatives for name in branch):
         return source
-    conditions = " || ".join(
+    conditions = [
         "(" + " && ".join(f"value.{pascal_name(name)} != nil" for name in branch) + ")"
         for branch in alternatives
-    )
+    ]
+    match_requirement = "matches != 1" if schema.get("oneOf") else "matches == 0"
+    requirement_description = "exactly one" if schema.get("oneOf") else "at least one"
+    match_count = "\n".join(f"\tif {condition} {{ matches++ }}" for condition in conditions)
     return source + f'''\n\nfunc (value {type_name}) MarshalJSON() ([]byte, error) {{
-\tif !({conditions}) {{
-\t\treturn nil, errors.New("{type_name} must satisfy one required property alternative")
+\tmatches := 0
+{match_count}
+\tif {match_requirement} {{
+\t\treturn nil, errors.New("{type_name} must satisfy {requirement_description} required property alternative")
 \t}}
 \ttype wire {type_name}
 \treturn json.Marshal(wire(value))

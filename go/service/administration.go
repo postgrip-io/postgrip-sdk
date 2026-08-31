@@ -43,6 +43,8 @@ type ServiceReleaseGroupsClient struct{ client *Client }
 type ServiceRetentionClient struct{ client *Client }
 type ServiceConfigurationOperationsClient struct{ client *Client }
 type DeclarativeConfigurationClient struct{ client *Client }
+type ServiceDiagnosticsClient struct{ client *Client }
+type ServiceTrafficClient struct{ client *Client }
 
 func (c *Client) Apps() AppsClient                     { return AppsClient{client: c} }
 func (c *Client) TargetServices() TargetServicesClient { return TargetServicesClient{client: c} }
@@ -73,6 +75,77 @@ func (c *Client) ServiceConfigurationOperations() ServiceConfigurationOperations
 }
 func (c *Client) DeclarativeConfiguration() DeclarativeConfigurationClient {
 	return DeclarativeConfigurationClient{client: c}
+}
+func (c *Client) ServiceDiagnostics() ServiceDiagnosticsClient {
+	return ServiceDiagnosticsClient{client: c}
+}
+func (c *Client) ServiceTraffic() ServiceTrafficClient { return ServiceTrafficClient{client: c} }
+
+func (c ServiceEnvironmentsClient) GetCompose(ctx context.Context, projectID, environmentID string) (OpenAPIGetServiceComposeFileResponseBody, error) {
+	return c.client.OpenAPI().GetServiceComposeFile(ctx, projectID, environmentID)
+}
+
+func (c ServiceEnvironmentsClient) PutCompose(ctx context.Context, projectID, environmentID string, body OpenAPIPutServiceComposeFileRequestBody, options MutationOptions) (OpenAPIPutServiceComposeFileResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIPutServiceComposeFileResponseBody{}, err
+	}
+	return c.client.OpenAPI().PutServiceComposeFile(ctx, projectID, environmentID, OpenAPIPutServiceComposeFileHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceEnvironmentsClient) DeleteCompose(ctx context.Context, projectID, environmentID string, options MutationOptions) (OpenAPIDeleteServiceComposeFileResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIDeleteServiceComposeFileResponseBody{}, err
+	}
+	return c.client.OpenAPI().DeleteServiceComposeFile(ctx, projectID, environmentID, OpenAPIDeleteServiceComposeFileHeaders{IdempotencyKey: options.IdempotencyKey})
+}
+
+func (c ServiceVariablesClient) Export(ctx context.Context, projectID, environmentID string) (OpenAPIExportServiceVariablesResponseBody, error) {
+	return c.client.OpenAPI().ExportServiceVariables(ctx, projectID, environmentID)
+}
+
+func (c ServiceRepositoriesClient) GitHubBranches(ctx context.Context, query OpenAPIListServiceGitHubBranchesQuery) (OpenAPIListServiceGitHubBranchesResponseBody, error) {
+	return c.client.OpenAPI().ListServiceGitHubBranches(ctx, query)
+}
+
+func (c ServiceRepositoriesClient) GitHubFile(ctx context.Context, query OpenAPICheckServiceGitHubRepositoryFileQuery) (OpenAPICheckServiceGitHubRepositoryFileResponseBody, error) {
+	return c.client.OpenAPI().CheckServiceGitHubRepositoryFile(ctx, query)
+}
+
+func (c ServiceDiagnosticsClient) Screenshot(ctx context.Context, projectID, deploymentID string) (OpenAPIGetServiceDeploymentScreenshotResponseBody, error) {
+	return c.client.OpenAPI().GetServiceDeploymentScreenshot(ctx, projectID, deploymentID)
+}
+
+func (c ServiceDiagnosticsClient) WebhookEvents(ctx context.Context, projectID string, query OpenAPIListServiceWebhookDispatchEventsQuery) (OpenAPIListServiceWebhookDispatchEventsResponseBody, error) {
+	return c.client.OpenAPI().ListServiceWebhookDispatchEvents(ctx, projectID, query)
+}
+
+func (c ServiceTrafficClient) Status(ctx context.Context, projectID string, query OpenAPIGetServiceTrafficStatusQuery) (OpenAPIGetServiceTrafficStatusResponseBody, error) {
+	return c.client.OpenAPI().GetServiceTrafficStatus(ctx, projectID, query)
+}
+
+func (c ServiceTrafficClient) Report(ctx context.Context, projectID string, query OpenAPIGetServiceTrafficReportQuery) (OpenAPIGetServiceTrafficReportResponseBody, error) {
+	return c.client.OpenAPI().GetServiceTrafficReport(ctx, projectID, query)
+}
+
+func (c ServiceTrafficClient) UpdateSettings(ctx context.Context, projectID string, body OpenAPIPutServiceTrafficSettingsRequestBody, options MutationOptions) (OpenAPIPutServiceTrafficSettingsResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIPutServiceTrafficSettingsResponseBody{}, err
+	}
+	return c.client.OpenAPI().PutServiceTrafficSettings(ctx, projectID, OpenAPIPutServiceTrafficSettingsHeaders{IdempotencyKey: options.IdempotencyKey}, body)
+}
+
+func (c ServiceTrafficClient) Trim(ctx context.Context, projectID string, query OpenAPITrimServiceTrafficQuery, options MutationOptions) (OpenAPITrimServiceTrafficResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPITrimServiceTrafficResponseBody{}, err
+	}
+	return c.client.OpenAPI().TrimServiceTraffic(ctx, projectID, query, OpenAPITrimServiceTrafficHeaders{IdempotencyKey: options.IdempotencyKey})
+}
+
+func (c ServiceTrafficClient) Flush(ctx context.Context, projectID string, query OpenAPIFlushServiceTrafficQuery, options MutationOptions) (OpenAPIFlushServiceTrafficResponseBody, error) {
+	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
+		return OpenAPIFlushServiceTrafficResponseBody{}, err
+	}
+	return c.client.OpenAPI().FlushServiceTraffic(ctx, projectID, query, OpenAPIFlushServiceTrafficHeaders{IdempotencyKey: options.IdempotencyKey})
 }
 
 func (c AppsClient) List(ctx context.Context) (OpenAPIListServiceAppsResponseBody, error) {

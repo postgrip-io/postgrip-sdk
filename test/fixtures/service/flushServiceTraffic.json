@@ -1,0 +1,59 @@
+{
+  "operationId": "flushServiceTraffic",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {
+      "Idempotency-Key": "recorded-flushServiceTraffic"
+    },
+    "pathParameters": {
+      "serviceId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {
+      "environment": "11111111-1111-4111-8111-111111111111"
+    },
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "complete": true,
+      "items": [
+        {
+          "data": {
+            "compacted": true,
+            "completedAt": "2026-01-01T00:00:00Z",
+            "deletedRows": 1,
+            "operation": "trim",
+            "settings": {
+              "enabled": true,
+              "retentionDays": 1,
+              "tenantId": "11111111-1111-4111-8111-111111111111",
+              "updatedAt": "2026-01-01T00:00:00Z"
+            },
+            "storage": {
+              "databaseBytes": 1,
+              "distinctHosts": 1,
+              "rollupRows": 1,
+              "totalRequests": 1
+            }
+          },
+          "environmentIds": [
+            "11111111-1111-4111-8111-111111111111"
+          ],
+          "workerId": "11111111-1111-4111-8111-111111111111"
+        }
+      ],
+      "receipt": {
+        "auditRecorded": true,
+        "replayed": true,
+        "requestId": "string"
+      }
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_flushServiceTraffic"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

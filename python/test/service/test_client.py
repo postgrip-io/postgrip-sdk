@@ -379,6 +379,18 @@ class ServiceClientTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "too large"):
             client.resolve("api")
 
+    def test_screenshot_uses_schema_sized_response_limit(self) -> None:
+        data = "A" * ((4 << 20) + 4)
+        opener = FakeOpener([{"contentType": "image/png", "dataBase64": data}])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgt_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+
+        response = client.administration.diagnostics.get_service_deployment_screenshot(
+            "project-id", "deployment-id",
+        )
+        self.assertEqual(response["dataBase64"], data)
+
     def test_redirect_handler_never_constructs_a_forwarded_request(self) -> None:
         request = Request("https://services.example.test/api/v1/services", headers={
             "Authorization": "Bearer pgt_test-token",
@@ -466,6 +478,8 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.promotions,
             client.administration.release_groups,
             client.administration.retention,
+            client.administration.diagnostics,
+            client.administration.traffic,
             client.administration.configuration_operations,
             client.administration.declarative_configuration,
         )
@@ -480,7 +494,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 92)
+        self.assertEqual(len(exposed), 105)
 
         client.administration.target_services.attach_target_service(
             {
@@ -513,7 +527,7 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(response["catalogEtag"], '"service-catalog:7"')
 
     def test_every_administration_facade_executes_through_the_transport(self) -> None:
-        opener = FakeOpener([{} for _ in range(85)])
+        opener = FakeOpener([{} for _ in range(98)])
         client = ServiceClient(
             base_url="https://services.example.test", token="pgt_test-token", opener=opener,
         )  # type: ignore[arg-type]
@@ -529,6 +543,8 @@ class ServiceClientTests(unittest.TestCase):
             client.administration.repositories,
             client.administration.promotions,
             client.administration.retention,
+            client.administration.diagnostics,
+            client.administration.traffic,
             client.administration.configuration_operations,
             client.administration.declarative_configuration,
         )
@@ -539,7 +555,7 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 85)
+        self.assertEqual(len(opener.requests), 98)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
@@ -694,7 +710,7 @@ class ServiceClientTests(unittest.TestCase):
 
     def test_async_administration_facades_execute_through_the_transport(self) -> None:
         async def run() -> None:
-            opener = FakeOpener([{} for _ in range(85)])
+            opener = FakeOpener([{} for _ in range(98)])
             client = AsyncServiceClient(
                 base_url="https://services.example.test", token="pgt_test-token", opener=opener,
             )  # type: ignore[arg-type]
@@ -710,6 +726,8 @@ class ServiceClientTests(unittest.TestCase):
                 (client.administration.repositories, client._sync.administration.repositories),
                 (client.administration.promotions, client._sync.administration.promotions),
                 (client.administration.retention, client._sync.administration.retention),
+                (client.administration.diagnostics, client._sync.administration.diagnostics),
+                (client.administration.traffic, client._sync.administration.traffic),
                 (
                     client.administration.configuration_operations,
                     client._sync.administration.configuration_operations,
@@ -725,7 +743,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 85)
+            self.assertEqual(len(opener.requests), 98)
 
         asyncio.run(run())
 

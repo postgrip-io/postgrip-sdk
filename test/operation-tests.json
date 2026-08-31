@@ -1539,6 +1539,123 @@
       "plane": "service",
       "protocolException": null
     },
+    "checkServiceGitHubRepositoryFile": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/checkServiceGitHubRepositoryFile.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "deleteServiceComposeFile": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/deleteServiceComposeFile.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "exportServiceVariables": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/exportServiceVariables.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "flushServiceTraffic": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/flushServiceTraffic.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceComposeFile": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceComposeFile.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceDeploymentScreenshot": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceDeploymentScreenshot.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceTrafficReport": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceTrafficReport.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "getServiceTrafficStatus": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceTrafficStatus.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceGitHubBranches": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceGitHubBranches.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceWebhookDispatchEvents": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceWebhookDispatchEvents.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "putServiceComposeFile": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/putServiceComposeFile.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "putServiceTrafficSettings": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/putServiceTrafficSettings.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "trimServiceTraffic": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/trimServiceTraffic.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "workerOrchestratorHealth": {
       "cleanup": "none",
       "curlEligible": true,
