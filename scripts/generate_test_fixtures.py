@@ -14,7 +14,14 @@ from typing import Any
 from jsonschema import Draft202012Validator, RefResolver
 
 from _contracts import PLANES
-from generate_api_docs import load_inputs, operations, request_body, resolve, sample
+from generate_api_docs import (
+    load_inputs,
+    operation_response_sample,
+    operations,
+    request_body,
+    resolve,
+    sample,
+)
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,7 +54,7 @@ def success_response(
     content_type = "application/json" if "application/json" in content else next(iter(content), None)
     media = content.get(content_type, {}) if content_type else {}
     schema = media.get("schema")
-    body = media.get("example", sample(document, schema)) if media else None
+    body = operation_response_sample(document, operation, media) if media else None
     headers = {"X-Request-Id": f"req_{operation['operationId']}"}
     if body is not None and content_type:
         headers["Content-Type"] = content_type

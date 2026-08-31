@@ -52,7 +52,7 @@ Illustrative success body:
         "compacted": true,
         "completedAt": "2026-01-01T00:00:00Z",
         "deletedRows": 1,
-        "operation": "trim",
+        "operation": "flush",
         "settings": {
           "enabled": true,
           "retentionDays": 1,

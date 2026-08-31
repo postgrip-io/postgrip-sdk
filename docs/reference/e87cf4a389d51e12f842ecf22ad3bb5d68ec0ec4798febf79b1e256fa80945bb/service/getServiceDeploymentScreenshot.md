@@ -45,7 +45,7 @@ Illustrative success body:
 ```json
 {
   "contentType": "string",
-  "dataBase64": "string"
+  "dataBase64": "cG9zdGdyaXA="
 }
 ```
 

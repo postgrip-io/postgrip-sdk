@@ -399,6 +399,18 @@ func TestReleasePreviewRejectsMembersWithoutARevisionSource(t *testing.T) {
 	}
 }
 
+func TestTrafficStatusRejectsAmbiguousWorkerResult(t *testing.T) {
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[{"workerId":"11111111-1111-4111-8111-111111111111","environmentIds":[],"data":{},"error":{"code":"WORKER_ERROR","message":"failed"}}],"complete":false}`))
+	}), nil)
+
+	_, err := client.ServiceTraffic().Status(context.Background(), "project-1", OpenAPIGetServiceTrafficStatusQuery{})
+	if err == nil || !strings.Contains(err.Error(), "required property alternative") {
+		t.Fatalf("ambiguous traffic result err = %v", err)
+	}
+}
+
 func TestRetryAfterPreservesZeroAndCapsOversizedValues(t *testing.T) {
 	policy := serviceRetryLimits{maxDelay: 2 * time.Second, retryAfterMax: 30 * time.Second}
 	response := &http.Response{StatusCode: http.StatusServiceUnavailable, Header: http.Header{"Retry-After": []string{"0"}}}

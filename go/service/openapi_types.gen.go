@@ -42,7 +42,7 @@ type OpenAPIServiceReleaseGroupMemberRequest struct {
 	DependsOn                   []string                                 `json:"dependsOn,omitempty"`
 }
 
-func (value OpenAPIServiceReleaseGroupMemberRequest) MarshalJSON() ([]byte, error) {
+func (value OpenAPIServiceReleaseGroupMemberRequest) validateRequiredPropertyAlternative() error {
 	matches := 0
 	if value.ExpectedCommitSha != nil && value.Branch != nil {
 		matches++
@@ -51,10 +51,31 @@ func (value OpenAPIServiceReleaseGroupMemberRequest) MarshalJSON() ([]byte, erro
 		matches++
 	}
 	if matches == 0 {
-		return nil, errors.New("OpenAPIServiceReleaseGroupMemberRequest must satisfy at least one required property alternative")
+		return errors.New("OpenAPIServiceReleaseGroupMemberRequest must satisfy at least one required property alternative")
+	}
+	return nil
+}
+
+func (value OpenAPIServiceReleaseGroupMemberRequest) MarshalJSON() ([]byte, error) {
+	if err := value.validateRequiredPropertyAlternative(); err != nil {
+		return nil, err
 	}
 	type wire OpenAPIServiceReleaseGroupMemberRequest
 	return json.Marshal(wire(value))
+}
+
+func (value *OpenAPIServiceReleaseGroupMemberRequest) UnmarshalJSON(data []byte) error {
+	type wire OpenAPIServiceReleaseGroupMemberRequest
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	candidate := OpenAPIServiceReleaseGroupMemberRequest(decoded)
+	if err := candidate.validateRequiredPropertyAlternative(); err != nil {
+		return err
+	}
+	*value = candidate
+	return nil
 }
 
 type OpenAPIPreviewServiceReleaseGroupRequest struct {
@@ -559,7 +580,7 @@ type OpenAPIGitHubRepositoryAdoptionPreviewRequest struct {
 	AutomaticDeployments bool    `json:"automaticDeployments"`
 }
 
-func (value OpenAPIGitHubRepositoryAdoptionPreviewRequest) MarshalJSON() ([]byte, error) {
+func (value OpenAPIGitHubRepositoryAdoptionPreviewRequest) validateRequiredPropertyAlternative() error {
 	matches := 0
 	if value.RepositoryId != nil {
 		matches++
@@ -568,10 +589,31 @@ func (value OpenAPIGitHubRepositoryAdoptionPreviewRequest) MarshalJSON() ([]byte
 		matches++
 	}
 	if matches != 1 {
-		return nil, errors.New("OpenAPIGitHubRepositoryAdoptionPreviewRequest must satisfy exactly one required property alternative")
+		return errors.New("OpenAPIGitHubRepositoryAdoptionPreviewRequest must satisfy exactly one required property alternative")
+	}
+	return nil
+}
+
+func (value OpenAPIGitHubRepositoryAdoptionPreviewRequest) MarshalJSON() ([]byte, error) {
+	if err := value.validateRequiredPropertyAlternative(); err != nil {
+		return nil, err
 	}
 	type wire OpenAPIGitHubRepositoryAdoptionPreviewRequest
 	return json.Marshal(wire(value))
+}
+
+func (value *OpenAPIGitHubRepositoryAdoptionPreviewRequest) UnmarshalJSON(data []byte) error {
+	type wire OpenAPIGitHubRepositoryAdoptionPreviewRequest
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	candidate := OpenAPIGitHubRepositoryAdoptionPreviewRequest(decoded)
+	if err := candidate.validateRequiredPropertyAlternative(); err != nil {
+		return err
+	}
+	*value = candidate
+	return nil
 }
 
 type OpenAPIGitHubRepositoryAdoptionPreview struct {
@@ -1780,7 +1822,7 @@ type OpenAPIServiceTrafficStatusWorkerResult struct {
 	Error          *OpenAPIServiceTrafficWorkerError `json:"error,omitempty"`
 }
 
-func (value OpenAPIServiceTrafficStatusWorkerResult) MarshalJSON() ([]byte, error) {
+func (value OpenAPIServiceTrafficStatusWorkerResult) validateRequiredPropertyAlternative() error {
 	matches := 0
 	if value.Data != nil {
 		matches++
@@ -1789,10 +1831,31 @@ func (value OpenAPIServiceTrafficStatusWorkerResult) MarshalJSON() ([]byte, erro
 		matches++
 	}
 	if matches != 1 {
-		return nil, errors.New("OpenAPIServiceTrafficStatusWorkerResult must satisfy exactly one required property alternative")
+		return errors.New("OpenAPIServiceTrafficStatusWorkerResult must satisfy exactly one required property alternative")
+	}
+	return nil
+}
+
+func (value OpenAPIServiceTrafficStatusWorkerResult) MarshalJSON() ([]byte, error) {
+	if err := value.validateRequiredPropertyAlternative(); err != nil {
+		return nil, err
 	}
 	type wire OpenAPIServiceTrafficStatusWorkerResult
 	return json.Marshal(wire(value))
+}
+
+func (value *OpenAPIServiceTrafficStatusWorkerResult) UnmarshalJSON(data []byte) error {
+	type wire OpenAPIServiceTrafficStatusWorkerResult
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	candidate := OpenAPIServiceTrafficStatusWorkerResult(decoded)
+	if err := candidate.validateRequiredPropertyAlternative(); err != nil {
+		return err
+	}
+	*value = candidate
+	return nil
 }
 
 type OpenAPIServiceTrafficReportWorkerResult struct {
@@ -1802,7 +1865,7 @@ type OpenAPIServiceTrafficReportWorkerResult struct {
 	Error          *OpenAPIServiceTrafficWorkerError `json:"error,omitempty"`
 }
 
-func (value OpenAPIServiceTrafficReportWorkerResult) MarshalJSON() ([]byte, error) {
+func (value OpenAPIServiceTrafficReportWorkerResult) validateRequiredPropertyAlternative() error {
 	matches := 0
 	if value.Data != nil {
 		matches++
@@ -1811,10 +1874,31 @@ func (value OpenAPIServiceTrafficReportWorkerResult) MarshalJSON() ([]byte, erro
 		matches++
 	}
 	if matches != 1 {
-		return nil, errors.New("OpenAPIServiceTrafficReportWorkerResult must satisfy exactly one required property alternative")
+		return errors.New("OpenAPIServiceTrafficReportWorkerResult must satisfy exactly one required property alternative")
+	}
+	return nil
+}
+
+func (value OpenAPIServiceTrafficReportWorkerResult) MarshalJSON() ([]byte, error) {
+	if err := value.validateRequiredPropertyAlternative(); err != nil {
+		return nil, err
 	}
 	type wire OpenAPIServiceTrafficReportWorkerResult
 	return json.Marshal(wire(value))
+}
+
+func (value *OpenAPIServiceTrafficReportWorkerResult) UnmarshalJSON(data []byte) error {
+	type wire OpenAPIServiceTrafficReportWorkerResult
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	candidate := OpenAPIServiceTrafficReportWorkerResult(decoded)
+	if err := candidate.validateRequiredPropertyAlternative(); err != nil {
+		return err
+	}
+	*value = candidate
+	return nil
 }
 
 type OpenAPIServiceTrafficSettingsWorkerResult struct {
@@ -1824,7 +1908,7 @@ type OpenAPIServiceTrafficSettingsWorkerResult struct {
 	Error          *OpenAPIServiceTrafficWorkerError      `json:"error,omitempty"`
 }
 
-func (value OpenAPIServiceTrafficSettingsWorkerResult) MarshalJSON() ([]byte, error) {
+func (value OpenAPIServiceTrafficSettingsWorkerResult) validateRequiredPropertyAlternative() error {
 	matches := 0
 	if value.Data != nil {
 		matches++
@@ -1833,10 +1917,31 @@ func (value OpenAPIServiceTrafficSettingsWorkerResult) MarshalJSON() ([]byte, er
 		matches++
 	}
 	if matches != 1 {
-		return nil, errors.New("OpenAPIServiceTrafficSettingsWorkerResult must satisfy exactly one required property alternative")
+		return errors.New("OpenAPIServiceTrafficSettingsWorkerResult must satisfy exactly one required property alternative")
+	}
+	return nil
+}
+
+func (value OpenAPIServiceTrafficSettingsWorkerResult) MarshalJSON() ([]byte, error) {
+	if err := value.validateRequiredPropertyAlternative(); err != nil {
+		return nil, err
 	}
 	type wire OpenAPIServiceTrafficSettingsWorkerResult
 	return json.Marshal(wire(value))
+}
+
+func (value *OpenAPIServiceTrafficSettingsWorkerResult) UnmarshalJSON(data []byte) error {
+	type wire OpenAPIServiceTrafficSettingsWorkerResult
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	candidate := OpenAPIServiceTrafficSettingsWorkerResult(decoded)
+	if err := candidate.validateRequiredPropertyAlternative(); err != nil {
+		return err
+	}
+	*value = candidate
+	return nil
 }
 
 type OpenAPIServiceTrafficMaintenanceWorkerResult struct {
@@ -1846,7 +1951,7 @@ type OpenAPIServiceTrafficMaintenanceWorkerResult struct {
 	Error          *OpenAPIServiceTrafficWorkerError       `json:"error,omitempty"`
 }
 
-func (value OpenAPIServiceTrafficMaintenanceWorkerResult) MarshalJSON() ([]byte, error) {
+func (value OpenAPIServiceTrafficMaintenanceWorkerResult) validateRequiredPropertyAlternative() error {
 	matches := 0
 	if value.Data != nil {
 		matches++
@@ -1855,10 +1960,31 @@ func (value OpenAPIServiceTrafficMaintenanceWorkerResult) MarshalJSON() ([]byte,
 		matches++
 	}
 	if matches != 1 {
-		return nil, errors.New("OpenAPIServiceTrafficMaintenanceWorkerResult must satisfy exactly one required property alternative")
+		return errors.New("OpenAPIServiceTrafficMaintenanceWorkerResult must satisfy exactly one required property alternative")
+	}
+	return nil
+}
+
+func (value OpenAPIServiceTrafficMaintenanceWorkerResult) MarshalJSON() ([]byte, error) {
+	if err := value.validateRequiredPropertyAlternative(); err != nil {
+		return nil, err
 	}
 	type wire OpenAPIServiceTrafficMaintenanceWorkerResult
 	return json.Marshal(wire(value))
+}
+
+func (value *OpenAPIServiceTrafficMaintenanceWorkerResult) UnmarshalJSON(data []byte) error {
+	type wire OpenAPIServiceTrafficMaintenanceWorkerResult
+	var decoded wire
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	candidate := OpenAPIServiceTrafficMaintenanceWorkerResult(decoded)
+	if err := candidate.validateRequiredPropertyAlternative(); err != nil {
+		return err
+	}
+	*value = candidate
+	return nil
 }
 
 type OpenAPIServiceTrafficStatusFanout struct {

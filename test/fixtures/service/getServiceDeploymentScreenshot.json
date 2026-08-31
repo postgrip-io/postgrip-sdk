@@ -14,7 +14,7 @@
   "response": {
     "body": {
       "contentType": "string",
-      "dataBase64": "string"
+      "dataBase64": "cG9zdGdyaXA="
     },
     "headers": {
       "Content-Type": "application/json",

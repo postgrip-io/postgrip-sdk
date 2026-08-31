@@ -441,14 +441,35 @@ def go_object_schema_source(type_name: str, schema: dict[str, Any]) -> str:
     match_requirement = "matches != 1" if schema.get("oneOf") else "matches == 0"
     requirement_description = "exactly one" if schema.get("oneOf") else "at least one"
     match_count = "\n".join(f"\tif {condition} {{ matches++ }}" for condition in conditions)
-    return source + f'''\n\nfunc (value {type_name}) MarshalJSON() ([]byte, error) {{
+    return source + f'''\n\nfunc (value {type_name}) validateRequiredPropertyAlternative() error {{
 \tmatches := 0
 {match_count}
 \tif {match_requirement} {{
-\t\treturn nil, errors.New("{type_name} must satisfy {requirement_description} required property alternative")
+\t\treturn errors.New("{type_name} must satisfy {requirement_description} required property alternative")
+\t}}
+\treturn nil
+}}
+
+func (value {type_name}) MarshalJSON() ([]byte, error) {{
+\tif err := value.validateRequiredPropertyAlternative(); err != nil {{
+\t\treturn nil, err
 \t}}
 \ttype wire {type_name}
 \treturn json.Marshal(wire(value))
+}}
+
+func (value *{type_name}) UnmarshalJSON(data []byte) error {{
+\ttype wire {type_name}
+\tvar decoded wire
+\tif err := json.Unmarshal(data, &decoded); err != nil {{
+\t\treturn err
+\t}}
+\tcandidate := {type_name}(decoded)
+\tif err := candidate.validateRequiredPropertyAlternative(); err != nil {{
+\t\treturn err
+\t}}
+\t*value = candidate
+\treturn nil
 }}'''
 
 

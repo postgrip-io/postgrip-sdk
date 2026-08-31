@@ -72,6 +72,8 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return schema["const"]
     if schema.get("enum"):
         return schema["enum"][0]
+    if schema.get("contentEncoding") == "base64":
+        return "cG9zdGdyaXA="
     if "$ref" in schema:
         reference = schema["$ref"]
         if reference in seen:
@@ -143,6 +145,24 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
     return "string".ljust(max(int(schema.get("minLength", 0)), 6), "x")
 
 
+def operation_response_sample(document: dict[str, Any], operation: dict[str, Any], media: dict[str, Any]) -> Any:
+    value = media.get("example", sample(document, media.get("schema", {})))
+    if operation.get("operationId") != "flushServiceTraffic":
+        return value
+
+    def mark_flush(node: Any) -> Any:
+        if isinstance(node, dict):
+            return {
+                key: "flush" if key == "operation" and item == "trim" else mark_flush(item)
+                for key, item in node.items()
+            }
+        if isinstance(node, list):
+            return [mark_flush(item) for item in node]
+        return node
+
+    return mark_flush(value)
+
+
 def operations(document: dict[str, Any]) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     for path, path_item in document["paths"].items():
@@ -204,7 +224,7 @@ def response_rows(document: dict[str, Any], operation: dict[str, Any]) -> tuple[
         description = str(response.get("description", "")).replace("|", "\\|").replace("\n", " ") or "—"
         rows.append(f"| `{status}` | {description} | `{media_type or '—'}` | `{schema_name(schema)}` |")
         if success_example is None and str(status).startswith("2"):
-            success_example = media.get("example", sample(document, schema)) if media else None
+            success_example = operation_response_sample(document, operation, media) if media else None
     return rows, success_example
 
 
