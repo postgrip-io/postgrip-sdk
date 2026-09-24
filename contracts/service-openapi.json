@@ -1442,6 +1442,7 @@
           "Operations"
         ],
         "summary": "Resolve a deploy request to an immutable commit",
+        "description": "Resolves a deploy request to an environment and the immutable head commit of its branch, which deployService then confirms as `expectedCommitSha`. For a private GitHub service bound to no GitHub installation, PostGrip cannot read the branch head, because the service's repository credential is held only by its Workers: the preview fails with `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE`, and the caller deploys a named full commit SHA with deployService instead. The error message names what the target Worker needs: with a delivered supplied credential, deploy a named commit; while one is being delivered, wait for it; when it awaits resubmission, resubmit it; with none, supply one or bind the service to a GitHub account.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1482,6 +1483,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `REPOSITORY_CREDENTIAL_UNAVAILABLE`: PostGrip cannot read the branch head, either because the service is a private GitHub service bound to no GitHub installation (the message names what the target Worker needs) or because PostGrip cannot obtain the credential it needs to read it. Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED` and `SERVICE_ENVIRONMENT_REQUIRED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -1512,7 +1523,7 @@
           "Operations"
         ],
         "summary": "Queue a deployment for a confirmed commit",
-        "description": "Queues a deployment of a confirmed commit to one environment. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
+        "description": "Queues a deployment of a confirmed commit to one environment. `expectedCommitSha` must equal the branch head previewServiceDeploy resolved, except for a private GitHub service bound to no GitHub installation: PostGrip cannot read its branch head, so `expectedCommitSha` is deployed as given. It must then be a full 40-character hexadecimal commit SHA (otherwise `400` `VALIDATION`) and is normalized to lowercase, and `branch`, or else the default branch, is recorded unverified. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1546,8 +1557,27 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request. `VALIDATION`: `expectedCommitSha` is not a full 40-character hexadecimal commit SHA for a private GitHub service bound to no GitHub installation, whose branch head PostGrip cannot read. Other invalid requests, such as `INVALID_BODY` and `INVALID_BRANCH`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "409": {
-            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Three refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1586,7 +1616,7 @@
           "Operations"
         ],
         "summary": "Queue a deployment from an existing immutable revision",
-        "description": "Queues a deployment of an existing immutable revision. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
+        "description": "Queues a deployment of an existing immutable revision. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1621,7 +1651,16 @@
             }
           },
           "409": {
-            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Three refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1719,7 +1758,7 @@
           "Operations"
         ],
         "summary": "Queue rollback to a historical service deployment",
-        "description": "Queues a rollback to a historical deployment. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
+        "description": "Queues a rollback to a historical deployment. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1744,7 +1783,16 @@
             }
           },
           "409": {
-            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED` and `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Three refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service). Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED`, `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -4888,7 +4936,7 @@
           "Administration"
         ],
         "summary": "Promote Service Deployment",
-        "description": "Promotes a source deployment's revision to a target environment. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
+        "description": "Promotes a source deployment's revision to a target environment. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4921,7 +4969,16 @@
             }
           },
           "409": {
-            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Three refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
