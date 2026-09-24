@@ -1512,6 +1512,7 @@
           "Operations"
         ],
         "summary": "Queue a deployment for a confirmed commit",
+        "description": "Queues a deployment of a confirmed commit to one environment. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1541,6 +1542,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeploymentOperationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1575,6 +1586,7 @@
           "Operations"
         ],
         "summary": "Queue a deployment from an existing immutable revision",
+        "description": "Queues a deployment of an existing immutable revision. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1604,6 +1616,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeploymentOperationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1697,6 +1719,7 @@
           "Operations"
         ],
         "summary": "Queue rollback to a historical service deployment",
+        "description": "Queues a rollback to a historical deployment. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1716,6 +1739,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeploymentOperationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED` and `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4855,6 +4888,7 @@
           "Administration"
         ],
         "summary": "Promote Service Deployment",
+        "description": "Promotes a source deployment's revision to a target environment. If the target Worker holds a supplied repository credential that awaits resubmission, the request fails with `409` `SECRET_RESUBMISSION_REQUIRED` and nothing is queued. Services adopted from a GitHub installation are not refused, because their deployment issues a new installation token. The refusal does not consume the Idempotency-Key: resubmit the credential with putServiceRepositoryCredential (`source-access`), then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4882,6 +4916,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DeploymentOperationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SECRET_RESUBMISSION_REQUIRED`: the target Worker's supplied repository credential must be resubmitted before it can deploy. Nothing is queued. Unlike this route's other `409` responses, the refusal is not stored against the Idempotency-Key, so a retry with the same key runs the request again; resubmit the credential with putServiceRepositoryCredential (`source-access`) first. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
