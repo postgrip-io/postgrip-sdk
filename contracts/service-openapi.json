@@ -4730,6 +4730,7 @@
           "Administration"
         ],
         "summary": "Refresh Service Repository Credential",
+        "description": "Refreshes the repository credential on the service's assigned Workers. `webhook-signing` generates a new webhook signing secret. `source-access` issues a new token from the GitHub installation the project is bound to and never replaces a supplied credential: a Worker whose credential is supplied is skipped and sent nothing, and its target in the staged configuration operation is `succeeded` with `errorCode` `CREDENTIAL_SOURCE_SUPPLIED`. When no Worker can be refreshed from an installation and at least one was skipped because its credential is supplied, which is every Worker when the project is not bound to an installation, the request fails with `409` `CREDENTIAL_SOURCE_SUPPLIED` and stages no operation. A supplied credential is refreshed by resubmitting it with putServiceRepositoryCredential.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4764,6 +4765,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceRepositoryMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `CREDENTIAL_SOURCE_SUPPLIED`: `credentialKind` is `source-access`, no Worker can be refreshed from a GitHub installation, and at least one Worker's credential is supplied (every Worker's, when the project is not bound to an installation). No configuration operation is staged; resubmit the credential with putServiceRepositoryCredential to refresh it. Other conflicts on this route, such as `SERVICE_STATE_CHANGED` and `SERVICE_OPERATION_NOT_SUPPORTED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -11493,7 +11504,8 @@
             ]
           },
           "errorCode": {
-            "type": "string"
+            "type": "string",
+            "description": "Machine-readable code for the target's outcome, normally set when the target failed or is blocked. A `succeeded` target of a `repository-credential-refresh` operation with `CREDENTIAL_SOURCE_SUPPLIED` is a Worker skipped because its `source-access` credential is supplied: it was sent nothing and kept that credential."
           },
           "updatedAt": {
             "type": "string",
