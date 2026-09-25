@@ -1879,4 +1879,4 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 123
 
-const openAPIClientSpecSHA256 = "2d185b52a371432a7f0dbf79184adcd3a42cc95a0705722a546669b0b95b2b6f"
+const openAPIClientSpecSHA256 = "069cb0239de461c2ef1a5b03b2d9f90e507eec61d3bfed9a51fd9f01ed5206b1"
