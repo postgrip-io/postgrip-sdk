@@ -36,10 +36,11 @@ func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParamete
 }
 
 type OpenAPICheckServiceGitHubRepositoryFileQuery struct {
-	Owner string
-	Repo  string
-	Path  string
-	Ref   *string
+	Owner           string
+	Repo            string
+	Path            string
+	Ref             *string
+	InstallationRef *string
 }
 
 func (p OpenAPICheckServiceGitHubRepositoryFileQuery) values() url.Values {
@@ -49,6 +50,9 @@ func (p OpenAPICheckServiceGitHubRepositoryFileQuery) values() url.Values {
 	values.Set("path", fmt.Sprint(p.Path))
 	if p.Ref != nil {
 		values.Set("ref", fmt.Sprint(*p.Ref))
+	}
+	if p.InstallationRef != nil {
+		values.Set("installationRef", fmt.Sprint(*p.InstallationRef))
 	}
 	return values
 }
@@ -130,8 +134,9 @@ func (p OpenAPIGetServiceTrafficStatusQuery) values() url.Values {
 }
 
 type OpenAPIListGitHubAppRepositoriesQuery struct {
-	Limit  *int64
-	Cursor *string
+	Limit           *int64
+	Cursor          *string
+	InstallationRef *string
 }
 
 func (p OpenAPIListGitHubAppRepositoriesQuery) values() url.Values {
@@ -141,6 +146,9 @@ func (p OpenAPIListGitHubAppRepositoriesQuery) values() url.Values {
 	}
 	if p.Cursor != nil {
 		values.Set("cursor", fmt.Sprint(*p.Cursor))
+	}
+	if p.InstallationRef != nil {
+		values.Set("installationRef", fmt.Sprint(*p.InstallationRef))
 	}
 	return values
 }
@@ -242,14 +250,18 @@ func (p OpenAPIListServiceEnvironmentsQuery) values() url.Values {
 }
 
 type OpenAPIListServiceGitHubBranchesQuery struct {
-	Owner string
-	Repo  string
+	Owner           string
+	Repo            string
+	InstallationRef *string
 }
 
 func (p OpenAPIListServiceGitHubBranchesQuery) values() url.Values {
 	values := url.Values{}
 	values.Set("owner", fmt.Sprint(p.Owner))
 	values.Set("repo", fmt.Sprint(p.Repo))
+	if p.InstallationRef != nil {
+		values.Set("installationRef", fmt.Sprint(*p.InstallationRef))
+	}
 	return values
 }
 
@@ -1879,4 +1891,4 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 123
 
-const openAPIClientSpecSHA256 = "99343f05168d91c78b62d4de355a9e72611cb9be7a1a7691873c8cf469d2e1aa"
+const openAPIClientSpecSHA256 = "80976af7132aa20637bbc1868e53728d0e032e3534569e755f897480eefd5c6c"

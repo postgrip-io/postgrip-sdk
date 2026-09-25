@@ -1,4 +1,4 @@
 # Versioned PostGrip API reference
 
-- [Latest](./11b422561c3c86dc0a9bc1b3f1114a3e1103df0678d1f5c57dddb2ecbe006037/README.md)
-- Contract bundle: `11b422561c3c86dc0a9bc1b3f1114a3e1103df0678d1f5c57dddb2ecbe006037`
+- [Latest](./81115f92f58149535f5fad0cadfb036d5ebb734542e2ff91787bb5eb95d1003d/README.md)
+- Contract bundle: `81115f92f58149535f5fad0cadfb036d5ebb734542e2ff91787bb5eb95d1003d`

@@ -576,6 +576,7 @@ type OpenAPIGitHubRepositoryList struct {
 	NextCursor string                    `json:"nextCursor"`
 }
 type OpenAPIGitHubRepositoryAdoptionPreviewRequest struct {
+	InstallationRef      *string `json:"installationRef,omitempty"`
 	RepositoryId         *int64  `json:"repositoryId,omitempty"`
 	Repository           *string `json:"repository,omitempty"`
 	AutomaticDeployments bool    `json:"automaticDeployments"`
@@ -2553,4 +2554,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "99343f05168d91c78b62d4de355a9e72611cb9be7a1a7691873c8cf469d2e1aa"
+const openAPITypesSpecSHA256 = "80976af7132aa20637bbc1868e53728d0e032e3534569e755f897480eefd5c6c"

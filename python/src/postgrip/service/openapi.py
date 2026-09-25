@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '99343f05168d91c78b62d4de355a9e72611cb9be7a1a7691873c8cf469d2e1aa'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '11b422561c3c86dc0a9bc1b3f1114a3e1103df0678d1f5c57dddb2ecbe006037'
+OPENAPI_SPEC_SHA256 = '80976af7132aa20637bbc1868e53728d0e032e3534569e755f897480eefd5c6c'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '81115f92f58149535f5fad0cadfb036d5ebb734542e2ff91787bb5eb95d1003d'
 OPENAPI_OPERATION_COUNT = 123
 OPENAPI_CLIENT_OPERATION_COUNT = 123
 
@@ -774,6 +774,7 @@ class _SchemaGitHubRepositoryList(TypedDict):
     nextCursor: str
 
 class _SchemaGitHubRepositoryAdoptionPreviewRequestAlternative1Optional(TypedDict, total=False):
+    installationRef: str
     repository: str
 
 class _SchemaGitHubRepositoryAdoptionPreviewRequestAlternative1(_SchemaGitHubRepositoryAdoptionPreviewRequestAlternative1Optional):
@@ -781,6 +782,7 @@ class _SchemaGitHubRepositoryAdoptionPreviewRequestAlternative1(_SchemaGitHubRep
     automaticDeployments: bool
 
 class _SchemaGitHubRepositoryAdoptionPreviewRequestAlternative2Optional(TypedDict, total=False):
+    installationRef: str
     repositoryId: int
 
 class _SchemaGitHubRepositoryAdoptionPreviewRequestAlternative2(_SchemaGitHubRepositoryAdoptionPreviewRequestAlternative2Optional):
@@ -2920,12 +2922,13 @@ class OpenAPIClient:
         _headers['Idempotency-Key'] = str(idempotency_key)
         return cast(CheckServiceResponseBody, self._transport(OperationId.CHECK_SERVICE, body, path_parameters={'source': source, 'serviceId': service_id}, headers=_headers))
 
-    def check_service_git_hub_repository_file(self, *, owner: str, repo: str, path: str, ref: str | None = None) -> CheckServiceGitHubRepositoryFileResponseBody:
+    def check_service_git_hub_repository_file(self, *, owner: str, repo: str, path: str, ref: str | None = None, installation_ref: str | None = None) -> CheckServiceGitHubRepositoryFileResponseBody:
         _query: dict[str, Any] = {}
         _query['owner'] = owner
         _query['repo'] = repo
         _query['path'] = path
         if ref is not None: _query['ref'] = ref
+        if installation_ref is not None: _query['installationRef'] = installation_ref
         return cast(CheckServiceGitHubRepositoryFileResponseBody, self._transport(OperationId.CHECK_SERVICE_GIT_HUB_REPOSITORY_FILE, query=_query))
 
     def clear_service_repository_credential(self, service_id: str, credential_kind: Literal['source-access', 'webhook-signing'], *, idempotency_key: str, if_match: str) -> ClearServiceRepositoryCredentialResponseBody:
@@ -3160,10 +3163,11 @@ class OpenAPIClient:
     def get_target_service_removal_impact(self, service_id: str) -> GetTargetServiceRemovalImpactResponseBody:
         return cast(GetTargetServiceRemovalImpactResponseBody, self._transport(OperationId.GET_TARGET_SERVICE_REMOVAL_IMPACT, path_parameters={'serviceId': service_id}))
 
-    def list_git_hub_app_repositories(self, *, limit: int | None = None, cursor: str | None = None) -> ListGitHubAppRepositoriesResponseBody:
+    def list_git_hub_app_repositories(self, *, limit: int | None = None, cursor: str | None = None, installation_ref: str | None = None) -> ListGitHubAppRepositoriesResponseBody:
         _query: dict[str, Any] = {}
         if limit is not None: _query['limit'] = limit
         if cursor is not None: _query['cursor'] = cursor
+        if installation_ref is not None: _query['installationRef'] = installation_ref
         return cast(ListGitHubAppRepositoriesResponseBody, self._transport(OperationId.LIST_GIT_HUB_APP_REPOSITORIES, query=_query))
 
     def list_post_grip_configuration_plan_actions(self, stack_key: str, plan_id: str, *, limit: int | None = None, cursor: str | None = None) -> ListPostGripConfigurationPlanActionsResponseBody:
@@ -3209,10 +3213,11 @@ class OpenAPIClient:
         if cursor is not None: _query['cursor'] = cursor
         return cast(ListServiceEnvironmentsResponseBody, self._transport(OperationId.LIST_SERVICE_ENVIRONMENTS, path_parameters={'source': source, 'serviceId': service_id}, query=_query))
 
-    def list_service_git_hub_branches(self, *, owner: str, repo: str) -> ListServiceGitHubBranchesResponseBody:
+    def list_service_git_hub_branches(self, *, owner: str, repo: str, installation_ref: str | None = None) -> ListServiceGitHubBranchesResponseBody:
         _query: dict[str, Any] = {}
         _query['owner'] = owner
         _query['repo'] = repo
+        if installation_ref is not None: _query['installationRef'] = installation_ref
         return cast(ListServiceGitHubBranchesResponseBody, self._transport(OperationId.LIST_SERVICE_GIT_HUB_BRANCHES, query=_query))
 
     def list_service_logs(self, source: _SchemaServiceSource, service_id: str, *, kind: Literal['build', 'runtime'] | None = None, environment: str | None = None, deployment: str | None = None, limit: int | None = None, cursor: str | None = None, follow: bool | None = None) -> ListServiceLogsResponseBody:

@@ -4416,6 +4416,7 @@
           "Administration"
         ],
         "summary": "List GitHub App Repositories",
+        "description": "Lists repositories visible through one connected GitHub account (installation) of the tenant. Pass installationRef when the tenant has several active accounts; a tenant with one account needs no selector, and a cursor alone continues the installation it was issued for. Refusals: 400 GITHUB_INSTALLATION_SELECTOR_REQUIRED (several accounts and no installationRef or cursor), 400 INVALID_INSTALLATION_REF, 400 INVALID_CURSOR (malformed, another tenant, or issued for an installation other than installationRef), 410 CURSOR_EXPIRED (24 hours), and 409 GITHUB_INSTALLATION_REQUIRED (the selected installation is not an active account of the tenant, including a disconnected or revoked one). There is no cursor across accounts.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4434,6 +4435,9 @@
           },
           {
             "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/GitHubInstallationRef"
           }
         ],
         "responses": {
@@ -4469,6 +4473,7 @@
           "Administration"
         ],
         "summary": "Preview GitHub Repository Adoption",
+        "description": "Records an expiring adoption preview against exactly one GitHub account of the tenant. The account is installationRef when given, else the one active account whose login owns an owner/name repository, else the tenant's only account; a repositoryId selection carries no owner, so a tenant with several accounts names the account with installationRef. Refusals: 400 GITHUB_INSTALLATION_SELECTOR_REQUIRED (several accounts and the request resolves none), 400 INVALID_INSTALLATION_REF, and 409 GITHUB_INSTALLATION_REQUIRED (installationRef is not an active account of the tenant).",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4532,6 +4537,7 @@
           "Administration"
         ],
         "summary": "Adopt GitHub Repository",
+        "description": "Adopts the repository of an accepted preview through the installation that preview was created under, which must still be an active account of the tenant (409 GITHUB_INSTALLATION_REQUIRED otherwise; another account is never substituted). A repository already adopted by another service of the tenant is 409 GITHUB_ADOPTION_CONFLICT, including a preview blocked as adopted-other-project; organizations sharing one installation each adopt independently.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -6975,14 +6981,15 @@
         "operationId": "listServiceGitHubBranches",
         "tags": ["Repositories"],
         "summary": "List GitHub Repository Branches",
-        "description": "Lists branches visible through the tenant's connected GitHub App installation without exposing installation credentials.",
+        "description": "Lists branches through one connected GitHub account of the tenant without exposing installation credentials. The account is installationRef when given, else the one active account whose login is owner, else the tenant's only account. Refusals: 400 GITHUB_INSTALLATION_SELECTOR_REQUIRED, 400 INVALID_INSTALLATION_REF, 400 GITHUB_NOT_CONNECTED (no account), 409 GITHUB_INSTALLATION_REQUIRED (installationRef is not an active account), and 422 GITHUB_REPOSITORY_NOT_VISIBLE.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:config:read"]],
         "security": [{"postgripToken": []}],
         "parameters": [
           {"name": "owner", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
-          {"name": "repo", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}}
+          {"name": "repo", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
+          {"$ref": "#/components/parameters/GitHubInstallationRef"}
         ],
         "responses": {
           "200": {"description": "Successful response", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceGitHubBranch"}}}}},
@@ -7002,7 +7009,7 @@
         "operationId": "checkServiceGitHubRepositoryFile",
         "tags": ["Repositories"],
         "summary": "Check GitHub Repository File",
-        "description": "Checks whether a repository file exists at an optional ref through the tenant's connected GitHub installation.",
+        "description": "Checks whether a repository file exists at an optional ref through one connected GitHub account of the tenant, selected as for listServiceGitHubBranches and with the same refusals.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:config:read"]],
@@ -7011,7 +7018,8 @@
           {"name": "owner", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
           {"name": "repo", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
           {"name": "path", "in": "query", "required": true, "schema": {"type": "string", "minLength": 1}},
-          {"name": "ref", "in": "query", "schema": {"type": "string"}}
+          {"name": "ref", "in": "query", "schema": {"type": "string"}},
+          {"$ref": "#/components/parameters/GitHubInstallationRef"}
         ],
         "responses": {
           "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceGitHubFileCheck"}}}},
@@ -7369,6 +7377,16 @@
         "in": "query",
         "schema": {
           "type": "string"
+        }
+      },
+      "GitHubInstallationRef": {
+        "name": "installationRef",
+        "in": "query",
+        "description": "The connected GitHub account (installation) to act through. Required only when the tenant has several active accounts and the request is not otherwise resolved to one.",
+        "schema": {
+          "type": "string",
+          "pattern": "^github-installation:[1-9][0-9]*$",
+          "example": "github-installation:1"
         }
       },
       "GitHubRepositoryLimit": {
@@ -10008,6 +10026,11 @@
           "automaticDeployments"
         ],
         "properties": {
+          "installationRef": {
+            "type": "string",
+            "pattern": "^github-installation:[1-9][0-9]*$",
+            "description": "The connected GitHub account to adopt through. Required only when the tenant has several active accounts and the owner of an owner/name repository does not select one."
+          },
           "repositoryId": {
             "type": "integer",
             "format": "int64",
@@ -11643,7 +11666,7 @@
           },
           "errorCode": {
             "type": "string",
-            "description": "Machine-readable code for the target's outcome, normally set when the target failed or is blocked. A `succeeded` target of a `repository-credential-refresh` operation with `CREDENTIAL_SOURCE_SUPPLIED` is a Worker skipped because its `source-access` credential is supplied: it was sent nothing and kept that credential."
+            "description": "Machine-readable code for the target's outcome, normally set when the target failed or is blocked. A `succeeded` target of a `repository-credential-refresh` operation with `CREDENTIAL_SOURCE_SUPPLIED` is a Worker skipped because its `source-access` credential is supplied: it was sent nothing and kept that credential. A `blocked` target of a repository credential put, clear or refresh, a GitHub repository adoption, or a configuration apply with `CREDENTIAL_SUPERSEDED` is a Worker whose credential a newer decision for the same service already owns: this obsolete intent was not delivered, the Worker keeps the newer decision's credential, and nothing needs to be retried."
           },
           "updatedAt": {
             "type": "string",
@@ -11718,7 +11741,8 @@
             "format": "date-time"
           },
           "lastErrorCode": {
-            "type": "string"
+            "type": "string",
+            "description": "Machine-readable code of the operation's last failure or block, as on its targets. `CREDENTIAL_SUPERSEDED` means a newer repository credential decision for the same service and Worker (a later put, clear, refresh, adoption or configuration apply) already owns that Worker's credential: this obsolete intent was not delivered, the Worker keeps the newer decision's credential, and nothing needs to be retried."
           },
           "version": {
             "type": "integer",
@@ -13258,7 +13282,8 @@
             }
           },
           "reason": {
-            "type": "string"
+            "type": "string",
+            "description": "Why the action has its kind. For a repository `.github` action (the GitHub App reconcile) that GitHub planning blocked: `GITHUB_INSTALLATION_SELECTOR_REQUIRED` (several connected GitHub accounts, and neither the project's binding nor the repository owner selects one), `GITHUB_INSTALLATION_REQUIRED` (the selected account is not an active account of the tenant), `GITHUB_PERMISSION_REQUIRED` or `GITHUB_REPOSITORY_NOT_AUTHORIZED`."
           },
           "drift": {
             "type": "string",
@@ -13825,7 +13850,8 @@
             "format": "uuid"
           },
           "lastErrorCode": {
-            "type": "string"
+            "type": "string",
+            "description": "Machine-readable code for the action's last failure or block, including the code of the Service operation it staged. `CREDENTIAL_SUPERSEDED` means a newer repository credential decision for the same service and Worker (a later put, clear, refresh, adoption or configuration apply) already owns that Worker's credential: this obsolete intent was not delivered, the Worker keeps the newer decision's credential, and nothing needs to be retried."
           },
           "secretInputId": {
             "type": "string"
