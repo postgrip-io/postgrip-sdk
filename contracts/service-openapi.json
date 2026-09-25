@@ -849,7 +849,7 @@
           "Release Groups"
         ],
         "summary": "Preview and fence a multi-project release",
-        "description": "Validates the complete dependency graph, exact revisions or artifacts, worker placement, current deployments, environment versions, verification policy, and overlap fences without dispatching work. Independent dependency-ready members form an explicit parallel group. An exact-commit member's `expectedCommitSha` must be the head of its `branch` when PostGrip can read that head, and is otherwise refused with `409` `SERVICE_STATE_CHANGED`. For a private GitHub service bound to no GitHub installation, PostGrip cannot read the branch head, because the service's repository credential is held only by its Workers: the member deploys the named commit as given, normalized to lowercase, so `expectedCommitSha` must then be a full 40-character hexadecimal commit SHA (otherwise `400` `VALIDATION`). Such a member later fails with `REPOSITORY_CREDENTIAL_UNAVAILABLE` when its Worker holds no supplied credential, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` while one is still being delivered, and `SECRET_RESUBMISSION_REQUIRED` when it must be resubmitted, with no build dispatched.",
+        "description": "Validates the complete dependency graph, exact revisions or artifacts, worker placement, current deployments, environment versions, verification policy, and overlap fences without dispatching work. Independent dependency-ready members form an explicit parallel group. An exact-commit member's `expectedCommitSha` must be the head of its `branch`, and is otherwise refused with `409` `SERVICE_STATE_CHANGED`. A member whose repository credential is held by its Worker (a private GitHub service bound to no GitHub installation, GitLab, or Bitbucket) has its head read by that Worker; a Worker that must be upgraded first fails the preview with `409` `WORKER_UPGRADE_REQUIRED`, and any other unreadable or moved head with `409` `SERVICE_STATE_CHANGED`. Such a member later fails with `REPOSITORY_CREDENTIAL_UNAVAILABLE` when its Worker holds no credential that can read the repository, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` while a supplied one is still being delivered, `SECRET_RESUBMISSION_REQUIRED` when it must be resubmitted, and `WORKER_UPGRADE_REQUIRED` when its Worker must be upgraded, with no build dispatched.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -915,7 +915,7 @@
             }
           },
           "400": {
-            "description": "Invalid request. `VALIDATION`: the request is not a valid release group, including an exact-commit member of a private GitHub service bound to no GitHub installation whose `expectedCommitSha` is not a full 40-character hexadecimal commit SHA. `INVALID_BODY` also uses this status.",
+            "description": "Invalid request. `VALIDATION`: the request is not a valid release group. `INVALID_BODY` also uses this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -925,7 +925,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `SERVICE_STATE_CHANGED`: a member's branch head does not match `expectedCommitSha` or could not be verified, or a member's placement, current deployment or source artifact does not match the request. Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED`, `WORKER_UNAVAILABLE`, `REPOSITORY_UNAVAILABLE`, `SOURCE_ARTIFACT_NOT_READY` and `PUBLIC_VERIFICATION_UNAVAILABLE`, also use this status.",
+            "description": "Conflict. `SERVICE_STATE_CHANGED`: a member's branch head does not match `expectedCommitSha` or could not be verified, or a member's placement, current deployment or source artifact does not match the request. `WORKER_UPGRADE_REQUIRED`: a member's Worker must be upgraded to read its branch head (`details.workerId`, `details.requiredCapability`). Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED`, `WORKER_UNAVAILABLE`, `REPOSITORY_UNAVAILABLE`, `SOURCE_ARTIFACT_NOT_READY` and `PUBLIC_VERIFICATION_UNAVAILABLE`, also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1462,7 +1462,7 @@
           "Operations"
         ],
         "summary": "Resolve a deploy request to an immutable commit",
-        "description": "Resolves a deploy request to an environment and the immutable head commit of its branch, which deployService then confirms as `expectedCommitSha`. For a private GitHub service bound to no GitHub installation, PostGrip cannot read the branch head, because the service's repository credential is held only by its Workers: the preview fails with `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE`, and the caller deploys a named full commit SHA with deployService instead, or names it as a release group member's `expectedCommitSha` (previewServiceReleaseGroup). The error message names what the target Worker needs: with a delivered supplied credential, deploy a named commit; while one is being delivered, wait for it; when it awaits resubmission, resubmit it; with none, supply one or bind the service to a GitHub account.",
+        "description": "Resolves a deploy request to an environment and the immutable head commit of its branch, which deployService then confirms as `expectedCommitSha`. For a private GitHub service bound to no GitHub installation, and for GitLab and Bitbucket services, the service's repository credential is held only by its Workers, so the environment's Worker reads the branch head with it and returns only the commit. The preview fails with `409` `WORKER_UPGRADE_REQUIRED` (with `details.workerId` and `details.requiredCapability: \"repository_head_read_v1\"`) when that Worker must be upgraded first, `409` `NO_ELIGIBLE_WORKER` when no Worker can read it, and `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE` when the Worker's credential cannot read the repository. The message then names what the target Worker needs: while a supplied credential is being delivered, wait for it; when it awaits resubmission, resubmit it; with none, or one the repository refuses, supply one (or bind the service to a GitHub account). To deploy a commit without reading the branch head, send it to deployService with `namedCommit: true`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1504,7 +1504,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `REPOSITORY_CREDENTIAL_UNAVAILABLE`: PostGrip cannot read the branch head, either because the service is a private GitHub service bound to no GitHub installation (the message names what the target Worker needs) or because PostGrip cannot obtain the credential it needs to read it. Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED` and `SERVICE_ENVIRONMENT_REQUIRED`, also use this status.",
+            "description": "Conflict. `REPOSITORY_CREDENTIAL_UNAVAILABLE`: PostGrip cannot obtain the credential it needs to read the branch head, or the Worker that holds the service's credential cannot read the repository with it (the message names what the target Worker needs). `WORKER_UPGRADE_REQUIRED`: the Worker that must read the head does not advertise `repository_head_read_v1` (`details.workerId`, `details.requiredCapability`). `NO_ELIGIBLE_WORKER`: no Worker can read the head. Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED` and `SERVICE_ENVIRONMENT_REQUIRED`, also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1543,7 +1543,7 @@
           "Operations"
         ],
         "summary": "Queue a deployment for a confirmed commit",
-        "description": "Queues a deployment of a confirmed commit to one environment. `expectedCommitSha` must equal the branch head previewServiceDeploy resolved, except for a private GitHub service bound to no GitHub installation: PostGrip cannot read its branch head, so `expectedCommitSha` is deployed as given. It must then be a full 40-character hexadecimal commit SHA (otherwise `400` `VALIDATION`) and is normalized to lowercase, and `branch`, or else the default branch, is recorded unverified. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered, whether the service is bound to no GitHub installation, adopted from one, or bound to one from the console. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
+        "description": "Queues a deployment of a confirmed commit to one environment. `expectedCommitSha` must equal the branch head previewServiceDeploy resolved (otherwise `409` `SERVICE_STATE_CHANGED`); for a service whose repository credential is held by its Workers, the environment's Worker reads that head. With `namedCommit: true`, `expectedCommitSha` is deployed as given without reading the branch head: it must then be a full 40-character hexadecimal commit SHA (otherwise `400` `VALIDATION`) and is normalized to lowercase, and `branch`, or else the default branch, is recorded unverified. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered, whether the service is bound to no GitHub installation, adopted from one, or bound to one from the console. For a service whose repository credential is held by its Workers, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no credential, or one the repository refuses. A Worker that must read the head and does not advertise `repository_head_read_v1` fails the request with `409` `WORKER_UPGRADE_REQUIRED`, and no Worker able to read it with `409` `NO_ELIGIBLE_WORKER`. None of these refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, wait for the delivery, or upgrade or assign the Worker, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1578,7 +1578,7 @@
             }
           },
           "400": {
-            "description": "Invalid request. `VALIDATION`: `expectedCommitSha` is not a full 40-character hexadecimal commit SHA for a private GitHub service bound to no GitHub installation, whose branch head PostGrip cannot read. Other invalid requests, such as `INVALID_BODY` and `INVALID_BRANCH`, also use this status.",
+            "description": "Invalid request. `VALIDATION`: `namedCommit` is set and `expectedCommitSha` is not a full 40-character hexadecimal commit SHA. Other invalid requests, such as `INVALID_BODY` and `INVALID_BRANCH`, also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1588,7 +1588,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Three refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. These refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the Worker that holds the service's credential holds none, or holds one the repository refuses (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded to read the branch head (`details.workerId`, `details.requiredCapability`); `NO_ELIGIBLE_WORKER`, no Worker can read the branch head. `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -7670,7 +7670,7 @@
             "type": "string",
             "minLength": 7,
             "maxLength": 128,
-            "description": "The commit to deploy, with `branch`. It must be the head of `branch` when PostGrip can read that head. For a private GitHub service bound to no GitHub installation, whose branch head PostGrip cannot read because its repository credential is held only by its Workers, it is deployed as given, normalized to lowercase, and must be a full 40-character hexadecimal commit SHA."
+            "description": "The commit to deploy, with `branch`. It must be the head of `branch`; for a service whose repository credential is held only by its Workers, the member's Worker reads that head."
           },
           "branch": {
             "type": "string",
@@ -8890,6 +8890,11 @@
           "expectedCommitSha": {
             "type": "string",
             "minLength": 1
+          },
+          "namedCommit": {
+            "type": "boolean",
+            "default": false,
+            "description": "Deploy expectedCommitSha as given, without reading the branch head. It must then be a full 40-character hexadecimal commit SHA (otherwise 400 VALIDATION); the branch is recorded unverified."
           }
         }
       },
