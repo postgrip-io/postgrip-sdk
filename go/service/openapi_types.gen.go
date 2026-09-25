@@ -311,6 +311,7 @@ type OpenAPIDeployServiceRequest struct {
 	EnvironmentId     *string `json:"environmentId,omitempty"`
 	Branch            *string `json:"branch,omitempty"`
 	ExpectedCommitSha string  `json:"expectedCommitSha"`
+	NamedCommit       *bool   `json:"namedCommit,omitempty"`
 }
 type OpenAPIRedeployServiceRequest struct {
 	EnvironmentId *string `json:"environmentId,omitempty"`
@@ -2552,4 +2553,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "26d6d53939ccd3316a4ac727335ae1dc6e40d966e9ab1148ca126b0cf26702e7"
+const openAPITypesSpecSHA256 = "2d185b52a371432a7f0dbf79184adcd3a42cc95a0705722a546669b0b95b2b6f"
