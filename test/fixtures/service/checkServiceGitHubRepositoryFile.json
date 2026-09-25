@@ -6,6 +6,7 @@
     "headers": {},
     "pathParameters": {},
     "query": {
+      "installationRef": "github-installation:1",
       "owner": "string",
       "path": "string",
       "ref": "string",

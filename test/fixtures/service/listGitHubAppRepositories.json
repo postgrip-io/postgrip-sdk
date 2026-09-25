@@ -7,6 +7,7 @@
     "pathParameters": {},
     "query": {
       "cursor": "string",
+      "installationRef": "github-installation:1",
       "limit": 1
     },
     "streamBodyBase64": null
