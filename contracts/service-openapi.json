@@ -4116,6 +4116,16 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request. `VALIDATION`: the update names no field, its `name` is not a valid variable name, or it sets `isSecret` to `false` on a secret variable that has a value. A secret's value is never shown, so it cannot become a non-secret value by this update: set the variable's new value in the same change with `applyServiceVariables`, giving the variable's existing `variableId` with `isSecret: false` and the new `value` (without `variableId` the apply creates a new variable, and the existing name makes it fail with `409 SERVICE_STATE_CHANGED`), or clear its value first (`clearServiceVariableValue`) and then update it. `INVALID_BODY` also uses this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -9604,7 +9614,8 @@
             "type": "string"
           },
           "isSecret": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the variable is secret. Setting it to `false` on a secret variable that has a value is refused (`400 VALIDATION`): the value was stored as a secret and is never shown, so making it non-secret requires a new value. Use `applyServiceVariables` with the variable's existing `variableId`, `isSecret: false` and the new `value` (without `variableId` the apply creates a new variable and fails with `409 SERVICE_STATE_CHANGED`), or clear the value first with `clearServiceVariableValue`. A secret without a value can be made non-secret here."
           }
         }
       },
