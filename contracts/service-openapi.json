@@ -13737,7 +13737,8 @@
             "$ref": "#/components/schemas/PostGripConfigurationStackOperationSummary"
           },
           "lastErrorCode": {
-            "type": "string"
+            "type": "string",
+            "description": "When the operation is `blocked`, the code of its first blocked action (in action order), as on that action's `lastErrorCode`, or `CONFIGURATION_ACTION_BLOCKED` when the action recorded none; `CONFIGURATION_ACTION_FAILED` when it failed. `CREDENTIAL_SUPERSEDED` means a newer repository credential decision for the same service and Worker already owns that Worker's credential: the obsolete intent was not delivered, the Worker keeps the newer decision's credential, and nothing needs to be retried."
           },
           "configurationVersion": {
             "type": "integer",
