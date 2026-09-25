@@ -849,7 +849,7 @@
           "Release Groups"
         ],
         "summary": "Preview and fence a multi-project release",
-        "description": "Validates the complete dependency graph, exact revisions or artifacts, worker placement, current deployments, environment versions, verification policy, and overlap fences without dispatching work. Independent dependency-ready members form an explicit parallel group.",
+        "description": "Validates the complete dependency graph, exact revisions or artifacts, worker placement, current deployments, environment versions, verification policy, and overlap fences without dispatching work. Independent dependency-ready members form an explicit parallel group. An exact-commit member's `expectedCommitSha` must be the head of its `branch` when PostGrip can read that head, and is otherwise refused with `409` `SERVICE_STATE_CHANGED`. For a private GitHub service bound to no GitHub installation, PostGrip cannot read the branch head, because the service's repository credential is held only by its Workers: the member deploys the named commit as given, normalized to lowercase, so `expectedCommitSha` must then be a full 40-character hexadecimal commit SHA (otherwise `400` `VALIDATION`). Such a member later fails with `REPOSITORY_CREDENTIAL_UNAVAILABLE` when its Worker holds no supplied credential, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` while one is still being delivered, and `SECRET_RESUBMISSION_REQUIRED` when it must be resubmitted, with no build dispatched.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -910,6 +910,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceReleaseGroupPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request. `VALIDATION`: the request is not a valid release group, including an exact-commit member of a private GitHub service bound to no GitHub installation whose `expectedCommitSha` is not a full 40-character hexadecimal commit SHA. `INVALID_BODY` also uses this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SERVICE_STATE_CHANGED`: a member's branch head does not match `expectedCommitSha` or could not be verified, or a member's placement, current deployment or source artifact does not match the request. Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED`, `WORKER_UNAVAILABLE`, `REPOSITORY_UNAVAILABLE`, `SOURCE_ARTIFACT_NOT_READY` and `PUBLIC_VERIFICATION_UNAVAILABLE`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1442,7 +1462,7 @@
           "Operations"
         ],
         "summary": "Resolve a deploy request to an immutable commit",
-        "description": "Resolves a deploy request to an environment and the immutable head commit of its branch, which deployService then confirms as `expectedCommitSha`. For a private GitHub service bound to no GitHub installation, PostGrip cannot read the branch head, because the service's repository credential is held only by its Workers: the preview fails with `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE`, and the caller deploys a named full commit SHA with deployService instead. The error message names what the target Worker needs: with a delivered supplied credential, deploy a named commit; while one is being delivered, wait for it; when it awaits resubmission, resubmit it; with none, supply one or bind the service to a GitHub account.",
+        "description": "Resolves a deploy request to an environment and the immutable head commit of its branch, which deployService then confirms as `expectedCommitSha`. For a private GitHub service bound to no GitHub installation, PostGrip cannot read the branch head, because the service's repository credential is held only by its Workers: the preview fails with `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE`, and the caller deploys a named full commit SHA with deployService instead, or names it as a release group member's `expectedCommitSha` (previewServiceReleaseGroup). The error message names what the target Worker needs: with a delivered supplied credential, deploy a named commit; while one is being delivered, wait for it; when it awaits resubmission, resubmit it; with none, supply one or bind the service to a GitHub account.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1523,7 +1543,7 @@
           "Operations"
         ],
         "summary": "Queue a deployment for a confirmed commit",
-        "description": "Queues a deployment of a confirmed commit to one environment. `expectedCommitSha` must equal the branch head previewServiceDeploy resolved, except for a private GitHub service bound to no GitHub installation: PostGrip cannot read its branch head, so `expectedCommitSha` is deployed as given. It must then be a full 40-character hexadecimal commit SHA (otherwise `400` `VALIDATION`) and is normalized to lowercase, and `branch`, or else the default branch, is recorded unverified. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
+        "description": "Queues a deployment of a confirmed commit to one environment. `expectedCommitSha` must equal the branch head previewServiceDeploy resolved, except for a private GitHub service bound to no GitHub installation: PostGrip cannot read its branch head, so `expectedCommitSha` is deployed as given. It must then be a full 40-character hexadecimal commit SHA (otherwise `400` `VALIDATION`) and is normalized to lowercase, and `branch`, or else the default branch, is recorded unverified. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered, whether the service is bound to no GitHub installation, adopted from one, or bound to one from the console. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1616,7 +1636,7 @@
           "Operations"
         ],
         "summary": "Queue a deployment from an existing immutable revision",
-        "description": "Queues a deployment of an existing immutable revision. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
+        "description": "Queues a deployment of an existing immutable revision. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered, whether the service is bound to no GitHub installation, adopted from one, or bound to one from the console. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1758,7 +1778,7 @@
           "Operations"
         ],
         "summary": "Queue rollback to a historical service deployment",
-        "description": "Queues a rollback to a historical deployment. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
+        "description": "Queues a rollback to a historical deployment. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered, whether the service is bound to no GitHub installation, adopted from one, or bound to one from the console. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4936,7 +4956,7 @@
           "Administration"
         ],
         "summary": "Promote Service Deployment",
-        "description": "Promotes a source deployment's revision to a target environment. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and, for a service bound to no GitHub installation or adopted from one, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
+        "description": "Promotes a source deployment's revision to a target environment. A private GitHub service deploys with the repository credential supplied to the target Worker when that Worker holds one. A deployment never mints an installation token over a supplied credential, including for a service adopted from a GitHub installation; only adoption or rebinding the service moves it back to its installation. The request fails with `409` and queues nothing when the supplied credential cannot be used: `SECRET_RESUBMISSION_REQUIRED` when it awaits resubmission or a re-send of it failed, and `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` with `Retry-After` while it is still being delivered, whether the service is bound to no GitHub installation, adopted from one, or bound to one from the console. For a private GitHub service bound to no GitHub installation, `REPOSITORY_CREDENTIAL_UNAVAILABLE` means the target Worker holds no supplied credential. None of these three refusals consumes the Idempotency-Key: resubmit or supply the credential with putServiceRepositoryCredential (`source-access`), bind the service, or wait for the delivery, then retry the request, with the same key if you like.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -7649,7 +7669,8 @@
           "expectedCommitSha": {
             "type": "string",
             "minLength": 7,
-            "maxLength": 128
+            "maxLength": 128,
+            "description": "The commit to deploy, with `branch`. It must be the head of `branch` when PostGrip can read that head. For a private GitHub service bound to no GitHub installation, whose branch head PostGrip cannot read because its repository credential is held only by its Workers, it is deployed as given, normalized to lowercase, and must be a full 40-character hexadecimal commit SHA."
           },
           "branch": {
             "type": "string",
