@@ -2072,6 +2072,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `workerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker, including one that is also revoked, answers `404` `NOT_FOUND`. `WORKER_UPGRADE_REQUIRED`: the Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); upgrade the Worker and retry. This refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2439,6 +2449,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `defaultWorkerId` names a Worker that was revoked after the request's pre-check (`details.workerId`); revoked is terminal. `NO_ELIGIBLE_WORKER`: `defaultWorkerId` names a Worker that is not trusted, recently online and capable, including one already revoked, removed or replaced. `WORKER_UPGRADE_REQUIRED`: the Worker runs a version below the one the control plane expects; upgrade the Worker and retry. `NO_ELIGIBLE_WORKER` and `WORKER_UPGRADE_REQUIRED` are not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2502,6 +2522,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceProjectMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `defaultWorkerId` names a Worker that was revoked after the request's pre-check (`details.workerId`); revoked is terminal. `NO_ELIGIBLE_WORKER`: `defaultWorkerId` names a Worker that is not trusted, recently online and capable, including one already revoked, removed or replaced. `WORKER_UPGRADE_REQUIRED`: the Worker runs a version below the one the control plane expects; upgrade the Worker and retry. `NO_ELIGIBLE_WORKER` and `WORKER_UPGRADE_REQUIRED` are not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2808,6 +2838,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED` (`details.workerId`): with `assignedWorkerId`, that Worker is revoked; revoked is terminal (enroll a new Worker or replace the revoked one), so the refusal is stored against the Idempotency-Key and replays. Without `assignedWorkerId`, the Worker selection chose (the project default or automatic placement) was revoked before the placement locked it; that refusal is not stored against the key, so a retry with the same key selects again. `NO_ELIGIBLE_WORKER` (`details.requiredCapabilities`, `details.defaultWorkerId`): no Worker is eligible, or the Worker placement chose was removed, replaced or became ineligible after the request's pre-check, including a removed or replaced project default. Placement does not reselect, but the refusal is not stored against the key, so a retry with the same key selects again. `WORKER_UPGRADE_REQUIRED`: with `assignedWorkerId`, that Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); without it, the project default or automatic candidate runs a version below the one the control plane expects (`details.requiredCapabilities`). Upgrade the Worker and retry; the refusal is not stored against the key, so a retry with the same key runs again. `404` `NOT_FOUND` applies only to an explicit `assignedWorkerId` already removed or replaced when the request arrived, including one that is also revoked. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2870,6 +2910,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceEnvironmentReassignmentPreview"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `destinationWorkerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker, including one that is also revoked, answers `404` `NOT_FOUND`. `WORKER_UPGRADE_REQUIRED`: the Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); upgrade the Worker and retry. This refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2939,6 +2989,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceEnvironmentMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `destinationWorkerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker, including one that is also revoked, answers `404` `NOT_FOUND`. `WORKER_UPGRADE_REQUIRED`: the Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); upgrade the Worker and retry. This refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3175,6 +3235,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceVolumeMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `workerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker, including one that is also revoked, answers `404` `NOT_FOUND`. `WORKER_UPGRADE_REQUIRED`: the Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); upgrade the Worker and retry. This refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -11666,7 +11736,7 @@
           },
           "errorCode": {
             "type": "string",
-            "description": "Machine-readable code for the target's outcome, normally set when the target failed or is blocked. A `succeeded` target of a `repository-credential-refresh` operation with `CREDENTIAL_SOURCE_SUPPLIED` is a Worker skipped because its `source-access` credential is supplied: it was sent nothing and kept that credential. A `blocked` target of a repository credential put, clear or refresh, a GitHub repository adoption, or a configuration apply with `CREDENTIAL_SUPERSEDED` is a Worker whose credential a newer decision for the same service already owns: this obsolete intent was not delivered, the Worker keeps the newer decision's credential, and nothing needs to be retried."
+            "description": "Machine-readable code for the target's outcome, normally set when the target failed or is blocked. A `succeeded` target of a `repository-credential-refresh` operation with `CREDENTIAL_SOURCE_SUPPLIED` is a Worker skipped because its `source-access` credential is supplied: it was sent nothing and kept that credential. A `blocked` target of a repository credential put, clear or refresh, a GitHub repository adoption, or a configuration apply with `CREDENTIAL_SUPERSEDED` is a Worker whose credential a newer decision for the same service already owns: this obsolete intent was not delivered, the Worker keeps the newer decision's credential, and nothing needs to be retried. A `succeeded` target of a deletion (an operation whose kind ends in `-delete`) with `WORKER_CLEANUP_SKIPPED` is a Worker that is gone, removed, replaced or revoked: the deletion completed in the control plane and nothing was sent to that Worker. `WORKER_UNAVAILABLE` on a `blocked` target has two meanings. On a repository-credential target it is a live Worker whose delivery attempts were exhausted, recoverable once the Worker is reachable: for a clear or removal target, retry the cleanup; for an issue target (a put, refresh or adoption), make a new credential decision by repeating the put or refresh. On any other target it is a Worker that is gone, removed, replaced or revoked, which no retry can reach."
           },
           "updatedAt": {
             "type": "string",
