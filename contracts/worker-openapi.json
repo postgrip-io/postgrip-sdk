@@ -712,6 +712,7 @@
           "Workers"
         ],
         "summary": "Resume a worker from maintenance",
+        "description": "A revoked worker is never resumed: revoked is terminal, so the request changes nothing and answers 409 WORKER_REVOKED. Enroll a new worker or replace the revoked one instead. The refusal is permanent, so a retry with the same Idempotency-Key replays it.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
