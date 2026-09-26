@@ -2072,6 +2072,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `workerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker answers `404` `NOT_FOUND`. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2808,6 +2818,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `assignedWorkerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker answers `404` `NOT_FOUND`. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2870,6 +2890,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceEnvironmentReassignmentPreview"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `destinationWorkerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker answers `404` `NOT_FOUND`. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2939,6 +2969,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceEnvironmentMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `destinationWorkerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker answers `404` `NOT_FOUND`. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3175,6 +3215,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceVolumeMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_REVOKED`: `workerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker answers `404` `NOT_FOUND`. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
