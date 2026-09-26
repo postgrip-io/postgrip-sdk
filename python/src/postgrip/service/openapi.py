@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '255550d7cb8a8c6662ad1b7944412d9cca4e5d1c0f181a002770e776c1d9b158'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '875bb2efc163f5df9b0b9f91a95edae9206db3cac5efa90b88565a7f3ff14bcf'
+OPENAPI_SPEC_SHA256 = 'fcc4e361e8c0b864105c18233fa519e0ea9fa8ccebf91eb838a49b297be6ca27'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'aa3e67f82feac02dccb628c161e05394052a9041618fafcd1942c9afa034897e'
 OPENAPI_OPERATION_COUNT = 123
 OPENAPI_CLIENT_OPERATION_COUNT = 123
 
