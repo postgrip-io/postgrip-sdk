@@ -2554,4 +2554,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "f5337613dad9e33b8bb1685d2d7281eb8c7a7cdac3c01aea81270f6087c12747"
+const openAPITypesSpecSHA256 = "8fae554e26cd4c1146047be4214ad5a0a53c0262e3b5db9154207f3b89263d9e"
