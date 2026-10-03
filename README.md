@@ -102,7 +102,7 @@ parameters, request and response schemas, safety, retries, idempotency,
 pagination, lifecycle notes, secure cURL, and equivalent language HTTP.
 
 The current bundle is
-[`368948ce…`](docs/reference/1620d45cec51b97011a91645243b1b3513f56f9686a41cc6372530bee525e13f/README.md).
+[`368948ce…`](docs/reference/da4b4d4b5af748ee197815878cee6e35d23ce9a98883a8fd38fce642eb53ab0b/README.md).
 Generated cURL passes the bearer through a configuration on standard input, so
 the expanded token is absent from the process argument list:
 
