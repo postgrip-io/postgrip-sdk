@@ -268,4 +268,4 @@ func (c *OpenAPIClient) WorkerOrchestratorHealth(ctx context.Context) (OpenAPIWo
 // connection operations, which use Connection's custom adapters.
 const OpenAPIClientOperationCount = 13
 
-const openAPIClientSpecSHA256 = "ffce1b8c3053f64e6efa1740a9ae8c124cbc6f49fc0754d51e608688ed115dc7"
+const openAPIClientSpecSHA256 = "f7def7a70065868cf99d6a769e724347ebb9af048a5fdb656d4b7498768620b9"

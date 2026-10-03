@@ -433,6 +433,7 @@
           "Workers"
         ],
         "summary": "Check worker connectivity and trust",
+        "description": "PostGrip asks the Worker to re-attest, then computes the check result from its own records: the Worker's trust record and the attestation the orchestrator verified and recorded while the check ran. The Worker's answer only signals that its attempt finished; nothing in it reaches the result or the audit record.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -1374,17 +1375,21 @@
             "format": "uuid"
           },
           "trustState": {
-            "type": "string"
+            "type": "string",
+            "description": "The Worker's trust state as PostGrip records it after the check."
           },
           "reason": {
-            "type": "string"
+            "type": "string",
+            "description": "A server-owned code: ATTESTATION_TRUSTED (a fresh attestation was accepted and the Worker is trusted), ATTESTATION_ACCEPTED_UNENFORCED (a fresh attestation was accepted but trust is not enforced), ATTESTATION_REJECTED (a fresh attestation was rejected) or ATTESTATION_NOT_OBSERVED (no new attestation was recorded during the check). Treat any other value as unknown."
           },
           "wouldTrust": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True only when PostGrip recorded a fresh attestation it accepted during the check."
           },
           "attestationExpiresAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When the accepted attestation expires. Present only when wouldTrust is true."
           }
         }
       },
