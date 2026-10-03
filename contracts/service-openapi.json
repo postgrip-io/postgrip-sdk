@@ -2148,6 +2148,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `TARGET_CREATION_PENDING`: a keyed creation of the target (the console's `POST /api/targets` with an `Idempotency-Key`) is still pending, so the target can't be changed yet. Nothing is changed or queued, and the refusal is not stored against the Idempotency-Key: retry with the same key once the creation settles. `WORKER_UPGRADE_REQUIRED`: the target's Worker does not advertise a capability the change needs (`details.workerId`, `details.requiredCapability`); this refusal is not stored against the key either. Other conflicts, such as `SERVICE_STATE_CHANGED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2331,6 +2341,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `TARGET_CREATION_PENDING`: a keyed creation of the target (the console's `POST /api/targets` with an `Idempotency-Key`) is still pending, so its connection can't be set yet. Nothing is changed or queued, and the refusal is not stored against the Idempotency-Key: retry with the same key once the creation settles. `WORKER_UPGRADE_REQUIRED`: the target's Worker does not advertise a capability the change needs (`details.workerId`, `details.requiredCapability`); this refusal is not stored against the key either. Other conflicts, such as `SERVICE_STATE_CHANGED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2392,6 +2412,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceTargetMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `TARGET_CREATION_PENDING`: a keyed creation of the target (the console's `POST /api/targets` with an `Idempotency-Key`) is still pending, so its connection can't be cleared yet. Nothing is changed or queued, and the refusal is not stored against the Idempotency-Key: retry with the same key once the creation settles. `WORKER_UPGRADE_REQUIRED`: the target's Worker does not advertise a capability the change needs (`details.workerId`, `details.requiredCapability`); this refusal is not stored against the key either. Other conflicts, such as `SERVICE_STATE_CHANGED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
