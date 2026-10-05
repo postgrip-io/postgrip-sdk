@@ -629,7 +629,7 @@ type TimerPayload struct {
 // ShellExecPayload runs a command on the agent host.
 //
 // SecretEnv maps an environment variable to the name of a secret in the
-// agent's local secret store (POSTGRIP_AGENT_TASK_SECRETS_DIR). The agent
+// agent's local secret store (/run/secrets on the agent host). The agent
 // resolves the value when the task runs, so only the name ever reaches the
 // control plane. Put credentials here, never in Env: the orchestrator refuses
 // plaintext credential-shaped keys.

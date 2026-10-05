@@ -126,7 +126,7 @@ class ShellExecPayload(TypedDict, total=False):
     """Payload for ``shell.exec`` tasks.
 
     ``secret_env`` maps an environment variable to a secret name in the
-    agent's local secret store (``POSTGRIP_AGENT_TASK_SECRETS_DIR``). The
+    agent's local secret store (``/run/secrets`` on the agent host). The
     agent resolves values when the task runs, so only names reach the control
     plane. Put credentials there, never in ``env``: plaintext
     credential-shaped keys are refused.
