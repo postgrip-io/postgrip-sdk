@@ -3059,7 +3059,8 @@
             "type": "string"
           },
           "payload": {
-            "$ref": "#/components/schemas/JsonValue"
+            "$ref": "#/components/schemas/JsonValue",
+            "description": "Task-type payload. The control plane stores payloads, so never put a credential in one: a payload with a credential-shaped key at any depth, URL userinfo other than a bare account on an ssh or git URL, or a value that cannot be fully inspected is refused with 400 PLAINTEXT_SECRET_REJECTED. For shell.exec and container.exec, the top-level secret_env object maps an environment variable to the name of a secret in the executing Agent's local store (/run/secrets); the Agent resolves the value when the task runs, so only names are stored. A task with a non-empty secret_env is leased only to an Agent that advertises the task_secret_env capability."
           },
           "lease_timeout_seconds": {
             "type": "integer",
