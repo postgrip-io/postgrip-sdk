@@ -191,3 +191,26 @@ func TestAgentAuthSessionJSONUsesAgentFields(t *testing.T) {
 		t.Fatalf("payload = %#v, must not include workerId", payload)
 	}
 }
+
+func TestExecPayloadsCarrySecretEnvNamesAsSecretEnv(t *testing.T) {
+	for name, payload := range map[string]any{
+		"shell":     ShellExecPayload{Command: "psql", SecretEnv: map[string]string{"PGPASSWORD": "prod-db-password"}},
+		"container": ContainerExecPayload{Image: "postgres:17", SecretEnv: map[string]string{"PGPASSWORD": "prod-db-password"}},
+	} {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			t.Fatalf("%s: marshal: %v", name, err)
+		}
+		var decoded map[string]any
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			t.Fatalf("%s: decode: %v", name, err)
+		}
+		secretEnv, ok := decoded["secret_env"].(map[string]any)
+		if !ok || secretEnv["PGPASSWORD"] != "prod-db-password" {
+			t.Fatalf("%s: payload = %s, want secret_env", name, data)
+		}
+		if _, ok := decoded["env"]; ok {
+			t.Fatalf("%s: payload = %s, want env omitted", name, data)
+		}
+	}
+}

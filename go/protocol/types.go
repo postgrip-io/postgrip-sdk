@@ -626,10 +626,18 @@ type TimerPayload struct {
 	FireAt         time.Time `json:"fireAt"`
 }
 
+// ShellExecPayload runs a command on the agent host.
+//
+// SecretEnv maps an environment variable to the name of a secret in the
+// agent's local secret store (/run/secrets on the agent host). The agent
+// resolves the value when the task runs, so only the name ever reaches the
+// control plane. Put credentials here, never in Env: the orchestrator refuses
+// plaintext credential-shaped keys.
 type ShellExecPayload struct {
 	Command        string            `json:"command"`
 	Args           []string          `json:"args,omitempty"`
 	Env            map[string]string `json:"env,omitempty"`
+	SecretEnv      map[string]string `json:"secret_env,omitempty"`
 	WorkingDir     string            `json:"working_dir,omitempty"`
 	TimeoutSeconds int               `json:"timeout_seconds,omitempty"`
 }
@@ -643,12 +651,15 @@ type ShellExecPayload struct {
 // Args are passed as the container's CMD. PullPolicy mirrors `docker run
 // --pull` ("always" | "missing" | "never"); empty means "missing". Env keys
 // pass through the same shellExecEnvKeyAllowed allowlist as shell.exec — host
-// loader / interpreter / agent-secret prefixes are rejected.
+// loader / interpreter / agent-secret prefixes are rejected. SecretEnv names
+// secrets in the agent's local store, as for ShellExecPayload; the agent hands
+// them to the container without putting values on its command line.
 type ContainerExecPayload struct {
 	Image          string            `json:"image"`
 	Command        string            `json:"command,omitempty"`
 	Args           []string          `json:"args,omitempty"`
 	Env            map[string]string `json:"env,omitempty"`
+	SecretEnv      map[string]string `json:"secret_env,omitempty"`
 	WorkingDir     string            `json:"working_dir,omitempty"`
 	PullPolicy     string            `json:"pull_policy,omitempty"`
 	TimeoutSeconds int               `json:"timeout_seconds,omitempty"`

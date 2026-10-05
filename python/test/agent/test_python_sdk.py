@@ -5,6 +5,7 @@ import io
 import os
 import time
 import unittest
+from typing import get_type_hints
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -983,6 +984,12 @@ class SandboxClientDetailsTest(unittest.TestCase):
         with self.assertRaises(TimeoutError):
             client.wait_until_running("sbx_1", timeout=0.2, poll_interval=30.0)
         self.assertLess(time.monotonic() - started, 5.0, "slept the poll interval instead of the timeout")
+
+
+class ExecPayloadSecretEnvTest(unittest.TestCase):
+    def test_exec_payloads_name_secrets_in_secret_env(self):
+        for payload_type in (types.ShellExecPayload, types.ContainerExecPayload):
+            self.assertEqual(get_type_hints(payload_type)["secret_env"], dict[str, str])
 
 
 if __name__ == "__main__":
