@@ -287,7 +287,7 @@
       "post": {
         "operationId": "enqueueTask",
         "summary": "Enqueue a task",
-        "description": "Returns 202 with the created task. Any tenantId in the body is replaced with the tenant the credential resolves to.",
+        "description": "Returns 202 with the created task. Any tenantId in the body is replaced with the tenant the credential resolves to. A payload that carries a plaintext credential is refused with 400 PLAINTEXT_SECRET_REJECTED and nothing is stored. A shell.exec or container.exec task names its secrets in a top-level secret_env instead, mapping environment variables to secrets in the executing Agent's local store, and is leased only to Agents that advertise task_secret_env (see EnqueueTaskRequest.payload).",
         "tags": [
           "Tasks"
         ],
@@ -3060,7 +3060,7 @@
           },
           "payload": {
             "$ref": "#/components/schemas/JsonValue",
-            "description": "Task-type payload. The control plane stores payloads, so never put a credential in one: a payload with a credential-shaped key at any depth, URL userinfo other than a bare account on an ssh or git URL, or a value that cannot be fully inspected is refused with 400 PLAINTEXT_SECRET_REJECTED. For shell.exec and container.exec, the top-level secret_env object maps an environment variable to the name of a secret in the executing Agent's local store (/run/secrets); the Agent resolves the value when the task runs, so only names are stored. A task with a non-empty secret_env is leased only to an Agent that advertises the task_secret_env capability."
+            "description": "Task-type payload. The control plane stores payloads, so never put a credential in one: a payload with a credential-shaped key at any depth, URL userinfo in a key or value other than a bare account on an ssh or git URL, or a value that cannot be fully inspected is refused with 400 PLAINTEXT_SECRET_REJECTED. The one exception is the top-level secret_env object of a shell.exec or container.exec payload: its keys are environment variable names, which may be credential-shaped (PGPASSWORD), and every value must be the name of a secret in the executing Agent's local store (/run/secrets). The Agent resolves the values when the task runs, so only names are stored. A task with a non-empty secret_env is leased only to an Agent that advertises the task_secret_env capability, and one whose secret_env is not an object is leased to none."
           },
           "lease_timeout_seconds": {
             "type": "integer",
