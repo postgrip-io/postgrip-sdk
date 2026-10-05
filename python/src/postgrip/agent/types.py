@@ -123,9 +123,19 @@ class AgentUpgradeRequest(TypedDict, total=False):
 
 
 class ShellExecPayload(TypedDict, total=False):
+    """Payload for ``shell.exec`` tasks.
+
+    ``secret_env`` maps an environment variable to a secret name in the
+    agent's local secret store (``POSTGRIP_AGENT_TASK_SECRETS_DIR``). The
+    agent resolves values when the task runs, so only names reach the control
+    plane. Put credentials there, never in ``env``: plaintext
+    credential-shaped keys are refused.
+    """
+
     command: str
     args: list[str]
     env: dict[str, str]
+    secret_env: dict[str, str]
     working_dir: str
     timeout_seconds: int
 
@@ -153,6 +163,7 @@ class ContainerExecPayload(TypedDict, total=False):
     command: str
     args: list[str]
     env: dict[str, str]
+    secret_env: dict[str, str]
     working_dir: str
     pull_policy: str
     timeout_seconds: int

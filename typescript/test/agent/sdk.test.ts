@@ -7,7 +7,7 @@ import { Agent } from '../../src/agent/agent.js';
 import { activityStderr, activityStdout, Worker as IndexWorker } from '../../src/agent/index.js';
 import { Worker as ModuleWorker } from '../../src/agent/worker.js';
 import { defineQuery } from '../../src/agent/workflow.js';
-import type { EnqueueTaskRequest, Task, WorkflowExecution, WorkflowRuntimePayload } from '../../src/agent/types.js';
+import type { ContainerExecPayload, EnqueueTaskRequest, ShellExecPayload, Task, WorkflowExecution, WorkflowRuntimePayload } from '../../src/agent/types.js';
 
 function workflowTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -810,5 +810,14 @@ describe('PostGrip Agent TypeScript Agent', () => {
         }),
       }),
     );
+  });
+});
+
+describe('exec payload secret_env', () => {
+  it('names secrets in secret_env on both exec payloads', () => {
+    const shell: ShellExecPayload = { command: 'psql', secret_env: { PGPASSWORD: 'prod-db-password' } };
+    const container: ContainerExecPayload = { image: 'postgres:17', secret_env: { PGPASSWORD: 'prod-db-password' } };
+    expect(JSON.parse(JSON.stringify(shell)).secret_env).toEqual({ PGPASSWORD: 'prod-db-password' });
+    expect(JSON.parse(JSON.stringify(container)).secret_env).toEqual({ PGPASSWORD: 'prod-db-password' });
   });
 });

@@ -72,6 +72,13 @@ export interface ShellExecPayload {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  /**
+   * Environment variable → secret name in the agent's local secret store
+   * (`POSTGRIP_AGENT_TASK_SECRETS_DIR`). The agent resolves values when the
+   * task runs, so only names reach the control plane. Put credentials here,
+   * never in `env`: plaintext credential-shaped keys are refused.
+   */
+  secret_env?: Record<string, string>;
   working_dir?: string;
   timeout_seconds?: number;
 }
@@ -97,6 +104,8 @@ export interface ContainerExecPayload {
   command?: string;
   args?: string[];
   env?: Record<string, string>;
+  /** Secret names in the agent's local store, as for `ShellExecPayload.secret_env`. */
+  secret_env?: Record<string, string>;
   working_dir?: string;
   pull_policy?: 'always' | 'missing' | 'never';
   timeout_seconds?: number;
