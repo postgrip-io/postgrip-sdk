@@ -1,6 +1,6 @@
 # PostGrip SDKs
 
-[![CI](https://github.com/postgrip-io/postgrip-sdks/actions/workflows/ci.yml/badge.svg)](https://github.com/postgrip-io/postgrip-sdks/actions/workflows/ci.yml)
+[![CI](https://github.com/postgrip-io/postgrip-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/postgrip-io/postgrip-sdk/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/postgrip-io/postgrip-agent-sdks/go.svg)](https://pkg.go.dev/github.com/postgrip-io/postgrip-agent-sdks/go)
 [![npm](https://img.shields.io/npm/v/%40postgrip%2Fsdk.svg?logo=npm)](https://www.npmjs.com/package/@postgrip/sdk)
 [![PyPI](https://img.shields.io/pypi/v/postgrip.svg?logo=pypi)](https://pypi.org/project/postgrip/)
@@ -16,7 +16,7 @@ with one tenant-bound `POSTGRIP_TOKEN`.
 
 All three artifacts release from [VERSION](VERSION). The Go import retains the
 historical repository segment intentionally; the GitHub repository is
-`postgrip-io/postgrip-sdks`.
+`postgrip-io/postgrip-sdk`.
 
 ## Install
 
@@ -101,8 +101,8 @@ page for every public operation: method and path, scopes, credential class,
 parameters, request and response schemas, safety, retries, idempotency,
 pagination, lifecycle notes, secure cURL, and equivalent language HTTP.
 
-The current bundle is
-[`368948ce…`](docs/reference/a7d0c48055260f5fbf599cc94ea78f07d5f35866ce1aa8718338bb6696b69010/README.md).
+The generated index selects the current contract bundle; older bundles retain
+their immutable URLs.
 Generated cURL passes the bearer through a configuration on standard input, so
 the expanded token is absent from the process argument list:
 
@@ -126,7 +126,7 @@ go/           one Go module: root facade, agent, worker, service, protocol
 typescript/   one npm package with root and singular subpath exports
 python/       one PyPI package with root and singular modules
 test/         operation ownership and behavior annotations
-docs/         immutable generated reference and design/gate reports
+docs/         current guides, generated reference and historical records
 scripts/      deterministic generation, drift, docs, and conformance tooling
 ```
 
@@ -136,22 +136,10 @@ Python mirrors change atomically.
 
 ## Development
 
-```sh
-(cd go && GOWORK=off go test ./... && go vet ./...)
-(cd typescript && bun install --frozen-lockfile && bun run typecheck && bun run build && bun run test)
-(cd python && PYTHONPATH=src python3 -m unittest discover -s test)
-
-python3 scripts/generate_openapi.py --plane all --check
-python3 scripts/generate_api_docs.py --check
-python3 scripts/check_operation_inventory.py
-python3 scripts/check_package_layout.py
-python3 go/protocol/tools/check_drift.py --self-test
-python3 go/protocol/tools/check_drift.py --monorepo
-```
-
-See the [design](docs/unified-sdk-design.md), [implementation
-plan](docs/unified-sdk-implementation-plan.md), and phase reports under
-[`docs/unified-sdk-phase-reports/`](docs/unified-sdk-phase-reports/).
+Use the [contribution and review guide](docs/development/contributing.md),
+[validation commands](docs/development/testing.md), and
+[web coordination procedure](docs/development/contracts.md).
+The [documentation index](docs/index.md) identifies each current topic owner.
 
 ## Security
 
