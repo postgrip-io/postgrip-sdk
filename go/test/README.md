@@ -1,8 +1,6 @@
-# test/
+# Documentation and validation
 
-Reserved for future black-box / integration tests that exercise the SDK
-against a live runtime service.
-
-Go's package-internal tests live next to their source at the module
-root — the Go test toolchain requires `*_test.go` files to be colocated
-with the package they exercise (`go test ./...`).
+Use the [current documentation index](../../docs/index.md) and
+[validation guide](../../docs/development/testing.md).
+Language tests live beside Go packages, in `typescript/test/` and `python/test/`;
+shared recorded and live suites are owned at repository-root `test/`.

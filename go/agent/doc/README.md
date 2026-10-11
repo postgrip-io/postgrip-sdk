@@ -1,4 +1,6 @@
-# doc/
+# Documentation and validation
 
-Reserved for longer-form prose docs (architecture notes, migration
-guides, etc.) beyond what fits in the project root README.
+Use the [current documentation index](../../../docs/index.md) and
+[validation guide](../../../docs/development/testing.md).
+Language tests live beside Go packages, in `typescript/test/` and `python/test/`;
+shared recorded and live suites are owned at repository-root `test/`.

@@ -1,5 +1,6 @@
-# doc/
+# Documentation and validation
 
-Reserved for future longer-form prose docs (architecture notes, wire-
-format change history, etc). The repo's main README at the project root
-is the entry point.
+Use the [current documentation index](../../../docs/index.md) and
+[validation guide](../../../docs/development/testing.md).
+Language tests live beside Go packages, in `typescript/test/` and `python/test/`;
+shared recorded and live suites are owned at repository-root `test/`.
