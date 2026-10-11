@@ -26,7 +26,7 @@ Public surface re-exported from `@postgrip/sdk/agent`. Customer code should impo
 | `defineSignal<Args>(name)` / `defineQuery<R, Args>(name)` / `defineUpdate<R, Args>(name)` | Declare a signal / query / update; returns a definition. |
 | `setHandler(definition, handler)`                                             | Bind a handler to a definition.                           |
 | `await milestone(name, options)`                                              | Emit a milestone event for the workflow task.             |
-| `continueAsNew(workflowFn, ...args)`                                          | Restart the current workflow with fresh history (throws).  |
+| `continueAsNew(workflowFn, options)`                                          | Restart the current workflow with fresh history (throws).  |
 | `validateWorkflowSandbox(workflowFn)`                                         | Static sandbox check; throws if the body uses banned APIs. |
 | `CancellationScope`                                                           | Class for scoping cancellation behavior.                  |
 

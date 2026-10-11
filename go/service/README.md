@@ -35,8 +35,10 @@ configuration-operation ID that can be inspected or retried through
 
 The grouped administration clients cover apps, targets, projects, environments,
 managed volumes, domains, variables, repository settings, promotions,
-retention, and configuration operations. Credential values are write-only and
-never appear in response models. Deployments should first call `PreviewDeploy`,
+retention, and configuration operations. Secret-store credential values are write-only and are not exposed by response
+models. The public Compose read is a deliberate sensitive configuration
+exception: it requires `services:admin` and can contain caller-authored inline
+secrets; handle that returned content as sensitive data. Deployments should first call `PreviewDeploy`,
 present the immutable commit for confirmation, and pass the previewed commit to
 `Deploy`.
 

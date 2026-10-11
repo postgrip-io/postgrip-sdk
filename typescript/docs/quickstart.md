@@ -53,7 +53,8 @@ import {
 // (heartbeat, activityMilestone, activityStdout, activityInfo) work via
 // the per-task runtime the agent attaches.
 const activities = {
-  async greet(name: string): Promise<string> {
+  async greet(name: unknown): Promise<string> {
+    if (typeof name !== 'string') throw new TypeError('name must be a string');
     return `Hello, ${name}`;
   },
 };
@@ -66,7 +67,7 @@ const { greet } = proxyActivities<typeof activities>({
 });
 
 // Workflows are regular async functions.
-export async function greetingWorkflow(name: string): Promise<string> {
+export async function greetingWorkflow(name: unknown): Promise<string> {
   return greet(name);
 }
 
@@ -96,6 +97,10 @@ const resultPromise = client.workflow.execute(greetingWorkflow, {
 await agent.runUntil(resultPromise);
 console.log(await resultPromise);
 ```
+
+Registered function inputs use `unknown` at the current registry boundary;
+validate them before use. The examples below type-check with strict function
+variance enabled.
 
 The SDK `Agent` loops inside the managed runtime, leasing tasks from the configured queue, heartbeating each leased task, and dispatching to your registered functions. Concurrency is bounded by `maxConcurrentTaskExecutions` (default 4).
 

@@ -20,7 +20,8 @@ The shape mirrors the Temporal TypeScript SDK on purpose: workflows are plain as
 import { proxyActivities } from '@postgrip/sdk/agent';
 
 const activities = {
-  async greet(name: string): Promise<string> {
+  async greet(name: unknown): Promise<string> {
+    if (typeof name !== 'string') throw new TypeError('name must be a string');
     return `hello, ${name}`;
   },
 };
@@ -30,7 +31,7 @@ const { greet } = proxyActivities<typeof activities>({
   retry: { maximumAttempts: 3 },
 });
 
-export async function greetingWorkflow(name: string): Promise<string> {
+export async function greetingWorkflow(name: unknown): Promise<string> {
   return greet(name);
 }
 ```

@@ -62,7 +62,8 @@ Activities are the right place for non-deterministic work: HTTP calls, database 
 import { proxyActivities } from '@postgrip/sdk/agent';
 
 const activities = {
-  async fetchUser(id: string): Promise<{ name: string }> {
+  async fetchUser(id: unknown): Promise<{ name: string }> {
+    if (typeof id !== 'string') throw new TypeError('id must be a string');
     const resp = await fetch(`https://api.example.com/users/${id}`);
     return resp.json();
   },
@@ -73,7 +74,7 @@ const { fetchUser } = proxyActivities<typeof activities>({
   retry: { maximumAttempts: 5 },
 });
 
-export async function myWorkflow(userId: string): Promise<string> {
+export async function myWorkflow(userId: unknown): Promise<string> {
   const user = await fetchUser(userId);
   return user.name;
 }
@@ -197,7 +198,7 @@ export async function longRunner(counter = 0): Promise<number> {
     counter++;
   }
   if (counter < 1_000_000) {
-    continueAsNew(longRunner, counter); // throws ContinueAsNewCommand
+    continueAsNew('longRunner', { args: [counter] }); // throws ContinueAsNewCommand
   }
   return counter;
 }

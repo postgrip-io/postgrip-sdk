@@ -93,7 +93,11 @@ Long-running workflows accumulate history. Eventually that history gets big enou
 
 ```go
 func LongRunner(ctx workflow.Context, args []any) (any, error) {
-    counter, _ := args[0].(int)
+    // JSON numbers in untyped workflow args decode as float64.
+    counter := float64(0)
+    if len(args) > 0 {
+        counter = args[0].(float64) // This workflow accepts one numeric counter.
+    }
     for i := 0; i < 1000; i++ {
         // ... do work, schedule activities, etc.
         counter++
