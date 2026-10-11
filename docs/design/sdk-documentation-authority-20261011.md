@@ -1,6 +1,7 @@
 # SDK documentation authority and web synchronization
 
-Date: 2026-10-11. Status: implementation in focused slices.
+Date: 2026-10-11. Status: delivered through the linked PR slices; closure
+review/CI is recorded by its PR. See the [acceptance evidence](sdk-documentation-acceptance-20261011.md).
 
 ## Problem and boundaries
 
@@ -38,8 +39,9 @@ release/rollback requirements remain in releasing/migration; archiving an old
 BLOCKED report neither clears a release gate nor claims deployment success.
 
 Web owns canonical HTTP contracts and its SDK pin/discovery procedure. SDK
-owns mirrors, generated clients and published artifacts. Cross-link owners;
-keep the compatibility Go module path. Correct repository/Pages URLs to the
+owns mirrors, generated clients and published artifacts. Cross-link owners. Web is the sole owner of the shared PR review lifecycle;
+SDK contributing documents its local application and checks rather than copying
+that lifecycle. Keep the compatibility Go module path. Correct repository/Pages URLs to the
 verified `postgrip-sdk` name without rewriting immutable historical evidence.
 Do not move SDK source pins for prose-only changes.
 
@@ -56,7 +58,9 @@ inaccurate CI prose. Workflow behavior changes are a separate scope.
 3. Usage: fix current language setup/examples, current reference routing and
    documentation-site URLs; remove duplicated release/configuration claims.
 4. Web: reciprocal SDK-owner links and verified repository naming in its
-   current contract guide; record cross-repository byte comparison.
+   current contract and linked coverage guides; record cross-repository bytes.
+5. Closure: audit every disposition, reconcile shared review-process ownership
+   and record validation counts, findings and explicit limits separately.
 
 Each slice follows the review loop in `development/contributing.md`: a scoped
 PR, self-review, Codex review, validated fixes, green CI and squash merge.
@@ -90,7 +94,7 @@ script retain/merge decisions from the earlier black-box testing project.
 | `docs/unified-sdk-phase-reports/phase-5-ci-release.md` | Archive | `docs/archive/unified-sdk-phase-reports/phase-5-ci-release.md` | Dated proposal/evidence; preserve original results and unresolved recommendations, link current owners. |
 | `docs/worker-bootstrap.md` | Rewrite | `docs/worker-bootstrap.md` | Use current reference pointer; preserve durable journal requirement and typed examples. |
 | `go/CLAUDE.md` | Rewrite | `go/CLAUDE.md` | Route to root rules and current architecture/contracts owners; remove competing instructions. |
-| `go/README.md` | Retain/correct | `go/README.md` | Preserve focused package introduction; link stable reference index and current topic owners. |
+| `go/README.md` | Retain/correct | `go/README.md` | Preserve focused package introduction and checker-enforced immutable links; correct behavior claims where needed. |
 | `go/agent/doc/README.md` | Rewrite | `go/agent/doc/README.md` | Replace empty future-documentation placeholder with current documentation entry. |
 | `go/agent/docs/api.md` | Rewrite | `go/agent/docs/api.md` | Link unified current owners; correct public entry wording and source/release links. |
 | `go/agent/docs/index.md` | Rewrite | `go/agent/docs/index.md` | Link unified current owners; correct public entry wording and source/release links. |
@@ -105,11 +109,11 @@ script retain/merge decisions from the earlier black-box testing project.
 | `go/protocol/README.md` | Rewrite | `go/protocol/README.md` | Fix module-local license/mirror links and route contract maintenance to its owner. |
 | `go/protocol/doc/README.md` | Rewrite | `go/protocol/doc/README.md` | Replace empty future-documentation placeholder with current documentation entry. |
 | `go/protocol/test/README.md` | Rewrite | `go/protocol/test/README.md` | Replace obsolete reserved-test prose with actual test locations and validation owner. |
-| `go/service/README.md` | Retain/correct | `go/service/README.md` | Preserve focused package introduction; link stable reference index and current topic owners. |
+| `go/service/README.md` | Retain/correct | `go/service/README.md` | Preserve focused package introduction and checker-enforced immutable links; correct behavior claims where needed. |
 | `go/test/README.md` | Rewrite | `go/test/README.md` | Replace obsolete reserved-test prose with actual test locations and validation owner. |
-| `go/worker/README.md` | Retain/correct | `go/worker/README.md` | Preserve focused package introduction; link stable reference index and current topic owners. |
+| `go/worker/README.md` | Retain/correct | `go/worker/README.md` | Preserve focused package introduction and checker-enforced immutable links; correct behavior claims where needed. |
 | `python/CLAUDE.md` | Rewrite | `python/CLAUDE.md` | Route to root rules and current architecture/contracts owners; remove competing instructions. |
-| `python/README.md` | Retain/correct | `python/README.md` | Preserve focused package introduction; link stable reference index and current topic owners. |
+| `python/README.md` | Retain/correct | `python/README.md` | Preserve focused package introduction and checker-enforced immutable links; correct behavior claims where needed. |
 | `python/doc/README.md` | Rewrite | `python/doc/README.md` | Replace empty future-documentation placeholder with current documentation entry. |
 | `python/docs/api.md` | Rewrite | `python/docs/api.md` | Link unified current owners; correct public entry wording and source/release links. |
 | `python/docs/index.md` | Rewrite | `python/docs/index.md` | Link unified current owners; correct public entry wording and source/release links. |
@@ -122,7 +126,7 @@ script retain/merge decisions from the earlier black-box testing project.
 | `test/live/README.md` | Retain | `test/live/README.md` | Own scenario grammar, consent, cleanup failures and remaining-resource evidence. |
 | `test/reports/operation-coverage.md` | Retain generated | `test/reports/operation-coverage.md` | Generated count owner: 181 operations; live columns are assignments, not successful live evidence. |
 | `typescript/CLAUDE.md` | Rewrite | `typescript/CLAUDE.md` | Route to root rules and current architecture/contracts owners; remove competing instructions. |
-| `typescript/README.md` | Retain/correct | `typescript/README.md` | Preserve focused package introduction; link stable reference index and current topic owners. |
+| `typescript/README.md` | Retain/correct | `typescript/README.md` | Preserve focused package introduction and checker-enforced immutable links; correct behavior claims where needed. |
 | `typescript/doc/README.md` | Rewrite | `typescript/doc/README.md` | Replace empty future-documentation placeholder with current documentation entry. |
 | `typescript/docs/api.md` | Rewrite | `typescript/docs/api.md` | Link unified current owners; correct public entry wording and source/release links. |
 | `typescript/docs/index.md` | Rewrite | `typescript/docs/index.md` | Link unified current owners; correct public entry wording and source/release links. |

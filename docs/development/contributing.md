@@ -1,31 +1,30 @@
-# Contribution and review
+# SDK contribution and review
 
-Use a living design in `docs/design/` for each change, including documentation.
-Keep one concern per PR, branch from `main`, and use Conventional Commit titles.
-Never commit or push directly to `main`.
+The shared design, PR review, findings and merge procedure has one owner:
+[web's contribution and review process](https://github.com/postgrip-io/postgrip-web/blob/main/docs/development/contributing.md).
+Follow that lifecycle for SDK work, including documentation. Its Codex review
+rounds, validated-finding thresholds and green-CI squash-merge requirement apply
+here; do not maintain a second copy of those rules.
 
-1. Implement the design within the [SDK boundaries](architecture.md). Update
-   the design before a justified change of scope; do not silently depart from it.
-2. Self-review the diff against the design and current topic owners. Run the
-   affected [validation](testing.md), including the runtime drift check. Check
-   compatibility in each affected language and [web coordination](contracts.md).
-3. Open a PR with the design path and implemented slice, per-area changes,
-   affected packages/layers, observable impact, compatibility, linked issues
-   and coordinated PRs, and exact validation commands and results.
-4. Comment `@codex review`. Validate every finding against code and design;
-   architecture violations and design drift count alongside bugs. Reply with
-   evidence when rejecting a finding. Fix every valid finding in a commit
-   titled `Codex review on #N: …` and explain the fix on the PR.
-5. If a round has three or more valid findings, request `@codex review` again
-   after fixing them. With two or fewer, fix them and wait for green CI, then
-   squash-merge with `gh pr merge --squash --delete-branch`. The squash subject
-   is the Conventional Commit PR title followed by `(#N)`. Never merge red CI.
+## SDK application of the shared process
 
-This is the same review loop as the
-[web contribution guide](https://github.com/postgrip-io/postgrip-web/blob/main/docs/development/contributing.md).
-SDK checks and boundaries are owned here; web-only build commands and runner
-rules do not apply to this repository. Compare these two guides whenever the
-shared review process changes.
+- Designs live in this repository's `docs/design/`. Cite the design and its
+  implemented slice in each small, single-concern PR.
+- Replace web-specific build/test commands with [SDK validation](testing.md).
+  Start with affected suites, check runtime drift, and cover every language
+  whose behavior changes. Web-only UI/Go-service checks do not run in this repo.
+- Review responsibilities against [SDK architecture](architecture.md), public
+  exports and [contract coordination](contracts.md). Web remains authoritative
+  for server contract changes and its pinned SDK source; SDK owns its mirrors,
+  generated clients and artifact validation.
+- The PR's affected areas are SDK packages and transport/runtime/generator
+  boundaries. Report compatibility, observable impact, coordinated PRs, exact
+  commands/results and evidence limits using the shared PR requirements.
+- [SDK CI](testing.md#executable-ci-owners) documents actual workflows and open
+  gaps. Web runner routing and Markdown selection are not SDK guarantees.
+
+When the shared process changes, review this SDK application and its referenced
+checks alongside the web owner. Update local differences, not a copied lifecycle.
 
 ## Documentation ownership
 
