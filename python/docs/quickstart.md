@@ -6,9 +6,9 @@ runtime registers workflow and activity functions.
 
 ## Submit a workflow runtime
 
-A client process uses an Agent token from Settings > Organization > Agent tokens
-and submits a `workflow.runtime` task. The host PostGrip agent launches the
-runtime process and injects delegated credentials.
+A client process uses `POSTGRIP_TOKEN`, a common tenant management token with
+the required Agent scopes, and submits a `workflow.runtime` task. The host
+PostGrip agent launches the runtime process and injects delegated credentials.
 
 ```python
 import asyncio
@@ -18,8 +18,8 @@ from postgrip.agent import Client
 
 async def main() -> None:
     client = await Client.connect(
-        # Agent token from Settings > Organization > Agent tokens.
-        headers={"Authorization": f"Bearer {os.environ['POSTGRIP_AGENT_TOKEN']}"},
+        # Common tenant management token with the required Agent scopes.
+        auth_token=os.environ["POSTGRIP_TOKEN"],
     )
 
     task = client.task.workflow_runtime(
@@ -88,13 +88,12 @@ async def main() -> None:
     # run_until pairs starting the runtime worker with awaiting a workflow
     # handle. For long-lived runtimes, use agent.run() and wire your own
     # shutdown signaling.
-    handle = await client.execute_workflow(
+    result = await agent.run_until(client.execute_workflow(
         SayHelloWorkflow,
         "PostGrip",
         id="say-hello",
         task_queue="default",
-    )
-    result = await agent.run_until(handle)
+    ))
     print(result)
 
 
@@ -103,12 +102,12 @@ asyncio.run(main())
 
 The SDK `Agent` loops forever inside the managed runtime, leasing tasks from the configured queue, heartbeating each leased task, and dispatching to your registered functions. Concurrency is bounded by `max_concurrent_tasks` (default 4).
 
-## Start a workflow from elsewhere
+## Start another workflow inside the managed runtime
 
-From the client side, start the workflow you registered above and wait for its result:
+From the managed runtime client, start the workflow you registered above and wait for its result:
 
 ```python
-handle = await client.execute_workflow(
+handle = await client.start_workflow(
     SayHelloWorkflow,
     "world",
     id="say-hello-2",
@@ -119,7 +118,7 @@ result: str = await handle.result()
 print(result)  # Hello, world
 ```
 
-`execute_workflow` returns a `WorkflowHandle` — use it to wait, signal, query, update, cancel, terminate, or read history.
+`start_workflow` returns a `WorkflowHandle` (`execute_workflow` waits for its result) — use it to wait, signal, query, update, cancel, terminate, or read history.
 
 ## Streaming events
 
@@ -127,7 +126,7 @@ Tasks emit ordered events (started / heartbeat / milestone / progress / stdout /
 
 ```python
 async for event in handle.watch_events():
-    print(event.kind, event.message)
+    print(event["kind"], event.get("message"))
 ```
 
 The async generator closes when the task reaches a terminal state.

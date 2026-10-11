@@ -1,6 +1,8 @@
 # Live integration tiers
 
-Pull requests prove all 130 operations through strict recorded transports in
+Pull requests exercise every operation in the
+[generated coverage report](https://github.com/postgrip-io/postgrip-sdk/blob/main/test/reports/operation-coverage.md)
+through strict recorded transports in
 Go, TypeScript, and Python and execute every eligible cURL example. Live jobs
 add deployed-system evidence at a cadence matched to risk:
 
@@ -16,12 +18,9 @@ live tier. Environment-specific scenarios are protected because they contain
 deployment fixture details, but their schema and runner are versioned in this
 repository.
 
-Every run receives a unique `postgrip-sdk-…` prefix. Mutations may operate only
-on registered resources, and cleanup uses captured identifiers in reverse
-dependency order. Wildcards are rejected. Destructive calls require scenario,
-environment, and command-line consent simultaneously. A mode-0600 JSON ledger
-is uploaded even after failure and preserves the primary failure, cleanup
-failures, and all remaining identifiers.
+The fixture manager owns resource registration, destructive-operation consent,
+cleanup and reporting of remaining resources. Failed cleanup stays visible;
+a configured live tier is not proof of a successful live run.
 
 For the scenario format and local safety checks, see
-[`test/live/README.md`](https://github.com/postgrip-io/postgrip-sdks/blob/main/test/live/README.md).
+[`test/live/README.md`](https://github.com/postgrip-io/postgrip-sdk/blob/main/test/live/README.md).

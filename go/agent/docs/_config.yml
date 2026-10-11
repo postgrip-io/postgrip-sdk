@@ -1,7 +1,7 @@
 title: PostGrip Agent — Go SDK
 description: Go SDK for the PostGrip Agent runtime service. Tasks, workflows, schedules, and a polling worker.
 url: https://postgrip-io.github.io
-baseurl: /postgrip-sdks/go
+baseurl: /postgrip-sdk/go
 
 remote_theme: just-the-docs/just-the-docs
 
@@ -11,7 +11,7 @@ heading_anchors: true
 
 aux_links:
   GitHub:
-    - https://github.com/postgrip-io/postgrip-sdks/tree/main/go
+    - https://github.com/postgrip-io/postgrip-sdk/tree/main/go
   pkg.go.dev:
     - https://pkg.go.dev/github.com/postgrip-io/postgrip-agent-sdks/go
 
@@ -19,9 +19,9 @@ aux_links_new_tab: true
 
 nav_external_links:
   - title: TypeScript SDK
-    url: https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript
+    url: https://github.com/postgrip-io/postgrip-sdk/tree/main/typescript
   - title: Python SDK
-    url: https://github.com/postgrip-io/postgrip-sdks/tree/main/python
+    url: https://github.com/postgrip-io/postgrip-sdk/tree/main/python
 
 footer_content: >
   Part of the consolidated PostGrip SDK monorepo.

@@ -6,10 +6,12 @@ nav_order: 4
 
 # Packages
 
-The SDK ships as five focused public sub-packages plus two internal ones. Each public package owns a clear slice of the surface; the directory tree itself documents the shape.
+The unified Go module contains root, Agent, Worker-management, Service-management
+and protocol packages. This page describes the Agent runtime subtree: five
+public packages and its internal replay/JSON infrastructure.
 
 ```
-github.com/postgrip-io/postgrip-agent-sdks/go/
+github.com/postgrip-io/postgrip-agent-sdks/go/agent/
 ├─ client/             Connection + Client + Task/Workflow/Schedule sub-clients
 ├─ worker/             Worker polling loop + workflow.Context implementation
 ├─ workflow/           Context interface, options, Func, SignalChannel
@@ -30,7 +32,7 @@ internal/replay ────────┘
 internal/jsonenv ─→ client, worker
 ```
 
-`failure`, `workflow`, `activity`, and the `internal/*` packages are leaves (depend only on `agent-sdk-protocol`). `client` adds `failure` + `workflow`. `worker` depends on all of them. The graph is acyclic and intentionally so.
+`failure`, `workflow`, `activity`, and the `internal/*` packages are leaves (depend only on `go/protocol`). `client` adds `failure` + `workflow`. `worker` depends on all of them. The graph is acyclic and intentionally so.
 
 ---
 
@@ -60,7 +62,7 @@ primitives, not the documented SDK workflow submission path.
 
 `WorkflowHandle` (returned from `Workflow.Start` and `Workflow.GetHandle`) is the durable reference to a workflow run: `Result`, `Describe`, `Signal`, `Cancel`, `Terminate`, `History`.
 
-The package re-exports the wire types from `agent-sdk-protocol` (`Task`, `WorkflowExecution`, `Schedule`, etc.) so customer code stays within the `client` namespace.
+The package re-exports the wire types from `go/protocol` (`Task`, `WorkflowExecution`, `Schedule`, etc.) so customer code stays within the `client` namespace.
 
 ## worker
 

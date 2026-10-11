@@ -35,7 +35,9 @@ The Python SDK ships with an AST-walking sandbox that rejects common nondetermin
 - `uuid.uuid4()`
 - Direct `datetime.now()` / `datetime.utcnow()`
 
-If your workflow imports any of these at the top of a file decorated with `@workflow.defn`, the decorator raises an `ApplicationFailure` with a helpful message pointing at the offending name and suggesting the safe replacement:
+When the inspected workflow source contains a banned call, `@workflow.defn`
+raises an `ApplicationFailure`. This is a source-level check, not a ban on all
+imports in the containing module:
 
 | Don't use         | Use instead                              |
 |:------------------|:-----------------------------------------|

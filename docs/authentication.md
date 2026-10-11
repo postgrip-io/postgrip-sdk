@@ -23,7 +23,10 @@ separate root clients.
 A host PostGrip Agent launches managed workflow runtimes with short-lived
 Agent access and refresh tokens plus an ephemeral signing key. Those values
 are injected as `POSTGRIP_AGENT_*` variables, remain bound to the delegated
-namespace and queues, and authenticate signed Agent runtime routes only.
+namespace and queues, and authenticate only the Agent operations that declare
+delegated sessions as an accepted credential. Some task routes accept either credential class;
+runtime task types remain constrained to the delegated namespace/queues.
+Signing is required where the operation declares it, not on every Agent read.
 They must not be copied into `POSTGRIP_TOKEN` or sent to Worker and Service
 management routes.
 

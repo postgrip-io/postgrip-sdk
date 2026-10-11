@@ -81,7 +81,7 @@ export async function myWorkflow(userId: string): Promise<string> {
 
 The runtime service handles retries based on the proxy's `retry` option. From the workflow's perspective, the activity call either eventually returns its result or throws the failure that exhausted retries.
 
-If an activity throws an `ApplicationFailure({ nonRetryable: true })`, the runtime skips retries. Use that pattern for permanent errors (validation, "not found", etc.).
+If an activity throws an `new ApplicationFailure("permanent failure", { nonRetryable: true })`, the runtime skips retries. Use that pattern for permanent errors (validation, "not found", etc.).
 
 ## Timers
 
@@ -90,7 +90,7 @@ If an activity throws an `ApplicationFailure({ nonRetryable: true })`, the runti
 ```ts
 import { sleep } from '@postgrip/sdk/agent';
 
-await sleep(60_000); // ten minutes
+await sleep(600_000); // ten minutes
 ```
 
 The first time your workflow reaches the line, the timer is enqueued and the awaited promise stays pending. When the timer fires, the runtime service redelivers, your function re-runs, and on the second pass `sleep` sees the recorded timer in history and returns immediately.

@@ -69,7 +69,7 @@ import type { OpenAPICreateWorkerRequest } from '@postgrip/sdk/worker';
 
 const path = 'worker-create.secret.json';
 const info = await lstat(path);
-if (!info.isFile() || info.isSymbolicLink() || (info.mode & 0o077) !== 0) {
+if (!info.isFile() || info.isSymbolicLink() || (info.mode & 0o777) !== 0o600) {
   throw new Error('Worker create journal must be a regular mode-0600 file');
 }
 const journal = JSON.parse(await readFile(path, 'utf8')) as {
@@ -108,5 +108,6 @@ receipt = postgrip.workers.create(
 )  # replay this exact journal after response loss
 ```
 
-See the immutable [`createWorker` API reference](reference/73278af7cf28358c4c7d2fafa3a62b11671d8a1c718fb3bbe6fa1838cb440508/worker/createWorker.md)
-for scopes, schemas, replay behavior, errors, and the crash-safe cURL workflow.
+Use the [current reference index](reference/README.md), then Worker →
+`createWorker`, for scopes, schemas, replay behavior, errors and the crash-safe
+cURL workflow. Each selected bundle retains an immutable URL.

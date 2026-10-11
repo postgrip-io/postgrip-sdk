@@ -32,13 +32,14 @@ The package re-exports its public surface from `postgrip.agent.__init__`, so mos
 ## Local development from a clone
 
 ```sh
-git clone https://github.com/postgrip-io/postgrip-sdks.git
-cd postgrip-sdks/python
+git clone https://github.com/postgrip-io/postgrip-sdk.git
+cd postgrip-sdk/python
 pip install -e .
 PYTHONPATH=src python -m unittest discover -s test
 ```
 
-The repo uses a `src/` layout, so direct test runs need `PYTHONPATH=src`. CI does the same.
+The repo uses a `src/` layout, so direct source-tree tests need `PYTHONPATH=src`.
+CI also builds and tests the installed wheel without source-tree shadowing.
 
 ## Type checking
 
@@ -54,8 +55,9 @@ from postgrip.agent import Client
 
 client = await Client.connect(
     "http://127.0.0.1:4100",
-    # Agent token from Settings > Organization > Agent tokens.
-    headers={"Authorization": f"Bearer {os.environ['POSTGRIP_AGENT_TOKEN']}"},
+    insecure_development=True,  # Explicit local-development opt-in.
+    # Common tenant management token with the required Agent scopes.
+    auth_token=os.environ["POSTGRIP_TOKEN"],
 )
 ```
 

@@ -6,16 +6,16 @@ runtime registers workflow and activity functions.
 
 ## Submit a workflow runtime
 
-A client process uses an Agent token from Settings > Organization > Agent tokens
-and submits a `workflow.runtime` task. The host PostGrip agent launches the
-runtime process and injects delegated credentials.
+A client process uses `POSTGRIP_TOKEN`, a common tenant management token with
+the required Agent scopes, and submits a `workflow.runtime` task. The host
+PostGrip agent launches the runtime process and injects delegated credentials.
 
 ```ts
 import { Client, Connection } from '@postgrip/sdk/agent';
 
 const connection = await Connection.connect({
-  // Agent token from Settings > Organization > Agent tokens.
-  headers: { Authorization: `Bearer ${process.env.POSTGRIP_AGENT_TOKEN}` },
+  // Common tenant management token with the required Agent scopes.
+  authToken: process.env.POSTGRIP_TOKEN,
 });
 
 const client = new Client({ connection });
@@ -99,9 +99,9 @@ console.log(await resultPromise);
 
 The SDK `Agent` loops inside the managed runtime, leasing tasks from the configured queue, heartbeating each leased task, and dispatching to your registered functions. Concurrency is bounded by `maxConcurrentTaskExecutions` (default 4).
 
-## Start a workflow from elsewhere
+## Start another workflow inside the managed runtime
 
-From the client side, start the workflow you registered above and read its result via a handle:
+From the managed runtime client, start the workflow you registered above and read its result via a handle:
 
 ```ts
 const handle = await client.workflow.start(greetingWorkflow, {
