@@ -15,9 +15,12 @@ nav:
   - Live testing: live-testing.md
   - Releasing: releasing.md
   - API reference: reference/README.md
-  - Architecture:
-      - Design: unified-sdk-design.md
-      - Implementation plan: unified-sdk-implementation-plan.md
+  - Development:
+      - Architecture: development/architecture.md
+      - Contracts and web: development/contracts.md
+      - Validation: development/testing.md
+      - Contributing: development/contributing.md
+  - Historical records: archive/index.md
 markdown_extensions:
   - admonition
   - tables

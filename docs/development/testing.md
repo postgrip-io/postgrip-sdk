@@ -59,3 +59,9 @@ that cancels superseded `main` runs. These are explicit CI gaps, not documentati
 claims that web's enforcement already exists here. Changing them requires a
 separate workflow design and validation. Web's six light/eight heavy self-hosted
 runner pool is not the runner configuration of these SDK workflows.
+
+## Historical decisions
+
+See the [historical SDK records](../archive/index.md) for the unification design,
+phase evidence and dated simplification review. Current requirements are above;
+old results do not establish present release readiness.

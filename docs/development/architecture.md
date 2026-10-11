@@ -43,3 +43,9 @@ named exports, and four-space Python following PEP 8. Keep TypeScript ESM
 subpaths and Python exports deliberate. Do not create a fourth publishable
 manifest or plane-specific release path; [releasing](../releasing.md) owns tags
 and version coordination.
+
+## Historical decisions
+
+See the [historical SDK records](../archive/index.md) for the unification design,
+phase evidence and dated simplification review. Current requirements are above;
+old results do not establish present release readiness.

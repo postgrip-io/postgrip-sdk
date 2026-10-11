@@ -70,3 +70,9 @@ publishing.
 The three tags may run independently, but all must use the same value from
 `VERSION`. Plane-specific tags and packages are obsolete and must not be
 reintroduced.
+
+## Historical decisions
+
+See the [historical SDK records](archive/index.md) for the unification design,
+phase evidence and dated simplification review. Current requirements are above;
+old results do not establish present release readiness.
