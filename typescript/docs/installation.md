@@ -80,8 +80,8 @@ import type { WorkflowFunction, ActivityRegistry, RetryPolicy } from '@postgrip/
 ## Local development from a clone
 
 ```sh
-git clone https://github.com/postgrip-io/postgrip-sdks.git
-cd postgrip-sdks/typescript
+git clone https://github.com/postgrip-io/postgrip-sdk.git
+cd postgrip-sdk/typescript
 bun install --frozen-lockfile
 bun run typecheck
 bun run build
@@ -99,8 +99,9 @@ import { Connection } from '@postgrip/sdk/agent';
 
 const connection = await Connection.connect({
   baseUrl: 'http://127.0.0.1:4100',
-  // Agent token from Settings > Organization > Agent tokens.
-  headers: { Authorization: `Bearer ${process.env.POSTGRIP_AGENT_TOKEN}` },
+  insecureDevelopment: true, // Explicitly opt in only for local development.
+  // Common tenant management token with the required Agent scopes.
+  authToken: process.env.POSTGRIP_TOKEN,
 });
 ```
 

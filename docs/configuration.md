@@ -35,9 +35,10 @@ They do not import or initialize the root facade or another plane.
 
 The root clients expose common timeout and opt-in retry configuration. Plane
 adapters retain operation-specific retry ceilings and only retry operations
-the contract marks safe. Mutations that require idempotency must carry a fresh
-`Idempotency-Key`; Service administration writes may additionally require the
-current `If-Match` value.
+the contract marks safe. Mutations that require idempotency use a fresh
+`Idempotency-Key` for each new logical mutation, and reuse that same key and
+request on retries or response loss. Service administration writes may
+additionally require the current `If-Match` value.
 
 Do not blindly retry protocol operations, signed Agent runtime mutations,
 archive transfers, or WebSocket sessions. Their generated pages name the

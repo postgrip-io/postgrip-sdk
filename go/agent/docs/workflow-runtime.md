@@ -93,13 +93,17 @@ Long-running workflows accumulate history. Eventually that history gets big enou
 
 ```go
 func LongRunner(ctx workflow.Context, args []any) (any, error) {
-    counter, _ := args[0].(int)
+    // JSON numbers in untyped workflow args decode as float64.
+    counter := float64(0)
+    if len(args) > 0 {
+        counter = args[0].(float64) // This workflow accepts one numeric counter.
+    }
     for i := 0; i < 1000; i++ {
         // ... do work, schedule activities, etc.
         counter++
     }
     if counter < 1_000_000 {
-        return ctx.ContinueAsNew(workflow.ContinueAsNewOptions{
+        return nil, ctx.ContinueAsNew(workflow.ContinueAsNewOptions{
             Args: []any{counter},
         })
     }
@@ -107,7 +111,7 @@ func LongRunner(ctx workflow.Context, args []any) (any, error) {
 }
 ```
 
-`ContinueAsNew` is modeled as an error sentinel internally so workflow code can `return` it directly. The worker recognizes the sentinel and tells the runtime service to schedule the new run instead of marking the current one failed. Customer code typically just writes `return ctx.ContinueAsNew(...)`.
+`ContinueAsNew` is modeled as an error sentinel internally so workflow code can `return` it directly. The worker recognizes the sentinel and tells the runtime service to schedule the new run instead of marking the current one failed. Customer workflow bodies return `nil, ctx.ContinueAsNew(...)`.
 
 ## Cancellation
 

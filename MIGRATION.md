@@ -10,7 +10,7 @@ are namespaces inside those artifacts rather than separate releases.
 | PyPI | `postgrip` | `.agent`, `.worker`, `.service` |
 
 The published Go module path deliberately retains `postgrip-agent-sdks`.
-Do not rewrite it to match the `postgrip-sdks` repository name.
+Do not rewrite it to match the `postgrip-sdk` repository name.
 
 ## Authentication
 

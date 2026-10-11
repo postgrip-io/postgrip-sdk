@@ -62,7 +62,8 @@ Activities are the right place for non-deterministic work: HTTP calls, database 
 import { proxyActivities } from '@postgrip/sdk/agent';
 
 const activities = {
-  async fetchUser(id: string): Promise<{ name: string }> {
+  async fetchUser(id: unknown): Promise<{ name: string }> {
+    if (typeof id !== 'string') throw new TypeError('id must be a string');
     const resp = await fetch(`https://api.example.com/users/${id}`);
     return resp.json();
   },
@@ -73,7 +74,7 @@ const { fetchUser } = proxyActivities<typeof activities>({
   retry: { maximumAttempts: 5 },
 });
 
-export async function myWorkflow(userId: string): Promise<string> {
+export async function myWorkflow(userId: unknown): Promise<string> {
   const user = await fetchUser(userId);
   return user.name;
 }
@@ -81,7 +82,7 @@ export async function myWorkflow(userId: string): Promise<string> {
 
 The runtime service handles retries based on the proxy's `retry` option. From the workflow's perspective, the activity call either eventually returns its result or throws the failure that exhausted retries.
 
-If an activity throws an `ApplicationFailure({ nonRetryable: true })`, the runtime skips retries. Use that pattern for permanent errors (validation, "not found", etc.).
+If an activity throws an `new ApplicationFailure("permanent failure", { nonRetryable: true })`, the runtime skips retries. Use that pattern for permanent errors (validation, "not found", etc.).
 
 ## Timers
 
@@ -90,7 +91,7 @@ If an activity throws an `ApplicationFailure({ nonRetryable: true })`, the runti
 ```ts
 import { sleep } from '@postgrip/sdk/agent';
 
-await sleep(60_000); // ten minutes
+await sleep(600_000); // ten minutes
 ```
 
 The first time your workflow reaches the line, the timer is enqueued and the awaited promise stays pending. When the timer fires, the runtime service redelivers, your function re-runs, and on the second pass `sleep` sees the recorded timer in history and returns immediately.
@@ -197,7 +198,7 @@ export async function longRunner(counter = 0): Promise<number> {
     counter++;
   }
   if (counter < 1_000_000) {
-    continueAsNew(longRunner, counter); // throws ContinueAsNewCommand
+    continueAsNew('longRunner', { args: [counter] }); // throws ContinueAsNewCommand
   }
   return counter;
 }

@@ -1,6 +1,6 @@
 # API
 
-Public surface re-exported from `@postgrip/sdk/agent`. Customer code should import every name from the package root — sub-paths under `dist/` aren't part of the supported API.
+Public surface re-exported from `@postgrip/sdk/agent`. Customer code should import these Agent names from that public subpath — sub-paths under `dist/` aren't part of the supported API.
 
 ## Top-level
 
@@ -26,7 +26,7 @@ Public surface re-exported from `@postgrip/sdk/agent`. Customer code should impo
 | `defineSignal<Args>(name)` / `defineQuery<R, Args>(name)` / `defineUpdate<R, Args>(name)` | Declare a signal / query / update; returns a definition. |
 | `setHandler(definition, handler)`                                             | Bind a handler to a definition.                           |
 | `await milestone(name, options)`                                              | Emit a milestone event for the workflow task.             |
-| `continueAsNew(workflowFn, ...args)`                                          | Restart the current workflow with fresh history (throws).  |
+| `continueAsNew(workflowFn, options)`                                          | Restart the current workflow with fresh history (throws).  |
 | `validateWorkflowSandbox(workflowFn)`                                         | Static sandbox check; throws if the body uses banned APIs. |
 | `CancellationScope`                                                           | Class for scoping cancellation behavior.                  |
 
@@ -56,7 +56,7 @@ Constructors: `new ApplicationFailure(message, { type, nonRetryable, details })`
 
 The Agent subpath re-exports the wire-format types defined in
 `src/agent/types.ts`, mirroring the Go
-[`protocol`](https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol)
+[`protocol`](https://github.com/postgrip-io/postgrip-sdk/tree/main/go/protocol)
 package. Common types and their request/response counterparts are all
 `import type { ... }`-able from `@postgrip/sdk/agent`.
 
@@ -68,6 +68,6 @@ The package ships with type declarations (`dist/index.d.ts`). All public functio
 
 When in doubt, the code is the documentation:
 
-- [`src/agent/index.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/index.ts) — full Agent re-export list.
-- [`src/agent/types.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/types.ts) — wire-type definitions.
-- [`src/agent/workflow.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/workflow.ts), [`src/agent/activity.ts`](https://github.com/postgrip-io/postgrip-sdks/blob/main/typescript/src/agent/activity.ts) — runtime helpers.
+- [`src/agent/index.ts`](https://github.com/postgrip-io/postgrip-sdk/blob/main/typescript/src/agent/index.ts) — full Agent re-export list.
+- [`src/agent/types.ts`](https://github.com/postgrip-io/postgrip-sdk/blob/main/typescript/src/agent/types.ts) — wire-type definitions.
+- [`src/agent/workflow.ts`](https://github.com/postgrip-io/postgrip-sdk/blob/main/typescript/src/agent/workflow.ts), [`src/agent/activity.ts`](https://github.com/postgrip-io/postgrip-sdk/blob/main/typescript/src/agent/activity.ts) — runtime helpers.

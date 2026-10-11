@@ -13,7 +13,7 @@ Run shell commands, container workloads, and durable workflows on the PostGrip A
 **Current release:** `v0.13.0`
 
 [Quick start →]({{ "/quickstart" | relative_url }}){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[GitHub](https://github.com/postgrip-io/postgrip-sdks/tree/main/go){: .btn .fs-5 .mb-4 .mb-md-0 }
+[GitHub](https://github.com/postgrip-io/postgrip-sdk/tree/main/go){: .btn .fs-5 .mb-4 .mb-md-0 }
 [pkg.go.dev](https://pkg.go.dev/github.com/postgrip-io/postgrip-agent-sdks/go){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -39,9 +39,9 @@ only import what you need—most apps that enqueue tasks need only `agent/client
 This is the Go member of the three-language SDK family. Its TypeScript and
 Python siblings expose the same API planes and wire contracts.
 
-- [TypeScript SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript)
-- [Python SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/python)
-- [Agent protocol](https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol) — the shared runtime wire shapes
+- [TypeScript SDK](https://github.com/postgrip-io/postgrip-sdk/tree/main/typescript)
+- [Python SDK](https://github.com/postgrip-io/postgrip-sdk/tree/main/python)
+- [Agent protocol](https://github.com/postgrip-io/postgrip-sdk/tree/main/go/protocol) — the shared runtime wire shapes
 
 ## Where to next
 

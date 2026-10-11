@@ -6,7 +6,7 @@ nav_order: 2
 
 # Installation
 
-The SDK lives at `github.com/postgrip-io/postgrip-agent-sdks/go`; its source is the [`go/`](https://github.com/postgrip-io/postgrip-sdks/tree/main/go) directory of the SDK monorepo.
+The SDK lives at `github.com/postgrip-io/postgrip-agent-sdks/go`; its source is the [`go/`](https://github.com/postgrip-io/postgrip-sdk/tree/main/go) directory of the SDK monorepo.
 
 ```sh
 go get github.com/postgrip-io/postgrip-agent-sdks/go@latest
@@ -48,9 +48,11 @@ runtime worker — needs only `client`.
 For local development, point the SDK at a runtime service running on your machine:
 
 ```go
-conn, _ := client.NewConnection(client.ConnectionOptions{
+conn, err := client.NewConnection(client.ConnectionOptions{
     Address: "http://127.0.0.1:4100",
+    InsecureDevelopment: true, // Explicitly opt in only for local development.
 })
+if err != nil { return err }
 ```
 
 `Address` defaults to PostGrip Cloud if empty. For local or self-hosted development, pass `Address` explicitly or set `POSTGRIP_AGENT_URL`.

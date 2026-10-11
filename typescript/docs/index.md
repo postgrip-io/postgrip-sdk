@@ -5,7 +5,7 @@ Run shell commands, container workloads, and durable workflows on the PostGrip A
 **Current release:** `0.13.0`
 
 [Quick start →](quickstart.md){ .md-button .md-button--primary }
-[GitHub](https://github.com/postgrip-io/postgrip-sdks/tree/main/typescript){ .md-button }
+[GitHub](https://github.com/postgrip-io/postgrip-sdk/tree/main/typescript){ .md-button }
 [npm](https://www.npmjs.com/package/@postgrip/sdk){ .md-button }
 
 ---
@@ -20,7 +20,8 @@ The shape mirrors the Temporal TypeScript SDK on purpose: workflows are plain as
 import { proxyActivities } from '@postgrip/sdk/agent';
 
 const activities = {
-  async greet(name: string): Promise<string> {
+  async greet(name: unknown): Promise<string> {
+    if (typeof name !== 'string') throw new TypeError('name must be a string');
     return `hello, ${name}`;
   },
 };
@@ -30,7 +31,7 @@ const { greet } = proxyActivities<typeof activities>({
   retry: { maximumAttempts: 3 },
 });
 
-export async function greetingWorkflow(name: string): Promise<string> {
+export async function greetingWorkflow(name: unknown): Promise<string> {
   return greet(name);
 }
 ```
@@ -41,9 +42,9 @@ This is the TypeScript member of the three-language SDK family. The single
 `@postgrip/sdk` package contains Agent, Worker, and Service clients; its Go and
 Python siblings expose the same API planes and wire contracts.
 
-- [Go SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/go)
-- [Python SDK](https://github.com/postgrip-io/postgrip-sdks/tree/main/python)
-- [Agent protocol](https://github.com/postgrip-io/postgrip-sdks/tree/main/go/protocol) — the shared runtime wire shapes
+- [Go SDK](https://github.com/postgrip-io/postgrip-sdk/tree/main/go)
+- [Python SDK](https://github.com/postgrip-io/postgrip-sdk/tree/main/python)
+- [Agent protocol](https://github.com/postgrip-io/postgrip-sdk/tree/main/go/protocol) — the shared runtime wire shapes
 
 ## Where to next
 

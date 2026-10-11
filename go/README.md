@@ -36,7 +36,7 @@ Direct packages remain available without constructing the root facade:
   infrastructure consumers.
 
 The module path intentionally retains `postgrip-agent-sdks` for published Go
-compatibility even though the repository is `postgrip-sdks`.
+compatibility even though the repository is `postgrip-sdk`.
 
 See the repository [quick start](../README.md), [authentication
 model](../docs/authentication.md), and [generated API

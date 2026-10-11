@@ -1,6 +1,6 @@
 site_name: PostGrip SDKs
 site_description: Unified Agent, Worker, and Service SDK documentation
-repo_url: https://github.com/postgrip-io/postgrip-sdks
+repo_url: https://github.com/postgrip-io/postgrip-sdk
 docs_dir: docs
 theme:
   name: material

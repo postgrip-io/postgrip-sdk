@@ -12,9 +12,9 @@ runtime registers workflow and activity functions.
 
 ## Submit a workflow runtime
 
-A client process uses an Agent token from Settings > Organization > Agent tokens
-and submits a `workflow.runtime` task. The host PostGrip agent launches the
-runtime process and injects delegated credentials.
+A client process uses `POSTGRIP_TOKEN`, a common tenant management token with
+the required Agent scopes, and submits a `workflow.runtime` task. The host
+PostGrip agent launches the runtime process and injects delegated credentials.
 
 ```go
 package main
@@ -29,8 +29,8 @@ import (
 
 func main() {
     conn, err := client.NewConnection(client.ConnectionOptions{
-        // Agent token from Settings > Organization > Agent tokens.
-        AuthToken: os.Getenv("POSTGRIP_AGENT_TOKEN"),
+        // Common tenant management token with the required Agent scopes.
+        AuthToken: os.Getenv("POSTGRIP_TOKEN"),
     })
     if err != nil {
         log.Fatal(err)
