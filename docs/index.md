@@ -31,3 +31,7 @@ Review the affected owner's linked current references as part of a change.
 Do not recursively reopen old generated bundles or past acceptance records
 unless the change depends on them. Designs specify scoped changes; they do not
 become a second permanent owner after implementation.
+
+## Historical decisions
+
+[Archived decisions and evidence](archive/index.md) remain available separately.

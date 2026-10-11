@@ -55,3 +55,9 @@ remain separate [authentication lanes](../authentication.md). Keep signing,
 refresh, retry, cursor following, long polling, archives and WebSocket framing
 in runtime adapters rather than generated clients. Global administration and
 worker-local secret reads must not enter public contracts.
+
+## Historical decisions
+
+See the [historical SDK records](../archive/index.md) for the unification design,
+phase evidence and dated simplification review. Current requirements are above;
+old results do not establish present release readiness.

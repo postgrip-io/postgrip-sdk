@@ -67,14 +67,12 @@ from postgrip.service import ServiceClient
 
 ## Coordinated release
 
-All ecosystems read the repository `VERSION` and release the same SemVer.
-Tags are `go/vX.Y.Z`, `typescript/vX.Y.Z`, and `python/vX.Y.Z`. The server
-contract and common-token change deploys before clients are published.
+Follow [releasing](docs/releasing.md) for shared versions, ecosystem tags,
+registry ownership, server-first deployment and required live-suite evidence.
+Migration does not waive those gates. The generated [reference index](docs/reference/README.md)
+identifies the current bundle; versioned reference URLs remain immutable.
 
-The immutable API reference path contains the exact contract-bundle digest
-embedded by the generated clients, so release documentation never silently
-tracks a later `main` contract.
+## Historical decisions
 
-Do not publish the SDK artifacts until the disposable nightly and isolated
-pre-release live suites required by the design have passed for the coordinated
-server release.
+The [unification records](docs/archive/index.md) preserve the original rollout
+and gate reports. Use the current migration steps above for consumer changes.
