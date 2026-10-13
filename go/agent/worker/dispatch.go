@@ -90,6 +90,11 @@ func (w *Worker) runWorkflow(ctx context.Context, task *client.Task) (*client.Ta
 	rp := replay.New(history)
 	wfctx := newWorkflowContext(ctx, w, task, workflowID, workflowType, rp)
 	value, err := fn(wfctx, args)
+	// Nondeterminism is sticky: a violation fails the task even when workflow
+	// code caught it and then returned, suspended or continued as new.
+	if detErr := rp.DeterminismErr(); detErr != nil {
+		return &client.TaskResult{}, translateReplayError(detErr)
+	}
 	if err != nil {
 		// Workflow yielded on a pending command. Block the task so the
 		// runtime service redelivers it after the dependency resolves;
@@ -225,6 +230,9 @@ func (w *Worker) replayWorkflowForInteraction(
 	wfctx := newWorkflowContext(ctx, w, sourceTask, workflowID, workflowType, replay.New(history))
 	wfctx.replayOnly = true
 	_, runErr := fn(wfctx, args)
+	if detErr := wfctx.replay.DeterminismErr(); detErr != nil {
+		return nil, translateReplayError(detErr)
+	}
 	if runErr != nil && !workflow.IsSuspended(runErr) && !workflow.IsContinueAsNew(runErr) {
 		return nil, runErr
 	}

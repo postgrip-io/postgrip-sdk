@@ -128,9 +128,18 @@ def render_tree(output: Path) -> int:
     return count
 
 
+def _plane_fixtures(root: Path) -> set[Path]:
+    """Recorded operation fixtures this generator owns: one directory per plane.
+
+    Other directories under test/fixtures, such as replay conformance fixtures,
+    belong to their own suites and are neither compared nor regenerated here.
+    """
+    return {path.relative_to(root) for plane in PLANES for path in (root / plane).rglob("*.json")}
+
+
 def compare(expected: Path, actual: Path) -> list[str]:
-    expected_files = {path.relative_to(expected) for path in expected.rglob("*.json")}
-    actual_files = {path.relative_to(actual) for path in actual.rglob("*.json")}
+    expected_files = _plane_fixtures(expected)
+    actual_files = _plane_fixtures(actual)
     failures = [f"missing fixture: {path}" for path in sorted(expected_files - actual_files)]
     failures.extend(f"stale fixture: {path}" for path in sorted(actual_files - expected_files))
     for relative in sorted(expected_files & actual_files):
@@ -155,8 +164,9 @@ def main() -> int:
             return 1
         print(f"Recorded fixtures verified: {count} operations")
         return 0
-    if FIXTURES.exists():
-        shutil.rmtree(FIXTURES)
+    for plane in PLANES:
+        if (FIXTURES / plane).exists():
+            shutil.rmtree(FIXTURES / plane)
     count = render_tree(FIXTURES)
     print(f"Recorded fixtures generated: {count} operations")
     return 0

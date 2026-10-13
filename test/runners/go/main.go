@@ -70,13 +70,19 @@ func main() {
 		fatalf("service client: %v", err)
 	}
 
-	planePattern := "*"
+	// Recorded operation fixtures live in one directory per plane; other
+	// directories under the fixture root belong to other suites.
+	planes := []string{"agent", "worker", "service"}
 	if *plane != "all" {
-		planePattern = *plane
+		planes = []string{*plane}
 	}
-	paths, err := filepath.Glob(filepath.Join(*fixtureRoot, planePattern, "*.json"))
-	if err != nil {
-		fatalf("fixtures: %v", err)
+	var paths []string
+	for _, name := range planes {
+		matches, err := filepath.Glob(filepath.Join(*fixtureRoot, name, "*.json"))
+		if err != nil {
+			fatalf("fixtures: %v", err)
+		}
+		paths = append(paths, matches...)
 	}
 	sort.Strings(paths)
 	completed := make([]string, 0, len(paths))

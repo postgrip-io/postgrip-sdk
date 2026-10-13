@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 import io
 import os
+import threading
 import time
 import unittest
-from typing import get_type_hints
+from typing import Any, get_type_hints
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -376,8 +377,240 @@ class PythonSdkTests(unittest.TestCase):
         task_id, error, result = connection.failed[0]
         self.assertEqual(task_id, "workflow-task-1")
         self.assertEqual(error, "activity command changed at index 1: history=A replay=B")
-        self.assertEqual(result["failure"]["type"], "DeterminismViolation")
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
         self.assertTrue(result["failure"]["non_retryable"])
+
+    def test_caught_determinism_violation_still_fails_the_task(self):
+        @workflow.defn(name="CatchingWorkflow")
+        class CatchingWorkflow:
+            @workflow.run
+            async def run(self) -> str:
+                try:
+                    await workflow.execute_activity("B")
+                except Exception:
+                    pass  # Ignored on purpose: nondeterminism must still fail the task.
+                return "done"
+
+        connection = FakeConnection()
+        connection.histories["run-1"] = [{
+            "type": "ActivityTaskScheduled",
+            "task_id": "activity-task-1",
+            "attributes": {"activity_type": "A"},
+        }]
+        agent = Agent(connection=connection, task_queue="default", workflows=[CatchingWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:CatchingWorkflow",
+            "payload": {"workflowType": "CatchingWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        asyncio.run(agent._execute(task))
+
+        self.assertEqual(connection.completed, [])
+        _, error, result = connection.failed[0]
+        self.assertEqual(error, "activity command changed at index 1: history=A replay=B")
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
+
+    def test_concurrent_new_commands_are_scheduled_in_call_order(self):
+        @workflow.defn(name="ConcurrentWorkflow")
+        class ConcurrentWorkflow:
+            @workflow.run
+            async def run(self) -> list:
+                return list(await asyncio.gather(workflow.execute_activity("First"), workflow.execute_activity("Second")))
+
+        connection = FakeConnection()
+        order: list[str] = []
+        first_started = threading.Event()
+        release_first = threading.Event()
+        original_enqueue = connection.enqueue_task
+
+        def enqueue(request: dict) -> dict:
+            order.append(f"start {request['type']}")
+            if request["type"] == "activity:First":
+                first_started.set()
+                release_first.wait(5)
+            order.append(f"end {request['type']}")
+            return original_enqueue(request)
+
+        connection.enqueue_task = enqueue
+        agent = Agent(connection=connection, task_queue="default", workflows=[ConcurrentWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:ConcurrentWorkflow",
+            "payload": {"workflowType": "ConcurrentWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        async def scenario() -> None:
+            running = asyncio.create_task(agent._execute(task))
+            await asyncio.to_thread(first_started.wait, 5)
+            await asyncio.sleep(0.05)
+            self.assertEqual(order, ["start activity:First"])
+            release_first.set()
+            await running
+
+        asyncio.run(scenario())
+
+        self.assertEqual(order, ["start activity:First", "end activity:First", "start activity:Second", "end activity:Second"])
+
+    def test_failed_enqueue_stops_later_commands(self):
+        @workflow.defn(name="FailingEnqueueWorkflow")
+        class FailingEnqueueWorkflow:
+            @workflow.run
+            async def run(self) -> list:
+                return list(await asyncio.gather(workflow.execute_activity("First"), workflow.execute_activity("Second")))
+
+        connection = FakeConnection()
+        attempted: list[str] = []
+
+        def enqueue(request: dict) -> dict:
+            attempted.append(request["type"])
+            raise RuntimeError("enqueue rejected")
+
+        connection.enqueue_task = enqueue
+        agent = Agent(connection=connection, task_queue="default", workflows=[FailingEnqueueWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:FailingEnqueueWorkflow",
+            "payload": {"workflowType": "FailingEnqueueWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        asyncio.run(agent._execute(task))
+
+        self.assertEqual(attempted, ["activity:First"])
+
+    def test_task_waits_for_every_started_command_before_blocking(self):
+        @workflow.defn(name="DrainWorkflow")
+        class DrainWorkflow:
+            @workflow.run
+            async def run(self) -> list:
+                return list(await asyncio.gather(workflow.execute_activity("First"), workflow.execute_activity("Second")))
+
+        connection = FakeConnection()
+        order: list[str] = []
+        second_started = threading.Event()
+        release_second = threading.Event()
+        original_enqueue = connection.enqueue_task
+        original_block = connection.block_task
+
+        def enqueue(request: dict) -> dict:
+            if request["type"] == "activity:Second":
+                second_started.set()
+                release_second.wait(5)
+            order.append(f"enqueued {request['type']}")
+            return original_enqueue(request)
+
+        def block(*args: Any, **kwargs: Any) -> Any:
+            order.append("blocked")
+            return original_block(*args, **kwargs)
+
+        connection.enqueue_task = enqueue
+        connection.block_task = block
+        agent = Agent(connection=connection, task_queue="default", workflows=[DrainWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:DrainWorkflow",
+            "payload": {"workflowType": "DrainWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        async def scenario() -> None:
+            running = asyncio.create_task(agent._execute(task))
+            await asyncio.to_thread(second_started.wait, 5)
+            await asyncio.sleep(0.05)
+            self.assertEqual(order, ["enqueued activity:First"])
+            release_second.set()
+            await running
+
+        asyncio.run(scenario())
+
+        self.assertEqual(order, ["enqueued activity:First", "enqueued activity:Second", "blocked"])
+
+    def _run_query(self, workflow_cls, history: list[dict]) -> "FakeConnection":
+        connection = FakeConnection()
+        connection.histories["run-1"] = history
+        connection.workflows["run-1"] = {
+            "id": "workflow-1",
+            "run_id": "run-1",
+            "task_id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "QueriedWorkflow",
+            "state": "running",
+        }
+        connection.tasks["workflow-task-1"] = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:QueriedWorkflow",
+            "payload": {"workflowType": "QueriedWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+        }
+        agent = Agent(connection=connection, task_queue="default", workflows=[workflow_cls], activities={})
+        asyncio.run(agent._execute({
+            "id": "query-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "query:QueriedWorkflow",
+            "payload": {
+                "workflowId": "workflow-1",
+                "workflowRunId": "run-1",
+                "workflowType": "QueriedWorkflow",
+                "queryName": "answer",
+                "args": [],
+            },
+            "lease_timeout_seconds": 30,
+        }))
+        return connection
+
+    def test_query_replay_checks_timer_duration(self):
+        answer_query = workflow.define_query("answer")
+
+        @workflow.defn(name="QueriedWorkflow")
+        class QueriedWorkflow:
+            @workflow.run
+            async def run(self) -> None:
+                workflow.set_handler(answer_query, lambda: "ready")
+                await workflow.sleep(timedelta(seconds=2))
+
+        connection = self._run_query(QueriedWorkflow, [
+            {"type": "TimerStarted", "task_id": "timer-1", "attributes": {"duration_ms": 1000}},
+        ])
+
+        self.assertEqual(connection.completed, [])
+        _, error, result = connection.failed[0]
+        self.assertIn("timer", error)
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
+
+    def test_query_replay_reports_violation_when_code_raises_another_error(self):
+        answer_query = workflow.define_query("answer")
+
+        @workflow.defn(name="QueriedWorkflow")
+        class QueriedWorkflow:
+            @workflow.run
+            async def run(self) -> None:
+                workflow.set_handler(answer_query, lambda: "ready")
+                try:
+                    await workflow.execute_activity("B")
+                except Exception:
+                    raise RuntimeError("unrelated failure")
+
+        connection = self._run_query(QueriedWorkflow, [
+            {"type": "ActivityTaskScheduled", "task_id": "activity-task-1", "attributes": {"activity_type": "A"}},
+        ])
+
+        _, error, result = connection.failed[0]
+        self.assertEqual(error, "activity command changed at index 1: history=A replay=B")
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
 
     def test_workflow_sleep_schedules_durable_timer_and_replays_fired_timer(self):
         @workflow.defn(name="TimerWorkflow")

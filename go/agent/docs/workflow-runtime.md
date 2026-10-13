@@ -17,7 +17,7 @@ Every time the runtime service hands a workflow task to a worker, the worker:
 3. Constructs a fresh `workflow.Context` and **runs your workflow body from the top**, passing it that context.
 4. Each call from your body to `ctx.Sleep`, `ctx.ExecuteActivity`, `ctx.ExecuteChildWorkflow`, or `ctx.GetSignalChannel().Receive()` consults the replay cursor before doing anything new.
 
-The cursor advances by one event per call (per command type). What happens at each call:
+The cursor walks the recorded commands in history order. What happens at each call:
 
 | Replay state for this command                                    | What happens                                                          |
 |:-----------------------------------------------------------------|:----------------------------------------------------------------------|
@@ -25,6 +25,14 @@ The cursor advances by one event per call (per command type). What happens at ea
 | History records this exact command, still in flight              | The body returns `*workflow.Suspended`.                                |
 | History is exhausted past this point                             | The worker enqueues a fresh command and the body returns `*workflow.Suspended`. |
 | History records a *different* command at this position           | The worker raises a non-retryable `WorkflowDeterminismViolation` failure. |
+
+Commands must be issued in the order history recorded them, across all kinds:
+a timer issued where history recorded an activity is a determinism violation,
+and so is a command whose kind has no recorded events left while another kind
+still does. A mismatched command leaves the recorded event unconsumed. A
+determinism violation is sticky: the workflow task, or the query or update
+task replaying it, fails with it even if your code catches the error and then
+returns, suspends, continues as new or returns another error.
 
 When the body returns `Suspended`, the worker calls `BlockTask` on the runtime service. The workflow task moves to the **blocked** state — *not* failed. The runtime service redelivers the task whenever a dependency resolves (an activity completes, a timer fires, a signal arrives), at which point the worker re-runs your body from the top with fuller history.
 

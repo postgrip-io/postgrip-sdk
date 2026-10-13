@@ -466,3 +466,41 @@ func newReplayCtx(t *testing.T, history []client.WorkflowHistoryEvent) *workflow
 		replay:     replay.New(history),
 	}
 }
+
+// A determinism violation is sticky: workflow code that catches it and returns
+// still fails the task instead of completing.
+func TestRunWorkflowFailsWhenCaughtDeterminismViolation(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/history") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"items":[{"id":"e1","workflow_id":"wf-task","type":"ActivityTaskScheduled","task_id":"act-1","attributes":{"activity_type":"Greet"},"created_at":"2026-01-01T00:00:00Z"}]}`))
+			return
+		}
+		http.Error(w, "unexpected request "+r.URL.Path, http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	conn, _ := client.NewConnection(client.ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "tok"})
+	w, err := New(Options{
+		Connection: conn,
+		AgentID:    "agent-1",
+		Workflows: workflow.Registry{"Diverging": func(ctx workflow.Context, args []any) (any, error) {
+			_ = ctx.ExecuteActivity("Farewell", nil, nil, nil) // caught and ignored
+			return "done", nil
+		}},
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	conn.SeedAgentSession("agent-1", "tok", time.Now().Add(time.Hour))
+
+	_, err = w.runWorkflow(context.Background(), &client.Task{
+		ID: "wf-task", Namespace: "default", Queue: "default",
+		Type: client.TaskTypePrefixWorkflow + "Diverging",
+	})
+	var app *failure.Application
+	if !errors.As(err, &app) || app.Type != "WorkflowDeterminismViolation" || !strings.Contains(app.Message, "activity command changed") {
+		t.Fatalf("err = %v, want a sticky WorkflowDeterminismViolation", err)
+	}
+}

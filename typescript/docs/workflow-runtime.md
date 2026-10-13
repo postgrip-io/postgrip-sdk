@@ -11,7 +11,7 @@ Every time the runtime service hands a workflow task to an agent, the agent:
 3. Constructs a fresh workflow runtime context and **calls your workflow function from the top**, passing it the workflow args.
 4. Awaits inside the function that touch workflow APIs (`sleep`, calls on `proxyActivities` proxies, `executeChild`, `condition`, signal handler awaits) consult the replay cursor before scheduling anything new.
 
-The cursor advances by one event per call (per command type). What happens at each call:
+The cursor walks the recorded commands in history order. What happens at each call:
 
 | Replay state for this command                                    | What happens                                                          |
 |:-----------------------------------------------------------------|:----------------------------------------------------------------------|
@@ -19,6 +19,19 @@ The cursor advances by one event per call (per command type). What happens at ea
 | History records this exact command, still in flight              | The promise stays pending; the agent reports the task as blocked and waits for redelivery. |
 | History exhausted past this point                                | The agent enqueues a fresh command and the promise stays pending.     |
 | History records a *different* command at this position           | A non-retryable `ApplicationFailure` tagged `WorkflowDeterminismViolation` is thrown. |
+
+Commands must be issued in the order history recorded them, across all kinds:
+a timer issued where history recorded an activity is a determinism violation,
+and so is a command whose kind has no recorded events left while another kind
+still does. A mismatched command leaves the recorded event unconsumed. A
+determinism violation is sticky: the workflow task, or the query or update
+task replaying it, fails with it even if your code catches the error and then
+returns, suspends, continues as new or throws something else. Commands issued
+concurrently, for example with `Promise.all`, are scheduled one at a time in
+call order, so history records them in the order replay consumes them. If one
+fails to enqueue, the commands issued after it are not enqueued either. The
+agent reports the workflow task's outcome only after every command it started
+has finished enqueueing.
 
 When the function's outermost promise stays pending past its scheduled commands, the agent calls `BlockTask` on the runtime service. The workflow task moves to the **blocked** state — *not* failed. The runtime service redelivers the task whenever a dependency resolves (an activity completes, a timer fires, a signal arrives), at which point the agent re-runs your function from the top with fuller history.
 

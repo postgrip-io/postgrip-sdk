@@ -1,0 +1,43 @@
+{
+  "description": "An activity retry consumes the retry attempt's scheduled event under the same rule.",
+  "history": [
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "a1",
+      "attributes": {
+        "activity_type": "A"
+      }
+    },
+    {
+      "type": "ActivityTaskRetryScheduled",
+      "task_id": "a2",
+      "attributes": {
+        "previous_task": "a1"
+      }
+    },
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "a2",
+      "attributes": {
+        "activity_type": "A"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "new"
+    }
+  ]
+}

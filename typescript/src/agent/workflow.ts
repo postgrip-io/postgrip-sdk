@@ -179,7 +179,7 @@ export function validateWorkflowSandbox(workflow: WorkflowFunction): void {
   if (violations.length > 0) {
     throw ApplicationFailure.nonRetryable(
       `workflow sandbox rejected nondeterministic API use: ${violations.join('; ')}`,
-      'DeterminismViolation',
+      'WorkflowDeterminismViolation',
     );
   }
 }
@@ -205,13 +205,22 @@ export class ContinueAsNewCommand extends Error {
 
 async function executeActivity(name: string, args: unknown[], options: ActivityOptions): Promise<unknown> {
   const runtime = currentRuntime();
-  await runtime.emit({
+  throwIfScopedCancellationRequested(runtime);
+  // Dispatch before awaiting the progress event: the runtime takes this
+  // command's replay and scheduling position synchronously, so concurrent
+  // calls keep call order regardless of how fast each event request returns.
+  const emitted = runtime.emit({
     stage: 'activity',
     message: `scheduling activity ${name}`,
     details: { activity: name },
   });
-  throwIfScopedCancellationRequested(runtime);
-  return runtime.executeActivity(name, args, { ...options, cancellationScope: currentCancellationScope() });
+  const result = runtime.executeActivity(name, args, { ...options, cancellationScope: currentCancellationScope() });
+  // The command's outcome wins over the auxiliary event: once the command may
+  // have been scheduled, a failed event must not turn suspension into failure.
+  const [event, command] = await Promise.allSettled([emitted, result]);
+  if (command.status === 'rejected') throw command.reason;
+  if (event.status === 'rejected') throw event.reason;
+  return command.value;
 }
 
 async function runInCancellationScope<R>(scope: CancellationScopeType, fn: () => Promise<R> | R): Promise<R> {

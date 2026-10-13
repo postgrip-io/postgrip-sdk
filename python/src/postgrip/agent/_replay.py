@@ -14,40 +14,71 @@ class DeterminismError(Exception):
     """Workflow code disagreed with durable history."""
 
 
+_COMMAND_TYPES = frozenset({"ActivityTaskScheduled", "TimerStarted", "ChildWorkflowExecutionStarted"})
+
+
 class WorkflowReplay:
     def __init__(self, history: list[dict[str, Any]]):
         self.history = history
-        self.activities = [event for event in history if event.get("type") == "ActivityTaskScheduled"]
-        self.timers = [event for event in history if event.get("type") == "TimerStarted"]
+        # Command events in history order; workflow code must consume them in this order.
+        self.commands = [(index, event) for index, event in enumerate(history) if event.get("type") in _COMMAND_TYPES]
         self.signals = [event for event in history if event.get("type") == "WorkflowSignaled"]
-        self.children = [event for event in history if event.get("type") == "ChildWorkflowExecutionStarted"]
         self.completed_updates = [event for event in history if event.get("type") == "WorkflowUpdateCompleted"]
         self.cancellation = next((event for event in history if event.get("type") == "WorkflowCancellationRequested"), None)
+        self.command_cursor = 0
         self.activity_index = 0
         self.timer_index = 0
         self.child_index = 0
+        # The first determinism error raised; a caught one still fails the task.
+        self.determinism_error: DeterminismError | None = None
 
     def next_activity(self, activity_type: str) -> dict[str, Any] | None:
-        event = self.activities[self.activity_index] if self.activity_index < len(self.activities) else None
-        self.activity_index += 1
+        event = self._next_command("ActivityTaskScheduled")
         if event and (event.get("attributes") or {}).get("activity_type") != activity_type:
-            raise DeterminismError(f"activity command changed at index {self.activity_index}: history={(event.get('attributes') or {}).get('activity_type')} replay={activity_type}")
+            raise self._fail(f"activity command changed at index {self.activity_index + 1}: history={(event.get('attributes') or {}).get('activity_type')} replay={activity_type}")
+        if event:
+            self.activity_index += 1
+            self.command_cursor += 1
         return event
 
     def next_timer(self, duration_ms: int | None = None) -> dict[str, Any] | None:
-        event = self.timers[self.timer_index] if self.timer_index < len(self.timers) else None
-        self.timer_index += 1
+        event = self._next_command("TimerStarted")
         history_duration = (event.get("attributes") or {}).get("duration_ms") if event else None
         if event and duration_ms is not None and history_duration is not None and round(duration_ms) != history_duration:
-            raise DeterminismError(f"timer command changed at index {self.timer_index}: history={history_duration} replay={round(duration_ms)}")
+            raise self._fail(f"timer command changed at index {self.timer_index + 1}: history={history_duration} replay={round(duration_ms)}")
+        if event:
+            self.timer_index += 1
+            self.command_cursor += 1
         return event
 
     def next_child(self, workflow_type: str) -> dict[str, Any] | None:
-        event = self.children[self.child_index] if self.child_index < len(self.children) else None
-        self.child_index += 1
+        event = self._next_command("ChildWorkflowExecutionStarted")
         if event and (event.get("attributes") or {}).get("workflow_type") != workflow_type:
-            raise DeterminismError(f"child workflow command changed at index {self.child_index}: history={(event.get('attributes') or {}).get('workflow_type')} replay={workflow_type}")
+            raise self._fail(f"child workflow command changed at index {self.child_index + 1}: history={(event.get('attributes') or {}).get('workflow_type')} replay={workflow_type}")
+        if event:
+            self.child_index += 1
+            self.command_cursor += 1
         return event
+
+    def _next_command(self, kind: str) -> dict[str, Any] | None:
+        """The earliest unconsumed command event, without consuming it.
+
+        ``None`` when none remains (the command is new). A different kind is a
+        determinism error, covering reordering and a kind whose events ran out
+        while others remain.
+        """
+        if self.command_cursor >= len(self.commands):
+            return None
+        index, event = self.commands[self.command_cursor]
+        if event.get("type") != kind:
+            raise self._fail(f"command changed at history index {index}: history={event.get('type')} replay={kind}")
+        return event
+
+    def _fail(self, message: str) -> DeterminismError:
+        error = DeterminismError(message)
+        if self.determinism_error is None:
+            self.determinism_error = error
+        return error
 
     def is_timer_fired(self, timer_started: dict[str, Any]) -> bool:
         return any(event.get("type") == "TimerFired" and event.get("task_id") == timer_started.get("task_id") for event in self.history)
