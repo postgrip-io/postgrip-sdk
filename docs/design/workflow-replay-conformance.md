@@ -27,7 +27,7 @@ language reads wall time somewhere it promises logical time:
 - **Update position.** TypeScript and Python run every completed update as soon
   as its handler is registered, before earlier commands are replayed, and ignore
   `WorkflowUpdateAccepted`. Their registration is synchronous, so an `async`
-  handler is not awaited. Their update tasks replay the whole workflow in query
+  handler is never awaited. Their update tasks replay the whole workflow in query
   mode and only then call the handler, so a handler cannot issue commands. Go
   applies each update at its accepted position (`NextUpdateBeforeCommand` and
   `ConsumeUpdate`). However, `runWorkflowUpdate` ignores whether
@@ -105,8 +105,8 @@ consumes the retry attempt's event under the same rule. Query, update and
 workflow replay use the same cursors.
 
 **Cancellation.** A recorded `WorkflowCancellationRequested` is observed only
-when no unconsumed command event owned by the executing context precedes it in
-history. The executing context is the body, or the update handler that is
+when no unconsumed command event owned by the executing context, and no
+unapplied update boundary, precedes it in history. The executing context is the body, or the update handler that is
 running. This applies at every cancellable point (before a command, and in
 `condition`) and to the synchronous `cancellationRequested()` accessors of
 TypeScript (`workflow.ts`) and Python (`workflow.py`). Commands recorded before
@@ -144,8 +144,11 @@ stage `update-handler-started`. Appending a task event is not idempotent, so
 an append can persist and still report failure. When the append fails, the task
 reads its own events: if the marker is present it runs the handler, and
 otherwise it fails without running the handler. If that read also fails, the
-task blocks for redelivery instead of failing, so the outcome stays consistent
-with whatever the server persisted. While building replay state, the Agent reads each failed
+task neither completes, fails nor blocks. It stops renewing its lease and
+leaves the task leased, so the runtime redelivers it on lease expiry, as it
+does after a crash. The redelivered task repeats the reconciliation. Blocking
+would strand it, because nothing wakes a blocked update task that has issued
+no command. While building replay state, the Agent reads each failed
 update task's events once and passes the set of marked task IDs to the replay
 engine. A terminal task's events do not change, so every replay sees the same
 set.
@@ -165,7 +168,8 @@ consumes it:
   the recorded failure, which does not fail the workflow, and a handler that
   returns instead is a determinism error. A failed entry with neither the
   marker nor owned commands is consumed without running a handler, as today. A pending entry suspends the workflow task until the update finishes.
-- **Deferred** application runs after each durable command. It applies
+- **Deferred** application runs after each durable command and on handler
+  registration. It applies
   boundaries the same way, but stops without error at a missing handler or a
   pending entry, so later code can register the handler.
 
@@ -177,16 +181,33 @@ reproduces both. Replay keeps acceptance order, which is deterministic and is
 what Go uses today. Failing such histories would strand running workflows. The
 conflict rule prevents new overlaps.
 
-Go also applies deferred boundaries inside `SetUpdateHandler`, because Go
-handlers are synchronous. TypeScript and Python registration is synchronous
-while their handlers may be `async`, so registering a handler there applies
-nothing. Their runtimes also apply deferred boundaries before evaluating a
-`condition` predicate. Every application point therefore runs inside the
-runtime, which awaits each handler before the workflow issues its next command,
-re-checks a condition, or completes. Workflow code that reads state between
-registering a handler and its next durable call sees the state from before the
-update. Signals keep their current behavior: every recorded signal is delivered
-when its handler is registered.
+Registering a handler also applies deferred boundaries in every language, as
+Go does today. The workflow code that follows registration therefore observes
+the update, which is also how TypeScript and Python histories were recorded
+before this design. TypeScript and Python registration is synchronous while
+their handlers may be `async`. Registration invokes each replayed handler
+synchronously, so its effects up to its first `await` are visible before
+registration returns. A handler that returns a pending promise or coroutine is
+tracked as in flight. The runtime awaits every in-flight replayed handler, in
+boundary order, before the workflow's next command is consumed, before a
+`condition` predicate is re-evaluated, and before completion. Later boundaries
+apply only after it settles. TypeScript and Python runtimes also apply deferred
+boundaries before evaluating a `condition` predicate. Workflow code that runs
+between registration and the next durable call sees an `async` handler's
+effects only up to its first `await`, which matches today's unawaited
+registration-time behavior. Signals keep their current behavior: every recorded
+signal is delivered when its handler is registered.
+
+**Body and update overlap.** The runtime unblocks the workflow task when an
+update is accepted, so a body run that fetched history before the acceptance
+can record a command after `Accepted(U)` that was chosen without U's effect.
+History records no workflow-task boundary, so replay cannot tell that command
+from one chosen after U applied, and replay applies U at its accepted position.
+A body whose command choice depends on U's state can then fail with a
+determinism error on replay. The SDK cannot order this race alone. The runtime
+must either serialize update tasks with their source workflow task, or record
+workflow-task boundaries in history. That is an open gap for web coordination,
+shared with Go today.
 
 **Update tasks.** An update task replays its source workflow in replay-only
 mode until replay stops. It then inspects the next unconsumed update boundary:
@@ -307,8 +328,9 @@ behavior changes. These changes are observable:
 - The TypeScript and Python replay determinism failure type, and the TypeScript
   sandbox failure type, change from `DeterminismViolation` to
   `WorkflowDeterminismViolation`, matching Go and the language guides.
-- TypeScript and Python updates apply at their recorded positions, from the
-  runtime rather than at registration, and their `async` handlers are awaited.
+- TypeScript and Python updates apply at their recorded positions instead of
+  all at once, still starting at registration, and their `async` handlers are
+  awaited before the next command, condition or completion.
   As in Go, a pending update before a command suspends the workflow task, and an
   update whose handler is missing at a strict point fails with a determinism
   error. Update handlers can issue commands in update tasks.
@@ -359,6 +381,8 @@ unit tests run every fixture. They cover:
   failing the completion check;
 - `Accepted(U), Activity(A) owned by U, CancellationRequested, Failed(U)`,
   where U's replayed handler consumes A before observing the cancellation;
+- `Accepted(U), Completed(U), CancellationRequested`, where the accessor reports
+  `False` until U has applied;
 - workflow code that catches a determinism error and returns, which still fails
   the task with that error;
 - `Accepted(U), Activity(B) owned by the body, Completed(U)`, where U's handler
@@ -397,13 +421,16 @@ Language runtime tests add:
   redelivery;
 - in TypeScript and Python, an `async` update handler that awaits a command and
   then changes state, replayed so the workflow's next command observes the
-  changed state;
+  changed state, and a synchronous handler whose state the code right after
+  registration observes, as in `setHandler(U); await activity(flag ? 'A' : 'B')`;
 - an update task that appends its `update-handler-started` event, schedules an
   activity under its own task ID and blocks; a second update task that fails
   with `WorkflowUpdateConflict` without appending the event or running its
   handler; an update task whose marker append fails but persisted, which runs
-  its handler after reading its events; and one whose append failed without
-  persisting, which fails without running its handler;
+  its handler after reading its events; one whose append failed without
+  persisting, which fails without running its handler; and one whose
+  reconciliation read also fails, which stops renewing its lease and is
+  redelivered;
 - a query replay that stops at a pending update;
 - the determinism failure type for replay and the TypeScript sandbox;
 - Python introspection values for commands, updates, a signal followed by a
