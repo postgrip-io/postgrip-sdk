@@ -223,6 +223,40 @@ describe('Agent executor conformance', () => {
     expect((error as Error).message).not.toContain('archive secret');
   });
 
+  it('reports a malformed response without its body or a quoting cause', async () => {
+    const { connection } = recordingConnection([() => new Response('{"secret": oops', { status: 200 })]);
+    const error = await connection.openapi.request('getTask', { pathParameters: { taskId: 't' } } as never)
+      .catch((caught: unknown) => caught) as Error;
+    expect(error.message).toBe('postgrip-agent: GET /api/v1/tasks/t -> 200 (parse failed)');
+    expect(error.cause).toBeUndefined();
+    expect(String(error)).not.toContain('oops');
+  });
+
+  it('reports a malformed workspace-upload response without its body', async () => {
+    const { connection } = recordingConnection([() => new Response('{"secret": oops', { status: 201 })]);
+    const error = await connection.uploadWorkspace(new Uint8Array([1])).catch((caught: unknown) => caught) as Error;
+    expect(error.message).toBe('postgrip-agent: POST /api/v1/workspaces -> 201 (parse failed)');
+    expect(error.cause).toBeUndefined();
+  });
+
+  it('rejects a poll aborted while the shared session refresh is pending', async () => {
+    let releaseRefresh: (response: Response) => void = () => undefined;
+    const fetch = vi.fn((input: string | URL | Request) => new URL(String(input)).pathname === '/api/v1/agent/session/refresh'
+      ? new Promise<Response>((resolve) => { releaseRefresh = resolve; })
+      : Promise.resolve(Response.json({})));
+    const connection = Connection.create({
+      baseUrl: 'http://agent.test', insecureDevelopment: true, fetch: fetch as unknown as typeof globalThis.fetch,
+      agentAuth: { agentId: 'agent-1', refreshToken: 'refresh-1' },
+    });
+    const controller = new AbortController();
+    const poll = connection.pollTaskResponse({ queue: 'q', agentId: 'agent-1', signal: controller.signal });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    const reason = new Error('stop polling');
+    controller.abort(reason);
+    await expect(poll).rejects.toBe(reason);
+    releaseRefresh(Response.json(freshSession));
+  });
+
   it('detects terminal and unleased task mutations from the 409 envelope', async () => {
     const conflict = (message: string, status = 409) => recordingConnection(
       [() => Response.json({ code: 'CONFLICT', message }, { status })],

@@ -453,7 +453,12 @@ export class Connection {
     if (options.taskTypes?.length) {
       query.set('task_types', options.taskTypes.join(','));
     }
-    await this.ensureAgentSession({ namespace: options.namespace ?? 'default', queue: options.queue, agentId });
+    // The refresh is shared with concurrent callers, so an abort ends only this wait.
+    options.signal?.throwIfAborted();
+    await waitUnlessAborted(
+      this.ensureAgentSession({ namespace: options.namespace ?? 'default', queue: options.queue, agentId }),
+      options.signal,
+    );
     const response = await this.openapi.pollAgentTask({
       query,
       signal: options.signal,
@@ -586,7 +591,12 @@ export class Connection {
       const operation = resolveOpenAPIOperation('uploadWorkspace');
       throw new AgentAPIError(apiErrorFields(response, responseBody, operation.method, operation.path, RETRY_AFTER_MAX_DELAY_MS));
     }
-    return JSON.parse(responseBody) as SandboxWorkspace;
+    try {
+      return JSON.parse(responseBody) as SandboxWorkspace;
+    } catch {
+      const operation = resolveOpenAPIOperation('uploadWorkspace');
+      throw decodeFailure(operation.method, operation.path, response.status);
+    }
   }
 
   async listWorkspaces(): Promise<SandboxWorkspace[]> {
@@ -661,12 +671,11 @@ export class Connection {
         return envelope as T;
       }
       return parsed as T;
-    } catch (err) {
+    } catch {
       if (terminalGone) {
         return { directive: { type: 'shutdown' } } as T;
       }
-      // The body is server content, so the message names only the request.
-      throw new Error(`postgrip-agent: ${operation.method} ${operation.path} -> ${response.status} (parse failed)`, { cause: err });
+      throw decodeFailure(operation.method, operation.path, response.status);
     }
   }
 
@@ -715,6 +724,15 @@ export class Connection {
     this.agentSigningKey ??= await signingModule.importSigningKeyFromBase64(this.agentSigningPrivateKey);
     return { module: signingModule, key: this.agentSigningKey };
   }
+}
+
+/**
+ * A response that is not valid JSON. The body is server content, and a
+ * `JSON.parse` error quotes it, so the error names only the request and keeps
+ * no cause.
+ */
+function decodeFailure(method: string, path: string, status: number): Error {
+  return new Error(`postgrip-agent: ${method} ${path} -> ${status} (parse failed)`);
 }
 
 /** The poll's `wait_seconds`, or the contract default when it is omitted or invalid. */

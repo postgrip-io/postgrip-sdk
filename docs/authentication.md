@@ -41,16 +41,17 @@ configures its connection. A root management token therefore does not by itself
 prove that every Agent call uses the management lane. Keep management-only
 applications separate from host-injected runtime environments.
 
-Public operations must receive no bearer credential. The Go Agent connection
-runs through the shared executor, which removes any `Authorization` header from
-a public request, in any spelling, including one configured through
-`ConnectionOptions.Headers`. The TypeScript and Python Agent adapters still copy
-caller-supplied headers before applying the auth lane, so there an explicit
-`Authorization` header can reach public session refresh. Use the token options,
-not a custom authorization header. That remaining gap is against the
+Public operations must receive no bearer credential. The Go and TypeScript
+Agent connections run through their shared executors, which remove any
+`Authorization` header from a public request, in any spelling, including one
+configured through `ConnectionOptions.Headers` or `ConnectionOptions.headers`.
+The Python Agent adapter still copies caller-supplied headers before applying
+the auth lane, so there an explicit `Authorization` header can reach public
+session refresh. Use the token options, not a custom authorization header. That
+remaining gap is against the
 [architecture boundary](development/architecture.md), not permission to weaken
-it; the [layering design](design/contract-driven-sdk-layering.md) moves those
-adapters onto the executor.
+it; the [layering design](design/contract-driven-sdk-layering.md) moves that
+adapter onto the executor.
 
 ## Failure behavior
 
