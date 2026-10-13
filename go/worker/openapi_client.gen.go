@@ -10,15 +10,22 @@ import (
 	"time"
 )
 
+// openAPIOperationExecutor is the contract generated operations depend on:
+// execute one resolved JSON operation. The plane's Connection implements it
+// and is injected by OpenAPI, so generated code holds no concrete adapter.
+type openAPIOperationExecutor interface {
+	doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error
+}
+
 // OpenAPIClient is the generated low-level JSON API. Streaming workspace
 // uploads and WebSocket sessions remain on Connection's custom adapters.
 type OpenAPIClient struct {
-	connection *Connection
+	executor openAPIOperationExecutor
 }
 
 // OpenAPI returns the generated low-level client bound to this connection.
 func (c *Connection) OpenAPI() *OpenAPIClient {
-	return &OpenAPIClient{connection: c}
+	return &OpenAPIClient{executor: c}
 }
 
 // Do executes an ordinary generated JSON operation by stable operation ID.
@@ -33,7 +40,7 @@ func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParamete
 		return fmt.Errorf("postgrip-agent: operation %q requires its protocol adapter", operationID)
 	}
 	ctx = withOpenAPIHeaders(ctx, headers)
-	return c.connection.doOpenAPI(ctx, id, pathParameters, query, body, out)
+	return c.executor.doOpenAPI(ctx, id, pathParameters, query, body, out)
 }
 
 type OpenAPIListWorkerJobsQuery struct {
@@ -200,67 +207,67 @@ func (p OpenAPIUpgradeWorkerHeaders) values() http.Header {
 
 func (c *OpenAPIClient) CheckWorker(ctx context.Context, workerId string, headers OpenAPICheckWorkerHeaders) (OpenAPICheckWorkerResponseBody, error) {
 	var response OpenAPICheckWorkerResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICheckWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICheckWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateWorker(ctx context.Context, headers OpenAPICreateWorkerHeaders, body OpenAPICreateWorkerRequestBody) (OpenAPICreateWorkerResponseBody, error) {
 	var response OpenAPICreateWorkerResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateWorker, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateWorker, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetWorker(ctx context.Context, workerId string) (OpenAPIGetWorkerResponseBody, error) {
 	var response OpenAPIGetWorkerResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetWorkerJob(ctx context.Context, workerId string, jobId string) (OpenAPIGetWorkerJobResponseBody, error) {
 	var response OpenAPIGetWorkerJobResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetWorkerJob, map[string]string{"workerId": workerId, "jobId": jobId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetWorkerJob, map[string]string{"workerId": workerId, "jobId": jobId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkerAssignments(ctx context.Context, workerId string) (OpenAPIListWorkerAssignmentsResponseBody, error) {
 	var response OpenAPIListWorkerAssignmentsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkerAssignments, map[string]string{"workerId": workerId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkerAssignments, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkerJobs(ctx context.Context, workerId string, query OpenAPIListWorkerJobsQuery) (OpenAPIListWorkerJobsResponseBody, error) {
 	var response OpenAPIListWorkerJobsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkerJobs, map[string]string{"workerId": workerId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkerJobs, map[string]string{"workerId": workerId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkerOperationalLogs(ctx context.Context, workerId string, query OpenAPIListWorkerOperationalLogsQuery) (OpenAPIListWorkerOperationalLogsResponseBody, error) {
 	var response OpenAPIListWorkerOperationalLogsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkerOperationalLogs, map[string]string{"workerId": workerId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkerOperationalLogs, map[string]string{"workerId": workerId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkerSecurityLogs(ctx context.Context, workerId string, query OpenAPIListWorkerSecurityLogsQuery) (OpenAPIListWorkerSecurityLogsResponseBody, error) {
 	var response OpenAPIListWorkerSecurityLogsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkerSecurityLogs, map[string]string{"workerId": workerId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkerSecurityLogs, map[string]string{"workerId": workerId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkers(ctx context.Context, query OpenAPIListWorkersQuery) (OpenAPIListWorkersResponseBody, error) {
 	var response OpenAPIListWorkersResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkers, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkers, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PlaceWorkerInMaintenance(ctx context.Context, workerId string, headers OpenAPIPlaceWorkerInMaintenanceHeaders) (OpenAPIPlaceWorkerInMaintenanceResponseBody, error) {
 	var response OpenAPIPlaceWorkerInMaintenanceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPlaceWorkerInMaintenance, map[string]string{"workerId": workerId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPlaceWorkerInMaintenance, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ResumeWorkerFromMaintenance(ctx context.Context, workerId string, headers OpenAPIResumeWorkerFromMaintenanceHeaders) (OpenAPIResumeWorkerFromMaintenanceResponseBody, error) {
 	var response OpenAPIResumeWorkerFromMaintenanceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIResumeWorkerFromMaintenance, map[string]string{"workerId": workerId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIResumeWorkerFromMaintenance, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpgradeWorker(ctx context.Context, workerId string, headers OpenAPIUpgradeWorkerHeaders) (OpenAPIUpgradeWorkerResponseBody, error) {
 	var response OpenAPIUpgradeWorkerResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpgradeWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpgradeWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) WorkerOrchestratorHealth(ctx context.Context) (OpenAPIWorkerOrchestratorHealthResponseBody, error) {
 	var response OpenAPIWorkerOrchestratorHealthResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIWorkerOrchestratorHealth, nil, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIWorkerOrchestratorHealth, nil, nil, nil, &response)
 	return response, err
 }
 
