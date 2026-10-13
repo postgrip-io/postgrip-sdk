@@ -11,12 +11,18 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Iterator
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
-from urllib.request import Request
+from urllib.request import OpenerDirector, Request, build_opener
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from .._internal.config import validate_base_url
-from .._internal.http import read_bounded_response, redirect_safe_open as urlopen
+from .._internal.http import (
+    CancellationAwareHTTPHandler,
+    CancellationAwareHTTPSHandler,
+    SafeRedirectHandler,
+    read_bounded_response,
+    run_cancellable,
+)
 from . import _signing
 from .errors import TaskFailedError, TimeoutFailure
 from .openapi import (
@@ -33,6 +39,19 @@ _POSTGRIP_UI_MEMO_KEY = "postgrip.ui"
 DEFAULT_ADDRESS = "https://agentorchestrator1.postgrip.io"
 _AGENT_MAX_RESPONSE_BYTES = 40 << 20
 _HISTORY_PAGE_MAXIMUM_LIMIT = 500
+
+# Same-origin redirects only; cancelling an async call closes its active socket.
+_AGENT_OPENER: OpenerDirector = build_opener(
+    SafeRedirectHandler(),
+    CancellationAwareHTTPHandler(),
+    CancellationAwareHTTPSHandler(),
+)
+
+
+def urlopen(request: Request, timeout: float | None = None) -> Any:
+    """Open one Agent request through the composed Agent opener."""
+
+    return _AGENT_OPENER.open(request, timeout=timeout)
 
 
 def has_authorization_header(headers: dict[str, str]) -> bool:
@@ -121,7 +140,7 @@ class Connection:
     @classmethod
     async def connect(cls, address: str | None = None, **options: Any) -> "Connection":
         connection = cls(address, **options)
-        await asyncio.to_thread(connection.health)
+        await run_cancellable(connection.health)
         return connection
 
     def configure_agent_auth(
@@ -496,7 +515,7 @@ class Client:
         return cls(await Connection.connect(address, **options))
 
     async def start_workflow(self, workflow: Callable[..., Any] | str, *args: Any, **options: Any) -> "WorkflowHandle":
-        return await asyncio.to_thread(self.workflow.start, workflow, args=list(args), **_normalize_temporal_start_options(options))
+        return await run_cancellable(self.workflow.start, workflow, args=list(args), **_normalize_temporal_start_options(options))
 
     async def execute_workflow(self, workflow: Callable[..., Any] | str, *args: Any, **options: Any) -> Any:
         timeout = options.pop("timeout", None)
@@ -587,7 +606,7 @@ class WorkflowHandle:
     run_id: str | None = None
 
     async def describe(self) -> dict[str, Any]:
-        return await asyncio.to_thread(self.describe_sync)
+        return await run_cancellable(self.describe_sync)
 
     def describe_sync(self) -> dict[str, Any]:
         workflow = self.connection.get_workflow(self.run_id or self.workflow_id)
@@ -597,64 +616,75 @@ class WorkflowHandle:
         return workflow
 
     async def result(self, *, timeout: float | None = None, poll_interval: float = 1) -> Any:
-        return await asyncio.to_thread(self.result_sync, timeout=timeout, poll_interval=poll_interval)
+        started = time.time()
+        task_id = self.task_id or (await self.describe())["task_id"]
+        while True:
+            task = await run_cancellable(self.connection.get_task, task_id)
+            step = _workflow_result_step(task, task_id)
+            if step.resolve:
+                workflow = await run_cancellable(self.connection.get_workflow, self.run_id or self.workflow_id)
+                step = _workflow_result_step(task, task_id, workflow)
+            if step.done:
+                return step.value
+            if step.next_task_id is not None:
+                task_id = self.task_id = step.next_task_id
+                continue
+            self._check_result_timeout(started, timeout)
+            await asyncio.sleep(poll_interval)
 
     def result_sync(self, *, timeout: float | None = None, poll_interval: float = 1) -> Any:
         started = time.time()
         task_id = self.task_id or self.describe_sync()["task_id"]
         while True:
             task = self.connection.get_task(task_id)
-            if task["state"] == "succeeded":
-                result = task.get("result") or {}
-                next_task_id = (result.get("continue_as_new") or {}).get("task_id")
-                if next_task_id:
-                    task_id = next_task_id
-                    self.task_id = task_id
-                    continue
-                return result.get("value")
-            if task["state"] == "failed":
+            step = _workflow_result_step(task, task_id)
+            if step.resolve:
                 workflow = self.connection.get_workflow(self.run_id or self.workflow_id)
-                if workflow["state"] == "running" and workflow["task_id"] != task_id:
-                    task_id = workflow["task_id"]
-                    self.task_id = task_id
-                    continue
-                raise TaskFailedError(task["id"], task.get("error") or "workflow failed")
-            if timeout is not None and time.time() - started > timeout:
-                raise TimeoutFailure(f"workflow {self.workflow_id} timed out")
+                step = _workflow_result_step(task, task_id, workflow)
+            if step.done:
+                return step.value
+            if step.next_task_id is not None:
+                task_id = self.task_id = step.next_task_id
+                continue
+            self._check_result_timeout(started, timeout)
             time.sleep(poll_interval)
 
+    def _check_result_timeout(self, started: float, timeout: float | None) -> None:
+        if timeout is not None and time.time() - started > timeout:
+            raise TimeoutFailure(f"workflow {self.workflow_id} timed out")
+
     async def history(self) -> list[dict[str, Any]]:
-        return await asyncio.to_thread(self.history_sync)
+        return await run_cancellable(self.history_sync)
 
     def history_sync(self) -> list[dict[str, Any]]:
         return self.connection.get_workflow_history(self.run_id or self.workflow_id)
 
     async def events(self) -> list[dict[str, Any]]:
-        task_id = self.task_id or self.describe_sync()["task_id"]
-        return await asyncio.to_thread(self.connection.get_task_events, task_id)
+        task_id = self.task_id or (await self.describe())["task_id"]
+        return await run_cancellable(self.connection.get_task_events, task_id)
 
     async def watch_events(self, *, poll_interval: float = 1) -> Any:
-        task_id = self.task_id or self.describe_sync()["task_id"]
+        task_id = self.task_id or (await self.describe())["task_id"]
         async for event in _watch_task_events(self.connection, task_id, poll_interval=poll_interval):
             yield event
 
     async def signal(self, name: str | Any, *args: Any) -> None:
-        await asyncio.to_thread(self.signal_sync, name, *args)
+        await run_cancellable(self.signal_sync, name, *args)
 
     def signal_sync(self, name: str | Any, *args: Any) -> None:
         signal_name = _definition_name(name)
         self.connection.signal_workflow(self.run_id or self.workflow_id, signal_name, list(args))
 
     async def cancel(self, reason: str | None = None) -> None:
-        await asyncio.to_thread(self.connection.cancel_workflow, self.run_id or self.workflow_id, reason)
+        await run_cancellable(self.connection.cancel_workflow, self.run_id or self.workflow_id, reason)
 
     async def terminate(self, reason: str | None = None) -> None:
-        await asyncio.to_thread(self.connection.terminate_workflow, self.run_id or self.workflow_id, reason)
+        await run_cancellable(self.connection.terminate_workflow, self.run_id or self.workflow_id, reason)
 
     async def query(self, name: str | Any, *args: Any, timeout: float | None = None) -> Any:
         query_name = _definition_name(name)
         workflow = await self.describe()
-        task = await asyncio.to_thread(self.connection.enqueue_task, {
+        task = await run_cancellable(self.connection.enqueue_task, {
             "namespace": workflow["namespace"],
             "queue": workflow["queue"],
             "type": f"query:{workflow['type']}",
@@ -675,7 +705,7 @@ class WorkflowHandle:
     async def start_update(self, name: str | Any, *args: Any) -> "WorkflowUpdateHandle":
         update_name = _definition_name(name)
         workflow = await self.describe()
-        task = await asyncio.to_thread(self.connection.enqueue_task, {
+        task = await run_cancellable(self.connection.enqueue_task, {
             "namespace": workflow["namespace"],
             "queue": workflow["queue"],
             "type": f"update:{workflow['type']}",
@@ -699,7 +729,7 @@ class WorkflowUpdateHandle:
         return await _wait_for_task(self.connection, self.update_id, timeout=timeout, poll_interval=poll_interval, failure_message="workflow update failed")
 
     async def events(self) -> list[dict[str, Any]]:
-        return await asyncio.to_thread(self.connection.get_task_events, self.update_id)
+        return await run_cancellable(self.connection.get_task_events, self.update_id)
 
     async def watch_events(self, *, poll_interval: float = 1) -> Any:
         async for event in _watch_task_events(self.connection, self.update_id, poll_interval=poll_interval):
@@ -908,10 +938,45 @@ class ScheduleClient:
         return self.connection.backfill_schedule(schedule_id, request)
 
 
+@dataclass(frozen=True)
+class _WorkflowResultStep:
+    """What a workflow result wait does after reading one task snapshot."""
+
+    done: bool = False
+    value: Any = None
+    next_task_id: str | None = None
+    resolve: bool = False
+
+
+def _workflow_result_step(
+    task: dict[str, Any],
+    task_id: str,
+    workflow: dict[str, Any] | None = None,
+) -> _WorkflowResultStep:
+    """Decide the next result-wait step; an empty step means keep waiting.
+
+    A failed task needs the workflow's current run: pass *workflow* once the
+    caller has read it after a ``resolve`` step.
+    """
+    if task["state"] == "succeeded":
+        result = task.get("result") or {}
+        next_task_id = (result.get("continue_as_new") or {}).get("task_id")
+        if next_task_id:
+            return _WorkflowResultStep(next_task_id=next_task_id)
+        return _WorkflowResultStep(done=True, value=result.get("value"))
+    if task["state"] == "failed":
+        if workflow is None:
+            return _WorkflowResultStep(resolve=True)
+        if workflow["state"] == "running" and workflow["task_id"] != task_id:
+            return _WorkflowResultStep(next_task_id=workflow["task_id"])
+        raise TaskFailedError(task["id"], task.get("error") or "workflow failed")
+    return _WorkflowResultStep()
+
+
 async def _wait_for_task(connection: Connection, task_id: str, *, timeout: float | None, poll_interval: float = 0.05, failure_message: str) -> Any:
     started = time.time()
     while True:
-        task = await asyncio.to_thread(connection.get_task, task_id)
+        task = await run_cancellable(connection.get_task, task_id)
         if task["state"] == "succeeded":
             return (task.get("result") or {}).get("value")
         if task["state"] == "failed":
@@ -924,13 +989,13 @@ async def _wait_for_task(connection: Connection, task_id: str, *, timeout: float
 async def _watch_task_events(connection: Connection, task_id: str, *, poll_interval: float) -> Any:
     seen: set[str] = set()
     while True:
-        events = await asyncio.to_thread(connection.get_task_events, task_id)
+        events = await run_cancellable(connection.get_task_events, task_id)
         for event in events:
             event_id = str(event.get("id") or "")
             if event_id not in seen:
                 seen.add(event_id)
                 yield event
-        task = await asyncio.to_thread(connection.get_task, task_id)
+        task = await run_cancellable(connection.get_task, task_id)
         if task["state"] in {"succeeded", "failed"}:
             return
         await asyncio.sleep(poll_interval)
