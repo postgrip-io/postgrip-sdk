@@ -801,6 +801,9 @@ class OpenAPIOperation:
     request_schema: str
     response_schema: str
     path_parameters: tuple[str, ...]
+    idempotency: str = "none"
+    pagination: str = "none"
+    header_parameters: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -816,54 +819,57 @@ class ResolvedOpenAPIOperation:
     websocket: bool
     request_schema: str
     response_schema: str
+    idempotency: str = "none"
+    pagination: str = "none"
+    header_parameters: tuple[str, ...] = ()
 
 
 _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
-    OperationId.APPEND_AGENT_TASK_EVENT: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/events', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'AppendTaskEventRequest', 'TaskEvent', ('taskId',)),
-    OperationId.BACKFILL_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/backfill', 'management', 'mutation', 'none', '', False, False, 'BackfillScheduleRequest', 'BackfillScheduleResponse', ('scheduleId',)),
-    OperationId.BLOCK_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/block', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'BlockTaskRequest', 'Task', ('taskId',)),
-    OperationId.CANCEL_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/cancel', 'either', 'mutation', 'none', '', False, False, 'CancelWorkflowRequest', 'WorkflowHistoryEvent', ('workflowId',)),
-    OperationId.COMPLETE_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/complete', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'CompleteTaskRequest', 'Task', ('taskId',)),
-    OperationId.CONNECT_SANDBOX_SESSION: OpenAPIOperation('GET', '/api/v1/sandbox-sessions/{sessionId}/connect', 'management', 'protocol', 'none', '', False, True, '', '', ('sessionId',)),
-    OperationId.COUNT_WORKFLOWS: OpenAPIOperation('GET', '/api/v1/workflows/count', 'either', 'read-only', 'bounded', '', False, False, '', 'WorkflowCountResponse', ()),
-    OperationId.CREATE_NAMESPACE: OpenAPIOperation('POST', '/api/v1/namespaces', 'management', 'mutation', 'none', '', False, False, 'CreateNamespaceRequest', 'Namespace', ()),
-    OperationId.CREATE_SANDBOX: OpenAPIOperation('POST', '/api/v1/sandboxes', 'management', 'mutation', 'none', '', False, False, 'SandboxCreateRequest', 'Sandbox', ()),
-    OperationId.CREATE_SANDBOX_SESSION: OpenAPIOperation('POST', '/api/v1/sandboxes/{sandboxId}/sessions', 'management', 'mutation', 'none', '', False, False, 'CreateSandboxSessionRequest', 'CreateSandboxSessionResponse', ('sandboxId',)),
-    OperationId.CREATE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules', 'management', 'mutation', 'none', '', False, False, 'CreateScheduleRequest', 'Schedule', ()),
-    OperationId.DELETE_SANDBOX: OpenAPIOperation('DELETE', '/api/v1/sandboxes/{sandboxId}', 'management', 'destructive', 'none', '', False, False, '', 'Sandbox', ('sandboxId',)),
-    OperationId.DELETE_SCHEDULE: OpenAPIOperation('DELETE', '/api/v1/schedules/{scheduleId}', 'management', 'destructive', 'none', '', False, False, '', 'Schedule', ('scheduleId',)),
-    OperationId.DELETE_WORKSPACE: OpenAPIOperation('DELETE', '/api/v1/workspaces/{workspaceId}', 'management', 'destructive', 'none', '', False, False, '', '', ('workspaceId',)),
-    OperationId.ENQUEUE_TASK: OpenAPIOperation('POST', '/api/v1/tasks', 'either', 'mutation', 'none', '', False, False, 'EnqueueTaskRequest', 'Task', ()),
-    OperationId.FAIL_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/fail', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'FailTaskRequest', 'Task', ('taskId',)),
-    OperationId.GET_SANDBOX: OpenAPIOperation('GET', '/api/v1/sandboxes/{sandboxId}', 'management', 'read-only', 'bounded', '', False, False, '', 'Sandbox', ('sandboxId',)),
-    OperationId.GET_SCHEDULE: OpenAPIOperation('GET', '/api/v1/schedules/{scheduleId}', 'management', 'read-only', 'bounded', '', False, False, '', 'Schedule', ('scheduleId',)),
-    OperationId.GET_TASK: OpenAPIOperation('GET', '/api/v1/tasks/{taskId}', 'either', 'read-only', 'bounded', '', False, False, '', 'Task', ('taskId',)),
-    OperationId.GET_WORKFLOW: OpenAPIOperation('GET', '/api/v1/workflows/{workflowId}', 'either', 'read-only', 'bounded', '', False, False, '', 'WorkflowExecution', ('workflowId',)),
-    OperationId.GET_WORKSPACE: OpenAPIOperation('GET', '/api/v1/workspaces/{workspaceId}', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxWorkspace', ('workspaceId',)),
-    OperationId.HEALTH: OpenAPIOperation('GET', '/healthz', 'public', 'read-only', 'bounded', '', False, False, '', 'HealthResponse', ()),
-    OperationId.HEARTBEAT_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/heartbeat', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'HeartbeatTaskRequest', 'Task', ('taskId',)),
-    OperationId.LIST_NAMESPACES: OpenAPIOperation('GET', '/api/v1/namespaces', 'either', 'read-only', 'bounded', '', False, False, '', 'inline', ()),
-    OperationId.LIST_SANDBOXES: OpenAPIOperation('GET', '/api/v1/sandboxes', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxListResponse', ()),
-    OperationId.LIST_SCHEDULES: OpenAPIOperation('GET', '/api/v1/schedules', 'management', 'read-only', 'bounded', '', False, False, '', 'inline', ()),
-    OperationId.LIST_TASK_EVENTS: OpenAPIOperation('GET', '/api/v1/tasks/{taskId}/events', 'either', 'read-only', 'bounded', '', False, False, '', 'TaskEventPage', ('taskId',)),
-    OperationId.LIST_TASK_EVENTS_BATCH: OpenAPIOperation('GET', '/api/v1/task-events', 'management', 'read-only', 'bounded', '', False, False, '', 'TaskEventBatchResponse', ()),
-    OperationId.LIST_TASKS: OpenAPIOperation('GET', '/api/v1/tasks', 'either', 'read-only', 'bounded', '', False, False, '', 'inline', ()),
-    OperationId.LIST_WORKFLOW_HISTORY: OpenAPIOperation('GET', '/api/v1/workflows/{workflowId}/history', 'either', 'read-only', 'bounded', '', False, False, '', 'WorkflowHistoryPage', ('workflowId',)),
-    OperationId.LIST_WORKFLOWS: OpenAPIOperation('GET', '/api/v1/workflows', 'either', 'read-only', 'bounded', '', False, False, '', 'inline', ()),
-    OperationId.LIST_WORKSPACES: OpenAPIOperation('GET', '/api/v1/workspaces', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxWorkspaceListResponse', ()),
-    OperationId.PAUSE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/pause', 'management', 'mutation', 'none', '', False, False, 'PauseScheduleRequest', 'Schedule', ('scheduleId',)),
-    OperationId.POLL_AGENT_TASK: OpenAPIOperation('GET', '/api/v1/agent/poll', 'agent', 'read-only', 'bounded', '', False, False, '', 'PollTaskResponse', ()),
-    OperationId.READY: OpenAPIOperation('GET', '/readyz', 'management', 'read-only', 'bounded', '', False, False, '', 'ReadyResponse', ()),
-    OperationId.REFRESH_AGENT_SESSION: OpenAPIOperation('POST', '/api/v1/agent/session/refresh', 'public', 'mutation', 'none', '', False, False, 'RefreshAgentSessionRequest', 'AgentSessionResponse', ()),
-    OperationId.SIGNAL_WITH_START_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/signal-with-start', 'either', 'mutation', 'none', '', False, False, 'SignalWithStartWorkflowRequest', 'SignalWithStartWorkflowResponse', ('workflowId',)),
-    OperationId.SIGNAL_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/signal', 'either', 'mutation', 'none', '', False, False, 'SignalWorkflowRequest', 'WorkflowHistoryEvent', ('workflowId',)),
-    OperationId.START_SANDBOX: OpenAPIOperation('POST', '/api/v1/sandboxes/{sandboxId}/start', 'management', 'mutation', 'none', '', False, False, '', 'Sandbox', ('sandboxId',)),
-    OperationId.STOP_SANDBOX: OpenAPIOperation('POST', '/api/v1/sandboxes/{sandboxId}/stop', 'management', 'mutation', 'none', '', False, False, '', 'Sandbox', ('sandboxId',)),
-    OperationId.TERMINATE_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/terminate', 'either', 'destructive', 'none', '', False, False, 'TerminateWorkflowRequest', 'WorkflowHistoryEvent', ('workflowId',)),
-    OperationId.TRIGGER_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/trigger', 'management', 'mutation', 'none', '', False, False, 'TriggerScheduleRequest', 'TriggerScheduleResponse', ('scheduleId',)),
-    OperationId.UNPAUSE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/unpause', 'management', 'mutation', 'none', '', False, False, 'UnpauseScheduleRequest', 'Schedule', ('scheduleId',)),
-    OperationId.UPDATE_SCHEDULE: OpenAPIOperation('PATCH', '/api/v1/schedules/{scheduleId}', 'management', 'mutation', 'none', '', False, False, 'UpdateScheduleRequest', 'Schedule', ('scheduleId',)),
-    OperationId.UPLOAD_WORKSPACE: OpenAPIOperation('POST', '/api/v1/workspaces', 'management', 'mutation', 'none', '', True, False, 'inline', 'SandboxWorkspace', ()),
+    OperationId.APPEND_AGENT_TASK_EVENT: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/events', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'AppendTaskEventRequest', 'TaskEvent', ('taskId',), 'none', 'none', ()),
+    OperationId.BACKFILL_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/backfill', 'management', 'mutation', 'none', '', False, False, 'BackfillScheduleRequest', 'BackfillScheduleResponse', ('scheduleId',), 'none', 'none', ()),
+    OperationId.BLOCK_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/block', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'BlockTaskRequest', 'Task', ('taskId',), 'none', 'none', ()),
+    OperationId.CANCEL_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/cancel', 'either', 'mutation', 'none', '', False, False, 'CancelWorkflowRequest', 'WorkflowHistoryEvent', ('workflowId',), 'none', 'none', ()),
+    OperationId.COMPLETE_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/complete', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'CompleteTaskRequest', 'Task', ('taskId',), 'none', 'none', ()),
+    OperationId.CONNECT_SANDBOX_SESSION: OpenAPIOperation('GET', '/api/v1/sandbox-sessions/{sessionId}/connect', 'management', 'protocol', 'none', '', False, True, '', '', ('sessionId',), 'none', 'none', ()),
+    OperationId.COUNT_WORKFLOWS: OpenAPIOperation('GET', '/api/v1/workflows/count', 'either', 'read-only', 'bounded', '', False, False, '', 'WorkflowCountResponse', (), 'none', 'none', ()),
+    OperationId.CREATE_NAMESPACE: OpenAPIOperation('POST', '/api/v1/namespaces', 'management', 'mutation', 'none', '', False, False, 'CreateNamespaceRequest', 'Namespace', (), 'none', 'none', ()),
+    OperationId.CREATE_SANDBOX: OpenAPIOperation('POST', '/api/v1/sandboxes', 'management', 'mutation', 'none', '', False, False, 'SandboxCreateRequest', 'Sandbox', (), 'none', 'none', ()),
+    OperationId.CREATE_SANDBOX_SESSION: OpenAPIOperation('POST', '/api/v1/sandboxes/{sandboxId}/sessions', 'management', 'mutation', 'none', '', False, False, 'CreateSandboxSessionRequest', 'CreateSandboxSessionResponse', ('sandboxId',), 'none', 'none', ()),
+    OperationId.CREATE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules', 'management', 'mutation', 'none', '', False, False, 'CreateScheduleRequest', 'Schedule', (), 'none', 'none', ()),
+    OperationId.DELETE_SANDBOX: OpenAPIOperation('DELETE', '/api/v1/sandboxes/{sandboxId}', 'management', 'destructive', 'none', '', False, False, '', 'Sandbox', ('sandboxId',), 'none', 'none', ()),
+    OperationId.DELETE_SCHEDULE: OpenAPIOperation('DELETE', '/api/v1/schedules/{scheduleId}', 'management', 'destructive', 'none', '', False, False, '', 'Schedule', ('scheduleId',), 'none', 'none', ()),
+    OperationId.DELETE_WORKSPACE: OpenAPIOperation('DELETE', '/api/v1/workspaces/{workspaceId}', 'management', 'destructive', 'none', '', False, False, '', '', ('workspaceId',), 'none', 'none', ()),
+    OperationId.ENQUEUE_TASK: OpenAPIOperation('POST', '/api/v1/tasks', 'either', 'mutation', 'none', '', False, False, 'EnqueueTaskRequest', 'Task', (), 'none', 'none', ()),
+    OperationId.FAIL_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/fail', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'FailTaskRequest', 'Task', ('taskId',), 'none', 'none', ()),
+    OperationId.GET_SANDBOX: OpenAPIOperation('GET', '/api/v1/sandboxes/{sandboxId}', 'management', 'read-only', 'bounded', '', False, False, '', 'Sandbox', ('sandboxId',), 'none', 'none', ()),
+    OperationId.GET_SCHEDULE: OpenAPIOperation('GET', '/api/v1/schedules/{scheduleId}', 'management', 'read-only', 'bounded', '', False, False, '', 'Schedule', ('scheduleId',), 'none', 'none', ()),
+    OperationId.GET_TASK: OpenAPIOperation('GET', '/api/v1/tasks/{taskId}', 'either', 'read-only', 'bounded', '', False, False, '', 'Task', ('taskId',), 'none', 'none', ()),
+    OperationId.GET_WORKFLOW: OpenAPIOperation('GET', '/api/v1/workflows/{workflowId}', 'either', 'read-only', 'bounded', '', False, False, '', 'WorkflowExecution', ('workflowId',), 'none', 'none', ()),
+    OperationId.GET_WORKSPACE: OpenAPIOperation('GET', '/api/v1/workspaces/{workspaceId}', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxWorkspace', ('workspaceId',), 'none', 'none', ()),
+    OperationId.HEALTH: OpenAPIOperation('GET', '/healthz', 'public', 'read-only', 'bounded', '', False, False, '', 'HealthResponse', (), 'none', 'none', ()),
+    OperationId.HEARTBEAT_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/heartbeat', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'HeartbeatTaskRequest', 'Task', ('taskId',), 'none', 'none', ()),
+    OperationId.LIST_NAMESPACES: OpenAPIOperation('GET', '/api/v1/namespaces', 'either', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
+    OperationId.LIST_SANDBOXES: OpenAPIOperation('GET', '/api/v1/sandboxes', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxListResponse', (), 'none', 'none', ()),
+    OperationId.LIST_SCHEDULES: OpenAPIOperation('GET', '/api/v1/schedules', 'management', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
+    OperationId.LIST_TASK_EVENTS: OpenAPIOperation('GET', '/api/v1/tasks/{taskId}/events', 'either', 'read-only', 'bounded', '', False, False, '', 'TaskEventPage', ('taskId',), 'none', 'cursor', ()),
+    OperationId.LIST_TASK_EVENTS_BATCH: OpenAPIOperation('GET', '/api/v1/task-events', 'management', 'read-only', 'bounded', '', False, False, '', 'TaskEventBatchResponse', (), 'none', 'none', ()),
+    OperationId.LIST_TASKS: OpenAPIOperation('GET', '/api/v1/tasks', 'either', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
+    OperationId.LIST_WORKFLOW_HISTORY: OpenAPIOperation('GET', '/api/v1/workflows/{workflowId}/history', 'either', 'read-only', 'bounded', '', False, False, '', 'WorkflowHistoryPage', ('workflowId',), 'none', 'cursor', ()),
+    OperationId.LIST_WORKFLOWS: OpenAPIOperation('GET', '/api/v1/workflows', 'either', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
+    OperationId.LIST_WORKSPACES: OpenAPIOperation('GET', '/api/v1/workspaces', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxWorkspaceListResponse', (), 'none', 'none', ()),
+    OperationId.PAUSE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/pause', 'management', 'mutation', 'none', '', False, False, 'PauseScheduleRequest', 'Schedule', ('scheduleId',), 'none', 'none', ()),
+    OperationId.POLL_AGENT_TASK: OpenAPIOperation('GET', '/api/v1/agent/poll', 'agent', 'read-only', 'bounded', '', False, False, '', 'PollTaskResponse', (), 'none', 'none', ()),
+    OperationId.READY: OpenAPIOperation('GET', '/readyz', 'management', 'read-only', 'bounded', '', False, False, '', 'ReadyResponse', (), 'none', 'none', ()),
+    OperationId.REFRESH_AGENT_SESSION: OpenAPIOperation('POST', '/api/v1/agent/session/refresh', 'public', 'mutation', 'none', '', False, False, 'RefreshAgentSessionRequest', 'AgentSessionResponse', (), 'none', 'none', ()),
+    OperationId.SIGNAL_WITH_START_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/signal-with-start', 'either', 'mutation', 'none', '', False, False, 'SignalWithStartWorkflowRequest', 'SignalWithStartWorkflowResponse', ('workflowId',), 'none', 'none', ()),
+    OperationId.SIGNAL_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/signal', 'either', 'mutation', 'none', '', False, False, 'SignalWorkflowRequest', 'WorkflowHistoryEvent', ('workflowId',), 'none', 'none', ()),
+    OperationId.START_SANDBOX: OpenAPIOperation('POST', '/api/v1/sandboxes/{sandboxId}/start', 'management', 'mutation', 'none', '', False, False, '', 'Sandbox', ('sandboxId',), 'none', 'none', ()),
+    OperationId.STOP_SANDBOX: OpenAPIOperation('POST', '/api/v1/sandboxes/{sandboxId}/stop', 'management', 'mutation', 'none', '', False, False, '', 'Sandbox', ('sandboxId',), 'none', 'none', ()),
+    OperationId.TERMINATE_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/terminate', 'either', 'destructive', 'none', '', False, False, 'TerminateWorkflowRequest', 'WorkflowHistoryEvent', ('workflowId',), 'none', 'none', ()),
+    OperationId.TRIGGER_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/trigger', 'management', 'mutation', 'none', '', False, False, 'TriggerScheduleRequest', 'TriggerScheduleResponse', ('scheduleId',), 'none', 'none', ()),
+    OperationId.UNPAUSE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/unpause', 'management', 'mutation', 'none', '', False, False, 'UnpauseScheduleRequest', 'Schedule', ('scheduleId',), 'none', 'none', ()),
+    OperationId.UPDATE_SCHEDULE: OpenAPIOperation('PATCH', '/api/v1/schedules/{scheduleId}', 'management', 'mutation', 'none', '', False, False, 'UpdateScheduleRequest', 'Schedule', ('scheduleId',), 'none', 'none', ()),
+    OperationId.UPLOAD_WORKSPACE: OpenAPIOperation('POST', '/api/v1/workspaces', 'management', 'mutation', 'none', '', True, False, 'inline', 'SandboxWorkspace', (), 'none', 'none', ('X-PostGrip-Repository', 'X-PostGrip-Revision')),
 }
 
 
@@ -1161,6 +1167,9 @@ def resolve_openapi_operation(
         websocket=source.websocket,
         request_schema=source.request_schema,
         response_schema=source.response_schema,
+        idempotency=source.idempotency,
+        pagination=source.pagination,
+        header_parameters=source.header_parameters,
     )
 
 

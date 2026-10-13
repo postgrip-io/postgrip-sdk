@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Worker requests run through a shared contract-driven executor.
+  `WorkerAPIError` keeps its fields, constructor, equality and text, and now
+  subclasses an internal shared `PostGripAPIError` base that the other planes
+  will also use.
+- The generated low-level Worker operations (`WorkerClient.openapi`) reject a
+  missing or invalid required `Idempotency-Key` before sending.
+- Worker `Retry-After` parsing accepts only non-negative delta-seconds or an
+  HTTP date; a signed or fractional value such as `+5` or `1.5` backs off with
+  jitter instead. An oversized success body now fails with
+  `ValueError("PostGrip Worker response is invalid or too large")`.
 - Types the Agent convenience methods on `Connection`, `Client`,
   `WorkflowClient`, `WorkflowHandle`, `TaskClient`, `ScheduleClient` and
   `SandboxClient` with the OpenAPI-generated aliases (`Task`, `Schedule`,

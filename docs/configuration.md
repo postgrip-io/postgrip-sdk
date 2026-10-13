@@ -81,15 +81,15 @@ of 20 when omitted) plus 30 seconds when that exceeds the request timeout; a
 supplied `HTTPClient` keeps its `Timeout` as given. Service, Go Worker and Go Agent
 eligibility use generated retry/safety metadata plus an idempotency key for
 mutations.
-TypeScript Worker and Agent use the same contract metadata. Python Worker currently
-uses GET-or-idempotency-key eligibility, which selects the same requests for
-Worker's current contract operations.
+TypeScript Worker and Agent and Python Worker use the same contract metadata.
+Python Service currently uses its own copy of the contract rule.
 Retries remain opt-in, with attempt counts bounded by the plane
 implementation; delay limits are not yet uniform across planes and languages.
-Go and TypeScript Worker, Service and Agent parse `Retry-After` with the same rules:
+Go and TypeScript Worker, Service and Agent and Python Worker parse
+`Retry-After` with the same rules:
 `0` or a past date retries without backoff, larger values cap at 30 seconds, and a
-signed value such as `+5` is not valid delta-seconds, so the jittered backoff
-applies.
+signed or fractional value such as `+5` or `1.5` is not valid delta-seconds, so
+the jittered backoff applies.
 The required contract-driven boundary is specified in
 [architecture](development/architecture.md). Until the Python planes move
 onto their shared executor, Python Agent retries remain proposed, not
@@ -97,9 +97,9 @@ available.
 
 Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
-request on retries or response loss. Go and TypeScript Worker and Service
-reject a missing or invalid key on these operations before sending, including
-through their generated low-level clients. Service administration writes may
+request on retries or response loss. Go and TypeScript Worker and Service and
+Python Worker reject a missing or invalid key on these operations before
+sending, including through their generated low-level clients. Service administration writes may
 additionally require the current `If-Match` value; Go and TypeScript Service
 forward `If-Match` only on operations whose contract declares it.
 

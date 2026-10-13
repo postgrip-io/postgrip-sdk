@@ -3,27 +3,16 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Iterator, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from email.utils import parsedate_to_datetime
-import json
 import os
-import random
 from threading import Event
 import time
 from typing import Any, Literal, cast
-from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
-from urllib.request import HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
+from urllib.request import OpenerDirector
 
 from .._internal.config import validate_base_url, validate_idempotency_key, validate_management_token
-from .._internal.http import (
-    REQUEST_CANCEL_EVENT,
-    CancellationAwareHTTPHandler,
-    CancellationAwareHTTPSHandler,
-    RequestCancelled,
-    run_cancellable,
-)
+from .._internal.http import REQUEST_CANCEL_EVENT, RequestCancelled, run_cancellable
 from .._internal.pagination import iterate_pages, iterate_pages_async
+from .._internal.transport import APIErrorFields, Executor, PostGripAPIError, RetryConfig, no_redirect_opener
 
 from .openapi import (
     CheckWorkerResponseBody,
@@ -45,48 +34,20 @@ from .openapi import (
     resolve_openapi_operation,
 )
 
-_RETRYABLE_STATUS = {408, 429, 502, 503, 504}
-_MAX_RESPONSE_BYTES = 4 << 20
-
-
-class _NoRedirect(HTTPRedirectHandler):
-    def redirect_request(self, req: Request, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
-        return None
-
-
-def _redirect_safe_opener(opener: OpenerDirector | None) -> OpenerDirector:
-    https_context = None
-    https_check_hostname = None
-    if opener is not None:
-        for handler in opener.handlers:
-            if isinstance(handler, HTTPSHandler):
-                https_context = getattr(handler, "_context", None)
-                https_check_hostname = getattr(handler, "_check_hostname", None)
-                break
-    cancellation_handlers = (
-        CancellationAwareHTTPHandler(),
-        CancellationAwareHTTPSHandler(context=https_context, check_hostname=https_check_hostname),
-    )
-    if opener is None:
-        return build_opener(_NoRedirect(), *cancellation_handlers)
-    redirect_methods = ("http_error_301", "http_error_302", "http_error_303", "http_error_307", "http_error_308")
-    handlers = [handler for handler in opener.handlers if not any(hasattr(handler, name) for name in redirect_methods)]
-    if len(handlers) == len(opener.handlers):
-        opener.add_handler(_NoRedirect())
-        for handler in cancellation_handlers:
-            opener.add_handler(handler)
-        return opener
-    return build_opener(*handlers, _NoRedirect(), *cancellation_handlers)
-
-
 @dataclass(frozen=True)
-class WorkerAPIError(Exception):
-    status: int
-    code: str
-    message: str
-    request_id: str = ""
-    details: Mapping[str, Any] | None = None
-    retry_after: float | None = None
+class WorkerAPIError(PostGripAPIError):
+    """A failed Worker request, with the same fields as before and the shared base."""
+
+    @classmethod
+    def _from_fields(cls, fields: APIErrorFields) -> WorkerAPIError:
+        return cls(
+            status=fields.status,
+            code=fields.code,
+            message=fields.message,
+            request_id=fields.request_id,
+            details=fields.details,
+            retry_after=fields.retry_after,
+        )
 
     def __str__(self) -> str:
         return f"postgrip-worker: {self.code} (HTTP {self.status}): {self.message}"
@@ -108,10 +69,16 @@ class WorkerClient:
         token = validate_management_token(token)
         self._base_url = base_url.rstrip("/") + "/"
         self._token = token
-        self._enable_retries = enable_retries
         self._follow_interval = max(follow_interval, 0.001)
-        self._timeout = timeout
-        self._opener = _redirect_safe_opener(opener)
+        self._executor = Executor(
+            plane="Worker",
+            base_url=base_url,
+            opener=no_redirect_opener(opener),
+            management_token=token,
+            retry=RetryConfig(enabled=enable_retries, max_attempts=3, max_delay=2.0, retry_after_max=30.0),
+            timeout=timeout,
+            create_error=WorkerAPIError._from_fields,
+        )
         self.openapi = OpenAPIClient(self._openapi_transport)
 
     @classmethod
@@ -309,57 +276,15 @@ class WorkerClient:
         validate_idempotency_key(idempotency_key)
         return self._request(operation, path={"workerId": worker_id}, idempotency_key=idempotency_key)
 
+    @property
+    def _opener(self) -> OpenerDirector:
+        return self._executor.opener
+
     def _request(self, operation_id: OperationId, *, body: Any = None, path: Mapping[str, str] | None = None,
                  query: Mapping[str, Any] | None = None, idempotency_key: str | None = None) -> Any:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         operation = resolve_openapi_operation(operation_id, path, clean_query)
-        attempts = 3 if self._enable_retries and (operation.method == "GET" or idempotency_key) else 1
-        endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
-        cancel_event = REQUEST_CANCEL_EVENT.get()
-        for attempt in range(1, attempts + 1):
-            if cancel_event is not None and cancel_event.is_set():
-                raise RequestCancelled
-            encoded_body = None if body is None else json.dumps(body, separators=(",", ":")).encode("utf-8")
-            request = Request(endpoint, data=encoded_body, method=operation.method, headers={
-                "Accept": "application/json",
-                **({"Content-Type": "application/json"} if encoded_body is not None else {}),
-                **({"Authorization": f"Bearer {self._token}"} if operation.auth_lane == "worker-management" else {}),
-                **({"Idempotency-Key": idempotency_key} if idempotency_key else {}),
-            })
-            try:
-                with self._opener.open(request, timeout=self._timeout) as response:
-                    return _decode_success(response)
-            except HTTPError as error:
-                if cancel_event is not None and cancel_event.is_set():
-                    raise RequestCancelled from None
-                api_error = _decode_http_error(error)
-                if attempt < attempts and error.code in _RETRYABLE_STATUS:
-                    retry_after = api_error.retry_after if error.code in {429, 503} else None
-                    delay = retry_after if retry_after is not None else _jitter(attempt)
-                    if cancel_event is not None:
-                        if cancel_event.wait(delay):
-                            raise RequestCancelled
-                    else:
-                        time.sleep(delay)
-                    continue
-                raise api_error from None
-            except URLError:
-                if cancel_event is not None and cancel_event.is_set():
-                    raise RequestCancelled from None
-                if attempt < attempts:
-                    delay = _jitter(attempt)
-                    if cancel_event is not None:
-                        if cancel_event.wait(delay):
-                            raise RequestCancelled
-                    else:
-                        time.sleep(delay)
-                    continue
-                raise
-            except Exception:
-                if cancel_event is not None and cancel_event.is_set():
-                    raise RequestCancelled from None
-                raise
-        raise RuntimeError("PostGrip Worker request attempts exhausted")
+        return self._executor.request(operation, body=body, idempotency_key=idempotency_key)
 
 
 class AsyncWorkerClient:
@@ -461,47 +386,3 @@ class AsyncWorkerClient:
                     yield entry
             if not page["items"]:
                 await asyncio.sleep(self._sync._follow_interval)
-
-
-def _decode_success(response: Any) -> Any:
-    body = response.read(_MAX_RESPONSE_BYTES + 1)
-    if len(body) > _MAX_RESPONSE_BYTES:
-        raise ValueError("PostGrip Worker response is too large")
-    return json.loads(body) if body.strip() else None
-
-
-def _decode_http_error(error: HTTPError) -> WorkerAPIError:
-    body = error.read(_MAX_RESPONSE_BYTES + 1)
-    try:
-        value = json.loads(body) if len(body) <= _MAX_RESPONSE_BYTES else {}
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        value = {}
-    if not isinstance(value, dict):
-        value = {}
-    return WorkerAPIError(
-        status=error.code,
-        code=value.get("code", "HTTP_ERROR"),
-        message=value.get("message", error.reason or "request failed"),
-        request_id=value.get("requestId", error.headers.get("X-Request-ID", "")),
-        details=value.get("details") if isinstance(value.get("details"), dict) else None,
-        retry_after=_parse_retry_after(error.headers.get("Retry-After")),
-    )
-
-
-def _parse_retry_after(value: str | None) -> float | None:
-    if not value:
-        return None
-    try:
-        return min(max(float(value), 0.0), 30.0)
-    except ValueError:
-        try:
-            when = parsedate_to_datetime(value)
-            if when.tzinfo is None:
-                when = when.replace(tzinfo=timezone.utc)
-            return min(max((when - datetime.now(timezone.utc)).total_seconds(), 0.0), 30.0)
-        except (TypeError, ValueError, OverflowError):
-            return None
-
-
-def _jitter(attempt: int) -> float:
-    return random.random() * min(0.2 * (2 ** (attempt - 1)), 2.0)
