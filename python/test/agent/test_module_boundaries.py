@@ -52,6 +52,32 @@ class AgentModuleBoundariesTest(unittest.TestCase):
         }
         self.assertIn("sandbox", top_level)
 
+    def test_workflow_models_are_pure(self) -> None:
+        imported = _imported_modules(AGENT / "_workflow_models.py")
+        forbidden = {
+            ".client", "._connection", ".sandbox", "postgrip.agent.client",
+            "urllib.request", "asyncio", ".._internal.http",
+        }
+        self.assertFalse(imported & forbidden, imported)
+
+    def test_history_walker_has_no_transport_or_client_dependency(self) -> None:
+        imported = _imported_modules(AGENT / "_history.py")
+        self.assertEqual(imported - {"__future__", "collections.abc", "typing", ".types"}, set(), imported)
+        connection = (AGENT / "_connection.py").read_text(encoding="utf-8")
+        self.assertNotIn("def _iter_history_pages", connection)
+        self.assertIn("_history.iter_task_events(self, task_id)", connection)
+        self.assertIn("_history.iter_workflow_history(self, workflow_id_or_run_id)", connection)
+
+    def test_client_keeps_every_name_it_previously_provided(self) -> None:
+        from postgrip.agent import client
+
+        for name in (
+            "Client", "WorkflowClient", "WorkflowHandle", "WorkflowUpdateHandle", "TaskClient", "ScheduleClient",
+            "Connection", "DEFAULT_ADDRESS", "has_authorization_header", "urlopen", "run_cancellable",
+            "_workflow_query_options",
+        ):
+            self.assertTrue(hasattr(client, name), name)
+
 
 if __name__ == "__main__":
     unittest.main()
