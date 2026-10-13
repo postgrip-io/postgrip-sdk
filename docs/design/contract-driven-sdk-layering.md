@@ -231,6 +231,15 @@ Agent's configured headers did before. Executor-local encode, decode and
 response-bound failures keep Agent's previous `SDKError` messages, including the
 method and route of a decode failure.
 
+Moving TypeScript Agent makes the same `Accept` and configured-header changes;
+before, a configured `Content-Type` was overwritten. Its decode-failure message
+keeps the method, route and status but no longer quotes the body. The server
+reports a terminal or unleased task mutation only as a 409 envelope message, so
+`isTerminalTaskMutation` reads that message from `AgentAPIError.responseBody`
+instead of the error text. Agent requests previously passed the caller's
+`AbortSignal` to `fetch` directly; the executor now passes a signal linked to it
+that also carries the timeout.
+
 `RetryConfig` is named so that it does not collide with the runtime protocol's
 `RetryPolicy` wire type, which the drift checker reserves. With retries enabled, the 18
 `bounded` Agent reads become retryable. Generated output changes only through

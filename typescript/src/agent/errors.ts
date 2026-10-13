@@ -1,3 +1,6 @@
+import { httpStatusText } from '../internal/http.js';
+import { PostGripAPIError, type APIErrorFields } from '../internal/transport.js';
+
 export class PostGripAgentError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
@@ -62,9 +65,57 @@ export class TaskFailedError extends PostGripAgentError {
   }
 }
 
+/**
+ * A failed Agent HTTP exchange. Its text names only the method, route and
+ * status, never server content; the envelope fields and the raw body are
+ * available for explicit inspection.
+ */
+export class AgentAPIError extends PostGripAPIError {
+  readonly method: string;
+  readonly route: string;
+  /** Untrusted server content that can contain secrets. Redact it before logging; the error text never includes it. */
+  readonly responseBody: string;
+
+  constructor(fields: APIErrorFields) {
+    super(
+      fields.status,
+      fields.code,
+      `postgrip-agent: ${JSON.stringify(fields.method)} ${JSON.stringify(fields.route)} -> ${fields.status} ${httpStatusText(fields.status)}`.trimEnd(),
+      fields.requestId,
+      fields.details,
+      fields.retryAfterMs,
+    );
+    this.name = 'AgentAPIError';
+    this.method = fields.method;
+    this.route = fields.route;
+    this.responseBody = fields.responseBody;
+  }
+}
+
+/**
+ * Whether a task mutation failed because the task is already terminal or no
+ * longer leased by this agent. The server reports both as a 409 whose envelope
+ * message names the condition.
+ */
 export function isTerminalTaskMutation(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof AgentAPIError
+    ? (error.status === 409 ? envelopeMessage(error.responseBody) : '')
+    : error instanceof Error ? error.message : String(error);
   return message.includes('terminal') || message.includes('not leased');
+}
+
+function envelopeMessage(body: string): string {
+  try {
+    const value: unknown = JSON.parse(body);
+    if (typeof value === 'object' && value !== null) {
+      const { message, error } = value as Record<string, unknown>;
+      if (typeof message === 'string') return message;
+      if (typeof error === 'string') return error;
+    }
+  } catch {
+    // Not an envelope; no terminal condition is reported.
+  }
+  return '';
 }
 
 export function ignoreTerminalTaskMutation(error: unknown): void {

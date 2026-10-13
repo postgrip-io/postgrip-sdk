@@ -9,7 +9,7 @@ const MAX_TIMEOUT_MS = 2_147_483_647;
 
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
 
-/** Lanes that carry the management bearer. `agent` and `either` need the Agent credential hook. */
+/** Lanes that carry the management bearer. */
 const MANAGEMENT_LANES = new Set(['management', 'worker-management', 'service-management']);
 
 /**
@@ -28,6 +28,24 @@ export class PostGripAPIError extends Error {
     super(message);
     this.name = 'PostGripAPIError';
   }
+}
+
+/**
+ * One failed exchange, from which a plane builds its typed error. `message` is
+ * the envelope message or the status text, and `responseBody` the bounded raw
+ * body; both are server content, so a plane whose text must exclude it uses
+ * `method`, `route` and `status` instead.
+ */
+export interface APIErrorFields {
+  readonly status: number;
+  readonly code: string;
+  readonly message: string;
+  readonly requestId: string;
+  readonly details?: Readonly<Record<string, unknown>>;
+  readonly retryAfterMs?: number;
+  readonly method: string;
+  readonly route: string;
+  readonly responseBody: string;
 }
 
 /** The contract annotations of one resolved generated operation. */
@@ -52,28 +70,49 @@ export interface RetryConfig {
   readonly retryAfterMaxDelayMs: number;
 }
 
+/** Delegated runtime credentials for the `agent` and `either` lanes. */
+export interface DelegatedCredentials {
+  /** Whether delegated credentials are configured; the `either` lane prefers them when true. */
+  hasDelegated(): boolean;
+  /**
+   * Returns the current delegated access token, refreshing it when needed. The
+   * executor calls it immediately before every network attempt, including retries.
+   */
+  delegated(signal: AbortSignal | undefined): Promise<string>;
+}
+
+/** The final request of a signed operation, over the exact encoded body bytes. */
+export interface SignableRequest {
+  readonly method: string;
+  readonly url: URL;
+  readonly headers: Headers;
+  readonly body: Uint8Array;
+}
+
 export interface ExecutorConfig {
   /** The plane name used in local error messages, such as `Worker`. */
   readonly plane: string;
   readonly baseUrl: URL;
   readonly fetch: typeof globalThis.fetch;
-  /** Sent as the bearer on the management lanes. */
-  readonly managementToken: string;
+  /** Sent as the bearer on the management lanes, and on `either` without delegated credentials. */
+  readonly managementToken?: string;
+  readonly delegatedCredentials?: DelegatedCredentials;
+  /**
+   * Headers configured on the plane connection. They replace the executor's
+   * own value for the same name, and an `Authorization` among them keeps
+   * precedence on management lanes. Public lanes never send one.
+   */
+  readonly headers?: HeadersInit;
   readonly retry: RetryConfig;
   /** Bound on each exchange; an earlier caller abort still wins. */
   readonly timeoutMs: number;
   readonly maxResponseBytes?: number;
   /** Larger bounds for successful responses of named operations. */
   readonly successResponseBytes?: Readonly<Partial<Record<string, number>>>;
+  /** Signs the final request of an operation that declares signing. The executor never holds the key. */
+  readonly sign?: (request: SignableRequest) => Promise<void>;
   /** Builds the plane's error type, which owns the default error text. */
-  readonly createError: (
-    status: number,
-    code: string,
-    message: string,
-    requestId: string,
-    details: Readonly<Record<string, unknown>> | undefined,
-    retryAfterMs: number | undefined,
-  ) => PostGripAPIError;
+  readonly createError: (fields: APIErrorFields) => PostGripAPIError;
 }
 
 export interface ExecutorCall {
@@ -82,45 +121,65 @@ export interface ExecutorCall {
   readonly idempotencyKey?: string;
   readonly ifMatch?: string;
   readonly signal?: AbortSignal;
+  /** Non-2xx statuses the plane adapter handles; their bounded raw body is returned. */
+  readonly acceptedStatuses?: readonly number[];
+  /** Raises this exchange's lifetime, for example for a long poll's server hold. It never lowers it. */
+  readonly lifetimeMs?: number;
+}
+
+/** The bounded raw response of a successful or accepted exchange. */
+export interface ExchangeResponse {
+  readonly status: number;
+  readonly headers: Headers;
+  readonly body: string;
 }
 
 /**
  * Runs generated operations under their contract annotations: auth lane,
- * idempotency and declared preconditions, a bounded lifetime, manual
+ * idempotency and declared preconditions, signing, a bounded lifetime, manual
  * redirects, opt-in bounded retry, response bounds and envelope errors.
  */
 export class Executor {
   constructor(private readonly config: ExecutorConfig) {}
 
+  /** Runs one operation and decodes its successful JSON body. */
   async request<T>(call: ExecutorCall): Promise<T> {
+    return JSON.parse((await this.exchange(call)).body) as T;
+  }
+
+  /** Runs one operation and returns the bounded raw body of a successful or accepted response. */
+  async exchange(call: ExecutorCall): Promise<ExchangeResponse> {
     const { operation } = call;
-    if (operation.streamingRequest || operation.webSocket || operation.signing) {
-      throw new Error(`PostGrip ${this.config.plane} operation ${operation.id} requires its protocol adapter`);
+    const { plane } = this.config;
+    if (operation.streamingRequest || operation.webSocket) {
+      throw new Error(`PostGrip ${plane} operation ${operation.id} requires its protocol adapter`);
     }
-    if (operation.authLane !== 'public' && !MANAGEMENT_LANES.has(operation.authLane)) {
-      throw new Error(`PostGrip ${this.config.plane} operation ${operation.id} uses unsupported auth lane ${operation.authLane}`);
+    if (operation.signing && !this.config.sign) {
+      throw new Error(`PostGrip ${plane} operation ${operation.id} requires request signing`);
     }
+    const delegated = this.delegatedLane(operation);
     if (operation.idempotency === 'required') {
       validateIdempotencyKey(call.idempotencyKey);
     }
     const endpoint = new URL(`${this.config.baseUrl.href.replace(/\/+$/, '')}${operation.path}`);
     const encodedBody = call.body === undefined ? undefined : JSON.stringify(call.body);
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (encodedBody !== undefined) headers['Content-Type'] = 'application/json';
-    if (MANAGEMENT_LANES.has(operation.authLane)) headers.Authorization = `Bearer ${this.config.managementToken}`;
-    if (call.idempotencyKey && operation.headerParameters.includes('Idempotency-Key')) {
-      headers['Idempotency-Key'] = call.idempotencyKey;
-    }
-    if (call.ifMatch && operation.headerParameters.includes('If-Match')) headers['If-Match'] = call.ifMatch;
+    const bodyBytes = new TextEncoder().encode(encodedBody ?? '');
 
     const { retry } = this.config;
-    // Protocol operations are never retried, even if mis-annotated as bounded.
-    const eligible = retry.enabled && operation.retry === 'bounded' && operation.safety !== 'protocol'
+    // Protocol and signed operations are never retried, even if mis-annotated as bounded.
+    const eligible = retry.enabled && operation.retry === 'bounded' && operation.safety !== 'protocol' && !operation.signing
       && (operation.safety === 'read-only' || Boolean(call.idempotencyKey));
     const maxAttempts = eligible ? retry.maxAttempts : 1;
+    const lifetimeMs = Math.min(Math.max(this.config.timeoutMs, call.lifetimeMs ?? 0), MAX_TIMEOUT_MS);
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       call.signal?.throwIfAborted();
-      const lifetime = boundedSignal(call.signal, this.config.timeoutMs, this.config.plane);
+      // A credential or signing failure happens before sending, so it is never retried.
+      const headers = await this.requestHeaders(call, encodedBody !== undefined, delegated);
+      if (operation.signing) {
+        await this.config.sign?.({ method: operation.method, url: endpoint, headers, body: bodyBytes });
+      }
+      call.signal?.throwIfAborted();
+      const lifetime = boundedSignal(call.signal, lifetimeMs, plane);
       try {
         let response: Response;
         try {
@@ -140,9 +199,16 @@ export class Executor {
         }
         if (response.ok) {
           const limit = this.config.successResponseBytes?.[operation.id] ?? this.config.maxResponseBytes;
-          return JSON.parse(await readBoundedResponseBody(response, this.config.plane, limit)) as T;
+          return { status: response.status, headers: response.headers, body: await readBoundedResponseBody(response, plane, limit) };
         }
-        const apiError = await this.decodeError(response, lifetime.signal);
+        if (call.acceptedStatuses?.includes(response.status)) {
+          return {
+            status: response.status,
+            headers: response.headers,
+            body: await readBoundedResponseBody(response, plane, this.config.maxResponseBytes),
+          };
+        }
+        const apiError = await this.decodeError(operation, response, lifetime.signal);
         if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
           const retryAfterMs = response.status === 429 || response.status === 503 ? apiError.retryAfterMs : undefined;
           await abortableDelay(retryAfterMs ?? jitter(attempt, retry.maxDelayMs), call.signal);
@@ -153,31 +219,98 @@ export class Executor {
         lifetime.clear();
       }
     }
-    throw new Error(`PostGrip ${this.config.plane} request attempts exhausted`);
+    throw new Error(`PostGrip ${plane} request attempts exhausted`);
   }
 
-  private async decodeError(response: Response, lifetime: AbortSignal): Promise<PostGripAPIError> {
-    let value: Record<string, unknown> = {};
+  /** Fixes the credential class for every attempt of one call. */
+  private delegatedLane(operation: TransportOperation): boolean {
+    const credentials = this.config.delegatedCredentials;
+    switch (operation.authLane) {
+      case 'agent':
+        if (!credentials) {
+          throw new Error(`PostGrip ${this.config.plane} operation ${operation.id} requires delegated runtime credentials`);
+        }
+        return true;
+      case 'either':
+        return credentials?.hasDelegated() ?? false;
+      case 'public':
+        return false;
+      default:
+        if (MANAGEMENT_LANES.has(operation.authLane)) return false;
+        throw new Error(`PostGrip ${this.config.plane} operation ${operation.id} uses unsupported auth lane ${operation.authLane}`);
+    }
+  }
+
+  private async requestHeaders(call: ExecutorCall, hasBody: boolean, delegated: boolean): Promise<Headers> {
+    const { operation } = call;
+    const headers = new Headers({ Accept: 'application/json' });
+    if (hasBody) headers.set('Content-Type', 'application/json');
+    new Headers(this.config.headers).forEach((value, name) => headers.set(name, value));
+    if (call.idempotencyKey && operation.headerParameters.includes('Idempotency-Key')) {
+      headers.set('Idempotency-Key', call.idempotencyKey);
+    }
+    if (call.ifMatch && operation.headerParameters.includes('If-Match')) headers.set('If-Match', call.ifMatch);
+    if (!operation.headerParameters.includes('If-Match')) headers.delete('If-Match');
+    if (operation.authLane === 'public') {
+      headers.delete('Authorization');
+    } else if (delegated) {
+      const token = await this.config.delegatedCredentials?.delegated(call.signal);
+      if (!token) throw new Error(`PostGrip ${this.config.plane} delegated runtime credential is empty`);
+      headers.set('Authorization', `Bearer ${token}`);
+    } else if (this.config.managementToken && !headers.has('Authorization')) {
+      // A configured Authorization header keeps its precedence on management lanes.
+      headers.set('Authorization', `Bearer ${this.config.managementToken}`);
+    }
+    return headers;
+  }
+
+  private async decodeError(operation: TransportOperation, response: Response, lifetime: AbortSignal): Promise<PostGripAPIError> {
+    let body = '';
     try {
-      const decoded: unknown = JSON.parse(await readBoundedResponseBody(response, this.config.plane, this.config.maxResponseBytes));
-      if (typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)) {
-        value = decoded as Record<string, unknown>;
-      }
+      body = await readBoundedResponseBody(response, this.config.plane, this.config.maxResponseBytes);
     } catch {
       // A timeout or caller abort while reading the body stays the failure,
       // as it does for a success body.
       if (lifetime.aborted) throw lifetime.reason;
-      // Otherwise the typed fallback intentionally excludes the upstream response body.
+      // Otherwise an unreadable or oversized error body decodes as empty.
     }
     return this.config.createError(
-      response.status,
-      typeof value.code === 'string' ? value.code : 'HTTP_ERROR',
-      typeof value.message === 'string' ? value.message : response.statusText,
-      typeof value.requestId === 'string' ? value.requestId : response.headers.get('x-request-id') ?? '',
-      typeof value.details === 'object' && value.details !== null ? value.details as Record<string, unknown> : undefined,
-      parseRetryAfter(response.headers.get('retry-after'), this.config.retry.retryAfterMaxDelayMs),
+      apiErrorFields(response, body, operation.method, operation.path, this.config.retry.retryAfterMaxDelayMs),
     );
   }
+}
+
+/**
+ * Decodes the common error envelope of a failed response whose bounded body
+ * has been read, for the executor and for adapters that send their own requests.
+ */
+export function apiErrorFields(
+  response: Response,
+  body: string,
+  method: string,
+  route: string,
+  retryAfterMaxDelayMs: number,
+): APIErrorFields {
+  let value: Record<string, unknown> = {};
+  try {
+    const decoded: unknown = JSON.parse(body);
+    if (typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)) {
+      value = decoded as Record<string, unknown>;
+    }
+  } catch {
+    // The typed fallback excludes the upstream body from the decoded fields.
+  }
+  return {
+    status: response.status,
+    code: typeof value.code === 'string' ? value.code : 'HTTP_ERROR',
+    message: typeof value.message === 'string' ? value.message : response.statusText,
+    requestId: typeof value.requestId === 'string' ? value.requestId : response.headers.get('x-request-id') ?? '',
+    details: typeof value.details === 'object' && value.details !== null ? value.details as Record<string, unknown> : undefined,
+    retryAfterMs: parseRetryAfter(response.headers.get('retry-after'), retryAfterMaxDelayMs),
+    method,
+    route,
+    responseBody: body,
+  };
 }
 
 /** Rejects an idempotency key that is missing or not 1 to 128 visible ASCII characters. */
@@ -231,6 +364,8 @@ function boundedSignal(
   const controller = new AbortController();
   const onAbort = () => controller.abort(caller?.reason);
   caller?.addEventListener('abort', onAbort, { once: true });
+  // The caller may have aborted while credentials or signing were awaited.
+  if (caller?.aborted) onAbort();
   const timer = setTimeout(() => {
     controller.abort(new DOMException(`PostGrip ${plane} request timed out after ${timeoutMs}ms`, 'TimeoutError'));
   }, timeoutMs);

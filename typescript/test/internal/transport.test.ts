@@ -26,7 +26,7 @@ function executor(responses: Array<() => Response>) {
     managementToken: 'pgt_management',
     retry: { enabled: true, maxAttempts: 3, maxDelayMs: 1, retryAfterMaxDelayMs: 1 },
     timeoutMs: 30_000,
-    createError: (status, code, message, requestId, details, retryAfterMs) =>
+    createError: ({ status, code, message, requestId, details, retryAfterMs }) =>
       new PostGripAPIError(status, code, message, requestId, details, retryAfterMs),
   });
   return { fetch, instance };
@@ -44,17 +44,25 @@ describe('Executor', () => {
     }
   });
 
-  it('rejects lanes that need the Agent credential hook before sending', async () => {
-    for (const authLane of ['agent', 'either', 'unknown']) {
-      const { fetch, instance } = executor([]);
-      await expect(instance.request({ operation: operation({ authLane }) })).rejects.toThrow(`unsupported auth lane ${authLane}`);
-      expect(fetch).not.toHaveBeenCalled();
-    }
+  it('refuses the agent lane without delegated credentials and unknown lanes before sending', async () => {
+    const agent = executor([]);
+    await expect(agent.instance.request({ operation: operation({ authLane: 'agent' }) })).rejects.toThrow('delegated runtime credentials');
+    expect(agent.fetch).not.toHaveBeenCalled();
+    const unknown = executor([]);
+    await expect(unknown.instance.request({ operation: operation({ authLane: 'unknown' }) })).rejects.toThrow('unsupported auth lane unknown');
+    expect(unknown.fetch).not.toHaveBeenCalled();
   });
 
-  it('rejects signed operations before sending', async () => {
+  it('sends the management bearer on the either lane without delegated credentials', async () => {
+    const { fetch, instance } = executor([() => Response.json({})]);
+    await instance.request({ operation: operation({ authLane: 'either' }) });
+    const init = fetch.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer pgt_management');
+  });
+
+  it('refuses a signed operation without a signer before sending', async () => {
     const { fetch, instance } = executor([]);
-    await expect(instance.request({ operation: operation({ signing: 'agent-task-v1' }) })).rejects.toThrow('protocol adapter');
+    await expect(instance.request({ operation: operation({ signing: 'agent-task-v1' }) })).rejects.toThrow('requires request signing');
     expect(fetch).not.toHaveBeenCalled();
   });
 

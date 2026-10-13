@@ -51,6 +51,8 @@ import {
 } from './generated/openapi.js';
 import { defaultPostGripEnvironment, validateBaseUrl } from '../internal/config.js';
 import { readBoundedResponseBody } from '../internal/http.js';
+import { apiErrorFields, configuredTimeoutMs, Executor, type SignableRequest } from '../internal/transport.js';
+import { AgentAPIError } from './errors.js';
 import { sendWorkspaceArchive } from './_archive_upload.js';
 import { iterateHistoryPages, historyPageQuery, type HistoryPageOptions } from './_history.js';
 
@@ -67,6 +69,17 @@ export interface ConnectionOptions {
    */
   authToken?: string;
   agentAuth?: AgentAuthOptions;
+  /**
+   * Opt-in bounded retry of contract-eligible operations: annotated bounded
+   * reads. Signed runtime actions, protocol operations and uploads never retry.
+   */
+  enableRetries?: boolean;
+  /**
+   * Bound on each HTTP exchange in milliseconds, from 1 to 2147483647; defaults
+   * to 30000. A long poll's lifetime is its wait plus 30 seconds when that is
+   * longer. An earlier `signal` abort still wins.
+   */
+  timeoutMs?: number;
 }
 
 export interface AgentAuthOptions {
@@ -84,6 +97,9 @@ export interface AgentAuthOptions {
 
 export const DEFAULT_BASE_URL = 'https://agentorchestrator1.postgrip.io';
 const AGENT_MAX_RESPONSE_BYTES = 40 << 20;
+/** The contract default `wait_seconds` the server holds a poll for when it is omitted. */
+const DEFAULT_POLL_WAIT_SECONDS = 20;
+const RETRY_AFTER_MAX_DELAY_MS = 30_000;
 
 interface PollTaskOptions {
   namespace?: string;
@@ -106,6 +122,7 @@ export class Connection {
   private readonly fetchImpl: typeof fetch;
   private readonly headers: HeadersInit | undefined;
   private readonly authToken: string | undefined;
+  private readonly executor: Executor;
   private agentAuth: AgentAuthOptions = {};
   private agentSessionRefresh: Promise<void> | undefined;
   // Ed25519 keypair injected by the host agent for managed workflow runtimes.
@@ -119,6 +136,27 @@ export class Connection {
     this.fetchImpl = options.fetch ?? fetch;
     this.headers = options.headers;
     this.authToken = options.authToken?.trim() || undefined;
+    this.executor = new Executor({
+      plane: 'Agent',
+      baseUrl: new URL(this.baseUrl),
+      fetch: this.fetchImpl,
+      managementToken: this.authToken,
+      delegatedCredentials: {
+        hasDelegated: () => this.hasAgentRuntimeCredentials(),
+        delegated: (signal) => this.delegatedAccessToken(signal),
+      },
+      headers: this.headers,
+      retry: {
+        enabled: options.enableRetries ?? false,
+        maxAttempts: 3,
+        maxDelayMs: 2_000,
+        retryAfterMaxDelayMs: RETRY_AFTER_MAX_DELAY_MS,
+      },
+      timeoutMs: configuredTimeoutMs('Agent', options.timeoutMs),
+      maxResponseBytes: AGENT_MAX_RESPONSE_BYTES,
+      sign: (request) => this.signAgentRequest(request),
+      createError: (fields) => new AgentAPIError(fields),
+    });
     this.openapi = new OpenAPIClient((id, requestOptions) => this.requestOpenAPI(id, requestOptions));
     this.configureAgentAuth(options.agentAuth ?? {});
   }
@@ -415,7 +453,12 @@ export class Connection {
     if (options.taskTypes?.length) {
       query.set('task_types', options.taskTypes.join(','));
     }
-    await this.ensureAgentSession({ namespace: options.namespace ?? 'default', queue: options.queue, agentId });
+    // The refresh is shared with concurrent callers, so an abort ends only this wait.
+    options.signal?.throwIfAborted();
+    await waitUnlessAborted(
+      this.ensureAgentSession({ namespace: options.namespace ?? 'default', queue: options.queue, agentId }),
+      options.signal,
+    );
     const response = await this.openapi.pollAgentTask({
       query,
       signal: options.signal,
@@ -545,10 +588,15 @@ export class Connection {
     );
     const responseBody = await readBoundedResponseBody(response, 'Agent', AGENT_MAX_RESPONSE_BYTES);
     if (!response.ok) {
-      const payload = parseJSONRecord(responseBody);
-      throw new Error(agentErrorMessage(payload, response.statusText));
+      const operation = resolveOpenAPIOperation('uploadWorkspace');
+      throw new AgentAPIError(apiErrorFields(response, responseBody, operation.method, operation.path, RETRY_AFTER_MAX_DELAY_MS));
     }
-    return JSON.parse(responseBody) as SandboxWorkspace;
+    try {
+      return JSON.parse(responseBody) as SandboxWorkspace;
+    } catch {
+      const operation = resolveOpenAPIOperation('uploadWorkspace');
+      throw decodeFailure(operation.method, operation.path, response.status);
+    }
   }
 
   async listWorkspaces(): Promise<SandboxWorkspace[]> {
@@ -586,83 +634,32 @@ export class Connection {
     id: I,
     options: OpenAPIRequestOptions<I> = {} as OpenAPIRequestOptions<I>,
   ): Promise<T> {
+    const query = encodeOpenAPIQuery(options.query);
     const operation = resolveOpenAPIOperation(
       id,
       options.pathParameters as Readonly<Record<string, string>> | undefined,
-      encodeOpenAPIQuery(options.query),
+      query,
     );
-    const agentAuth = operation.authLane === 'agent'
-      || (operation.authLane === 'either' && this.hasAgentRuntimeCredentials());
-    return this.request(operation.method, operation.path, options.body, options.signal, {
-      agentAuth,
-      managementAuth: operation.authLane !== 'public',
-      signing: operation.signing,
-      acceptedStatuses: id === 'pollAgentTask' ? [410] : undefined,
+    const poll = id === 'pollAgentTask';
+    const response = await this.executor.exchange({
+      operation,
+      // A null body is sent as no body, as before.
+      body: options.body ?? undefined,
+      signal: options.signal,
+      // Poll Gone is a terminal shutdown directive, and a long poll's server
+      // hold counts against its lifetime, so it gets 30 seconds of headroom.
+      acceptedStatuses: poll ? [410] : undefined,
+      lifetimeMs: poll ? pollWaitSeconds(query) * 1_000 + 30_000 : undefined,
     });
-  }
-
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown,
-    signal?: AbortSignal,
-    options: { agentAuth?: boolean; managementAuth?: boolean; signing?: string; acceptedStatuses?: readonly number[] } = {},
-  ): Promise<T> {
-    const useAgentAuth = options.agentAuth === true;
-    if (useAgentAuth) {
-      // The refresh is shared with concurrent callers, so an abort ends only this wait.
-      signal?.throwIfAborted();
-      await waitUnlessAborted(this.ensureAgentSession(), signal);
-    }
-    const headers = new Headers(this.headers);
-    if (useAgentAuth && this.agentAuth.accessToken) {
-      headers.set('Authorization', `Bearer ${this.agentAuth.accessToken}`);
-    } else if (!useAgentAuth && options.managementAuth !== false && this.authToken && !headers.has('Authorization')) {
-      // An explicit header wins, so callers already passing one keep working.
-      headers.set('Authorization', `Bearer ${this.authToken}`);
-    }
-    if (body != null) {
-      headers.set('Content-Type', 'application/json');
-    }
-    const bodyString = body == null ? '' : JSON.stringify(body);
-    const signing = useAgentAuth && options.signing === 'agent-task-v1'
-      ? await this.loadAgentSigningKey()
-      : undefined;
-    const requestUrl = new URL(`${this.baseUrl}${path}`);
-    if (signing) {
-      const ts = Math.floor(Date.now() / 1000);
-      headers.set(HEADER_AGENT_SIGNATURE_TIMESTAMP, String(ts));
-      headers.set(HEADER_AGENT_SIGNATURE_KEY_ID, signing.key.keyId);
-      headers.set(HEADER_AGENT_SIGNATURE, await signing.module.signRequest(
-        signing.key.privateKey,
-        method,
-        requestUrl.pathname,
-        requestUrl.search.slice(1),
-        ts,
-        new TextEncoder().encode(bodyString),
-      ));
-    }
-    const response = await this.fetchImpl(requestUrl.toString(), {
-      method,
-      signal,
-      headers,
-      body: body == null ? undefined : bodyString,
-      redirect: 'manual',
-    });
-    const text = await readBoundedResponseBody(response, 'Agent', AGENT_MAX_RESPONSE_BYTES);
-    if (!response.ok && !options.acceptedStatuses?.includes(response.status)) {
-      const payload = parseJSONRecord(text);
-      throw new Error(agentErrorMessage(payload, response.statusText));
-    }
-    const terminalGone = response.status === 410 && options.acceptedStatuses?.includes(410);
-    if (text === '') {
+    const terminalGone = response.status === 410;
+    if (response.body === '') {
       if (terminalGone) {
         return { directive: { type: 'shutdown' } } as T;
       }
       return undefined as T;
     }
     try {
-      const parsed = JSON.parse(text) as unknown;
+      const parsed = JSON.parse(response.body) as unknown;
       if (terminalGone) {
         const envelope = parsed != null && typeof parsed === 'object'
           ? { ...(parsed as Record<string, unknown>) }
@@ -674,12 +671,43 @@ export class Connection {
         return envelope as T;
       }
       return parsed as T;
-    } catch (err) {
+    } catch {
       if (terminalGone) {
         return { directive: { type: 'shutdown' } } as T;
       }
-      throw new Error(`postgrip-agent: ${method} ${path} -> ${response.status} (parse failed): ${text.slice(0, 200)}`);
+      throw decodeFailure(operation.method, operation.path, response.status);
     }
+  }
+
+  /**
+   * The executor's credential hook for the delegated lanes: it refreshes the
+   * session when needed before every attempt. The refresh is shared with
+   * concurrent callers, so an abort ends only this wait.
+   */
+  private async delegatedAccessToken(signal: AbortSignal | undefined): Promise<string> {
+    signal?.throwIfAborted();
+    await waitUnlessAborted(this.ensureAgentSession(), signal);
+    return this.agentAuth.accessToken ?? '';
+  }
+
+  /**
+   * Applies the agent-task-v1 signature over the exact encoded body. Without an
+   * injected signing key the request is sent unsigned, as before.
+   */
+  private async signAgentRequest(request: SignableRequest): Promise<void> {
+    const signing = await this.loadAgentSigningKey();
+    if (!signing) return;
+    const ts = Math.floor(Date.now() / 1000);
+    request.headers.set(HEADER_AGENT_SIGNATURE_TIMESTAMP, String(ts));
+    request.headers.set(HEADER_AGENT_SIGNATURE_KEY_ID, signing.key.keyId);
+    request.headers.set(HEADER_AGENT_SIGNATURE, await signing.module.signRequest(
+      signing.key.privateKey,
+      request.method,
+      request.url.pathname,
+      request.url.search.slice(1),
+      ts,
+      request.body,
+    ));
   }
 
   private hasAgentRuntimeCredentials(): boolean {
@@ -698,15 +726,20 @@ export class Connection {
   }
 }
 
-function parseJSONRecord(value: string): Record<string, unknown> {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : {};
-  } catch {
-    return {};
-  }
+/**
+ * A response that is not valid JSON. The body is server content, and a
+ * `JSON.parse` error quotes it, so the error names only the request and keeps
+ * no cause.
+ */
+function decodeFailure(method: string, path: string, status: number): Error {
+  return new Error(`postgrip-agent: ${method} ${path} -> ${status} (parse failed)`);
+}
+
+/** The poll's `wait_seconds`, or the contract default when it is omitted or invalid. */
+function pollWaitSeconds(query: URLSearchParams | undefined): number {
+  const raw = query?.get('wait_seconds');
+  const parsed = raw ? Number(raw) : Number.NaN;
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : DEFAULT_POLL_WAIT_SECONDS;
 }
 
 /** Stops waiting when `signal` aborts without cancelling the shared `work`. */
@@ -737,12 +770,6 @@ function accessTokenIsFresh(expiresAt: string | undefined): boolean {
   if (!expiresAt) return false;
   const expiresAtMs = Date.parse(expiresAt);
   return Number.isFinite(expiresAtMs) && expiresAtMs > Date.now() + 30_000;
-}
-
-function agentErrorMessage(payload: Readonly<Record<string, unknown>>, fallback: string): string {
-  if (typeof payload.message === 'string') return payload.message;
-  if (typeof payload.error === 'string') return payload.error;
-  return fallback;
 }
 
 function normalizeAgentAuthOptions(options: AgentAuthOptions): AgentAuthOptions {

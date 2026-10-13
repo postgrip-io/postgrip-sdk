@@ -196,6 +196,7 @@ export type {
   UploadWorkspaceResponseBody,
 } from './generated/openapi.js';
 export {
+  AgentAPIError,
   ApplicationFailure,
   CancelledFailure,
   PostGripAgentError,
