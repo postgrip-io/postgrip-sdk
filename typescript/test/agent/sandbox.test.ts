@@ -533,4 +533,12 @@ describe('sandbox module ownership', () => {
       'sandboxRelayUrl',
     ]);
   });
+
+  it('leaves raw WebSocket handling to the session adapter', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const source = await readFile(new URL('../../src/agent/sandbox.ts', import.meta.url), 'utf8');
+    for (const transportDetail of ['binaryType', 'addEventListener', 'new SandboxSession(', "from 'ws'", "import('ws')"]) {
+      expect(source).not.toContain(transportDetail);
+    }
+  });
 });

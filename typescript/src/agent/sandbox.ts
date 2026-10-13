@@ -8,6 +8,7 @@ import {
   sandboxRelayUrl,
 } from './_sandbox_relay.js';
 import {
+  openSandboxSession,
   resolveSandboxWebSocketFactory,
   SandboxSession,
   type SandboxSessionOptions,
@@ -205,15 +206,7 @@ export class SandboxClient {
     );
     // The ticket selects and authorizes the session; the management credential
     // separately authenticates the request. Both are required by the contract.
-    const socket = createWebSocket(url, { headers: relayHeaders });
-    socket.binaryType = 'arraybuffer';
-    await new Promise<void>((resolve, reject) => {
-      socket.addEventListener('open', () => resolve(), { once: true });
-      socket.addEventListener('error', () => reject(new Error('postgrip-agent: sandbox relay dial failed')), {
-        once: true,
-      });
-    });
-    return new SandboxSession(socket);
+    return openSandboxSession(createWebSocket, url, { headers: relayHeaders });
   }
 
   /**

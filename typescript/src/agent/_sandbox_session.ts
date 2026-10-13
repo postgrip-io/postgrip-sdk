@@ -116,6 +116,26 @@ export class SandboxSession {
   }
 }
 
+/**
+ * Dials the relay and resolves with the session once the socket opens. The
+ * caller supplies an authorized relay URL and the connection headers.
+ */
+export async function openSandboxSession(
+  createWebSocket: SandboxWebSocketFactory,
+  url: string,
+  options: SandboxWebSocketConnectOptions,
+): Promise<SandboxSession> {
+  const socket = createWebSocket(url, options);
+  socket.binaryType = 'arraybuffer';
+  await new Promise<void>((resolve, reject) => {
+    socket.addEventListener('open', () => resolve(), { once: true });
+    socket.addEventListener('error', () => reject(new Error('postgrip-agent: sandbox relay dial failed')), {
+      once: true,
+    });
+  });
+  return new SandboxSession(socket);
+}
+
 type HeaderCapableWebSocketConstructor = new (
   url: string,
   protocols?: string | string[],
