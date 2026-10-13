@@ -1,6 +1,7 @@
 import { SandboxClient } from './sandbox.js';
 import { Connection } from './connection.js';
 import { TaskFailedError, TimeoutFailure } from './errors.js';
+import { abortableDelay } from '../internal/polling.js';
 import type {
   BackfillScheduleRequest,
   BackfillScheduleResponse,
@@ -293,7 +294,13 @@ export class WorkflowHandle<R = unknown> {
   }
 
   async *watchEvents(options: WatchEventsOptions = {}): AsyncGenerator<TaskEvent, void, void> {
-    const taskId = await this.resolveTaskId();
+    let taskId: string;
+    try {
+      taskId = await this.resolveTaskId(options.signal);
+    } catch (error) {
+      if (isAbortFrom(error, options.signal)) return;
+      throw error;
+    }
     yield* watchTaskEvents(this.connection, taskId, options);
   }
 
@@ -367,15 +374,16 @@ export class WorkflowHandle<R = unknown> {
     return new WorkflowUpdateHandle(this.connection, task.id);
   }
 
-  private async resolveTaskId(): Promise<string> {
+  private async resolveTaskId(signal?: AbortSignal): Promise<string> {
     if (this.resolvedTaskId) {
       return this.resolvedTaskId;
     }
-    const workflow = await this.resolveWorkflow().catch(async () => undefined);
+    const workflow = await this.resolveWorkflow(signal).catch(async () => undefined);
     if (workflow) {
       return workflow.task_id;
     }
-    const task = await this.connection.getTask<WorkflowPayload, R>(this.taskId);
+    signal?.throwIfAborted();
+    const task = await this.connection.getTask<WorkflowPayload, R>(this.taskId, { signal });
     this.resolvedTaskId = task.id;
     this.resolvedWorkflowId = task.payload?.workflowId ?? task.id;
     this.resolvedRunId = task.payload?.runId ?? this.resolvedRunId;
@@ -383,8 +391,8 @@ export class WorkflowHandle<R = unknown> {
     return task.id;
   }
 
-  private async resolveWorkflow(): Promise<WorkflowExecution<R>> {
-    const workflow = await this.connection.getWorkflow<R>(this.resolvedRunId ?? this.resolvedWorkflowId);
+  private async resolveWorkflow(signal?: AbortSignal): Promise<WorkflowExecution<R>> {
+    const workflow = await this.connection.getWorkflow<R>(this.resolvedRunId ?? this.resolvedWorkflowId, { signal });
     this.resolvedTaskId = workflow.task_id;
     this.resolvedWorkflowId = workflow.id;
     this.resolvedRunId = workflow.run_id;
@@ -689,22 +697,36 @@ async function* watchTaskEvents(
   taskId: string,
   options: WatchEventsOptions,
 ): AsyncGenerator<TaskEvent, void, void> {
+  const { signal } = options;
   const pollIntervalMs = options.pollIntervalMs ?? 1000;
   const seen = new Set<string>();
-  while (!options.signal?.aborted) {
-    const events = await connection.getTaskEvents(taskId);
-    for (const event of events) {
-      if (!seen.has(event.id)) {
-        seen.add(event.id);
-        yield event;
+  try {
+    while (!signal?.aborted) {
+      const events = await connection.getTaskEvents(taskId, { signal });
+      for (const event of events) {
+        if (signal?.aborted) return;
+        if (!seen.has(event.id)) {
+          seen.add(event.id);
+          yield event;
+        }
       }
+      const task = await connection.getTask(taskId, { signal });
+      if (task.state === 'succeeded' || task.state === 'failed') {
+        return;
+      }
+      await abortableDelay(pollIntervalMs, signal);
     }
-    const task = await connection.getTask(taskId);
-    if (task.state === 'succeeded' || task.state === 'failed') {
-      return;
-    }
-    await delay(pollIntervalMs);
+  } catch (error) {
+    // The caller's abort ends the watch as the loop check does; other failures propagate.
+    if (isAbortFrom(error, signal)) return;
+    throw error;
   }
+}
+
+/** Whether `error` is the rejection caused by aborting `signal`, not an unrelated failure. */
+function isAbortFrom(error: unknown, signal: AbortSignal | undefined): boolean {
+  if (!signal?.aborted) return false;
+  return error === signal.reason || (error instanceof Error && error.name === 'AbortError');
 }
 
 function delay(ms: number): Promise<void> {
