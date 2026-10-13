@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 import re
@@ -11,8 +12,53 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# `export *`, `export * as name` and `export type *` re-exports, after comments
+# are blanked so commented-out code cannot trip the rule.
+_WILDCARD_EXPORT = re.compile(r"^[ \t]*export[ \t]+(?:type[ \t]+)?\*", re.MULTILINE)
+_TYPESCRIPT_COMMENT = re.compile(r"/\*.*?\*/|//[^\n]*", re.DOTALL)
+
+
+def wildcard_export_lines(source: str) -> list[int]:
+    """Return the 1-based lines of TypeScript wildcard re-exports in *source*."""
+
+    blanked = _TYPESCRIPT_COMMENT.sub(lambda match: re.sub(r"[^\n]", " ", match.group()), source)
+    return [blanked.count("\n", 0, match.start()) + 1 for match in _WILDCARD_EXPORT.finditer(blanked)]
+
+
+def self_test() -> int:
+    """Prove the wildcard rule on generic sources; a clean tree alone proves nothing."""
+
+    cases = {
+        "export * from './client.js';\n": [1],
+        "export * as generated from './generated/openapi.js';\n": [1],
+        "export type * from './types.js';\n": [1],
+        "const a = 1;\n  export * from './nested.js';\n": [2],
+        "export { Client } from './client.js';\n": [],
+        "export type { ClientConfig } from './client.js';\n": [],
+        "export const value = 2 * 3;\n": [],
+        "// export * from './client.js';\n": [],
+        "/*\nexport * from './client.js';\n*/\nexport { A } from './a.js';\n": [],
+    }
+    failures = [
+        f"{source!r}: got {wildcard_export_lines(source)}, want {expected}"
+        for source, expected in cases.items()
+        if wildcard_export_lines(source) != expected
+    ]
+    if failures:
+        print("check_package_layout self-test FAILED:", file=sys.stderr)
+        for failure in failures:
+            print(f"- {failure}", file=sys.stderr)
+        return 1
+    print(f"check_package_layout self-test OK: {len(cases)} wildcard-export fixtures.")
+    return 0
+
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--self-test", action="store_true", help="check the rules against generic fixtures and exit")
+    if parser.parse_args().self_test:
+        return self_test()
+
     failures: list[str] = []
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     if not re.fullmatch(r"\d+\.\d+\.\d+", version):
@@ -79,6 +125,10 @@ def main() -> int:
             text = source.read_text(encoding="utf-8")
             if re.search(r"from \.\.(?:client|__init__) import", text):
                 failures.append(f"direct Python plane imports root facade: {source.relative_to(ROOT)}")
+
+    for source in sorted((ROOT / "typescript" / "src").rglob("*.ts")):
+        for line in wildcard_export_lines(source.read_text(encoding="utf-8")):
+            failures.append(f"TypeScript wildcard export: {source.relative_to(ROOT)}:{line}; list public names explicitly")
 
     if failures:
         print("Unified package layout FAILED:", file=sys.stderr)

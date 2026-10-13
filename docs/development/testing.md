@@ -12,6 +12,7 @@ python3 go/protocol/tools/check_drift.py --self-test
 python3 go/protocol/tools/check_drift.py --monorepo
 python3 scripts/generate_openapi.py --plane all --check
 python3 scripts/check_operation_inventory.py
+python3 scripts/check_package_layout.py --self-test
 python3 scripts/check_package_layout.py
 python3 scripts/generate_api_docs.py --check
 python3 scripts/check_operation_coverage.py
