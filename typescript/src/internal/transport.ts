@@ -4,6 +4,9 @@ import { abortableDelay } from './polling.js';
 /** Default bound on one ordinary HTTP exchange, as in every SDK language. */
 export const DEFAULT_TIMEOUT_MS = 30_000;
 
+/** The largest delay `setTimeout` honors; Node and Bun clamp larger values to 1 ms. */
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
 
 /** Lanes that carry the management bearer. `agent` and `either` need the Agent credential hook. */
@@ -181,11 +184,14 @@ export function validateIdempotencyKey(key: string | undefined): void {
   }
 }
 
-/** Validates a configured exchange timeout, defaulting to 30 seconds. */
+/**
+ * Validates a configured exchange timeout, defaulting to 30 seconds. A value
+ * above the platform timer limit is rejected rather than firing almost at once.
+ */
 export function configuredTimeoutMs(plane: string, value: number | undefined): number {
   const timeoutMs = value ?? DEFAULT_TIMEOUT_MS;
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    throw new Error(`PostGrip ${plane} timeoutMs must be a positive number of milliseconds`);
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMEOUT_MS) {
+    throw new Error(`PostGrip ${plane} timeoutMs must be a positive number of milliseconds up to ${MAX_TIMEOUT_MS}`);
   }
   return timeoutMs;
 }

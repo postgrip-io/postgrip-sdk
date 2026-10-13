@@ -188,8 +188,12 @@ describe('Worker executor conformance', () => {
     await expect(pending).rejects.toBe(reason);
   });
 
-  it('rejects a non-positive timeout', () => {
-    expect(() => new WorkerClient({ baseUrl: 'https://workers.example.com', token: 'pgt_management', timeoutMs: 0 }))
-      .toThrow('timeoutMs');
+  it('rejects a non-positive timeout or one the platform timer would overflow', () => {
+    for (const timeoutMs of [0, -1, Number.NaN, 2_147_483_648, Number.POSITIVE_INFINITY]) {
+      expect(() => new WorkerClient({ baseUrl: 'https://workers.example.com', token: 'pgt_management', timeoutMs }))
+        .toThrow('timeoutMs');
+    }
+    expect(() => new WorkerClient({ baseUrl: 'https://workers.example.com', token: 'pgt_management', timeoutMs: 2_147_483_647 }))
+      .not.toThrow();
   });
 });

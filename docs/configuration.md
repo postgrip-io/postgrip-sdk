@@ -58,8 +58,8 @@ the ordinary request timeout.
 
 Python's root `timeout` defaults to 30 seconds and is passed to each plane.
 TypeScript Worker bounds each exchange at 30 seconds by default; set
-`WorkerClientConfig.timeoutMs` to change it, and an earlier `AbortSignal`
-abort still wins. TypeScript Service and Agent have no SDK request-timeout
+`WorkerClientConfig.timeoutMs` to change it, up to the 2,147,483,647 ms timer
+limit, and an earlier `AbortSignal` abort still wins. TypeScript Service and Agent have no SDK request-timeout
 option or default yet; callers bound those requests through an `AbortSignal`
 where exposed or their injected fetch implementation. These APIs do not yet
 offer one common timeout setting across languages.

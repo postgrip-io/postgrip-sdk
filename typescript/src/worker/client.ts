@@ -35,7 +35,7 @@ export interface WorkerClientConfig {
   readonly insecureDevelopment?: boolean;
   readonly enableRetries?: boolean;
   readonly followIntervalMs?: number;
-  /** Bound on each HTTP exchange in milliseconds; defaults to 30000. An earlier `signal` abort still wins. */
+  /** Bound on each HTTP exchange in milliseconds, from 1 to 2147483647; defaults to 30000. An earlier `signal` abort still wins. */
   readonly timeoutMs?: number;
 }
 
