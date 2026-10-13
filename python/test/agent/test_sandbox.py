@@ -131,7 +131,7 @@ class SandboxClientTests(unittest.TestCase):
             captured["request"] = request
             return FakeResponse({"id": "wsp_1", "sha256": "abc"})
 
-        with patch("postgrip.agent.sandbox.urlopen", fake_urlopen):
+        with patch("postgrip.agent._sandbox_transport.urlopen", fake_urlopen):
             out = self.client.sandbox.upload_workspace(
                 b"GZIPPED", repository_name="my-repo", revision="deadbeef"
             )
@@ -151,7 +151,7 @@ class SandboxClientTests(unittest.TestCase):
             captured["request"] = request
             return FakeResponse({"id": "wsp_1"})
 
-        with patch("postgrip.agent.sandbox.urlopen", fake_urlopen):
+        with patch("postgrip.agent._sandbox_transport.urlopen", fake_urlopen):
             self.client.sandbox.upload_workspace(b"x")
         request = captured["request"]
         self.assertIsNone(request.get_header("X-postgrip-repository"))
@@ -188,7 +188,7 @@ class SandboxClientTests(unittest.TestCase):
             captured["body"] = b"".join(chunks)
             return FakeResponse({"id": "wsp_1"})
 
-        with patch("postgrip.agent.sandbox.urlopen", fake_urlopen):
+        with patch("postgrip.agent._sandbox_transport.urlopen", fake_urlopen):
             self.client.sandbox.upload_workspace(archive)
 
         self.assertTrue(captured["same_object"])
