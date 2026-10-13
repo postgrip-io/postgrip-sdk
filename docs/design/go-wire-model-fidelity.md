@@ -53,17 +53,26 @@ above. The fidelity-check slice updates both so they state:
 - [Architecture](../development/architecture.md): the same exception, instead
   of a blanket prohibition. No other HTTP model may be declared by hand.
 
-A fidelity check replaces the field-name comparison for those schemas. For
-every property it requires the following of the Go field:
+A fidelity check extends the field-name comparison for those schemas. It keeps
+bidirectional field-set equality: every schema property has a JSON-tagged Go
+field, and every JSON-tagged Go field has a schema property. These schemas are
+closed, so an extra serialized field is a mismatch. For every property it then
+requires the following of the Go field:
 
-- the same JSON name;
 - a type compatible with the schema: string, integer, number, boolean,
-  date-time, array, map, a referenced type, or `any`/`json.RawMessage` only
-  where the schema is `JsonValue` or unconstrained;
+  date-time, array, map, or a referenced type. `any` is accepted where the
+  schema is `JsonValue` or unconstrained. `json.RawMessage` is accepted there
+  and also for an array or map of `JsonValue`, because raw JSON represents any
+  such value losslessly. This covers the existing `ScheduleAction.Args`,
+  `SignalWorkflowRequest.Args` and `SignalWithStartWorkflowRequest.Args`
+  fields, which keep their exported type.
 - `omitempty` exactly when the property is optional, unless the field is a
-  non-pointer value whose zero value the schema rejects;
-- a pointer, slice or map exactly when the property is optional and nullable,
-  or presence-aware;
+  non-pointer value whose zero value the schema rejects.
+- For an optional property, a representation that can express absence: a
+  pointer, slice or map, or a value with `omitempty` whose zero value the schema
+  rejects. For example, `PollTaskResponse.Directive *AgentPollDirective` is
+  optional and non-nullable, and the pointer is what lets it be absent. A
+  required non-nullable property does not use a pointer.
 - for an optional nullable property, an entry in the `go/protocol` presence
   round-trip test table. A pointer alone also collapses `null` into omission, so
   the check requires every optional nullable property in the contract to appear
@@ -87,7 +96,9 @@ The five properties keep their exported pointer fields. Each owning type,
 `PollTaskResponse` and `Sandbox`, gains an unexported record of which of its
 nullable properties were decoded as an explicit `null`, and custom JSON methods:
 
-- `UnmarshalJSON` sets the record for a property present as `null`.
+- `UnmarshalJSON` first clears the record, then sets it for each property
+  present as `null`. A reused value decoded from `{"task":null}` and then from
+  `{}` therefore re-encodes as `{}`.
 - `MarshalJSON` writes `null` for a property whose field is `nil` and whose
   record is set, and otherwise behaves as today.
 
@@ -149,11 +160,14 @@ Each slice is its own PR under the [review process](../development/contributing.
 ## Acceptance
 
 - Slice 1: round-trip tests cover absent, `null` and value for each of the five
-  properties, and a constructed value encodes as before. A generator fixture
+  properties, sequential decoding into one reused value (`null`, then absent),
+  and a constructed value encoding as before. A generator fixture
   with an optional nullable property fails generation.
 - Slice 2: self-test fixtures prove each fidelity rule fails on a synthetic
-  mismatch, including an optional nullable property missing from the
-  round-trip table. `check_drift.py --monorepo` passes on the corrected
+  mismatch, including an undeclared extra Go field, an optional nullable
+  property missing from the round-trip table, and `json.RawMessage` for a
+  closed object. They also prove an optional non-nullable pointer and a raw
+  array of `JsonValue` pass. `check_drift.py --monorepo` passes on the corrected
   declarations.
 - Slice 3: `ServiceRuntimeLogWorkerStatus` round-trips with `settings` and
   `storage` absent, present-empty and populated. Only the Service generated Go
