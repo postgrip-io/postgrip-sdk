@@ -47,6 +47,11 @@ Treat the token as a secret but the request ID as diagnostic metadata. Never
 log authorization headers. Rotate or revoke a token that may have entered a
 log, trace, crash report, shell history, URL, or process argument list.
 
+Go Agent HTTP failures omit server response content from their default error
+text. The typed `SDKError.ResponseBody` retains the original body for explicit
+inspection and may contain reflected credentials or other secrets. Review and
+redact it before logging; arbitrary server error messages are not safe log data.
+
 ## Untrusted clients
 
 `POSTGRIP_TOKEN` is intended for trusted server-side processes and automation.
