@@ -229,7 +229,7 @@ class PythonSdkTests(unittest.TestCase):
             {},
             io.BytesIO(b'{"directive":{"type":"shutdown","subject":"agent"}}'),
         )
-        with patch("postgrip.agent.client.urlopen", side_effect=error):
+        with patch("postgrip.agent._connection.urlopen", side_effect=error):
             response = connection.poll_task_response(
                 namespace="default",
                 queue="default",

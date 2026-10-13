@@ -42,7 +42,7 @@ class SandboxClientTests(unittest.TestCase):
             self.calls.append(request)
             return FakeResponse(payload)
 
-        return patch("postgrip.agent.client.urlopen", fake_urlopen)
+        return patch("postgrip.agent._connection.urlopen", fake_urlopen)
 
     # The endpoint returns {"sandboxes": [...]}, not a bare array. Decoding it
     # as an array yields nothing with no error, which reads as "none".
@@ -99,7 +99,7 @@ class SandboxClientTests(unittest.TestCase):
             self.calls.append(request)
             return FakeResponse(responses[index])
 
-        with patch("postgrip.agent.client.urlopen", fake_urlopen):
+        with patch("postgrip.agent._connection.urlopen", fake_urlopen):
             record = self.client.sandbox.wait_until_running("sbx_1", poll_interval=0.001)
         self.assertGreater(len(self.calls), 1)
         self.assertEqual(record["observedGeneration"], 2)
@@ -208,7 +208,7 @@ class SandboxClientTests(unittest.TestCase):
             self.calls.append(request)
             return FakeResponse(response)
 
-        with patch("postgrip.agent.client.urlopen", fake_urlopen):
+        with patch("postgrip.agent._connection.urlopen", fake_urlopen):
             workspaces = self.client.sandbox.list_workspaces()
             workspace = self.client.sandbox.get_workspace("wsp_1")
             self.client.sandbox.delete_workspace("wsp_1")
