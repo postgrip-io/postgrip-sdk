@@ -13,11 +13,14 @@ import (
 
 type replayFixture struct {
 	History []protocol.WorkflowHistoryEvent `json:"history"`
+	Owners  Owners                          `json:"owners"`
 	Steps   []struct {
 		Command      string `json:"command"`
 		Name         string `json:"name"`
 		DurationMS   int64  `json:"duration_ms"`
 		WorkflowType string `json:"workflow_type"`
+		Owner        string `json:"owner"`
+		Live         bool   `json:"live"`
 		Expect       string `json:"expect"`
 	} `json:"steps"`
 }
@@ -41,10 +44,15 @@ func TestSharedReplayConformanceFixtures(t *testing.T) {
 			if err := json.Unmarshal(raw, &fixture); err != nil {
 				t.Fatal(err)
 			}
-			r := New(fixture.History)
+			r := New(fixture.History, fixture.Owners)
 			expectsViolation := false
 			for index, step := range fixture.Steps {
 				var event *protocol.WorkflowHistoryEvent
+				restore := func() {}
+				if step.Owner != "" {
+					restore = r.EnterOwner(step.Owner, step.Live)
+				}
+				checked := false
 				switch step.Command {
 				case "activity":
 					event, err = r.NextActivity(step.Name)
@@ -52,10 +60,18 @@ func TestSharedReplayConformanceFixtures(t *testing.T) {
 					event, err = r.NextTimer(step.DurationMS)
 				case "child":
 					event, err = r.NextChild(step.WorkflowType)
+				case "complete":
+					err, checked = r.CheckBodyConsumed(), true
+				case "handler_done":
+					err, checked = r.CheckOwnerConsumed(step.Owner), true
 				default:
 					t.Fatalf("step %d: unknown command %q", index, step.Command)
 				}
+				restore()
 				outcome := "new"
+				if checked {
+					outcome = "ok"
+				}
 				var det *DeterminismError
 				switch {
 				case errors.As(err, &det):

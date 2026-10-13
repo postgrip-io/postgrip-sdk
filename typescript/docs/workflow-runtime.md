@@ -33,6 +33,12 @@ fails to enqueue, the commands issued after it are not enqueued either. The
 agent reports the workflow task's outcome only after every command it started
 has finished enqueueing.
 
+A workflow that completes or continues as new must have replayed every command
+it recorded: a recorded command left over is a `WorkflowDeterminismViolation`,
+as is a query replay that returns with one left over. Commands an update
+handler issued belong to that update, not to the workflow body; the agent
+reads each one's owner from its command task before replay.
+
 When the function's outermost promise stays pending past its scheduled commands, the agent calls `BlockTask` on the runtime service. The workflow task moves to the **blocked** state — *not* failed. The runtime service redelivers the task whenever a dependency resolves (an activity completes, a timer fires, a signal arrives), at which point the agent re-runs your function from the top with fuller history.
 
 !!! warning "Workflow functions must be deterministic"

@@ -9,7 +9,7 @@ import (
 
 func TestNewSplitsByType(t *testing.T) {
 	t.Parallel()
-	r := New([]protocol.WorkflowHistoryEvent{
+	r := newBody([]protocol.WorkflowHistoryEvent{
 		{ID: "1", Type: EventActivityTaskScheduled, TaskID: "act-1", Attributes: map[string]any{"activity_type": "Greet"}},
 		{ID: "2", Type: EventTimerStarted, TaskID: "tmr-1", Attributes: map[string]any{"duration_ms": float64(1000)}},
 		{ID: "3", Type: EventTimerFired, TaskID: "tmr-1"},
@@ -21,8 +21,8 @@ func TestNewSplitsByType(t *testing.T) {
 		{ID: "9", Type: EventWorkflowUpdateAccepted, TaskID: "update-1", Attributes: map[string]any{"update_name": "rename", "args": []any{"Grace"}}},
 		{ID: "10", Type: EventWorkflowUpdateCompleted, TaskID: "update-1", Attributes: map[string]any{"update_name": "rename", "args": []any{"Grace"}}},
 	})
-	if len(r.activities) != 1 || len(r.timers) != 1 || len(r.children) != 1 {
-		t.Fatalf("filtered slices wrong: %d activities, %d timers, %d children", len(r.activities), len(r.timers), len(r.children))
+	if len(r.body.events) != 3 {
+		t.Fatalf("body command events = %d, want activity, timer and child", len(r.body.events))
 	}
 	if !r.cancellationRequested {
 		t.Fatal("cancellation flag not set")
@@ -45,7 +45,7 @@ func TestNewSplitsByType(t *testing.T) {
 
 func TestUpdateWaitsForEarlierCommand(t *testing.T) {
 	t.Parallel()
-	r := New([]protocol.WorkflowHistoryEvent{
+	r := newBody([]protocol.WorkflowHistoryEvent{
 		{Type: EventTimerStarted, TaskID: "timer-1", Attributes: map[string]any{"duration_ms": float64(1000)}},
 		{Type: EventTimerFired, TaskID: "timer-1"},
 		{Type: EventWorkflowUpdateAccepted, TaskID: "update-1", Attributes: map[string]any{"update_name": "rename", "args": []any{"Grace"}}},
@@ -65,7 +65,7 @@ func TestUpdateWaitsForEarlierCommand(t *testing.T) {
 
 func TestSignalsByNameAcceptsCanonicalSignalName(t *testing.T) {
 	t.Parallel()
-	r := New([]protocol.WorkflowHistoryEvent{{
+	r := newBody([]protocol.WorkflowHistoryEvent{{
 		Type:       EventWorkflowSignaled,
 		Attributes: map[string]any{"signal_name": "ready", "args": []any{"Ada"}},
 	}})
@@ -77,7 +77,7 @@ func TestSignalsByNameAcceptsCanonicalSignalName(t *testing.T) {
 
 func TestNextActivityAdvancesCursorAndDetectsDeterminism(t *testing.T) {
 	t.Parallel()
-	r := New([]protocol.WorkflowHistoryEvent{
+	r := newBody([]protocol.WorkflowHistoryEvent{
 		{Type: EventActivityTaskScheduled, TaskID: "act-1", Attributes: map[string]any{"activity_type": "Greet"}},
 		{Type: EventActivityTaskScheduled, TaskID: "act-2", Attributes: map[string]any{"activity_type": "Farewell"}},
 	})
@@ -110,13 +110,13 @@ func TestNextActivityAdvancesCursorAndDetectsDeterminism(t *testing.T) {
 
 func TestNextTimerChecksDuration(t *testing.T) {
 	t.Parallel()
-	r := New([]protocol.WorkflowHistoryEvent{
+	r := newBody([]protocol.WorkflowHistoryEvent{
 		{Type: EventTimerStarted, TaskID: "tmr-1", Attributes: map[string]any{"duration_ms": float64(2500)}},
 	})
 	if _, err := r.NextTimer(2000); err == nil {
 		t.Fatal("expected determinism violation when timer duration changes")
 	}
-	r.timerCursor = 0
+	// A mismatch leaves the event unconsumed.
 	if ev, err := r.NextTimer(2500); err != nil || ev == nil || ev.TaskID != "tmr-1" {
 		t.Fatalf("NextTimer happy = %+v, err=%v", ev, err)
 	}
@@ -124,7 +124,7 @@ func TestNextTimerChecksDuration(t *testing.T) {
 
 func TestIsTimerFired(t *testing.T) {
 	t.Parallel()
-	r := New([]protocol.WorkflowHistoryEvent{
+	r := newBody([]protocol.WorkflowHistoryEvent{
 		{Type: EventTimerStarted, TaskID: "tmr-1", Attributes: map[string]any{"duration_ms": float64(1000)}},
 		{Type: EventTimerFired, TaskID: "tmr-1"},
 		{Type: EventTimerStarted, TaskID: "tmr-2", Attributes: map[string]any{"duration_ms": float64(1000)}},
@@ -141,13 +141,13 @@ func TestIsTimerFired(t *testing.T) {
 
 func TestCheckCancellationReturnsSentinel(t *testing.T) {
 	t.Parallel()
-	r := New([]protocol.WorkflowHistoryEvent{
+	r := newBody([]protocol.WorkflowHistoryEvent{
 		{Type: EventWorkflowCancellationRequest},
 	})
 	if err := r.CheckCancellation(); !errors.Is(err, ErrCancellationRequested) {
 		t.Fatalf("CheckCancellation = %v, want ErrCancellationRequested", err)
 	}
-	r2 := New(nil)
+	r2 := newBody(nil)
 	if err := r2.CheckCancellation(); err != nil {
 		t.Fatalf("CheckCancellation on empty = %v, want nil", err)
 	}
@@ -171,5 +171,55 @@ func TestNumberAsInt64HandlesJSONShapes(t *testing.T) {
 		if ok != c.ok || got != c.want {
 			t.Fatalf("numberAsInt64(%v) = %d,%v want %d,%v", c.in, got, ok, c.want, c.ok)
 		}
+	}
+}
+
+// newBody builds a Replay whose commands all belong to the workflow body.
+func newBody(history []protocol.WorkflowHistoryEvent) *Replay {
+	return New(history, nil)
+}
+
+func ownershipHistory() []protocol.WorkflowHistoryEvent {
+	return []protocol.WorkflowHistoryEvent{
+		{Type: EventActivityTaskScheduled, TaskID: "before-any-update"},
+		{Type: EventWorkflowUpdateAccepted, TaskID: "update-1"},
+		{Type: EventTimerStarted, TaskID: "inside-update-1"},
+		{Type: EventWorkflowUpdateCompleted, TaskID: "update-1"},
+		{Type: EventChildWorkflowStarted, TaskID: "between-updates"},
+		{Type: EventWorkflowUpdateAccepted, TaskID: "update-2"},
+		{Type: EventActivityTaskScheduled, TaskID: "while-update-2-pending"},
+	}
+}
+
+// Only commands inside an update's window can belong to an update.
+func TestOwnershipCandidatesCoverUpdateWindows(t *testing.T) {
+	t.Parallel()
+	got := OwnershipCandidates(ownershipHistory())
+	want := []string{"inside-update-1", "while-update-2-pending"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("candidates = %v, want %v", got, want)
+	}
+	legacy := OwnershipCandidates([]protocol.WorkflowHistoryEvent{
+		{Type: EventActivityTaskScheduled, TaskID: "before-legacy"},
+		{Type: EventWorkflowUpdateCompleted, TaskID: "legacy-1"},
+		{Type: EventActivityTaskScheduled, TaskID: "after-legacy"},
+	})
+	if len(legacy) != 1 || legacy[0] != "before-legacy" {
+		t.Fatalf("legacy candidates = %v, want [before-legacy]", legacy)
+	}
+}
+
+// A legacy entry with no accepted event is positioned at its earliest owned
+// command, so it applies before a later body command.
+func TestLegacyUpdatePositionedAtItsEarliestOwnedCommand(t *testing.T) {
+	t.Parallel()
+	r := New([]protocol.WorkflowHistoryEvent{
+		{Type: EventActivityTaskScheduled, TaskID: "act-update", Attributes: map[string]any{"activity_type": "Validate"}},
+		{Type: EventActivityTaskScheduled, TaskID: "act-body", Attributes: map[string]any{"activity_type": "Greet"}},
+		{Type: EventWorkflowUpdateCompleted, TaskID: "legacy-1", Attributes: map[string]any{"update_name": "approve"}},
+	}, Owners{"act-update": "legacy-1", "act-body": "wf-task"})
+	update, ok := r.NextUpdateBeforeCommand()
+	if !ok || update.TaskID != "legacy-1" {
+		t.Fatalf("next update = %#v, %v; want legacy-1 before the body's Greet", update, ok)
 	}
 }

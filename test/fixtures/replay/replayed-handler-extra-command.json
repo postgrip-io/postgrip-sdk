@@ -1,0 +1,27 @@
+{
+  "description": "A replayed update handler already finished, so a command beyond its recorded ones is a determinism error.",
+  "history": [
+    {
+      "type": "WorkflowUpdateAccepted",
+      "task_id": "update-1",
+      "attributes": {
+        "update_name": "U"
+      }
+    },
+    {
+      "type": "WorkflowUpdateCompleted",
+      "task_id": "update-1",
+      "attributes": {
+        "update_name": "U"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "activity",
+      "name": "X",
+      "owner": "update-1",
+      "expect": "nondeterministic"
+    }
+  ]
+}

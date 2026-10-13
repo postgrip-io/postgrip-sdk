@@ -1,4 +1,4 @@
-import { DeterminismError, WorkflowReplay } from './_replay.js';
+import { DeterminismError, ownershipCandidates, WorkflowReplay, type CommandOwners } from './_replay.js';
 import { runInActivityRuntime } from './activity.js';
 import { Connection } from './connection.js';
 import {
@@ -214,7 +214,7 @@ export class Agent {
       const workflowId = task.payload?.workflowId ?? task.id;
       const workflowRunId = task.payload?.runId ?? workflowId;
       const history = await this.connection.getWorkflowHistory(workflowRunId);
-      const workflowReplay = new WorkflowReplay(history);
+      const workflowReplay = new WorkflowReplay(history, await this.readCommandOwners(history));
       replay = workflowReplay;
       const handlers = new WorkflowHandlers(workflowReplay);
       await this.emit(task.id, 'started', 'workflow', `started workflow ${workflowType}`, { workflowType });
@@ -245,6 +245,8 @@ export class Agent {
         // it against an incomplete history prefix.
         await this.drainCommands(workflowReplay);
       }
+      // A completing workflow must have replayed every command it recorded.
+      replayCommand(() => workflowReplay.checkBodyConsumed());
       throwIfNondeterministic(workflowReplay);
       const result: TaskResult = {
         value,
@@ -257,6 +259,14 @@ export class Agent {
     } catch (thrown) {
       // Nondeterminism is sticky: a recorded violation fails the task even when
       // workflow code caught it and then suspended, continued or raised.
+      if (thrown instanceof ContinueAsNewCommand) {
+        // Continuing as new is a completion too; a leftover is recorded below.
+        try {
+          replay?.checkBodyConsumed();
+        } catch {
+          // The recorded determinism error takes precedence below.
+        }
+      }
       const err = replay?.determinismError ? determinismViolation(replay.determinismError.message) : thrown;
       if (err instanceof WorkflowBlocked) {
         await this.connection.blockTask(task.id, this.identity, err.message).catch(ignoreTerminalTaskMutation);
@@ -317,7 +327,7 @@ export class Agent {
       const sourceWorkflow = await this.connection.getWorkflow(payload.workflowRunId ?? payload.workflowId);
       const sourceTask = await this.connection.getTask<WorkflowPayload>(sourceWorkflow.task_id);
       const history = await this.connection.getWorkflowHistory(payload.workflowRunId ?? payload.workflowId);
-      const replay = new WorkflowReplay(history);
+      const replay = new WorkflowReplay(history, await this.readCommandOwners(history));
       const handlers = new WorkflowHandlers(replay);
       await this.emit(task.id, 'started', kind, `started ${kind} ${name}`, { workflowType: payload.workflowType });
       try {
@@ -340,6 +350,9 @@ export class Agent {
           setUpdateHandler: (name, handler) => handlers.setUpdateHandler(name, handler),
           emit: async () => undefined,
         }, () => workflow(...(sourceTask.payload?.args ?? [])));
+        // A replay that returns normally must have consumed every recorded
+        // body command, so the interaction sees state consistent with history.
+        replay.checkBodyConsumed();
       } catch (err) {
         // Nondeterminism is sticky on every exit from interaction replay.
         throwIfNondeterministic(replay);
@@ -643,6 +656,24 @@ export class Agent {
    * issued concurrently (for example with Promise.all) are then recorded in call
    * order, which is the order replay consumes them.
    */
+  /**
+   * Reads, once per replay, which task issued each command event that could
+   * belong to an update. A command task's payload names its scheduling task
+   * and never changes.
+   */
+  private async readCommandOwners(history: WorkflowHistoryEvent[]): Promise<CommandOwners> {
+    const owners: Record<string, string> = {};
+    for (const taskId of ownershipCandidates(history)) {
+      const task = await this.connection.getTask<{ workflowTaskId?: string; parentWorkflowTaskId?: string }>(taskId);
+      const owner = task.payload?.workflowTaskId ?? task.payload?.parentWorkflowTaskId;
+      // Every SDK records the scheduling task, so a command task without one is
+      // unreadable rather than body-owned.
+      if (!owner) throw new Error(`postgrip-agent: command task ${taskId} names no scheduling task`);
+      owners[taskId] = owner;
+    }
+    return owners;
+  }
+
   private async drainCommands(replay: WorkflowReplay): Promise<void> {
     for (;;) {
       const tail = this.commandQueues.get(replay);

@@ -1,0 +1,23 @@
+{
+  "description": "A workflow that replays every recorded body command passes the completion check.",
+  "history": [
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "act-a",
+      "attributes": {
+        "activity_type": "A"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "complete",
+      "expect": "ok"
+    }
+  ]
+}

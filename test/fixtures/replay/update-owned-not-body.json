@@ -1,0 +1,40 @@
+{
+  "description": "The body cannot consume a command its update handler recorded.",
+  "history": [
+    {
+      "type": "WorkflowUpdateAccepted",
+      "task_id": "update-1",
+      "attributes": {
+        "update_name": "U"
+      }
+    },
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "act-b",
+      "attributes": {
+        "activity_type": "B"
+      }
+    },
+    {
+      "type": "WorkflowUpdateCompleted",
+      "task_id": "update-1",
+      "attributes": {
+        "update_name": "U"
+      }
+    }
+  ],
+  "owners": {
+    "act-b": "update-1"
+  },
+  "steps": [
+    {
+      "command": "activity",
+      "name": "B",
+      "expect": "new"
+    },
+    {
+      "command": "complete",
+      "expect": "ok"
+    }
+  ]
+}

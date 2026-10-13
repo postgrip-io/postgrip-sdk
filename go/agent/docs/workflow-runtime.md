@@ -34,6 +34,15 @@ determinism violation is sticky: the workflow task, or the query or update
 task replaying it, fails with it even if your code catches the error and then
 returns, suspends, continues as new or returns another error.
 
+A workflow that completes or continues as new must have replayed every command
+it recorded: a recorded command left over is a `WorkflowDeterminismViolation`,
+as is a query replay that returns with one left over. Commands an update
+handler issued belong to that update, not to the workflow body; the agent
+reads each one's owner from its command task before replay. A replayed update
+handler replays only its own commands, and a command beyond them is a
+`WorkflowDeterminismViolation`; a live update handler replays the commands it
+issued on an earlier delivery of its task, then schedules new ones.
+
 When the body returns `Suspended`, the worker calls `BlockTask` on the runtime service. The workflow task moves to the **blocked** state — *not* failed. The runtime service redelivers the task whenever a dependency resolves (an activity completes, a timer fires, a signal arrives), at which point the worker re-runs your body from the top with fuller history.
 
 {: .important }
