@@ -12,6 +12,7 @@ build/
 # TypeScript
 node_modules/
 dist/
+coverage/
 *.log
 
 # Local configuration

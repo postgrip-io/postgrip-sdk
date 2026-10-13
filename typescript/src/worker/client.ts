@@ -21,10 +21,12 @@ import {
   type OpenAPIResponseBody,
 } from './generated/openapi.js';
 import { validateBaseUrl, validateManagementToken, type PostGripEnvironment } from '../internal/config.js';
-import { readBoundedResponseBody } from '../internal/http.js';
-import { abortableDelay, followPages } from '../internal/polling.js';
+import { followPages } from '../internal/polling.js';
+import { configuredTimeoutMs, Executor, PostGripAPIError, validateIdempotencyKey } from '../internal/transport.js';
 
-const RETRYABLE_STATUS = new Set([408, 429, 502, 503, 504]);
+const RETRY_MAX_ATTEMPTS = 3;
+const RETRY_MAX_DELAY_MS = 2_000;
+const RETRY_AFTER_MAX_DELAY_MS = 30_000;
 
 export interface WorkerClientConfig {
   readonly baseUrl: string;
@@ -33,6 +35,8 @@ export interface WorkerClientConfig {
   readonly insecureDevelopment?: boolean;
   readonly enableRetries?: boolean;
   readonly followIntervalMs?: number;
+  /** Bound on each HTTP exchange in milliseconds, from 1 to 2147483647; defaults to 30000. An earlier `signal` abort still wins. */
+  readonly timeoutMs?: number;
 }
 
 export interface WorkerClientEnvironmentConfig extends Omit<WorkerClientConfig, 'baseUrl' | 'token'> {
@@ -79,16 +83,16 @@ export interface MutationOptions extends RequestOptions {
   readonly idempotencyKey: string;
 }
 
-export class WorkerAPIError extends Error {
+export class WorkerAPIError extends PostGripAPIError {
   constructor(
-    readonly status: number,
-    readonly code: string,
+    status: number,
+    code: string,
     message: string,
-    readonly requestId: string,
-    readonly details?: Readonly<Record<string, unknown>>,
-    readonly retryAfterMs?: number,
+    requestId: string,
+    details?: Readonly<Record<string, unknown>>,
+    retryAfterMs?: number,
   ) {
-    super(message);
+    super(status, code, message, requestId, details, retryAfterMs);
     this.name = 'WorkerAPIError';
   }
 }
@@ -117,17 +121,25 @@ export class WorkerClient {
       this.followSecurityLogs(workerId, options),
   };
 
-  private readonly baseUrl: URL;
-  private readonly token: string;
-  private readonly fetchImpl: typeof globalThis.fetch;
-  private readonly retriesEnabled: boolean;
+  private readonly executor: Executor;
   private readonly followIntervalMs: number;
 
   constructor(config: WorkerClientConfig) {
-    this.baseUrl = validateBaseUrl('Worker', config.baseUrl, config.insecureDevelopment);
-    this.token = validateManagementToken(config.token);
-    this.fetchImpl = config.fetch ?? globalThis.fetch;
-    this.retriesEnabled = config.enableRetries ?? false;
+    this.executor = new Executor({
+      plane: 'Worker',
+      baseUrl: validateBaseUrl('Worker', config.baseUrl, config.insecureDevelopment),
+      fetch: config.fetch ?? globalThis.fetch,
+      managementToken: validateManagementToken(config.token),
+      retry: {
+        enabled: config.enableRetries ?? false,
+        maxAttempts: RETRY_MAX_ATTEMPTS,
+        maxDelayMs: RETRY_MAX_DELAY_MS,
+        retryAfterMaxDelayMs: RETRY_AFTER_MAX_DELAY_MS,
+      },
+      timeoutMs: configuredTimeoutMs('Worker', config.timeoutMs),
+      createError: (status, code, message, requestId, details, retryAfterMs) =>
+        new WorkerAPIError(status, code, message, requestId, details, retryAfterMs),
+    });
     this.followIntervalMs = Math.max(1, config.followIntervalMs ?? 2_000);
     this.openapi = new OpenAPIClient((id, options) => {
       const headers = options.headers as Readonly<Record<string, string>> | undefined;
@@ -270,49 +282,14 @@ export class WorkerClient {
     );
   }
 
-  private async request<I extends OpenAPIOperationId>(operationId: I, options: InternalRequestOptions): Promise<OpenAPIResponseBody<I>> {
-    const query = encodeQuery(options.query);
-    const operation = resolveOpenAPIOperation(operationId, options.path, query);
-    const endpoint = new URL(`${this.baseUrl.href.replace(/\/+$/, '')}${operation.path}`);
-    const maxAttempts = this.retriesEnabled && (operation.method === 'GET' || options.idempotencyKey) ? 3 : 1;
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      options.signal?.throwIfAborted();
-      let response: Response;
-      try {
-        const encodedBody = options.body === undefined ? undefined : JSON.stringify(options.body);
-        response = await this.fetchImpl(endpoint, {
-          method: operation.method,
-          headers: {
-            Accept: 'application/json',
-            ...(encodedBody === undefined ? {} : { 'Content-Type': 'application/json' }),
-            ...(operation.authLane === 'worker-management' ? { Authorization: `Bearer ${this.token}` } : {}),
-            ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
-          },
-          body: encodedBody,
-          redirect: 'manual',
-          signal: options.signal,
-        });
-      } catch (error) {
-        if (attempt < maxAttempts && !options.signal?.aborted) {
-          await abortableDelay(jitter(attempt), options.signal);
-          continue;
-        }
-        throw error;
-      }
-      if (response.ok) {
-        return JSON.parse(await readBoundedResponseBody(response, 'Worker')) as OpenAPIResponseBody<I>;
-      }
-      const apiError = await decodeError(response);
-      if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
-        const retryAfterMs = response.status === 429 || response.status === 503
-          ? apiError.retryAfterMs
-          : undefined;
-        await abortableDelay(retryAfterMs ?? jitter(attempt), options.signal);
-        continue;
-      }
-      throw apiError;
-    }
-    throw new Error('PostGrip Worker request attempts exhausted');
+  private request<I extends OpenAPIOperationId>(operationId: I, options: InternalRequestOptions): Promise<OpenAPIResponseBody<I>> {
+    const operation = resolveOpenAPIOperation(operationId, options.path, encodeQuery(options.query));
+    return this.executor.request<OpenAPIResponseBody<I>>({
+      operation,
+      body: options.body,
+      idempotencyKey: options.idempotencyKey,
+      signal: options.signal,
+    });
   }
 }
 
@@ -325,43 +302,4 @@ function encodeQuery(query?: object | URLSearchParams): URLSearchParams | undefi
     result.set(key, String(value));
   }
   return result;
-}
-
-function validateIdempotencyKey(key: string): void {
-  if (!/^[!-~]{1,128}$/.test(key)) {
-    throw new Error('idempotencyKey must contain 1 to 128 visible ASCII characters');
-  }
-}
-
-async function decodeError(response: Response): Promise<WorkerAPIError> {
-  let value: Record<string, unknown> = {};
-  try {
-    const decoded: unknown = JSON.parse(await readBoundedResponseBody(response, 'Worker'));
-    if (typeof decoded === 'object' && decoded !== null && !Array.isArray(decoded)) {
-      value = decoded as Record<string, unknown>;
-    }
-  } catch {
-    // The typed fallback intentionally excludes the upstream response body.
-  }
-  return new WorkerAPIError(
-    response.status,
-    typeof value.code === 'string' ? value.code : 'HTTP_ERROR',
-    typeof value.message === 'string' ? value.message : response.statusText,
-    typeof value.requestId === 'string' ? value.requestId : response.headers.get('x-request-id') ?? '',
-    typeof value.details === 'object' && value.details !== null ? value.details as Record<string, unknown> : undefined,
-    parseRetryAfter(response.headers.get('retry-after')),
-  );
-}
-
-function parseRetryAfter(value: string | null): number | undefined {
-  if (!value) return undefined;
-  const seconds = Number(value);
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1_000, 30_000);
-  const timestamp = Date.parse(value);
-  if (Number.isNaN(timestamp)) return undefined;
-  return Math.min(Math.max(timestamp - Date.now(), 0), 30_000);
-}
-
-function jitter(attempt: number): number {
-  return Math.random() * Math.min(200 * 2 ** (attempt - 1), 2_000);
 }

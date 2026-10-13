@@ -241,7 +241,15 @@ method and route of a decode failure.
 2. Go Service onto the executor, removing its private copies.
 3. Go Agent onto the executor: lane enforcement, envelope errors and opt-in
    retry wired from the root.
-4. TypeScript executor, timeout, error hierarchy and the three plane moves.
+4. TypeScript executor, timeout, error hierarchy and the three plane moves,
+   in three PRs:
+   1. The shared executor and `PostGripAPIError`, the generator's operation
+      table gaining the idempotency, pagination and header-parameter
+      annotations, and the Worker move with its timeout and executor
+      conformance test.
+   2. The Service move, removing its private copies.
+   3. The Agent move, with `AgentAPIError`, lane enforcement, signing, opt-in
+      retry, and the root `timeoutMs` passed to every plane.
 5. Python executor, error hierarchy and the three plane moves.
 6. Extend `scripts/check_package_layout.py` from root-import checks to an
    allowed-edge matrix: no plane-to-plane, generated-to-adapter or

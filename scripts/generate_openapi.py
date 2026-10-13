@@ -1433,6 +1433,8 @@ def typescript_source(
             "path": row["path"],
             "authLane": row["auth"],
             "safety": row["safety"],
+            "idempotency": row["idempotency"],
+            "pagination": row["pagination"],
             "retry": row["retry"],
             "signing": row["signing"] or None,
             "streamingRequest": row["streaming"],
@@ -1440,6 +1442,7 @@ def typescript_source(
             "requestSchema": schema_label(row["request_schema"]) or None,
             "responseSchema": schema_label(row["response_schema"]) or None,
             "pathParameters": row["parameters"],
+            "headerParameters": [name for name in row["header_parameter_schemas"]],
         }
         entries.append(f'  {row["id"]}: {json.dumps(entry, separators=(",", ":"))},')
     component_entries = [
@@ -1602,12 +1605,15 @@ export interface ResolvedOpenAPIOperation {{
   readonly path: string;
   readonly authLane: OpenAPIAuthLane;
   readonly safety: string;
+  readonly idempotency: string;
+  readonly pagination: string;
   readonly retry: string;
   readonly signing?: string;
   readonly streamingRequest: boolean;
   readonly webSocket: boolean;
   readonly requestSchema?: string;
   readonly responseSchema?: string;
+  readonly headerParameters: readonly string[];
 }}
 
 export function resolveOpenAPIOperation(
@@ -1632,12 +1638,15 @@ export function resolveOpenAPIOperation(
     path: resolvedPath,
     authLane: source.authLane,
     safety: source.safety,
+    idempotency: source.idempotency,
+    pagination: source.pagination,
     retry: source.retry,
     ...(source.signing ? {{ signing: source.signing }} : {{}}),
     streamingRequest: source.streamingRequest,
     webSocket: source.webSocket,
     ...(source.requestSchema ? {{ requestSchema: source.requestSchema }} : {{}}),
     ...(source.responseSchema ? {{ responseSchema: source.responseSchema }} : {{}}),
+    headerParameters: source.headerParameters,
   }};
 }}
 '''
