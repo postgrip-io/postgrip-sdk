@@ -61,17 +61,19 @@ consumed, never on a concrete adapter class:
   `worker.Options.Connection` stays `*client.Connection` for compatibility, and
   `worker` declares its own runtime interface that the worker and
   `workflowContext` use internally.
-- **TypeScript.** Exported `interface` types in `agent/_ports.ts`. The
-  `ClientOptions.connection`, subclient, handle, `SandboxClient` and `Agent`
-  parameter types widen from `Connection` to the interface they use.
-  `Connection` satisfies them structurally, so existing callers compile
-  unchanged. The interfaces are public types, because the widened parameters
-  name them, and they are added deliberately to the recorded public surface.
-- **Python.** `typing.Protocol` classes in `agent/_ports.py`. Clients and the
-  runtime annotate their dependencies with them. `_connection_from_client`
-  accepts any object with a `connection` attribute or the runtime protocol
-  instead of checking `isinstance(..., Client | Connection)`, and keeps the
-  same error for neither.
+- **TypeScript.** Internal `interface` types in `agent/_ports.ts`. Exported
+  option properties such as `ClientOptions.connection` and
+  `AgentOptions.connection`, and public fields, keep the `Connection` type, so
+  code that reads them keeps compiling. Inside each class, the dependency is
+  stored in a private field typed as the port it uses, and every method body
+  goes through that field. The compiler therefore proves the class uses nothing
+  beyond the port. No port is exported, and the public surface is unchanged.
+- **Python.** `typing.Protocol` classes in `agent/_ports.py`. Public attribute
+  annotations, such as `WorkflowHandle.connection`, keep `Connection`.
+  Orchestration code holds and calls its dependency through the protocol type.
+  `_connection_from_client` accepts any object with a `connection` attribute,
+  or one satisfying the runtime protocol, instead of checking
+  `isinstance(..., Client | Connection)`, and keeps the same error for neither.
 
 Root and plane constructors keep composing the concrete `Connection`.
 
@@ -82,21 +84,38 @@ re-exports every public name it previously defined, so import paths keep
 working:
 
 - **Python Agent client.** `agent/_connection.py` takes the `Connection`
-  adapter: HTTP, signing, session and the opener. `agent/_workflow_models.py`
-  takes the pure memo, UI, description and option normalizers. `agent/client.py`
-  keeps client orchestration and re-exports `Connection`,
-  `has_authorization_header` and `urlopen`, which existing tests patch.
+  adapter: HTTP, signing, session and the opener. Multi-page history walking,
+  `_iter_history_pages` and its use in `iter_task_events` and
+  `iter_workflow_history`, moves to `agent/_history.py`, used by the clients and
+  handles. `Connection` keeps those two methods as thin wrappers over it.
+  `agent/_workflow_models.py` takes the pure memo, UI, description and option
+  normalizers. `agent/client.py` keeps client orchestration and re-exports
+  `Connection` and `has_authorization_header` for import compatibility.
+
+  Requests resolve `urlopen` in the module that defines them, so a re-export
+  is not a patch point. `postgrip.agent.client.urlopen` is not public API. The
+  slice moves the request-opener patch point to `postgrip.agent._connection.urlopen`,
+  and updates the tests that patched the old name in the same PR. That is the
+  only test change the split allows.
 - **Python neutral header helper.** `has_authorization_header` moves to
   `_internal/http.py`. `sandbox.py` imports it from there, which removes its
   dependency on `client.py`. `client.py` then imports `SandboxClient` at module
   top, with no cycle.
-- **Python sandbox.** `agent/_sandbox_session.py` takes the WebSocket session
-  and its factory, and `sandbox.py` keeps `SandboxClient`, readiness
-  orchestration and pure helpers, re-exporting `SandboxSession`.
-- **TypeScript sandbox.** `agent/_sandbox_session.ts` takes `SandboxSession`
-  and its WebSocket factory, and `agent/_sandbox_relay.ts` takes the pure relay
-  URL, exit-code and input transformations. `sandbox.ts` keeps `SandboxClient`
-  and `waitUntilRunning`, re-exporting the moved public names.
+- **Python sandbox.** `agent/_sandbox_transport.py` takes the external
+  adapters: the WebSocket session and its factory, and the workspace upload
+  HTTP request that `SandboxClient.upload_workspace` builds and opens today.
+  `agent/_sandbox_models.py` takes the pure helpers: relay URL, exit code,
+  readiness test and ID validation. `sandbox.py` keeps `SandboxClient` and its
+  readiness orchestration, which coordinate those modules, and re-exports every
+  moved public name. The sandbox's upload patch point moves with the request,
+  as for the client.
+- **TypeScript sandbox.** `agent/_sandbox_session.ts` takes `SandboxSession`,
+  its WebSocket factory and an `openSandboxSession` adapter operation. That
+  operation performs the dial, sets `binaryType`, attaches the transport open
+  and error listeners, and returns the session. `agent/_sandbox_relay.ts` takes
+  the pure relay URL, exit-code and input transformations. `sandbox.ts` keeps
+  `SandboxClient` and `waitUntilRunning`, which only coordinate ticket creation
+  with that adapter, and re-exports the moved public names.
 - **TypeScript Agent client.** `agent/_workflow_models.ts` takes the pure memo
   and description transformations. `agent/_history.ts` takes history paging,
   and `agent/_archive_upload.ts` takes the archive upload adapter used by the
@@ -105,15 +124,15 @@ working:
   `Connection` methods into the clients that orchestrate them. The `Connection`
   methods stay as thin compatibility wrappers.
 
-Underscore-prefixed modules are internal and not exported from package entries,
-except for the deliberate port interfaces noted above.
+Underscore-prefixed modules are internal and not exported from package entries.
 
 ## Compatibility
 
-No behavior, request, error or published import path changes. The TypeScript
-public surface gains the port interface types, recorded in
-`typescript/test/public-surface.json`. Python adds no names to
-`postgrip.agent`. Go adds no exported names.
+No behavior, request, error or published import path changes, and no public
+type changes. The TypeScript public surface, the names Python exports from
+`postgrip.agent` and Go's exported API are unchanged. The only change outside
+the moved code is the private Python request-opener patch point, which moves to
+the adapter module with the requests that use it.
 
 ## Delivery slices
 
@@ -133,10 +152,15 @@ architecture guide in the same PR.
 ## Acceptance
 
 - Existing language suites, recorded endpoint and cURL runners, the TypeScript
-  public-surface test and the package-boundary tests pass unchanged, apart from
-  the intended surface additions in slice 6.
+  public-surface test and the package-boundary tests pass unchanged. The only
+  exception is updating Python patch targets to the moved opener.
 - Every previously public name still imports from its previous module.
-- Python: a test imports `postgrip.agent.sandbox` in a fresh interpreter without
-  importing `postgrip.agent.client`, proving that the cycle is gone.
-- Each capability-interface slice adds a test that drives a client or the runtime
-  through a minimal fake implementing only the interface, with no `Connection`.
+- Python: importing a submodule always runs the package initializer, which
+  imports `client.py`, so a fresh-import test cannot prove the cycle is gone. A
+  static test parses `sandbox.py` and the moved sandbox modules and fails if any
+  of them imports `postgrip.agent.client`, even under `TYPE_CHECKING`. A second
+  test asserts that `client.py` imports the sandbox module at top level.
+- Each capability-interface slice adds a test that drives a client or the
+  runtime through a minimal fake implementing only the port. In TypeScript, the
+  fake is cast at the unchanged public parameter type; the class's private port
+  field proves the narrower dependency at compile time.
