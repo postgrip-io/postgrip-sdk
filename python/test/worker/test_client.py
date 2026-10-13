@@ -228,8 +228,8 @@ class WorkerClientTests(unittest.TestCase):
         client = WorkerClient(base_url="https://workers.example.com", token="pgt_test-token",
                               opener=opener, enable_retries=True)  # type: ignore[arg-type]
 
-        with patch("postgrip.worker.client._jitter", return_value=0.125), \
-             patch("postgrip.worker.client.time.sleep") as sleep:
+        with patch("postgrip._internal.transport.jitter", return_value=0.125), \
+             patch("postgrip._internal.transport.time.sleep") as sleep:
             self.assertEqual(client.list(), {"items": []})
 
         sleep.assert_called_once_with(0.125)

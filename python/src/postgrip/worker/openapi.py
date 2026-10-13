@@ -291,6 +291,9 @@ class OpenAPIOperation:
     request_schema: str
     response_schema: str
     path_parameters: tuple[str, ...]
+    idempotency: str = "none"
+    pagination: str = "none"
+    header_parameters: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -306,22 +309,25 @@ class ResolvedOpenAPIOperation:
     websocket: bool
     request_schema: str
     response_schema: str
+    idempotency: str = "none"
+    pagination: str = "none"
+    header_parameters: tuple[str, ...] = ()
 
 
 _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
-    OperationId.CHECK_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/check', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'CheckWorkerResponse', ('workerId',)),
-    OperationId.CREATE_WORKER: OpenAPIOperation('POST', '/api/v1/workers', 'worker-management', 'mutation', 'bounded', '', False, False, 'CreateWorkerRequest', 'CreateWorkerResponse', ()),
-    OperationId.GET_WORKER: OpenAPIOperation('GET', '/api/v1/workers/{workerId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Worker', ('workerId',)),
-    OperationId.GET_WORKER_JOB: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs/{jobId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Job', ('workerId', 'jobId')),
-    OperationId.LIST_WORKER_ASSIGNMENTS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/assignments', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'AssignmentList', ('workerId',)),
-    OperationId.LIST_WORKER_JOBS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'JobList', ('workerId',)),
-    OperationId.LIST_WORKER_OPERATIONAL_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/operational-logs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'OperationalLogList', ('workerId',)),
-    OperationId.LIST_WORKER_SECURITY_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/security-logs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'SecurityLogList', ('workerId',)),
-    OperationId.LIST_WORKERS: OpenAPIOperation('GET', '/api/v1/workers', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerList', ()),
-    OperationId.PLACE_WORKER_IN_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',)),
-    OperationId.RESUME_WORKER_FROM_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance/resume', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',)),
-    OperationId.UPGRADE_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/upgrade', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'UpgradeWorkerResponse', ('workerId',)),
-    OperationId.WORKER_ORCHESTRATOR_HEALTH: OpenAPIOperation('GET', '/health', 'public', 'read-only', 'bounded', '', False, False, '', 'HealthResponse', ()),
+    OperationId.CHECK_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/check', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'CheckWorkerResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
+    OperationId.CREATE_WORKER: OpenAPIOperation('POST', '/api/v1/workers', 'worker-management', 'mutation', 'bounded', '', False, False, 'CreateWorkerRequest', 'CreateWorkerResponse', (), 'required', 'none', ('Idempotency-Key',)),
+    OperationId.GET_WORKER: OpenAPIOperation('GET', '/api/v1/workers/{workerId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Worker', ('workerId',), 'none', 'none', ()),
+    OperationId.GET_WORKER_JOB: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs/{jobId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Job', ('workerId', 'jobId'), 'none', 'none', ()),
+    OperationId.LIST_WORKER_ASSIGNMENTS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/assignments', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'AssignmentList', ('workerId',), 'none', 'none', ()),
+    OperationId.LIST_WORKER_JOBS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'JobList', ('workerId',), 'none', 'none', ()),
+    OperationId.LIST_WORKER_OPERATIONAL_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/operational-logs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'OperationalLogList', ('workerId',), 'none', 'none', ()),
+    OperationId.LIST_WORKER_SECURITY_LOGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/security-logs', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'SecurityLogList', ('workerId',), 'none', 'none', ()),
+    OperationId.LIST_WORKERS: OpenAPIOperation('GET', '/api/v1/workers', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerList', (), 'none', 'none', ()),
+    OperationId.PLACE_WORKER_IN_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
+    OperationId.RESUME_WORKER_FROM_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance/resume', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
+    OperationId.UPGRADE_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/upgrade', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'UpgradeWorkerResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
+    OperationId.WORKER_ORCHESTRATOR_HEALTH: OpenAPIOperation('GET', '/health', 'public', 'read-only', 'bounded', '', False, False, '', 'HealthResponse', (), 'none', 'none', ()),
 }
 
 
@@ -493,6 +499,9 @@ def resolve_openapi_operation(
         websocket=source.websocket,
         request_schema=source.request_schema,
         response_schema=source.response_schema,
+        idempotency=source.idempotency,
+        pagination=source.pagination,
+        header_parameters=source.header_parameters,
     )
 
 

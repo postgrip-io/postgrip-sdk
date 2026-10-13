@@ -262,7 +262,13 @@ that also carries the timeout.
    2. The Service move, removing its private copies.
    3. The Agent move, with `AgentAPIError`, lane enforcement, signing, opt-in
       retry, and the root `timeoutMs` passed to every plane.
-5. Python executor, error hierarchy and the three plane moves.
+5. Python executor, error hierarchy and the three plane moves, in three PRs:
+   1. The shared executor and `PostGripAPIError`, the generator's operation
+      table gaining the idempotency, pagination and header-parameter
+      annotations, and the Worker move with its executor conformance test.
+   2. The Service move, removing its private copies.
+   3. The Agent move, with `AgentAPIError`, lane enforcement, signing and
+      opt-in retry.
 6. Extend `scripts/check_package_layout.py` from root-import checks to an
    allowed-edge matrix: no plane-to-plane, generated-to-adapter or
    transport-to-plane imports. Prove each rule with generic self-test fixtures,

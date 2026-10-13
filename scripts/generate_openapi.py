@@ -1663,7 +1663,8 @@ def python_source(
             f'    OperationId.{snake_name(row["id"])}: OpenAPIOperation('
             f'{row["method"]!r}, {row["path"]!r}, {row["auth"]!r}, {row["safety"]!r}, {row["retry"]!r}, {row["signing"]!r}, '
             f'{row["streaming"]!r}, {row["websocket"]!r}, '
-            f'{schema_label(row["request_schema"])!r}, {schema_label(row["response_schema"])!r}, {params}),'
+            f'{schema_label(row["request_schema"])!r}, {schema_label(row["response_schema"])!r}, {params}, '
+            f'{row["idempotency"]!r}, {row["pagination"]!r}, {tuple(row["header_parameter_schemas"])!r}),'
         )
     generated_types = python_types_source(spec, rows)
     generated_client = python_openapi_client_source(rows)
@@ -1734,6 +1735,9 @@ class OpenAPIOperation:
     request_schema: str
     response_schema: str
     path_parameters: tuple[str, ...]
+    idempotency: str = "none"
+    pagination: str = "none"
+    header_parameters: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1749,6 +1753,9 @@ class ResolvedOpenAPIOperation:
     websocket: bool
     request_schema: str
     response_schema: str
+    idempotency: str = "none"
+    pagination: str = "none"
+    header_parameters: tuple[str, ...] = ()
 
 
 _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {{
@@ -1811,6 +1818,9 @@ def resolve_openapi_operation(
         websocket=source.websocket,
         request_schema=source.request_schema,
         response_schema=source.response_schema,
+        idempotency=source.idempotency,
+        pagination=source.pagination,
+        header_parameters=source.header_parameters,
     )
 
 
