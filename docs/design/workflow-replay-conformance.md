@@ -154,10 +154,18 @@ task neither completes, fails nor blocks. It stops renewing its lease and
 leaves the task leased, so the runtime redelivers it on lease expiry, as it
 does after a crash. The redelivered task repeats the reconciliation. Blocking
 would strand it, because nothing wakes a blocked update task that has issued
-no command. While building replay state, the Agent reads each failed
-update task's events once and passes the set of marked task IDs to the replay
-engine. A terminal task's events do not change, so every replay sees the same
-set.
+no command. While building replay state, the Agent reads each completed or
+failed update task's events once, and passes the set of marked task IDs to the
+replay engine. A terminal task's events do not change, so every replay sees the
+same set.
+
+The marker also versions completed updates. An unmarked completed entry was
+recorded by an SDK release before this design, and replays with that
+language's previous registration behavior so existing workflows are not
+stranded. A Python unmarked entry closes an `async` handler's coroutine without
+running it, because the previous release never ran it. A TypeScript unmarked
+entry invokes the handler without awaiting it, as before. Go is unaffected. The
+awaited in-flight rules below apply to marked entries only.
 
 The next update boundary applies only when its index precedes the earliest
 unconsumed body-owned command event, or when none remain. Applying a boundary
@@ -225,8 +233,20 @@ call sees all of them. This is deterministic: the run that first recorded the
 command after the boundary applied the same synchronous prefix at the same
 point, so every replay chooses the same command. A workflow whose next command
 depends on an `async` handler's later effects awaits a `condition` on that
-state before issuing it. Signals keep their current behavior: every recorded
-signal is delivered when its handler is registered.
+state before issuing it.
+
+Signals keep their delivery rule: every recorded signal is delivered when its
+handler is registered. Signal handlers must be synchronous, and a signal handler
+must not issue workflow commands or wait on a `condition`. Today TypeScript
+discards an `async` signal handler's promise, so its workflow calls would race
+the body for body-owned events. Python discards an `async def` signal handler's
+coroutine, so it never runs. Ordering them would need positional signal delivery
+(see the gap below), and running Python's would change existing histories.
+TypeScript therefore rejects a workflow command or `condition` issued from a
+signal handler's execution context with a non-retryable
+`SignalHandlerCommandUnsupported` failure. Python logs a warning when an
+`async def` signal handler is registered and keeps not running it. The
+TypeScript and Python guides state the rule.
 
 **Body and update overlap.** The runtime unblocks the workflow task when an
 update is accepted, so a body run that fetched history before the acceptance
@@ -266,7 +286,9 @@ mode until replay stops. It then inspects the next unconsumed update boundary:
 - Any other position is a determinism error.
 
 Query tasks replay the same way and stop at the first new command or pending
-boundary.
+boundary. A query replay that instead returns normally runs the completion
+check's leftover-command test, and a recorded determinism error fails the query
+task. A query is served only from state consistent with durable history.
 
 ### Logical clock
 
@@ -485,7 +507,14 @@ Language runtime tests add:
   persisting, which fails without running its handler; and one whose
   reconciliation read also fails, which stops renewing its lease and is
   redelivered;
-- a query replay that stops at a pending update;
+- a query replay that stops at a pending update, and a query whose changed
+  workflow returns before a recorded trailing command, which fails instead of
+  serving the query;
+- an unmarked completed update with a Python `async def` handler that replays
+  without running the coroutine, and a marked one that runs it;
+- a TypeScript signal handler that issues an activity, which fails with
+  `SignalHandlerCommandUnsupported`, and a Python `async def` signal handler
+  registration that logs a warning;
 - the determinism failure type for replay and the TypeScript sandbox;
 - Python introspection values for commands, updates, a signal followed by a
   command, a signal-only history, a completed update at the end of history, a
