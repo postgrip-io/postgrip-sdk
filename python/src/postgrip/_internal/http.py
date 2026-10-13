@@ -161,12 +161,14 @@ class CancellationAwareHTTPSHandler(HTTPSHandler):
     handler_order = 400
 
     def https_open(self, request: Request) -> Any:
-        return self.do_open(
-            _CancellationAwareHTTPSConnection,
-            request,
-            context=getattr(self, "_context", None),
-            check_hostname=getattr(self, "_check_hostname", None),
-        )
+        # Python 3.12 removed HTTPSConnection's check_hostname argument and
+        # HTTPSHandler's _check_hostname attribute (it now applies the setting
+        # to the context). Forward it only where the running stdlib keeps it.
+        options: dict[str, Any] = {"context": getattr(self, "_context", None)}
+        check_hostname = getattr(self, "_check_hostname", None)
+        if check_hostname is not None:
+            options["check_hostname"] = check_hostname
+        return self.do_open(_CancellationAwareHTTPSConnection, request, **options)
 
 
 async def run_cancellable(callback: Any, *args: Any, **kwargs: Any) -> Any:
