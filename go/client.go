@@ -51,7 +51,7 @@ func New(config Config) (*Client, error) {
 	}
 	agentConnection, err := agent.NewConnection(agent.ConnectionOptions{
 		Address: agentURL, AuthToken: token, HTTPClient: config.HTTPClient,
-		InsecureDevelopment: config.InsecureDevelopment,
+		InsecureDevelopment: config.InsecureDevelopment, EnableRetries: config.EnableRetries,
 	})
 	if err != nil {
 		return nil, err

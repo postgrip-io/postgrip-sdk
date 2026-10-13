@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -53,15 +54,20 @@ type ConnectionOptions struct {
 	AgentRefreshToken      string
 	AgentAccessExpiresAt   time.Time
 	AgentSigningPrivateKey string
+	// EnableRetries opts in to bounded retries of contract-eligible operations:
+	// annotated bounded reads, never signed, protocol or streaming requests.
+	EnableRetries bool
 }
 
 // Connection is the HTTP transport layer. It is safe for concurrent use.
 type Connection struct {
 	address             string
 	httpClient          *http.Client
+	ownsHTTPClient      bool
 	authHeader          string
 	headers             map[string]string
 	insecureDevelopment bool
+	executor            *transport.Executor
 
 	// Agent (worker-side) auth state. Mutated by ensureAgentSession; reads
 	// must hold agentMu. Agent sessions must be delegated by a host agent and
@@ -127,9 +133,10 @@ func NewConnection(opts ConnectionOptions) (*Connection, error) {
 	for k, v := range opts.Headers {
 		headers[k] = v
 	}
-	return &Connection{
+	connection := &Connection{
 		address:                address,
 		httpClient:             httpClient,
+		ownsHTTPClient:         opts.HTTPClient == nil,
 		authHeader:             authHeader,
 		headers:                headers,
 		insecureDevelopment:    opts.InsecureDevelopment,
@@ -143,7 +150,28 @@ func NewConnection(opts ConnectionOptions) (*Connection, error) {
 		agentAccessExpiresUnix: accessExpiresAt.Unix(),
 		agentSignPriv:          signPriv,
 		agentSignPub:           signPub,
-	}, nil
+	}
+	connection.executor = &transport.Executor{
+		Plane:      "agent",
+		BaseURL:    baseURL,
+		HTTPClient: httpClient,
+		Credentials: transport.Credentials{
+			ManagementToken: managementToken,
+			HasDelegated:    connection.hasAgentRuntimeCredentials,
+			Delegated:       connection.delegatedAccessToken,
+		},
+		CallerHeadersReplace: true,
+		Retry: transport.RetryConfig{
+			Enabled:       opts.EnableRetries,
+			MaxAttempts:   3,
+			MaxDelay:      2 * time.Second,
+			RetryAfterMax: 30 * time.Second,
+		},
+		MaxResponseBytes: maxResponseBytes,
+		Sign:             connection.signAgentRequest,
+		PlaneError:       agentHTTPError,
+	}
+	return connection, nil
 }
 
 // Address returns the canonical base URL of the runtime service.
@@ -159,36 +187,78 @@ func (c *Connection) Health(ctx context.Context) (map[string]any, error) {
 	return map[string]any{"status": out.Status}, nil
 }
 
-// doOpenAPI resolves the generated method, path, and authentication lane,
-// then delegates to the SDK's custom transport. Retry, session refresh, and
-// request signing intentionally remain runtime behavior rather than codegen.
+// defaultPollWaitSeconds is the contract default for pollAgentTask
+// wait_seconds, which the server holds for when the parameter is omitted.
+const defaultPollWaitSeconds = 20
+
+// unfollowedRedirectStatuses are the 3xx statuses the redirect policy can
+// return without following them.
+var unfollowedRedirectStatuses = func() []int {
+	statuses := make([]int, 0, 100)
+	for status := 300; status < 400; status++ {
+		statuses = append(statuses, status)
+	}
+	return statuses
+}()
+
+// doOpenAPI runs one generated JSON operation through the shared executor,
+// which applies the contract's auth lane, signing, retry, response bound and
+// error envelope. The Agent adapter supplies the delegated-session and signing
+// hooks and keeps long-poll and terminal-poll handling.
 func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body any, out any) error {
 	operation, err := resolveOpenAPIOperation(id, pathParameters, query)
 	if err != nil {
 		return &failure.SDKError{Message: "resolve OpenAPI operation", Cause: err}
 	}
-	agentAuth := operation.AuthLane == "agent" || (operation.AuthLane == "either" && c.hasAgentRuntimeCredentials())
-	if agentAuth {
-		if err := c.ensureAgentSession(ctx, "", "", ""); err != nil {
-			return err
+	// The same-origin redirect policy returns a cross-origin 3xx unfollowed;
+	// Agent has always treated that response as a non-error, so the adapter,
+	// not the executor's envelope decoding, handles it below.
+	call := transport.Call{Operation: operation, Header: c.callerHeaders(), Body: body, AcceptedStatuses: unfollowedRedirectStatuses}
+	if id == openAPIPollAgentTask {
+		// Poll Gone is a successful terminal response handled below. A long
+		// poll's server hold counts against the exchange, so give it headroom.
+		call.AcceptedStatuses = append([]int{http.StatusGone}, unfollowedRedirectStatuses...)
+		// A caller-supplied http.Client keeps its Timeout as given; only the
+		// connection's own client gets the long-poll headroom. An omitted
+		// wait_seconds holds for the contract default.
+		wait := defaultPollWaitSeconds
+		if raw := query.Get("wait_seconds"); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed >= 0 {
+				wait = parsed
+			}
+		}
+		if c.ownsHTTPClient {
+			call.Lifetime = time.Duration(wait)*time.Second + 30*time.Second
 		}
 	}
-	err = c.do(
-		ctx, operation.Method, operation.Path, body, out,
-		agentAuth, operation.AuthLane != "public", operation.Signing,
-	)
-	if err == nil || id != openAPIPollAgentTask {
-		return err
+	response, err := c.executor.Do(ctx, call, out)
+	if err != nil {
+		var sdkErr *failure.SDKError
+		if errors.As(err, &sdkErr) {
+			return err
+		}
+		var local *transport.Error
+		if errors.As(err, &local) {
+			return agentLocalError(operation, local)
+		}
+		return &failure.SDKError{Message: "http request", Cause: err}
 	}
-	var sdkErr *failure.SDKError
-	if !errors.As(err, &sdkErr) || sdkErr.StatusCode != http.StatusGone {
-		return err
+	if response.StatusCode != http.StatusGone {
+		// Agent decodes every non-empty body that is not an error: the
+		// executor leaves an accepted 3xx body undecoded and treats a
+		// whitespace-only success body as empty, so decode both strictly here.
+		redirect := response.StatusCode >= 300 && response.StatusCode < 400
+		if out != nil && len(response.Body) > 0 && (redirect || len(bytes.TrimSpace(response.Body)) == 0) {
+			if err := json.Unmarshal(response.Body, out); err != nil {
+				return agentLocalError(operation, &transport.Error{Plane: "agent", Op: "decode response", Err: err})
+			}
+		}
+		return nil
 	}
-	// Poll Gone is a successful terminal response. Decode any directive fields
-	// the server supplied, but retain terminal semantics if an intermediary
-	// returned an empty or malformed body.
+	// Decode any directive fields the server supplied, but retain terminal
+	// semantics if an intermediary returned an empty or malformed body.
 	if terminal, ok := out.(*OpenAPIPollAgentTaskResponseBody); ok {
-		_ = json.Unmarshal(sdkErr.ResponseBody, terminal)
+		_ = json.Unmarshal(response.Body, terminal)
 		if terminal.Directive == nil {
 			terminal.Directive = &AgentPollDirective{Type: AgentPollDirectiveTypeShutdown}
 		} else {
@@ -198,76 +268,78 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 	return nil
 }
 
-// do is the single HTTP entrypoint; all the typed helpers funnel through
-// it. agentAuth selects between "use AuthToken" (false) and "use the
-// agent's refreshable access token" (true). signing is generated from the
-// contract and selects the protocol's agent-task-v1 canonical signature for
-// the task actions that require it.
-func (c *Connection) do(ctx context.Context, method, path string, body any, out any, agentAuth, managementAuth bool, signing string) error {
-	var rawBody []byte
-	var reader io.Reader
-	if body != nil {
-		encoded, err := json.Marshal(body)
-		if err != nil {
-			return &failure.SDKError{Message: "encode request body", Cause: err}
-		}
-		rawBody = encoded
-		reader = bytes.NewReader(encoded)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, c.address+path, reader)
-	if err != nil {
-		return &failure.SDKError{Message: "build request", Cause: err}
-	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
+// callerHeaders returns the connection's configured headers for one request.
+func (c *Connection) callerHeaders() http.Header {
+	header := make(http.Header, len(c.headers))
 	for k, v := range c.headers {
-		req.Header.Set(k, v)
+		header.Set(k, v)
 	}
-	if agentAuth {
-		c.agentMu.Lock()
-		token := c.agentAccessToken
-		priv := c.agentSignPriv
-		pub := c.agentSignPub
-		c.agentMu.Unlock()
-		if token != "" {
-			req.Header.Set("Authorization", "Bearer "+token)
-		}
-		if signing == "agent-task-v1" && len(priv) == ed25519.PrivateKeySize {
-			ts := time.Now().UTC()
-			payload := protocol.AgentRequestSignaturePayload{
-				Method:    method,
-				Path:      req.URL.Path,
-				Query:     req.URL.RawQuery,
-				Timestamp: ts,
-				Body:      rawBody,
-			}
-			req.Header.Set(protocol.HeaderAgentSignatureTimestamp, fmt.Sprintf("%d", ts.Unix()))
-			req.Header.Set(protocol.HeaderAgentSignatureKeyID, protocol.AgentSigningKeyID(pub))
-			req.Header.Set(protocol.HeaderAgentSignature, protocol.SignAgentRequest(priv, payload))
-		}
-	} else if managementAuth && c.authHeader != "" && !hasAuthorizationHeader(req.Header) {
-		req.Header.Set("Authorization", c.authHeader)
+	return header
+}
+
+// delegatedAccessToken is the executor's credential hook for the agent lane:
+// it refreshes the delegated session when needed before every attempt.
+func (c *Connection) delegatedAccessToken(ctx context.Context) (string, error) {
+	if err := c.ensureAgentSession(ctx, "", "", ""); err != nil {
+		return "", err
 	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return &failure.SDKError{Message: "http request", Cause: err}
-	}
-	defer resp.Body.Close()
-	raw, err := readResponseBody(resp.Body, maxResponseBytes)
-	if err != nil {
-		return &failure.SDKError{Message: "read response body", Cause: err}
-	}
-	if resp.StatusCode >= 400 {
-		return httpStatusError(method, path, resp.StatusCode, raw)
-	}
-	if out == nil || len(raw) == 0 {
+	c.agentMu.Lock()
+	defer c.agentMu.Unlock()
+	return c.agentAccessToken, nil
+}
+
+// signAgentRequest applies the agent-task-v1 signature to the final request,
+// over the exact encoded body. Without an injected signing key the request is
+// sent unsigned, as before.
+func (c *Connection) signAgentRequest(req *http.Request, body []byte) error {
+	c.agentMu.Lock()
+	priv := c.agentSignPriv
+	pub := c.agentSignPub
+	c.agentMu.Unlock()
+	if len(priv) != ed25519.PrivateKeySize {
 		return nil
 	}
-	if err := json.Unmarshal(raw, out); err != nil {
-		return &failure.SDKError{Message: fmt.Sprintf("decode response from %s %s", method, path), Cause: err}
+	ts := time.Now().UTC()
+	payload := protocol.AgentRequestSignaturePayload{
+		Method:    req.Method,
+		Path:      req.URL.Path,
+		Query:     req.URL.RawQuery,
+		Timestamp: ts,
+		Body:      body,
 	}
+	req.Header.Set(protocol.HeaderAgentSignatureTimestamp, fmt.Sprintf("%d", ts.Unix()))
+	req.Header.Set(protocol.HeaderAgentSignatureKeyID, protocol.AgentSigningKeyID(pub))
+	req.Header.Set(protocol.HeaderAgentSignature, protocol.SignAgentRequest(priv, payload))
 	return nil
+}
+
+// agentLocalError keeps the Agent's existing messages for executor-local
+// failures, including the request context of a decode failure.
+func agentLocalError(operation transport.Operation, local *transport.Error) error {
+	switch local.Op {
+	case "encode request":
+		return &failure.SDKError{Message: "encode request body", Cause: local.Err}
+	case "response is invalid or too large":
+		if local.Err != nil {
+			return &failure.SDKError{Message: "read response body", Cause: local.Err}
+		}
+		return &failure.SDKError{Message: "read response body", Cause: errors.New("postgrip-agent: response is invalid or too large")}
+	case "decode response":
+		return &failure.SDKError{Message: fmt.Sprintf("decode response from %s %s", operation.Method, operation.Path), Cause: local.Err}
+	default:
+		return &failure.SDKError{Message: local.Op, Cause: local.Err}
+	}
+}
+
+// agentHTTPError converts the decoded envelope into the Agent's SDKError. The
+// default text holds only the method, quoted route, status and standard status
+// text; server content stays in the explicit fields.
+func agentHTTPError(apiErr *transport.APIError) error {
+	err := httpStatusError(apiErr.Method, apiErr.Route, apiErr.StatusCode, apiErr.Body)
+	err.Code = apiErr.Code
+	err.RequestID = apiErr.RequestID
+	err.Details = apiErr.Details
+	return err
 }
 
 func queryValues(params map[string]string) url.Values {

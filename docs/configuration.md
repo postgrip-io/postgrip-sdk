@@ -62,9 +62,17 @@ bound requests through an `AbortSignal` where exposed or their injected fetch
 implementation. These APIs do not yet offer one common timeout setting across
 languages.
 
-Root retry options currently reach Worker and Service only. Agent ordinary
-HTTP exchanges do not automatically retry. Service and Go Worker eligibility
-use generated retry/safety metadata plus an idempotency key for mutations.
+Root retry options reach Worker and Service in every language, and Go Agent
+through `ConnectionOptions.EnableRetries`, which `postgrip.New` sets from
+`Config.EnableRetries`. TypeScript and Python Agent ordinary HTTP exchanges do
+not automatically retry. Go Agent retries only contract-eligible operations:
+annotated bounded reads, never signed runtime actions, protocol operations or
+streaming uploads. When the Go Agent connection creates its own
+HTTP client, a long poll's lifetime is its `wait_seconds` (the contract default
+of 20 when omitted) plus 30 seconds when that exceeds the request timeout; a
+supplied `HTTPClient` keeps its `Timeout` as given. Service, Go Worker and Go Agent
+eligibility use generated retry/safety metadata plus an idempotency key for
+mutations.
 TypeScript and Python Worker currently use GET-or-idempotency-key eligibility,
 which selects the same requests for Worker's current contract operations.
 Retries remain opt-in, with attempt counts bounded by the plane
@@ -72,8 +80,9 @@ implementation; delay limits are not yet uniform across planes and languages.
 Go Worker parses `Retry-After` with the Service rules: `0` or a past date
 retries without backoff and larger values cap at 30 seconds.
 The required contract-driven boundary is specified in
-[architecture](development/architecture.md); transport consolidation does not
-make proposed timeout or Agent retry behavior available today.
+[architecture](development/architecture.md). Until the TypeScript and Python
+planes move onto their shared executors, the TypeScript request timeout and
+TypeScript and Python Agent retries remain proposed, not available.
 
 Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
