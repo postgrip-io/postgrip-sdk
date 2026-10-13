@@ -88,6 +88,7 @@ func operation(lane, safety, idempotency string) Operation {
 
 func TestExecutorAppliesCredentialsByAuthLane(t *testing.T) {
 	callerHeaders := []http.Header{
+		nil,
 		{"Authorization": {"Bearer caller"}},
 		{"authorization": {"Bearer caller"}},
 		{"AUTHORIZATION": {"Bearer caller"}},
@@ -96,14 +97,16 @@ func TestExecutorAppliesCredentialsByAuthLane(t *testing.T) {
 		lane, want  string
 		hasSession  bool
 		wantRefresh int
+		// callerWins marks lanes where a caller-supplied header keeps precedence.
+		callerWins bool
 	}{
 		{lane: LanePublic, want: ""},
-		{lane: LaneManagement, want: "Bearer management-token"},
-		{lane: LaneWorkerManagement, want: "Bearer management-token"},
-		{lane: LaneServiceManagement, want: "Bearer management-token"},
+		{lane: LaneManagement, want: "Bearer management-token", callerWins: true},
+		{lane: LaneWorkerManagement, want: "Bearer management-token", callerWins: true},
+		{lane: LaneServiceManagement, want: "Bearer management-token", callerWins: true},
 		{lane: LaneAgent, want: "Bearer delegated-1", hasSession: true, wantRefresh: 1},
 		{lane: LaneEither, want: "Bearer delegated-1", hasSession: true, wantRefresh: 1},
-		{lane: LaneEither, want: "Bearer management-token", hasSession: false},
+		{lane: LaneEither, want: "Bearer management-token", hasSession: false, callerWins: true},
 	}
 	for _, test := range tests {
 		for _, header := range callerHeaders {
@@ -118,9 +121,13 @@ func TestExecutorAppliesCredentialsByAuthLane(t *testing.T) {
 			if _, err := executor.Do(context.Background(), Call{Operation: operation(test.lane, "read-only", "none"), Header: header}, nil); err != nil {
 				t.Fatalf("%s: %v", test.lane, err)
 			}
+			want := test.want
+			if test.callerWins && header != nil {
+				want = "Bearer caller"
+			}
 			got := rec.all()[0].header.Values("Authorization")
-			if (test.want == "" && len(got) != 0) || (test.want != "" && (len(got) != 1 || got[0] != test.want)) {
-				t.Fatalf("%s with caller %v: Authorization = %q, want %q", test.lane, header, got, test.want)
+			if (want == "" && len(got) != 0) || (want != "" && (len(got) != 1 || got[0] != want)) {
+				t.Fatalf("%s with caller %v: Authorization = %q, want %q", test.lane, header, got, want)
 			}
 			if refreshes != test.wantRefresh {
 				t.Fatalf("%s: credential hook calls = %d, want %d", test.lane, refreshes, test.wantRefresh)

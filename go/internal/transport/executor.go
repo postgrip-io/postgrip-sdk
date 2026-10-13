@@ -244,8 +244,14 @@ func (e *Executor) authorize(ctx context.Context, request *http.Request, lane st
 			return errors.New("postgrip-" + e.Plane + ": delegated runtime credential is empty")
 		}
 	}
-	if token != "" {
-		request.Header.Set("Authorization", "Bearer "+token)
+	if token == "" {
+		return nil
 	}
+	// A caller-supplied header keeps its precedence on management lanes; the
+	// delegated session always replaces it.
+	if !delegated && request.Header.Get("Authorization") != "" {
+		return nil
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
 	return nil
 }
