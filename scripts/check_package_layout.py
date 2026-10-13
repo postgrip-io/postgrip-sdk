@@ -36,8 +36,8 @@ TYPESCRIPT_EXTENSIONS = (".ts", ".mts", ".cts", ".tsx")
 Role = tuple[str, str]
 _GENERATED_HEADER = re.compile(r"\A[^\n]*Code generated [^\n]*DO NOT EDIT")
 _GO_TOKEN = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\\n])*"|`[^`]*`|\'(?:\\.|[^\'\\\n])*\'', re.DOTALL)
-_GO_IMPORT_DECL = re.compile(r"\bimport\s*(\((?:[^()]|\n)*\)|[\w.]*\s*(?:\"[^\"\n]*\"|`[^`]*`))")
-_GO_STRING = re.compile(r'"((?:\\.|[^"\\\n])*)"|`([^`]*)`')
+_GO_IMPORT_DECL = re.compile(r"\bimport\s*(\([^()]*\)|[\w.]*\s*S\d+S)")
+_GO_PLACEHOLDER = re.compile(r"S(\d+)S")
 _TYPESCRIPT_TOKEN = re.compile(
     r"/\*.*?\*/|//[^\n]*|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\"|`(?:\\.|[^`\\])*`", re.DOTALL,
 )
@@ -122,11 +122,18 @@ def go_import_role(import_path: str) -> Role:
 def go_imports(source: str) -> list[str]:
     """Import paths of the import declarations in *source*, in either string form; comments are ignored."""
 
-    code = _GO_TOKEN.sub(lambda match: re.sub(r"[^\n]", " ", match.group()) if match.group().startswith("/") else match.group(), source)
-    paths = []
-    for declaration in _GO_IMPORT_DECL.findall(code):
-        paths.extend(decode_escapes(double) if double else raw for double, raw in _GO_STRING.findall(declaration))
-    return paths
+    literals: list[str] = []
+
+    def mask(match: re.Match[str]) -> str:
+        token = match.group()
+        if token.startswith("/"):
+            return re.sub(r"[^\n]", " ", token)
+        # Every string becomes a placeholder, so text inside a string is never read as a declaration.
+        literals.append(token[1:-1] if token.startswith("`") else decode_escapes(token[1:-1]))
+        return f"S{len(literals) - 1}S"
+
+    code = _GO_TOKEN.sub(mask, source)
+    return [literals[int(index)] for declaration in _GO_IMPORT_DECL.findall(code) for index in _GO_PLACEHOLDER.findall(declaration)]
 
 
 def typescript_role(relative: Path, source: str | None = None) -> Role:
@@ -136,8 +143,8 @@ def typescript_role(relative: Path, source: str | None = None) -> Role:
     if parts and parts[0] in PLANES:
         generated = is_generated(source) if source is not None else "generated" in parts
         return ("gen" if generated else "adapter", parts[0])
-    # Only the top-level entry modules are the facade; any other directory is infrastructure.
-    return ("root", "") if len(parts) == 1 else ("internal", "")
+    # Only the facade entry modules are the root; any other module is infrastructure.
+    return ("root", "") if len(parts) == 1 and Path(parts[0]).stem in ("client", "index") else ("internal", "")
 
 
 def typescript_specifiers(source: str) -> list[str]:
@@ -300,6 +307,8 @@ def edge_self_test_failures() -> tuple[list[str], int]:
         ("Go helper directory imports a plane", "helpers/cache.go", f'import "{GO_MODULE}/agent/client"\n', True),
         ("Go comment and string mentioning another plane", "worker/client.go",
          f'// import "{GO_MODULE}/service"\nconst path = "{GO_MODULE}/service"\n', False),
+        ("Go raw string containing an import statement", "worker/client.go",
+         f'const doc = `import "{GO_MODULE}/service"`\n', False),
         ("Go plane imports its own subpackage and a third party", "agent/worker/dispatch.go",
          f'import (\n\t"{GO_MODULE}/agent/client"\n\t"golang.org/x/crypto/ed25519"\n)\n', False),
         ("Go generated imports transport and stdlib", "worker/openapi.gen.go",
@@ -324,6 +333,7 @@ def edge_self_test_failures() -> tuple[list[str], int]:
         ("TS import-equals require of another plane", "agent/client.cts", "import w = require('../worker/client.cjs');\n", True),
         ("TS dynamic import inside a template", "agent/client.ts", "const s = `${await import('../worker/client.js')}`;\n", True),
         ("TS helper directory imports a plane", "helpers/cache.ts", "import { W } from '../worker/client.js';\n", True),
+        ("TS top-level helper imports a plane", "cache.ts", "import { W } from './worker/client.js';\n", True),
         ("TS generated imports a bare Node built-in", "agent/generated/openapi.ts", f"// {header}import {{ format }} from 'util';\n", False),
         ("TS comment and string mentioning another plane", "worker/client.ts",
          "// import '../service/client.js';\nconst s = \"import '../service/client.js'\";\n", False),
