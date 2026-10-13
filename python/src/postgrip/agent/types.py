@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
+# Underscored so `from postgrip.agent.types import *` cannot shadow a caller's
+# `datetime` module import.
+from datetime import datetime as _datetime, timedelta as _timedelta
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict
 
 from . import openapi as _openapi
@@ -56,6 +59,9 @@ TaskEvent: TypeAlias = _openapi.OpenAPITaskEvent
 
 
 TaskEventInput: TypeAlias = _openapi.OpenAPITaskEventInput
+
+
+TaskEventPage: TypeAlias = _openapi.OpenAPITaskEventPage
 
 
 EnqueueTaskRequest: TypeAlias = _openapi.OpenAPIEnqueueTaskRequest
@@ -237,6 +243,9 @@ WorkflowExecution: TypeAlias = _openapi.OpenAPIWorkflowExecution
 WorkflowHistoryEvent: TypeAlias = _openapi.OpenAPIWorkflowHistoryEvent
 
 
+WorkflowHistoryPage: TypeAlias = _openapi.OpenAPIWorkflowHistoryPage
+
+
 WorkflowCountResponse: TypeAlias = _openapi.OpenAPIWorkflowCountResponse
 
 
@@ -401,6 +410,151 @@ CreateSandboxSessionRequest: TypeAlias = _openapi.OpenAPICreateSandboxSessionReq
 
 
 CreateSandboxSessionResponse: TypeAlias = _openapi.OpenAPICreateSandboxSessionResponse
+
+
+# --- convenience keyword options --------------------------------------------
+#
+# Each TypedDict below lists exactly the keywords one Agent convenience method
+# accepts through ``**options`` and forwards to a consumer that uses them. They
+# are static shapes for ``typing.Unpack``; the methods do not validate them.
+
+
+class ConnectionOptions(TypedDict, total=False):
+    """Keyword options ``Connection.connect`` and ``Client.connect`` forward to
+    the ``Connection`` constructor."""
+
+    timeout: float
+    headers: dict[str, str] | None
+    auth_token: str | None
+    insecure_development: bool
+    agent_id: str | None
+    worker_id: str | None
+    agent_name: str | None
+    agent_host: str | None
+    agent_namespace: str
+    agent_queue: str
+    agent_access_token: str | None
+    agent_refresh_token: str | None
+    agent_access_expires_at: str | _datetime | None
+    agent_signing_private_key: str | None
+
+
+class ListTasksOptions(TypedDict, total=False):
+    """``Connection.list_tasks`` query options; ``None`` values are omitted."""
+
+    namespace: str | None
+    queue: str | None
+    type: str | None
+    state: TaskState | None
+    order_by: str | None
+    page_token: str | None
+    limit: int | None
+    offset: int | None
+
+
+class ListSchedulesOptions(TypedDict, total=False):
+    """``Connection.list_schedules`` and ``ScheduleClient.list`` query options;
+    ``None`` values are omitted."""
+
+    namespace: str | None
+    state: ScheduleState | None
+    page_token: str | None
+    limit: int | None
+    offset: int | None
+
+
+class CountWorkflowsOptions(TypedDict, total=False):
+    """``Connection.count_workflows`` query options; ``None`` values are
+    omitted and ``search_attributes`` become ``search.<key>`` filters."""
+
+    namespace: str | None
+    id: str | None
+    run_id: str | None
+    type: str | None
+    queue: str | None
+    state: WorkflowState | None
+    query: str | None
+    q: str | None
+    agent_id: str | None
+    search_attributes: Mapping[str, JsonValue] | None
+
+
+class ListWorkflowsOptions(CountWorkflowsOptions, total=False):
+    """``Connection.list_workflows`` query options: the count filters plus
+    ordering and paging."""
+
+    order_by: str | None
+    order: str | None
+    page_token: str | None
+    limit: int | None
+    offset: int | None
+
+
+class WorkflowCountOptions(CountWorkflowsOptions, total=False):
+    """``WorkflowClient.count`` options: the count filters plus the
+    Temporal-style ``workflow_id``, ``workflow_type`` and ``task_queue``
+    spellings of ``id``, ``type`` and ``queue``."""
+
+    workflow_id: str | None
+    workflow_type: str | None
+    task_queue: str | None
+
+
+class WorkflowListOptions(ListWorkflowsOptions, total=False):
+    """``WorkflowClient.list`` options: the list filters plus the
+    Temporal-style ``workflow_id``, ``workflow_type`` and ``task_queue``
+    spellings of ``id``, ``type`` and ``queue``."""
+
+    workflow_id: str | None
+    workflow_type: str | None
+    task_queue: str | None
+
+
+class WorkflowClientStartOptions(TypedDict, total=False):
+    """Extra keyword options of ``WorkflowClient.start`` and
+    ``WorkflowClient.signal_with_start``, beside their named parameters.
+
+    ``workflow_run_timeout`` (a ``timedelta`` or seconds) takes precedence over
+    ``workflow_run_timeout_ms``. ``ui`` is stored in the memo under
+    ``postgrip.ui``.
+    """
+
+    workflow_id_reuse_policy: WorkflowIdReusePolicy | None
+    workflow_run_timeout: _timedelta | float | None
+    workflow_run_timeout_ms: int | None
+    lease_timeout_seconds: int
+    retry: RetryPolicy | None
+    memo: dict[str, JsonValue] | None
+    search_attributes: dict[str, JsonValue] | None
+    ui: WorkflowUIMetadata | None
+
+
+class WorkflowClientExecuteOptions(WorkflowClientStartOptions, total=False):
+    """``WorkflowClient.execute`` options: every ``WorkflowClient.start``
+    keyword plus the result-wait ``timeout`` in seconds."""
+
+    workflow_id: str | None
+    task_queue: str
+    namespace: str
+    args: list[Any] | None
+    timeout: float | None
+
+
+class ClientStartWorkflowOptions(WorkflowClientStartOptions, total=False):
+    """``Client.start_workflow`` options. ``id`` is the Temporal-style alias of
+    ``workflow_id``; workflow arguments are positional."""
+
+    id: str
+    workflow_id: str | None
+    task_queue: str
+    namespace: str
+
+
+class ClientExecuteWorkflowOptions(ClientStartWorkflowOptions, total=False):
+    """``Client.execute_workflow`` options: the start options plus the
+    result-wait ``timeout`` in seconds."""
+
+    timeout: float | None
 
 
 # Computed last, deliberately. It used to sit above the sandbox section, and a

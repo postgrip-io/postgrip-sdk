@@ -76,3 +76,38 @@ When in doubt, the code is the documentation:
 ## Type checking
 
 The package ships with `py.typed` so [mypy](https://mypy-lang.org/) and [pyright](https://github.com/microsoft/pyright) pick up annotations on every public name without extra configuration.
+
+The `Connection`, `Client`, `WorkflowClient`, `WorkflowHandle`, `TaskClient`,
+`ScheduleClient` and `SandboxClient` convenience methods take and return the
+OpenAPI-generated aliases rather than `dict[str, Any]`: for example
+`enqueue_task(request: EnqueueTaskRequest) -> Task`, `list_tasks(...) -> list[Task]`,
+`get_workflow(...) -> WorkflowExecution`, `get_task_events(...) -> list[TaskEvent]`,
+`create_schedule(request: CreateScheduleRequest) -> Schedule` and
+`poll_task_response(...) -> PollTaskResponse`. Paged reads return
+`TaskEventPage` and `WorkflowHistoryPage`; `SandboxClient.list()` and
+`list_workspaces()` unwrap their envelopes to `list[Sandbox]` and
+`list[SandboxWorkspace]`.
+
+Keyword `**options` are typed with `typing.Unpack` over these `TypedDict`s,
+exported from `postgrip.agent` so callers can annotate their own option
+dictionaries. Every key is optional, and the accepted keyword names are
+unchanged:
+
+| Options                        | Methods                                                     |
+|:-------------------------------|:------------------------------------------------------------|
+| `ConnectionOptions`            | `Connection.connect`, `Client.connect`                      |
+| `ListTasksOptions`             | `Connection.list_tasks`                                     |
+| `ListSchedulesOptions`         | `Connection.list_schedules`, `ScheduleClient.list`          |
+| `ListWorkflowsOptions`         | `Connection.list_workflows`                                 |
+| `CountWorkflowsOptions`        | `Connection.count_workflows`                                |
+| `WorkflowListOptions`          | `WorkflowClient.list`                                       |
+| `WorkflowCountOptions`         | `WorkflowClient.count`                                      |
+| `WorkflowClientStartOptions`   | `WorkflowClient.start`, `WorkflowClient.signal_with_start`  |
+| `WorkflowClientExecuteOptions` | `WorkflowClient.execute`                                    |
+| `ClientStartWorkflowOptions`   | `Client.start_workflow`                                     |
+| `ClientExecuteWorkflowOptions` | `Client.execute_workflow`                                   |
+
+User data stays open: workflow and activity `args` remain `list[Any]`, and
+payload, memo, search-attribute and result values keep the generated
+`JsonValue` (`Any`). These annotations are static shapes only; the SDK does not
+validate requests against them at runtime.
