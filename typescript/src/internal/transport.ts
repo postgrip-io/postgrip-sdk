@@ -142,7 +142,7 @@ export class Executor {
           const limit = this.config.successResponseBytes?.[operation.id] ?? this.config.maxResponseBytes;
           return JSON.parse(await readBoundedResponseBody(response, this.config.plane, limit)) as T;
         }
-        const apiError = await this.decodeError(response);
+        const apiError = await this.decodeError(response, lifetime.signal);
         if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
           const retryAfterMs = response.status === 429 || response.status === 503 ? apiError.retryAfterMs : undefined;
           await abortableDelay(retryAfterMs ?? jitter(attempt, retry.maxDelayMs), call.signal);
@@ -156,7 +156,7 @@ export class Executor {
     throw new Error(`PostGrip ${this.config.plane} request attempts exhausted`);
   }
 
-  private async decodeError(response: Response): Promise<PostGripAPIError> {
+  private async decodeError(response: Response, lifetime: AbortSignal): Promise<PostGripAPIError> {
     let value: Record<string, unknown> = {};
     try {
       const decoded: unknown = JSON.parse(await readBoundedResponseBody(response, this.config.plane, this.config.maxResponseBytes));
@@ -164,7 +164,10 @@ export class Executor {
         value = decoded as Record<string, unknown>;
       }
     } catch {
-      // The typed fallback intentionally excludes the upstream response body.
+      // A timeout or caller abort while reading the body stays the failure,
+      // as it does for a success body.
+      if (lifetime.aborted) throw lifetime.reason;
+      // Otherwise the typed fallback intentionally excludes the upstream response body.
     }
     return this.config.createError(
       response.status,

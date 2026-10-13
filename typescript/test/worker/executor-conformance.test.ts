@@ -173,6 +173,24 @@ describe('Worker executor conformance', () => {
     await expect(pending).resolves.toMatchObject({ name: 'TimeoutError' });
   });
 
+  it('keeps the timeout as the failure when an error body stalls', async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => new Response(
+      new ReadableStream({
+        start(controller) {
+          init?.signal?.addEventListener('abort', () => controller.error(init.signal?.reason));
+        },
+      }),
+      { status: 500 },
+    ));
+    const client = new WorkerClient({ baseUrl: 'https://workers.example.com', token: 'pgt_management', fetch: fetch as unknown as typeof globalThis.fetch });
+    const pending = client.get('w').catch((caught: unknown) => caught);
+    await vi.advanceTimersByTimeAsync(30_000);
+    const error = await pending;
+    expect(error).not.toBeInstanceOf(WorkerAPIError);
+    expect(error).toMatchObject({ name: 'TimeoutError' });
+  });
+
   it('lets an earlier caller abort win over the timeout', async () => {
     const fetch = vi.fn((_input: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
       init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
