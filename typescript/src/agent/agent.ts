@@ -218,25 +218,33 @@ export class Agent {
       replay = workflowReplay;
       const handlers = new WorkflowHandlers(workflowReplay);
       await this.emit(task.id, 'started', 'workflow', `started workflow ${workflowType}`, { workflowType });
-      const value = await runInWorkflowRuntime({
-        workflowId,
-        workflowRunId,
-        taskQueue: task.queue,
-        workflowType,
-        cancellationScopes: [],
-        executeActivity: (name, args, options) => this.executeActivityCommand(task, workflowReplay, name, args, options),
-        executeChild: (name, args, options) => this.executeChildWorkflowCommand(task, workflowReplay, name, args, options),
-        continueAsNew: (name, args, options) => {
-          throw new ContinueAsNewCommand(name, args, options);
-        },
-        sleep: (ms, cancellationScope) => this.executeTimerCommand(task, workflowReplay, ms, cancellationScope),
-        condition: (predicate, timeoutMs, cancellationScope) => this.executeConditionCommand(task, workflowReplay, predicate, timeoutMs, cancellationScope),
-        cancellationRequested: () => workflowReplay.isCancellationRequested(),
-        setSignalHandler: (name, handler) => handlers.setSignalHandler(name, handler),
-        setQueryHandler: (name, handler) => handlers.setQueryHandler(name, handler),
-        setUpdateHandler: (name, handler) => handlers.setUpdateHandler(name, handler),
-        emit: (event) => this.emit(task.id, event.kind ?? 'progress', event.stage, event.message, event.details),
-      }, () => workflow(...(task.payload?.args ?? [])));
+      let value: unknown;
+      try {
+        value = await runInWorkflowRuntime({
+          workflowId,
+          workflowRunId,
+          taskQueue: task.queue,
+          workflowType,
+          cancellationScopes: [],
+          executeActivity: (name, args, options) => this.executeActivityCommand(task, workflowReplay, name, args, options),
+          executeChild: (name, args, options) => this.executeChildWorkflowCommand(task, workflowReplay, name, args, options),
+          continueAsNew: (name, args, options) => {
+            throw new ContinueAsNewCommand(name, args, options);
+          },
+          sleep: (ms, cancellationScope) => this.executeTimerCommand(task, workflowReplay, ms, cancellationScope),
+          condition: (predicate, timeoutMs, cancellationScope) => this.executeConditionCommand(task, workflowReplay, predicate, timeoutMs, cancellationScope),
+          cancellationRequested: () => workflowReplay.isCancellationRequested(),
+          setSignalHandler: (name, handler) => handlers.setSignalHandler(name, handler),
+          setQueryHandler: (name, handler) => handlers.setQueryHandler(name, handler),
+          setUpdateHandler: (name, handler) => handlers.setUpdateHandler(name, handler),
+          emit: (event) => this.emit(task.id, event.kind ?? 'progress', event.stage, event.message, event.details),
+        }, () => workflow(...(task.payload?.args ?? [])));
+      } finally {
+        // Every command this invocation started must settle before the task is
+        // completed, blocked, continued or failed, or a wake-up could redeliver
+        // it against an incomplete history prefix.
+        await this.drainCommands(workflowReplay);
+      }
       throwIfNondeterministic(workflowReplay);
       const result: TaskResult = {
         value,
@@ -635,6 +643,15 @@ export class Agent {
    * issued concurrently (for example with Promise.all) are then recorded in call
    * order, which is the order replay consumes them.
    */
+  private async drainCommands(replay: WorkflowReplay): Promise<void> {
+    for (;;) {
+      const tail = this.commandQueues.get(replay);
+      if (!tail) return;
+      await tail.catch(() => undefined);
+      if (this.commandQueues.get(replay) === tail) return;
+    }
+  }
+
   private scheduleInOrder<T>(replay: WorkflowReplay, schedule: () => Promise<T>): Promise<T> {
     const previous = this.commandQueues.get(replay) ?? Promise.resolve();
     // A failed earlier enqueue rejects every later one, so history never

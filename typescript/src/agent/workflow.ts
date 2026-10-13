@@ -215,8 +215,12 @@ async function executeActivity(name: string, args: unknown[], options: ActivityO
     details: { activity: name },
   });
   const result = runtime.executeActivity(name, args, { ...options, cancellationScope: currentCancellationScope() });
-  const [, value] = await Promise.all([emitted, result]);
-  return value;
+  // The command's outcome wins over the auxiliary event: once the command may
+  // have been scheduled, a failed event must not turn suspension into failure.
+  const [event, command] = await Promise.allSettled([emitted, result]);
+  if (command.status === 'rejected') throw command.reason;
+  if (event.status === 'rejected') throw event.reason;
+  return command.value;
 }
 
 async function runInCancellationScope<R>(scope: CancellationScopeType, fn: () => Promise<R> | R): Promise<R> {

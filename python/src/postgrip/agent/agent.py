@@ -157,8 +157,10 @@ class Agent:
             except Exception:
                 # Nondeterminism is sticky: a recorded violation fails the task even
                 # when workflow code caught it and then suspended, continued or raised.
+                await self._drain_commands(replay)
                 _raise_if_nondeterministic(replay)
                 raise
+            await self._drain_commands(replay)
             _raise_if_nondeterministic(replay)
             await self._emit(task["id"], "completed", "workflow", f"completed workflow {workflow_type}")
             await self._complete_task(task, {
@@ -543,16 +545,33 @@ class Agent:
         then recorded in call order, which is the order replay consumes them.
         """
         state = self._command_locks.setdefault(replay, _CommandScheduler())
-        async with state.lock:
-            # A failed earlier enqueue fails every later one, so history never
-            # records a later command without the earlier one.
-            if state.error is not None:
-                raise state.error
-            try:
-                return await asyncio.to_thread(enqueue, *args)
-            except Exception as exc:
-                state.error = exc
-                raise
+        state.pending += 1
+        try:
+            async with state.lock:
+                # A failed earlier enqueue fails every later one, so history never
+                # records a later command without the earlier one.
+                if state.error is not None:
+                    raise state.error
+                try:
+                    return await asyncio.to_thread(enqueue, *args)
+                except Exception as exc:
+                    state.error = exc
+                    raise
+        finally:
+            state.pending -= 1
+
+    async def _drain_commands(self, replay: WorkflowReplay) -> None:
+        """Wait until every command this invocation started has settled.
+
+        ``asyncio.gather`` reports the first exception, such as the first
+        command's suspension, while later enqueues are still in flight. The
+        task must not be blocked, completed or failed before they persist.
+        """
+        state = self._command_locks.get(replay)
+        while state is not None and state.pending:
+            # The lock is FIFO, so acquiring it waits for every queued enqueue.
+            async with state.lock:
+                pass
 
     def _throw_if_cancelled(self, replay: WorkflowReplay, cancellation_scope: str | None = "cancellable") -> None:
         if cancellation_scope == "non_cancellable" or not replay.is_cancellation_requested():
@@ -608,6 +627,7 @@ class _CommandScheduler:
     def __init__(self) -> None:
         self.lock = asyncio.Lock()
         self.error: Exception | None = None
+        self.pending = 0
 
 
 class WorkflowHandlers:

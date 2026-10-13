@@ -6,7 +6,7 @@ import os
 import threading
 import time
 import unittest
-from typing import get_type_hints
+from typing import Any, get_type_hints
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -486,6 +486,55 @@ class PythonSdkTests(unittest.TestCase):
         asyncio.run(agent._execute(task))
 
         self.assertEqual(attempted, ["activity:First"])
+
+    def test_task_waits_for_every_started_command_before_blocking(self):
+        @workflow.defn(name="DrainWorkflow")
+        class DrainWorkflow:
+            @workflow.run
+            async def run(self) -> list:
+                return list(await asyncio.gather(workflow.execute_activity("First"), workflow.execute_activity("Second")))
+
+        connection = FakeConnection()
+        order: list[str] = []
+        second_started = threading.Event()
+        release_second = threading.Event()
+        original_enqueue = connection.enqueue_task
+        original_block = connection.block_task
+
+        def enqueue(request: dict) -> dict:
+            if request["type"] == "activity:Second":
+                second_started.set()
+                release_second.wait(5)
+            order.append(f"enqueued {request['type']}")
+            return original_enqueue(request)
+
+        def block(*args: Any, **kwargs: Any) -> Any:
+            order.append("blocked")
+            return original_block(*args, **kwargs)
+
+        connection.enqueue_task = enqueue
+        connection.block_task = block
+        agent = Agent(connection=connection, task_queue="default", workflows=[DrainWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:DrainWorkflow",
+            "payload": {"workflowType": "DrainWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        async def scenario() -> None:
+            running = asyncio.create_task(agent._execute(task))
+            await asyncio.to_thread(second_started.wait, 5)
+            await asyncio.sleep(0.05)
+            self.assertEqual(order, ["enqueued activity:First"])
+            release_second.set()
+            await running
+
+        asyncio.run(scenario())
+
+        self.assertEqual(order, ["enqueued activity:First", "enqueued activity:Second", "blocked"])
 
     def _run_query(self, workflow_cls, history: list[dict]) -> "FakeConnection":
         connection = FakeConnection()

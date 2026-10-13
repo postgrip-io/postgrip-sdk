@@ -254,6 +254,89 @@ describe('workflow runtime replay rules', () => {
   });
 });
 
+describe('workflow command settlement', () => {
+  function connectionWith(overrides: Record<string, unknown>) {
+    return {
+      health: vi.fn(async () => ({ status: 'ok' })),
+      configureAgentAuth: vi.fn(),
+      getWorkflowHistory: vi.fn(async () => []),
+      heartbeatTask: vi.fn(async () => ({})),
+      appendTaskEvent: vi.fn(async () => ({ id: 'event-1' })),
+      failTask: vi.fn(async () => ({})),
+      completeTask: vi.fn(async () => ({})),
+      blockTask: vi.fn(async () => ({})),
+      enqueueTask: vi.fn(async () => ({})),
+      getTask: vi.fn(async () => ({})),
+      ...overrides,
+    };
+  }
+
+  async function run(connection: ReturnType<typeof connectionWith>, name: string, workflow: (...args: unknown[]) => Promise<unknown>): Promise<void> {
+    const previous = process.env.POSTGRIP_AGENT_MANAGED_RUNTIME;
+    process.env.POSTGRIP_AGENT_MANAGED_RUNTIME = 'true';
+    let agent: Agent;
+    try {
+      agent = await Agent.create({ connection: connection as unknown as Connection, taskQueue: 'default', workflows: { [name]: workflow } });
+    } finally {
+      if (previous == null) delete process.env.POSTGRIP_AGENT_MANAGED_RUNTIME;
+      else process.env.POSTGRIP_AGENT_MANAGED_RUNTIME = previous;
+    }
+    await (agent as unknown as { executeTask(task: Task): Promise<void> }).executeTask({
+      id: 'task-1', namespace: 'default', queue: 'default', type: `workflow:${name}`,
+      payload: { workflowType: name, workflowId: 'workflow-1', runId: 'run-1', args: [] },
+      state: 'leased', attempt: 1, lease_timeout_seconds: 30,
+      created_at: '2026-10-13T00:00:00Z', updated_at: '2026-10-13T00:00:00Z',
+    } as Task);
+  }
+
+  it('blocks on a scheduled activity even when its progress event fails', async () => {
+    const connection = connectionWith({
+      appendTaskEvent: vi.fn(async (_id: string, _identity: string, event: { message?: string }) => {
+        if (event.message === 'scheduling activity First') throw new Error('event rejected');
+        return { id: 'event-1' };
+      }),
+    });
+    const { First } = proxyActivities<{ First(): Promise<string> }>();
+    async function EventFailureWorkflow(): Promise<unknown> {
+      return First();
+    }
+    await run(connection, 'EventFailureWorkflow', EventFailureWorkflow);
+    expect(connection.enqueueTask).toHaveBeenCalledWith(expect.objectContaining({ type: 'activity:First' }));
+    expect(connection.blockTask).toHaveBeenCalled();
+    expect(connection.failTask).not.toHaveBeenCalled();
+  });
+
+  it('waits for every started command before blocking the task', async () => {
+    const order: string[] = [];
+    let releaseSecond!: () => void;
+    const secondHeld = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    const connection = connectionWith({
+      enqueueTask: vi.fn(async (request: { type: string }) => {
+        if (request.type === 'activity:Second') await secondHeld;
+        order.push(`enqueued ${request.type}`);
+        return {};
+      }),
+      blockTask: vi.fn(async () => {
+        order.push('blocked');
+        return {};
+      }),
+    });
+    const { First } = proxyActivities<{ First(): Promise<string> }>();
+    const { Second } = proxyActivities<{ Second(): Promise<string> }>();
+    async function DrainWorkflow(): Promise<unknown> {
+      return Promise.all([First(), Second()]);
+    }
+    const running = run(connection, 'DrainWorkflow', DrainWorkflow);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(order).toEqual(['enqueued activity:First']);
+    releaseSecond();
+    await running;
+    expect(order).toEqual(['enqueued activity:First', 'enqueued activity:Second', 'blocked']);
+  });
+});
+
 describe('interaction replay determinism', () => {
   const answer = defineQuery<string>('answer');
 

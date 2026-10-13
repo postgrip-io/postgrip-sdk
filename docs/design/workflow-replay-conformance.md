@@ -97,7 +97,13 @@ TypeScript and Python workflows can issue commands concurrently (for example
 request, so the runtime could record them in a different order than the calls.
 The runtime therefore schedules new commands one at a time, in call order, for
 each workflow invocation, so history records them in the order replay consumes
-them.
+them. A command takes its place in that order when it is called, before any
+auxiliary request such as a progress event, and the command's own outcome
+decides the workflow's. If an enqueue fails, every later command of the
+invocation fails without being enqueued. The workflow task is completed,
+blocked, continued or failed only after every command the invocation started
+has settled, because the first suspension can surface while later enqueues are
+still in flight.
 
 Replay state records every determinism error it raises. Once one is recorded,
 the workflow task fails with that error when the workflow returns, raises,
@@ -432,7 +438,8 @@ and `python/docs` `workflow-runtime.md`) in the same PR.
    1. **Ordered cursor.** One ordered cursor per invocation, with the identity
       check before consumption, sticky determinism errors on every exit from
       workflow and interaction replay, new commands scheduled in call order
-      that stop after an earlier enqueue fails, and the aligned TypeScript and
+      that stop after an earlier enqueue fails and settle before the task
+      outcome is reported, and the aligned TypeScript and
       Python failure types. Until slice 2.2, commands issued by update handlers
       share the invocation's cursor, as they shared the per-kind cursors before.
    2. **Ownership and completion.** Command ownership, the per-owner ordered

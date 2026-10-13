@@ -29,7 +29,9 @@ task replaying it, fails with it even if your code catches the error and then
 returns, suspends, continues as new or raises something else. Commands issued
 concurrently, for example with `asyncio.gather`, are scheduled one at a time in
 call order, so history records them in the order replay consumes them. If one
-fails to enqueue, the commands issued after it are not enqueued either.
+fails to enqueue, the commands issued after it are not enqueued either. The
+agent reports the workflow task's outcome only after every command it started
+has finished enqueueing.
 
 When the body suspends, the agent calls `BlockTask` on the runtime service. The workflow task moves to the **blocked** state — *not* failed. The runtime service redelivers the task whenever a dependency resolves (an activity completes, a timer fires, a signal arrives), at which point the agent re-runs your coroutine from the top with fuller history.
 
