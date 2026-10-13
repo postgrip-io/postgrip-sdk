@@ -47,7 +47,8 @@ The contract is the owner of every HTTP model. The 59 `go/protocol`
 declarations remain the public Go representation of their schemas, because
 removing or retyping them would break callers. They are a declared compatibility
 mechanism, not an independent model. Today the guides disagree, as described
-above. The fidelity-check slice updates both so they state:
+above. The first implementation slice updates both, before any declaration
+changes, so they state:
 
 - [Contracts](../development/contracts.md): `go/protocol` holds
   runtime-only types plus the compatibility declarations for the
@@ -72,18 +73,23 @@ requires the following of the Go field:
 - `omitempty` exactly when the property is optional, unless the field is a
   non-pointer value whose zero value the schema rejects.
 - For an optional property, a representation that can express absence: a
-  pointer, slice, map, or a value with `omitempty`. For example,
+  pointer, slice, map, or a non-struct value with `omitempty`. `encoding/json`
+  never omits a struct value, so an optional struct field (including
+  `time.Time`) is absence-capable only through presence handling (see
+  **Presence handling**). For example,
   `PollTaskResponse.Directive *AgentPollDirective` is optional and non-nullable,
   and the pointer is what lets it be absent. A required non-nullable property
   does not use a pointer. A value with `omitempty` encodes a present zero value
   or empty collection as absence; that loss is covered under **Present zero
   values** below, not by this rule.
-- For an optional nullable property, an entry in the `go/protocol` presence
+- For an optional nullable property, either `json.RawMessage`, which keeps an
+  explicit `null` as the bytes `null`, or an entry in the `go/protocol` presence
   round-trip test table. A property is nullable when its schema allows `null`
-  explicitly, or when it references an unconstrained schema such as
-  `JsonValue`. A pointer alone also collapses `null` into omission, so
-  the check requires every optional nullable property in the contract to appear
-  in that table, and the table's tests prove absent, `null` and value round-trip
+  explicitly, or when it references an unconstrained schema such as `JsonValue`.
+  `EnqueueTaskRequest.payload` and `Task.payload` are `json.RawMessage`. A
+  pointer or interface alone collapses `null` into omission, so the check
+  requires every other optional nullable property in the contract to appear in
+  that table, and the table's tests prove absent, `null` and value round-trip
   unchanged. Removing a type's presence handling then fails its tests, and
   adding a nullable property without an entry fails the check.
 
@@ -92,12 +98,21 @@ Mismatches it finds are corrected in the declarations in the same PR when the
 correction keeps the exported field type. Any other mismatch stops that slice
 and is raised as a design change; there is no exception list.
 
-Declarations alone do not show the wire shape of the protocol types that
-encode through a custom `MarshalJSON` and a shadow struct, such as `Task`,
-`TaskEvent` and `AgentSessionResponse`. A Go test therefore encodes a fully
-populated value of every such type, and the check compares its emitted keys
-with the schema's property set in both directions. A dropped or retagged
-shadow field fails it.
+Declarations alone do not show the wire shape of the protocol types that encode
+and decode through custom JSON methods and shadow structs, such as `Task`,
+`TaskEvent` and `AgentSessionResponse`. A Go test therefore exercises both
+directions for every such type, using a fixture that gives each property a
+distinct sentinel value of the schema's type, plus a variant with zero-valued
+required properties:
+
+- It encodes a value built from the fixture, decodes the emitted JSON
+  generically, and compares the property set in both directions along with each
+  property's value and JSON type.
+- It decodes the fixture payload into the type and compares every exported
+  field with its expected value.
+
+A dropped, retagged or misassigned shadow field fails this test, as does a
+required property wrongly marked `omitempty`.
 
 ### Present zero values
 
@@ -109,7 +124,12 @@ and `Sandbox.Labels`. Preserving a present zero value needs either pointer
 fields, which changes exported field types across the protocol package, or
 presence records on most types. Either is a broad migration with its own
 compatibility cost, so this design does not change these fields. It records them
-as an open gap for a separate migration design. The fidelity check enforces the
+as an open gap for a separate migration design. The same gap records the three
+required arrays whose nil slice encodes as `null`, which is invalid for a
+required array: `BackfillScheduleResponse.tasks`, `SandboxListResponse.sandboxes`
+and `SandboxWorkspaceListResponse.workspaces`. A decoded value keeps a non-nil
+empty slice and re-encodes as `[]`; only a value built in code with a nil slice
+is affected. The fidelity check enforces the
 rest of each field's mapping without listing them as exceptions. The guides
 state the loss explicitly.
 
@@ -118,38 +138,52 @@ design. It needs a type-override table that reproduces every current exported
 field type, and an exported-API comparison that proves the result is identical.
 That migration needs its own design.
 
-### Presence for optional nullable properties
+### Presence handling
 
-The six properties keep their exported field types. Each owning type,
-`PollTaskResponse`, `Sandbox` and `TaskResult`, gains an unexported record of
-which of its nullable properties were decoded as an explicit `null`, and custom
-JSON methods:
+Two groups of properties get presence handling, and all keep their exported
+field types:
 
-- `UnmarshalJSON` first clears the record, then sets it for each property
-  present as `null`. A reused value decoded from `{"task":null}` and then from
-  `{}` therefore re-encodes as `{}`.
-- `MarshalJSON` writes `null` for a property whose field is `nil` and whose
-  record is set, and otherwise behaves as today. None of the three types has
-  custom JSON methods today.
+- the six optional nullable properties above;
+- the four optional struct-typed properties that `omitempty` cannot omit:
+  `TaskResult.StartedAt` and `FinishedAt` (`time.Time`), and
+  `SandboxCreateRequest.ResourceLimits` and `NetworkPolicy`.
 
-A value decoded from `{"task":null}` therefore re-encodes as `{"task":null}`. A
-value built in code has no record and encodes exactly as today. Equality of two
+Each owning type (`PollTaskResponse`, `Sandbox`, `TaskResult`,
+`SandboxCreateRequest`) gains an unexported presence record and custom JSON
+methods:
+
+- `UnmarshalJSON` first clears the record, then records each nullable property
+  present as `null` and each struct property present at all. A reused value
+  decoded from `{"task":null}` and then from `{}` therefore re-encodes as `{}`.
+- `MarshalJSON` writes `null` for a nullable property whose field is `nil` and
+  whose record is set. It omits a struct property whose value is the zero value
+  and that was not recorded as present. Everything else encodes as today. None
+  of the four types has custom JSON methods today.
+
+A value decoded from `{"task":null}` re-encodes as `{"task":null}`, and a
+`TaskResult` decoded without `started_at` no longer re-encodes a year-one
+timestamp. A value built in code has no record. Its nullable fields encode as
+today, and zero-valued struct properties are now omitted instead of written.
+For `SandboxCreateRequest` that changes request bytes: a request built without
+resource limits or a network policy no longer sends zero-valued objects, which
+the contract treats as absent. The release notes record it. Equality of two
 values can now differ only in that record.
 
 Adding a field, even an unexported one, stops unkeyed composite literals of
-these two types from compiling, for example
+these four types from compiling, for example
 `protocol.PollTaskResponse{task, directive}`. Keyed literals, field access and
 encoding are unaffected. This follows Go's compatibility convention, under which
 adding struct fields is compatible and unkeyed literals of another package's
 structs may break; `go vet` already reports such literals. The release notes
-still name it as a source-compatibility note for the three types.
+still name it as a source-compatibility note for the four types.
 
 Custom JSON methods are also promoted to any struct that anonymously embeds one
-of these types. For example, marshaling a wrapper that embeds `PollTaskResponse`
-and adds its own JSON field would then use the promoted `MarshalJSON` and drop
-the wrapper's field. This is a behavior change for such embedding callers. The
-release notes name it, and a regression test documents the promoted behavior so
-it changes only deliberately.
+of these types, in both directions. Marshaling a wrapper that embeds
+`PollTaskResponse` and adds its own JSON field uses the promoted `MarshalJSON`
+and drops the wrapper's field. Decoding into such a wrapper uses the promoted
+`UnmarshalJSON` and leaves the wrapper's field unset. This is a behavior change
+for such embedding callers. The release notes name both directions, and
+regression tests document them so they change only deliberately.
 
 The generator rejects an optional nullable property in any schema it generates
 as a Go struct, rather than mapping it lossily. None exists today, and one that
@@ -172,13 +206,16 @@ needs `&`. The release notes record it as a breaking change under the
 ## Compatibility
 
 - No exported name is removed.
-- `protocol.PollTaskResponse`, `protocol.Sandbox` and `protocol.TaskResult`
-  keep their exported fields. Decoded values re-encode explicit `null`s, and
-  constructed values encode as today when used directly. Unkeyed literals of
-  these types stop compiling, and structs that anonymously embed them inherit
-  their JSON methods. The release notes record both.
-- Present zero values of the 117 optional fields stay lossy, as today, and are
-  recorded as an open gap.
+- `protocol.PollTaskResponse`, `protocol.Sandbox`, `protocol.TaskResult` and
+  `protocol.SandboxCreateRequest` keep their exported fields. Decoded values
+  re-encode explicit `null`s and omit struct properties that were absent.
+  Constructed values omit zero-valued optional struct properties. That changes
+  the bytes of a `SandboxCreateRequest` built without resource limits or a
+  network policy, which no longer sends zero-valued objects. Unkeyed literals
+  of these types stop compiling, and structs that anonymously embed them inherit
+  their JSON methods in both directions. The release notes record all three.
+- Present zero values of the 117 optional fields, and nil encodings of three
+  required arrays built in code, stay as today and are recorded as an open gap.
 - `OpenAPIServiceRuntimeLogWorkerStatus.Settings` and `.Storage` become
   pointers. This is a breaking change to exported field types, and the release
   notes record it.
@@ -187,12 +224,14 @@ needs `&`. The release notes record it as a breaking change under the
 
 ## Delivery slices
 
-1. **Nullable presence.** Add presence handling to `PollTaskResponse`,
-   `Sandbox` and `TaskResult` with the round-trip test table, the embedding
-   regression test and the generator rejection.
-2. **Fidelity check and policy.** Add the check and its self-test, including
-   the round-trip table rule, correct any compatible mismatches, and update the
-   contracts and architecture guides.
+1. **Policy and presence.** Update the contracts and architecture guides to
+   the compatibility exception, then add presence handling to
+   `PollTaskResponse`, `Sandbox`, `TaskResult` and `SandboxCreateRequest` with
+   the round-trip test table, the embedding regression tests and the generator
+   rejection.
+2. **Fidelity check.** Add the check and its self-test, including the
+   round-trip table rule and the custom-JSON wire-shape test, and correct any
+   compatible mismatches.
 3. **Optional inline objects.** Change the generator, regenerate, and add the
    release note.
 
@@ -201,16 +240,22 @@ Each slice is its own PR under the [review process](../development/contributing.
 ## Acceptance
 
 - Slice 1: round-trip tests cover absent, `null` and value for each of the six
-  properties, sequential decoding into one reused value (`null`, then absent),
-  and a constructed value encoding as before. A test documents the promoted
-  `MarshalJSON` on an embedding struct. A generator fixture with an optional
+  nullable properties, and absent and present for each of the four struct
+  properties. They also cover sequential decoding into one reused value (`null`,
+  then absent), constructed values (nullable fields as before, zero-valued
+  struct properties omitted), and a minimal `SandboxCreateRequest` that sends
+  no zero-valued objects. Tests document the promoted `MarshalJSON` and
+  `UnmarshalJSON` on an embedding struct. A generator fixture with an optional
   nullable property fails generation.
 - Slice 2: self-test fixtures prove each fidelity rule fails on a synthetic
   mismatch, including an undeclared extra Go field, an optional nullable
   property missing from the round-trip table, and `json.RawMessage` for a
   closed object. They also prove an optional non-nullable pointer and a raw
-  array of `JsonValue` pass. The custom-marshaler wire-shape test fails on a
-  shadow struct with a dropped or retagged field. `check_drift.py --monorepo`
+  array of `JsonValue` pass, as does `json.RawMessage` for an optional nullable
+  `JsonValue`. The custom-JSON wire-shape test fails on a shadow struct with a
+  dropped, retagged or misassigned field, in either direction, and on a
+  required property wrongly marked `omitempty`. An optional struct field with
+  `omitempty` and no presence handling fails the check. `check_drift.py --monorepo`
   passes on the corrected declarations.
 - Slice 3: `ServiceRuntimeLogWorkerStatus` round-trips with `settings` and
   `storage` absent, minimally valid (only their required properties) and fully
