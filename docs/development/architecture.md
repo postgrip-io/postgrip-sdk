@@ -103,11 +103,16 @@ must preserve existing plane behavior unless its design explicitly includes a
 behavior change.
 
 `scripts/check_package_layout.py` checks artifact layout, selected exports,
-selected plane-to-root imports and the absence of TypeScript wildcard
-re-exports; `--self-test` proves the wildcard rule against generic fixtures.
-`typescript/test/public-surface.test.ts` records each TypeScript entry's
-published names. Neither enforces the layering rule above, plane-to-plane or
-transport-to-plane imports, or responsibility ownership. Generator and drift checks likewise do not prove
+the absence of TypeScript wildcard re-exports, and an allowed-edge import
+matrix for every shipped Go, TypeScript and Python source. A plane imports only
+itself, shared internal transport and (in Go) protocol wire types. Generated
+bindings, recognized by their `Code generated ... DO NOT EDIT` header, import
+only standard libraries, their own plane's generated code, transport and wire
+types, never its adapters or third-party packages. Transport and protocol import no plane, and only the
+root facade composes planes. `--self-test` proves each rule in each language
+against generic fixtures. `typescript/test/public-surface.test.ts` records each
+TypeScript entry's published names. Neither enforces responsibility ownership
+inside a plane or module. Generator and drift checks likewise do not prove
 runtime compatibility. Use the responsibility review below and the actual
 [validation checks](testing.md); web's architecture linters and size ratchets
 are not installed SDK enforcement.
