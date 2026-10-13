@@ -987,7 +987,28 @@ def typescript_parameter_type(parameters: dict[str, dict[str, Any]], indent: str
     return "{\n" + "\n".join(fields) + f"\n{indent}}}"
 
 
-def python_schema_type(schema: dict[str, Any]) -> str:
+class PythonDeclarations:
+    """Ordered generated Python declarations whose names must be unique."""
+
+    def __init__(self) -> None:
+        self.sources: list[str] = []
+        self._names: set[str] = set()
+
+    def declare(self, name: str, source: str) -> None:
+        if name in self._names:
+            raise ValueError(f"generated Python declaration {name!r} collides with an existing declaration")
+        self._names.add(name)
+        self.sources.append(source)
+
+
+def python_closed_object_schema(schema: dict[str, Any]) -> bool:
+    return schema.get("additionalProperties") is False and bool(schema.get("properties"))
+
+
+def python_schema_type(
+    schema: dict[str, Any], name: str | None = None, declarations: PythonDeclarations | None = None
+) -> str:
+    """Return a schema's annotation, declaring a closed inline object as the TypedDict ``name``."""
     reference_name = schema_ref_name(schema)
     if reference_name:
         return f"_Schema{pascal_name(reference_name)}"
@@ -998,16 +1019,28 @@ def python_schema_type(schema: dict[str, Any]) -> str:
     if schema.get("enum"):
         values = ", ".join(repr(value) for value in schema["enum"])
         return f"Literal[{values}]"
+    if python_closed_object_schema(schema):
+        if name is None or declarations is None:
+            raise ValueError(
+                "closed inline object has no generated Python declaration name; properties: "
+                + ", ".join(sorted(schema["properties"]))
+            )
+        python_object_declarations(name, schema, declarations)
+        return name
     variants = schema.get("oneOf") or schema.get("anyOf")
     if variants:
-        return " | ".join(python_schema_type(value) for value in variants)
+        return " | ".join(
+            python_schema_type(value, f"{name}Alternative{index}" if name else None, declarations)
+            for index, value in enumerate(variants, 1)
+        )
     schema_type = schema.get("type")
     if schema_type == "array":
-        return f"list[{python_schema_type(schema.get('items', {}))}]"
+        item_name = f"{name}Item" if name else None
+        return f"list[{python_schema_type(schema.get('items', {}), item_name, declarations)}]"
     if schema_type == "object" or "properties" in schema or "additionalProperties" in schema:
         additional = schema.get("additionalProperties")
         if isinstance(additional, dict):
-            return f"dict[str, {python_schema_type(additional)}]"
+            return f"dict[str, {python_schema_type(additional, None, declarations)}]"
         return "dict[str, Any]"
     if schema_type == "boolean":
         return "bool"
@@ -1024,41 +1057,50 @@ def python_schema_type(schema: dict[str, Any]) -> str:
     return "Any"
 
 
+def python_object_declarations(type_name: str, schema: dict[str, Any], declarations: PythonDeclarations) -> None:
+    """Declare an object TypedDict after the nested declarations its properties use."""
+    annotations = {
+        property_name: python_schema_type(property_schema, f"{type_name}{pascal_name(property_name)}", declarations)
+        for property_name, property_schema in schema.get("properties", {}).items()
+    }
+    alternatives = schema_required_alternatives(schema)
+    required_sets = [set(schema.get("required", [])) | set(branch) for branch in alternatives]
+    if not required_sets:
+        required_sets = [set(schema.get("required", []))]
+    branch_names: list[str] = []
+    for index, required in enumerate(required_sets, 1):
+        branch_name = type_name if len(required_sets) == 1 else f"{type_name}Alternative{index}"
+        required_fields = []
+        optional_fields = []
+        for property_name, annotation in annotations.items():
+            target = required_fields if property_name in required else optional_fields
+            target.append(f"    {property_name}: {annotation}")
+        if optional_fields:
+            optional_name = f"{branch_name}Optional"
+            declarations.declare(
+                optional_name, f"class {optional_name}(TypedDict, total=False):\n" + "\n".join(optional_fields)
+            )
+            body = "\n".join(required_fields) if required_fields else "    pass"
+            declarations.declare(branch_name, f"class {branch_name}({optional_name}):\n{body}")
+        else:
+            body = "\n".join(required_fields) if required_fields else "    pass"
+            declarations.declare(branch_name, f"class {branch_name}(TypedDict):\n{body}")
+        branch_names.append(branch_name)
+    if len(branch_names) > 1:
+        declarations.declare(type_name, f"{type_name}: TypeAlias = " + " | ".join(branch_names))
+
+
 def python_types_source(spec: dict[str, Any], rows: list[dict[str, Any]]) -> str:
-    declarations: list[str] = []
+    declarations = PythonDeclarations()
     public_aliases: list[str] = []
     for name, schema in spec.get("components", {}).get("schemas", {}).items():
         schema = merged_all_of_object_schema(spec, schema)
         type_name = f"_Schema{pascal_name(name)}"
         if schema.get("type") == "object" or "properties" in schema:
-            alternatives = schema_required_alternatives(schema)
-            required_sets = [set(schema.get("required", [])) | set(branch) for branch in alternatives]
-            if not required_sets:
-                required_sets = [set(schema.get("required", []))]
-            branch_names: list[str] = []
-            for index, required in enumerate(required_sets, 1):
-                branch_name = type_name if len(required_sets) == 1 else f"{type_name}Alternative{index}"
-                required_fields = []
-                optional_fields = []
-                for property_name, property_schema in schema.get("properties", {}).items():
-                    annotation = python_schema_type(property_schema)
-                    target = required_fields if property_name in required else optional_fields
-                    target.append(f"    {property_name}: {annotation}")
-                if optional_fields:
-                    optional_name = f"{branch_name}Optional"
-                    declarations.append(
-                        f"class {optional_name}(TypedDict, total=False):\n" + "\n".join(optional_fields)
-                    )
-                    body = "\n".join(required_fields) if required_fields else "    pass"
-                    declarations.append(f"class {branch_name}({optional_name}):\n{body}")
-                else:
-                    body = "\n".join(required_fields) if required_fields else "    pass"
-                    declarations.append(f"class {branch_name}(TypedDict):\n{body}")
-                branch_names.append(branch_name)
-            if len(branch_names) > 1:
-                declarations.append(f"{type_name}: TypeAlias = " + " | ".join(branch_names))
+            python_object_declarations(type_name, schema, declarations)
         else:
-            declarations.append(f"{type_name}: TypeAlias = {python_schema_type(schema)}")
+            annotation = python_schema_type(schema, type_name, declarations)
+            declarations.declare(type_name, f"{type_name}: TypeAlias = {annotation}")
         public_aliases.append(f"OpenAPI{pascal_name(name)}: TypeAlias = {type_name}")
 
     operation_types: list[str] = []
@@ -1072,7 +1114,7 @@ def python_types_source(spec: dict[str, Any], rows: list[dict[str, Any]]) -> str
         operation_map_rows.append(
             f"    OperationId.{snake_name(row['id'])}: ({name}RequestBody, {name}ResponseBody),"
         )
-    return "\n\n".join(declarations) + "\n\n" + "\n".join(public_aliases) + "\n\n" + "\n".join(operation_types) + "\n\n" + (
+    return "\n\n".join(declarations.sources) + "\n\n" + "\n".join(public_aliases) + "\n\n" + "\n".join(operation_types) + "\n\n" + (
         "OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {\n"
         + "\n".join(operation_map_rows)
         + "\n}\n"
