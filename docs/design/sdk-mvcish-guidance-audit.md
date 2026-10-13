@@ -1,6 +1,12 @@
 # SDK guidance recursive reference audit
 
-Date: 2026-10-12 (America/Los_Angeles). Base SDK revision: `eb63e55c8153666fda0104ce57eefb5367866898`.
+Date: 2026-10-12 (America/Los_Angeles). Reproducible SDK baseline:
+[`0ea347918a2e87bbcc7df7103f414da241766893`](https://github.com/postgrip-io/postgrip-sdk/commit/0ea347918a2e87bbcc7df7103f414da241766893).
+The initial checkout also included [PR #69's proposal at `eb63e55c`](https://github.com/postgrip-io/postgrip-sdk/pull/69/commits/eb63e55c8153666fda0104ce57eefb5367866898).
+That revision differs from the baseline only in
+`docs/design/contract-driven-sdk-layering.md`; the SDK source and baseline
+inventory below are identical. The proposal was reviewed as an unmerged design,
+and this guidance PR was branched independently from the baseline on `main`.
 This is maintenance evidence for [the guidance design](sdk-mvcish-guidance.md),
 not another policy owner or a claim of runtime/release readiness.
 
