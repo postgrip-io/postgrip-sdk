@@ -25,16 +25,28 @@ _TYPESCRIPT_COMMENT_OR_STRING = re.compile(
 
 PLANES = ("agent", "worker", "service")
 GO_MODULE = "github.com/postgrip-io/postgrip-agent-sdks/go"
+TYPESCRIPT_EXTENSIONS = (".ts", ".mts", ".cts", ".tsx")
 
-# A module's role in the allowed-edge matrix: (kind, plane). Kinds are "root"
-# (the facade composing planes), "adapter" (hand-written plane code), "gen"
-# (generated plane bindings), "internal" (shared transport and helpers),
-# "protocol" (Go runtime wire types) and "external" (anything outside the SDK).
+# A module's role in the allowed-edge matrix: (kind, detail). Kinds are "root"
+# (the facade composing planes), "adapter" and "gen" (hand-written and
+# generated plane code, with the plane as detail), "internal" (shared transport
+# and helpers), "protocol" (Go runtime wire types), "stdlib" (a standard
+# library) and "external" (a third-party package, named in detail).
 Role = tuple[str, str]
-_GO_IMPORT = re.compile(r'"(' + re.escape(GO_MODULE) + r'(?:/[^"]*)?)"')
-_TYPESCRIPT_SPECIFIER = re.compile(
-    r"""(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"](\.{1,2}/[^'"]+)['"]"""
+_GENERATED_HEADER = re.compile(r"\A[^\n]*Code generated [^\n]*DO NOT EDIT")
+_GO_TOKEN = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\\n])*"|`[^`]*`|\'(?:\\.|[^\'\\\n])*\'', re.DOTALL)
+_GO_IMPORT_DECL = re.compile(r"\bimport\s*(\((?:[^()]|\n)*\)|[\w.]*\s*(?:\"[^\"\n]*\"|`[^`]*`))")
+_GO_STRING = re.compile(r'"((?:\\.|[^"\\\n])*)"|`([^`]*)`')
+_TYPESCRIPT_TOKEN = re.compile(
+    r"/\*.*?\*/|//[^\n]*|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\"|`(?:\\.|[^`\\])*`", re.DOTALL,
 )
+_TYPESCRIPT_IMPORT = re.compile(r"\bfrom\s*S(\d+)S|\bimport\s*\(\s*S(\d+)S|\bimport\s*S(\d+)S")
+
+
+def is_generated(source: str) -> bool:
+    """Whether *source* carries a generator's `Code generated ... DO NOT EDIT` first line."""
+
+    return bool(_GENERATED_HEADER.match(source))
 
 
 def edge_violation(source: Role, target: Role) -> str | None:
@@ -42,8 +54,10 @@ def edge_violation(source: Role, target: Role) -> str | None:
 
     source_kind, source_plane = source
     target_kind, target_plane = target
-    if target_kind == "external" or source_kind == "root":
+    if target_kind == "stdlib" or source_kind == "root":
         return None
+    if target_kind == "external":
+        return "generated bindings import only standard libraries and SDK modules" if source_kind == "gen" else None
     if target_kind == "root":
         return "only the root facade composes planes; nothing imports it"
     if source_kind == "protocol":
@@ -59,12 +73,12 @@ def edge_violation(source: Role, target: Role) -> str | None:
     return None
 
 
-def go_role(relative: Path) -> Role:
+def go_role(relative: Path, source: str) -> Role:
     """The role of a Go source file under go/."""
 
     parts = relative.parts
     if parts[0] in PLANES:
-        return ("gen" if relative.name.endswith(".gen.go") else "adapter", parts[0])
+        return ("gen" if is_generated(source) else "adapter", parts[0])
     if parts[0] in ("internal", "protocol"):
         return (parts[0], "")
     return ("root", "")
@@ -73,6 +87,9 @@ def go_role(relative: Path) -> Role:
 def go_import_role(import_path: str) -> Role:
     """The role of an imported Go package; a package is never generated, only its files."""
 
+    if import_path != GO_MODULE and not import_path.startswith(GO_MODULE + "/"):
+        first = import_path.split("/")[0]
+        return ("external", import_path) if "." in first else ("stdlib", "")
     rest = import_path[len(GO_MODULE):].strip("/").split("/")
     if rest[0] in PLANES:
         return ("adapter", rest[0])
@@ -82,45 +99,78 @@ def go_import_role(import_path: str) -> Role:
 
 
 def go_imports(source: str) -> list[str]:
-    return _GO_IMPORT.findall(source)
+    """Import paths of the import declarations in *source*, in either string form; comments are ignored."""
+
+    code = _GO_TOKEN.sub(lambda match: re.sub(r"[^\n]", " ", match.group()) if match.group().startswith("/") else match.group(), source)
+    paths = []
+    for declaration in _GO_IMPORT_DECL.findall(code):
+        paths.extend(double or raw for double, raw in _GO_STRING.findall(declaration))
+    return paths
 
 
-def typescript_role(relative: Path) -> Role:
-    """The role of a TypeScript module path under typescript/src/."""
+def typescript_role(relative: Path, source: str | None = None) -> Role:
+    """The role of a TypeScript module under typescript/src/; *source* is its text when known."""
 
     parts = relative.parts
     if parts and parts[0] in PLANES:
-        return ("gen" if "generated" in parts else "adapter", parts[0])
+        generated = is_generated(source) if source is not None else "generated" in parts
+        return ("gen" if generated else "adapter", parts[0])
     if parts and parts[0] == "internal":
         return ("internal", "")
     return ("root", "")
 
 
-def typescript_imports(relative: Path, source: str) -> list[Path]:
-    """Relative module paths a TypeScript source under typescript/src/ imports, re-exports or loads."""
+def typescript_specifiers(source: str) -> list[str]:
+    """Module specifiers *source* imports, re-exports or loads; comments and other strings are ignored."""
 
-    targets = []
-    for specifier in _TYPESCRIPT_SPECIFIER.findall(source):
-        parts: list[str] = list(relative.parent.parts)
-        for part in specifier.split("/"):
-            if part == "..":
-                if not parts:
-                    break
+    strings: list[str] = []
+
+    def mask(match: re.Match[str]) -> str:
+        token = match.group()
+        if token.startswith("/"):
+            return re.sub(r"[^\n]", " ", token)
+        strings.append(token[1:-1])
+        return f"S{len(strings) - 1}S"
+
+    code = _TYPESCRIPT_TOKEN.sub(mask, source)
+    return [strings[int(next(group for group in match if group))] for match in _TYPESCRIPT_IMPORT.findall(code)]
+
+
+def typescript_target_role(relative: Path, specifier: str, root: Path | None = None) -> Role:
+    """The role of what *specifier*, imported by the module at *relative*, refers to."""
+
+    if not specifier.startswith("."):
+        return ("stdlib", "") if specifier.startswith("node:") else ("external", specifier)
+    parts: list[str] = list(relative.parent.parts)
+    for part in specifier.split("/"):
+        if part == "..":
+            if parts:
                 parts.pop()
-            elif part != ".":
-                parts.append(part)
-        targets.append(Path(*parts))
-    return targets
+        elif part != ".":
+            parts.append(part)
+    target = Path(*parts) if parts else Path()
+    source = None
+    if root is not None:
+        stem = str(target)
+        for suffix in (".js", ".mjs", ".cjs", ".jsx"):
+            if stem.endswith(suffix):
+                stem = stem[: -len(suffix)]
+        for candidate in [*(Path(stem + ext) for ext in TYPESCRIPT_EXTENSIONS), Path(stem) / "index.ts"]:
+            if (root / candidate).is_file():
+                source = (root / candidate).read_text(encoding="utf-8")
+                break
+    return typescript_role(target, source)
 
 
-def python_role(module: str) -> Role:
-    """The role of a dotted Python module name; names outside postgrip are external."""
+def python_role(module: str, source: str | None = None) -> Role:
+    """The role of a dotted Python module; *source* is its text when known."""
 
     parts = module.split(".")
     if parts[0] != "postgrip":
-        return ("external", "")
+        top = parts[0]
+        return ("stdlib", "") if top in sys.stdlib_module_names or top == "__future__" else ("external", top)
     if len(parts) > 1 and parts[1] in PLANES:
-        generated = "generated" in parts[2:] or parts[-1] == "openapi"
+        generated = is_generated(source) if source is not None else ("generated" in parts[2:] or parts[-1] == "openapi")
         return ("gen" if generated else "adapter", parts[1])
     if len(parts) > 1 and parts[1] == "_internal":
         return ("internal", "")
@@ -128,7 +178,7 @@ def python_role(module: str) -> Role:
 
 
 def python_imports(module: str, is_package: bool, source: str) -> list[str]:
-    """Dotted modules a Python module imports, resolving relative imports and imported submodules."""
+    """Dotted modules a Python module imports, resolving relative, submodule and wildcard imports."""
 
     package = module.split(".") if is_package else module.split(".")[:-1]
     targets = []
@@ -138,9 +188,22 @@ def python_imports(module: str, is_package: bool, source: str) -> list[str]:
         elif isinstance(node, ast.ImportFrom):
             base = (package[: len(package) - node.level + 1] if node.level else []) + (node.module or "").split(".")
             base_name = ".".join(part for part in base if part)
-            # `from postgrip import worker` imports the worker package itself.
-            targets.extend(f"{base_name}.{alias.name}" for alias in node.names if alias.name != "*")
+            for alias in node.names:
+                # `from pkg import *` depends on pkg; `from pkg import sub` may import the submodule.
+                targets.append(base_name if alias.name == "*" else f"{base_name}.{alias.name}")
     return targets
+
+
+def python_target_role(imported: str, root: Path | None = None) -> Role:
+    """The role of an imported dotted name, reading the module it names when it is in the tree."""
+
+    if root is not None and imported.split(".")[0] == "postgrip":
+        parts = imported.split(".")
+        for length in range(len(parts), 0, -1):
+            for candidate in (root.joinpath(*parts[:length]).with_suffix(".py"), root.joinpath(*parts[:length], "__init__.py")):
+                if candidate.is_file():
+                    return python_role(".".join(parts[:length]), candidate.read_text(encoding="utf-8"))
+    return python_role(imported)
 
 
 def import_edge_failures() -> list[str]:
@@ -152,24 +215,27 @@ def import_edge_failures() -> list[str]:
         if path.name.endswith("_test.go"):
             continue
         relative = path.relative_to(go_root)
-        for imported in go_imports(path.read_text(encoding="utf-8")):
-            rule = edge_violation(go_role(relative), go_import_role(imported))
+        text = path.read_text(encoding="utf-8")
+        for imported in go_imports(text):
+            rule = edge_violation(go_role(relative, text), go_import_role(imported))
             if rule:
                 failures.append(f"go/{relative} imports {imported}: {rule}")
     ts_root = ROOT / "typescript" / "src"
-    for path in sorted(ts_root.rglob("*.ts")):
+    for path in sorted(p for ext in TYPESCRIPT_EXTENSIONS for p in ts_root.rglob(f"*{ext}")):
         relative = path.relative_to(ts_root)
-        for target in typescript_imports(relative, path.read_text(encoding="utf-8")):
-            rule = edge_violation(typescript_role(relative), typescript_role(target))
+        text = path.read_text(encoding="utf-8")
+        for specifier in typescript_specifiers(text):
+            rule = edge_violation(typescript_role(relative, text), typescript_target_role(relative, specifier, ts_root))
             if rule:
-                failures.append(f"typescript/src/{relative} imports {target}: {rule}")
+                failures.append(f"typescript/src/{relative} imports {specifier}: {rule}")
     py_root = ROOT / "python" / "src"
     for path in sorted((py_root / "postgrip").rglob("*.py")):
         relative = path.relative_to(py_root)
         is_package = path.name == "__init__.py"
         module = ".".join(relative.parent.parts if is_package else relative.with_suffix("").parts)
-        for imported in python_imports(module, is_package, path.read_text(encoding="utf-8")):
-            rule = edge_violation(python_role(module), python_role(imported))
+        text = path.read_text(encoding="utf-8")
+        for imported in python_imports(module, is_package, text):
+            rule = edge_violation(python_role(module, text), python_target_role(imported, py_root))
             if rule:
                 failures.append(f"python/src/{relative} imports {imported}: {rule}")
     return failures
@@ -182,60 +248,78 @@ def wildcard_export_lines(source: str) -> list[int]:
     return [blanked.count("\n", 0, match.start()) + 1 for match in _WILDCARD_EXPORT.finditer(blanked)]
 
 
-def edge_self_test_failures() -> list[str]:
+def edge_self_test_failures() -> tuple[list[str], int]:
     """Prove each edge rule in each language on generic sources."""
 
     failures = []
+    header = "Code generated by fixture; DO NOT EDIT.\n"
 
     def expect(label: str, rules: list[str | None], violates: bool) -> None:
         if any(rules) != violates:
             failures.append(f"{label}: got {rules}, want {'a violation' if violates else 'none'}")
 
-    go = f'import (\n\t"context"\n\t"{GO_MODULE}/%s"\n)\n'
-    for label, path, target, violates in (
-        ("Go plane imports another plane", "worker/client.go", "service", True),
-        ("Go generated imports its plane", "agent/client/openapi.gen.go", "agent/worker", True),
-        ("Go transport imports a plane", "internal/transport/executor.go", "worker", True),
-        ("Go protocol imports transport", "protocol/types.go", "internal/transport", True),
-        ("Go plane imports the root", "agent/client/connection.go", "", True),
-        ("Go plane imports its own subpackage", "agent/worker/dispatch.go", "agent/client", False),
-        ("Go generated imports transport and protocol", "worker/openapi.gen.go", "internal/transport", False),
-        ("Go root composes planes", "postgrip.go", "service", False),
-    ):
-        source = go % target if target else f'import "{GO_MODULE}"\n'
-        expect(label, [edge_violation(go_role(Path(path)), go_import_role(i)) for i in go_imports(source)], violates)
+    go_cases = (
+        ("Go plane imports another plane", "worker/client.go", f'import (\n\t"context"\n\t"{GO_MODULE}/service"\n)\n', True),
+        ("Go raw-string import of another plane", "worker/client.go", f"import `{GO_MODULE}/service`\n", True),
+        ("Go aliased import of another plane", "worker/client.go", f'import svc "{GO_MODULE}/service"\n', True),
+        ("Go generated imports its plane", "agent/client/openapi.gen.go", f'// {header}import "{GO_MODULE}/agent/worker"\n', True),
+        ("Go generated imports a third-party module", "worker/openapi.gen.go", f'// {header}import "github.com/example/http"\n', True),
+        ("Go transport imports a plane", "internal/transport/executor.go", f'import "{GO_MODULE}/worker"\n', True),
+        ("Go protocol imports transport", "protocol/types.go", f'import "{GO_MODULE}/internal/transport"\n', True),
+        ("Go plane imports the root", "agent/client/connection.go", f'import "{GO_MODULE}"\n', True),
+        ("Go comment and string mentioning another plane", "worker/client.go",
+         f'// import "{GO_MODULE}/service"\nconst path = "{GO_MODULE}/service"\n', False),
+        ("Go plane imports its own subpackage and a third party", "agent/worker/dispatch.go",
+         f'import (\n\t"{GO_MODULE}/agent/client"\n\t"golang.org/x/crypto/ed25519"\n)\n', False),
+        ("Go generated imports transport and stdlib", "worker/openapi.gen.go",
+         f'// {header}import (\n\t"net/http"\n\t"{GO_MODULE}/internal/transport"\n)\n', False),
+        ("Go root composes planes", "postgrip.go", f'import "{GO_MODULE}/service"\n', False),
+    )
+    for label, path, source, violates in go_cases:
+        role = go_role(Path(path), source)
+        expect(label, [edge_violation(role, go_import_role(i)) for i in go_imports(source)], violates)
 
-    for label, path, source, violates in (
+    ts_cases = (
         ("TS plane imports another plane", "worker/client.ts", "import { X } from '../service/client.js';\n", True),
         ("TS re-export from another plane", "agent/index.ts", "export { Y } from '../worker/index.js';\n", True),
-        ("TS dynamic import of another plane", "agent/client.ts", "const m = await import('../service/client.js');\n", True),
-        ("TS side-effect import of another plane", "agent/client.ts", "import '../worker/client.js';\n", True),
+        ("TS dynamic import of another plane", "agent/client.mts", "const m = await import('../service/client.js');\n", True),
+        ("TS side-effect import with a comment", "agent/client.ts", "import/* reason */ '../worker/client.js';\n", True),
         ("TS type import of the root", "service/client.ts", "import type { PostGripConfig } from '../client.js';\n", True),
-        ("TS generated imports its adapter", "agent/generated/openapi.ts", "import { Connection } from '../connection.js';\n", True),
+        ("TS generated imports its adapter", "agent/generated/openapi.ts", f"// {header}import {{ C }} from '../connection.js';\n", True),
+        ("TS generated imports a package", "agent/generated/openapi.ts", f"// {header}import axios from 'axios';\n", True),
         ("TS transport imports a plane", "internal/transport.ts", "import { WorkerClient } from '../worker/client.js';\n", True),
-        ("TS adapter imports generated and internal", "worker/client.ts",
+        ("TS comment and string mentioning another plane", "worker/client.ts",
+         "// import '../service/client.js';\nconst s = \"import '../service/client.js'\";\n", False),
+        ("TS adapter imports generated and internal", "worker/client.tsx",
          "import { OpenAPIClient } from './generated/openapi.js';\nimport { Executor } from '../internal/transport.js';\n", False),
         ("TS root composes planes", "client.ts", "import { WorkerClient } from './worker/client.js';\n", False),
-    ):
+    )
+    for label, path, source, violates in ts_cases:
         relative = Path(path)
-        rules = [edge_violation(typescript_role(relative), typescript_role(t)) for t in typescript_imports(relative, source)]
-        expect(label, rules, violates)
+        role = typescript_role(relative, source)
+        expect(label, [edge_violation(role, typescript_target_role(relative, s)) for s in typescript_specifiers(source)], violates)
 
-    for label, module, is_package, source, violates in (
+    py_cases = (
         ("Python plane imports another plane", "postgrip.worker.client", False, "from ..service.client import ServiceClient\n", True),
         ("Python absolute import of another plane", "postgrip.agent.client", False, "import postgrip.worker.client\n", True),
         ("Python imports another plane package by name", "postgrip.service.client", False, "from .. import worker\n", True),
+        ("Python wildcard import of another plane", "postgrip.agent.client", False, "from ..worker import *\n", True),
         ("Python plane imports the root", "postgrip.worker.client", False, "from ..client import PostGrip\n", True),
-        ("Python generated imports its adapter", "postgrip.service.openapi", False, "from .client import ServiceClient\n", True),
+        ("Python generated module imports its adapter", "postgrip.service.administration_types", False,
+         f"# {header}from .client import ServiceClient\n", True),
+        ("Python generated imports a third-party package", "postgrip.worker.openapi", False, f"# {header}import requests\n", True),
         ("Python transport imports a plane", "postgrip._internal.transport", False, "from ..agent.errors import AgentAPIError\n", True),
         ("Python package init imports its adapter", "postgrip.worker", True, "from .client import WorkerClient\n", False),
-        ("Python adapter imports generated and internal", "postgrip.worker.client", False,
-         "from .openapi import OperationId\nfrom .._internal.transport import Executor\nimport json\n", False),
+        ("Python adapter imports generated, internal and third-party", "postgrip.agent.client", False,
+         "from .openapi import OperationId\nfrom .._internal.transport import Executor\nimport cryptography\n", False),
+        ("Python generated imports stdlib and its own generated module", "postgrip.worker.generated.openapi", False,
+         f"# {header}from __future__ import annotations\nimport json\nfrom ..openapi import *\n", False),
         ("Python root composes planes", "postgrip.client", False, "from .worker import WorkerClient\n", False),
-    ):
-        rules = [edge_violation(python_role(module), python_role(i)) for i in python_imports(module, is_package, source)]
-        expect(label, rules, violates)
-    return failures
+    )
+    for label, module, is_package, source, violates in py_cases:
+        role = python_role(module, source)
+        expect(label, [edge_violation(role, python_target_role(i)) for i in python_imports(module, is_package, source)], violates)
+    return failures, len(go_cases) + len(ts_cases) + len(py_cases)
 
 
 def self_test() -> int:
@@ -264,13 +348,14 @@ def self_test() -> int:
         for source, expected in cases.items()
         if wildcard_export_lines(source) != expected
     ]
-    failures.extend(edge_self_test_failures())
+    edge_failures, edge_fixtures = edge_self_test_failures()
+    failures.extend(edge_failures)
     if failures:
         print("check_package_layout self-test FAILED:", file=sys.stderr)
         for failure in failures:
             print(f"- {failure}", file=sys.stderr)
         return 1
-    print(f"check_package_layout self-test OK: {len(cases)} wildcard-export and 26 import-edge fixtures.")
+    print(f"check_package_layout self-test OK: {len(cases)} wildcard-export and {edge_fixtures} import-edge fixtures.")
     return 0
 
 

@@ -106,8 +106,9 @@ behavior change.
 the absence of TypeScript wildcard re-exports, and an allowed-edge import
 matrix for every shipped Go, TypeScript and Python source. A plane imports only
 itself, shared internal transport and (in Go) protocol wire types. Generated
-bindings import only their own plane's generated code, transport and wire
-types, never its adapters. Transport and protocol import no plane, and only the
+bindings, recognized by their `Code generated ... DO NOT EDIT` header, import
+only standard libraries, their own plane's generated code, transport and wire
+types, never its adapters or third-party packages. Transport and protocol import no plane, and only the
 root facade composes planes. `--self-test` proves each rule in each language
 against generic fixtures. `typescript/test/public-surface.test.ts` records each
 TypeScript entry's published names. Neither enforces responsibility ownership
