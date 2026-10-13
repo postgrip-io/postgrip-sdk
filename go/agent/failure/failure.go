@@ -24,9 +24,11 @@ type Info = protocol.FailureInfo
 // that escape the SDK boundary so callers can reliably match them with
 // errors.As without depending on internal types.
 type SDKError struct {
-	Message      string
-	Cause        error
-	StatusCode   int
+	Message    string
+	Cause      error
+	StatusCode int
+	// ResponseBody is untrusted server content and can contain secrets. Inspect
+	// and redact it explicitly before logging; Error does not include this field.
 	ResponseBody []byte
 }
 

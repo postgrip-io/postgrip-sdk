@@ -257,15 +257,7 @@ func (c *Connection) do(ctx context.Context, method, path string, body any, out 
 		return &failure.SDKError{Message: "read response body", Cause: err}
 	}
 	if resp.StatusCode >= 400 {
-		msg := strings.TrimSpace(string(raw))
-		if msg == "" {
-			msg = resp.Status
-		}
-		return &failure.SDKError{
-			Message:      fmt.Sprintf("%s %s -> %d %s", method, path, resp.StatusCode, msg),
-			StatusCode:   resp.StatusCode,
-			ResponseBody: append([]byte(nil), raw...),
-		}
+		return httpStatusError(method, path, resp.StatusCode, raw)
 	}
 	if out == nil || len(raw) == 0 {
 		return nil
@@ -327,15 +319,7 @@ func (c *Connection) doStream(ctx context.Context, method, path string, body io.
 		return &failure.SDKError{Message: "read response body", Cause: err}
 	}
 	if resp.StatusCode >= 400 {
-		msg := strings.TrimSpace(string(raw))
-		if msg == "" {
-			msg = resp.Status
-		}
-		return &failure.SDKError{
-			Message:      fmt.Sprintf("%s %s -> %d %s", method, path, resp.StatusCode, msg),
-			StatusCode:   resp.StatusCode,
-			ResponseBody: append([]byte(nil), raw...),
-		}
+		return httpStatusError(method, path, resp.StatusCode, raw)
 	}
 	if out == nil || len(raw) == 0 {
 		return nil
@@ -344,6 +328,16 @@ func (c *Connection) doStream(ctx context.Context, method, path string, body io.
 		return &failure.SDKError{Message: fmt.Sprintf("decode response from %s %s", method, path), Cause: err}
 	}
 	return nil
+}
+
+// httpStatusError keeps untrusted response content out of default log messages.
+// Preserve the raw body for explicit inspection and terminal polling directives.
+func httpStatusError(method, path string, status int, body []byte) *failure.SDKError {
+	return &failure.SDKError{
+		Message:      fmt.Sprintf("%q %q -> %d %s", method, path, status, http.StatusText(status)),
+		StatusCode:   status,
+		ResponseBody: append([]byte(nil), body...),
+	}
 }
 
 func readResponseBody(body io.Reader, limit int64) ([]byte, error) {
