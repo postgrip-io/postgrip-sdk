@@ -44,8 +44,6 @@ import {
   encodeOpenAPIQuery,
   OpenAPIClient,
   resolveOpenAPIOperation,
-  UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REPOSITORY,
-  UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REVISION,
   type OpenAPIOperationId,
   type OpenAPIComponents,
   type OpenAPIRequestOptions,
@@ -53,6 +51,10 @@ import {
 } from './generated/openapi.js';
 import { defaultPostGripEnvironment, validateBaseUrl } from '../internal/config.js';
 import { readBoundedResponseBody } from '../internal/http.js';
+import { sendWorkspaceArchive } from './_archive_upload.js';
+import { iterateHistoryPages, historyPageQuery, type HistoryPageOptions } from './_history.js';
+
+export type { HistoryPageOptions };
 
 export interface ConnectionOptions {
   baseUrl?: string;
@@ -65,12 +67,6 @@ export interface ConnectionOptions {
    */
   authToken?: string;
   agentAuth?: AgentAuthOptions;
-}
-
-export interface HistoryPageOptions {
-  cursor?: string;
-  limit?: number;
-  signal?: AbortSignal;
 }
 
 export interface AgentAuthOptions {
@@ -88,7 +84,6 @@ export interface AgentAuthOptions {
 
 export const DEFAULT_BASE_URL = 'https://agentorchestrator1.postgrip.io';
 const AGENT_MAX_RESPONSE_BYTES = 40 << 20;
-const HISTORY_PAGE_MAXIMUM_LIMIT = 500;
 
 interface PollTaskOptions {
   namespace?: string;
@@ -543,25 +538,11 @@ export class Connection {
     archive: BodyInit,
     metadata: { repositoryName?: string; revision?: string } = {},
   ): Promise<SandboxWorkspace> {
-    const headers = new Headers(this.headers);
-    headers.set('Content-Type', 'application/gzip');
-    if (this.authToken && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${this.authToken}`);
-    }
-    if (metadata.repositoryName) headers.set(UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REPOSITORY, metadata.repositoryName);
-    if (metadata.revision) headers.set(UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REVISION, metadata.revision);
-
-    const operation = resolveOpenAPIOperation('uploadWorkspace');
-    const response = await this.fetchImpl(`${this.baseUrl}${operation.path}`, {
-      method: operation.method,
-      headers,
-      body: archive,
-      redirect: 'manual',
-      // Node's fetch requires this for a streaming request body.
-      ...(typeof archive === 'object' && archive !== null && Symbol.asyncIterator in (archive as object)
-        ? { duplex: 'half' }
-        : {}),
-    } as RequestInit);
+    const response = await sendWorkspaceArchive(
+      { fetchImpl: this.fetchImpl, baseUrl: this.baseUrl, headers: this.headers, authToken: this.authToken },
+      archive,
+      metadata,
+    );
     const responseBody = await readBoundedResponseBody(response, 'Agent', AGENT_MAX_RESPONSE_BYTES);
     if (!response.ok) {
       const payload = parseJSONRecord(responseBody);
@@ -725,35 +706,6 @@ function parseJSONRecord(value: string): Record<string, unknown> {
       : {};
   } catch {
     return {};
-  }
-}
-
-function historyPageQuery(options: HistoryPageOptions): URLSearchParams {
-  const query = new URLSearchParams();
-  if (options.cursor) query.set('cursor', options.cursor);
-  if (options.limit != null) query.set('limit', String(options.limit));
-  return query;
-}
-
-async function* iterateHistoryPages<T>(
-  fetchPage: (options: HistoryPageOptions) => Promise<{ items: T[]; nextCursor?: string }>,
-  signal?: AbortSignal,
-): AsyncGenerator<T, void, void> {
-  let cursor: string | undefined;
-  const seen = new Set<string>();
-  while (true) {
-    signal?.throwIfAborted();
-    const page = await fetchPage({ cursor, limit: HISTORY_PAGE_MAXIMUM_LIMIT, signal });
-    for (const item of page.items) {
-      signal?.throwIfAborted();
-      yield item;
-    }
-    if (page.nextCursor == null) return;
-    const next = page.nextCursor.trim();
-    if (next === '') throw new Error('postgrip-agent: history page returned an empty next cursor');
-    if (seen.has(next)) throw new Error('postgrip-agent: history page repeated its next cursor');
-    seen.add(next);
-    cursor = next;
   }
 }
 
