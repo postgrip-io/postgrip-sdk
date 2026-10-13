@@ -20,7 +20,7 @@ from postgrip.service.administration_types import (
     DeclarativeConfigurationAdministration,
     RepositoriesAdministration,
 )
-from postgrip.service.client import _NoRedirect
+from postgrip._internal.transport import _NoRedirect
 from postgrip.service.openapi import (
     OpenAPIRequestServiceDNSFailoverRequest,
     OpenAPIServiceReleaseGroupMemberRequest,
@@ -353,7 +353,7 @@ class ServiceClientTests(unittest.TestCase):
             base_url="https://services.example.test", token="pgt_test-token", opener=opener,
             enable_retries=True,
         )  # type: ignore[arg-type]
-        with patch("postgrip.service.client._jitter", return_value=0.125):
+        with patch("postgrip._internal.transport.jitter", return_value=0.125):
             with patch("postgrip.service.client.time.sleep") as sleep:
                 self.assertEqual(client.resolve("api")["id"], SERVICE["id"])
         sleep.assert_called_once_with(0.125)

@@ -82,11 +82,10 @@ supplied `HTTPClient` keeps its `Timeout` as given. Service, Go Worker and Go Ag
 eligibility use generated retry/safety metadata plus an idempotency key for
 mutations.
 TypeScript Worker and Agent and Python Worker use the same contract metadata.
-Python Service currently uses its own copy of the contract rule.
 Retries remain opt-in, with attempt counts bounded by the plane
 implementation; delay limits are not yet uniform across planes and languages.
-Go and TypeScript Worker, Service and Agent and Python Worker parse
-`Retry-After` with the same rules:
+Go and TypeScript Worker, Service and Agent and Python Worker and Service
+parse `Retry-After` with the same rules:
 `0` or a past date retries without backoff, larger values cap at 30 seconds, and a
 signed or fractional value such as `+5` or `1.5` is not valid delta-seconds, so
 the jittered backoff applies.
@@ -97,11 +96,11 @@ available.
 
 Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
-request on retries or response loss. Go and TypeScript Worker and Service and
-Python Worker reject a missing or invalid key on these operations before
-sending, including through their generated low-level clients. Service administration writes may
-additionally require the current `If-Match` value; Go and TypeScript Service
-forward `If-Match` only on operations whose contract declares it.
+request on retries or response loss. Worker and Service in every language
+reject a missing or invalid key on these operations before sending, including
+through their generated low-level clients. Service administration writes may
+additionally require the current `If-Match` value; Service in every language
+forwards `If-Match` only on operations whose contract declares it.
 
 Do not blindly retry protocol operations, signed Agent runtime mutations,
 archive transfers, or WebSocket sessions. Their generated pages name the
