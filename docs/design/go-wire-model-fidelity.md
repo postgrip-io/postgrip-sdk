@@ -35,8 +35,9 @@ architecture audit of `main` at `3675b2f2` found two Go gaps:
   not demonstrated changes to server state.
 
 This design covers Go model generation, the protocol declarations and their
-checks. TypeScript and Python mappings, contracts, request bytes for existing
-callers and signing do not change. Follow [contracts](../development/contracts.md)
+checks. TypeScript and Python mappings, contracts and signing do not change.
+Request bytes for directly constructed values do not change; the one decoded
+request case is described under **Presence handling**. Follow [contracts](../development/contracts.md)
 and [validation](../development/testing.md).
 
 ## Design
@@ -153,8 +154,10 @@ field types:
 
 Each owning type (`PollTaskResponse`, `Sandbox`, `TaskResult`,
 `SandboxCreateRequest`) gains an unexported presence record and custom JSON
-methods. The record is a comparable value, a bitmask, so these types stay
-comparable and usable as map keys; a compile-time check guards that. Its bits
+methods. The record is a comparable value, a bitmask. `PollTaskResponse` and
+`TaskResult` are comparable today and stay comparable and usable as map keys; a
+compile-time check guards those two. `Sandbox` and `SandboxCreateRequest`
+already contain slices and maps, so they were never comparable. Its bits
 are "decoded", one "null" bit per nullable property, and one "present" bit per
 struct property.
 
@@ -171,8 +174,13 @@ Presence changes encoding only for decoded values. A value decoded from
 `{"task":null}` re-encodes as `{"task":null}`, and a `TaskResult` decoded
 without `started_at` no longer re-encodes a year-one timestamp. A value built in
 code has no "decoded" bit and encodes exactly as today, including zero-valued
-struct properties. Request bytes therefore do not change, and a caller can still
-send an intentionally zero `ResourceLimits` or all-false `NetworkPolicy`. A
+struct properties, so a caller can still send an intentionally zero
+`ResourceLimits` or all-false `NetworkPolicy`. A `SandboxCreateRequest` that a
+caller builds by decoding JSON (for example from a configuration file) and then
+sends is the one request path that changes. If that JSON omits `resourceLimits`
+or `networkPolicy`, the request now omits them as well, instead of sending
+zero-valued objects. That matches the contract, where they are optional, and
+the release notes record it. A
 constructed value cannot express an absent struct property; that stays part of
 the open present-value gap. Equality of two values can now differ only in the
 record.
@@ -216,9 +224,10 @@ needs `&`. The release notes record it as a breaking change under the
 - No exported name is removed.
 - `protocol.PollTaskResponse`, `protocol.Sandbox`, `protocol.TaskResult` and
   `protocol.SandboxCreateRequest` keep their exported fields and stay
-  comparable. Decoded values re-encode explicit `null`s and omit struct
-  properties that were absent. Constructed values, and so request bytes, encode
-  as today. Unkeyed literals of these types stop compiling, and structs that
+  comparable where they are today. Decoded values re-encode explicit `null`s
+  and omit struct properties that were absent. Directly constructed values
+  encode as today. A `SandboxCreateRequest` decoded from JSON that omits
+  `resourceLimits` or `networkPolicy` now sends them omitted. Unkeyed literals of these types stop compiling, and structs that
   anonymously embed them inherit their JSON methods in both directions. The
   release notes record both.
 - Present zero values of the 117 optional fields, and nil encodings of three
@@ -251,7 +260,9 @@ Each slice is its own PR under the [review process](../development/contributing.
   properties. They also cover sequential decoding into one reused value
   (`null` then absent, a value then absent, and a present struct then absent),
   and constructed values encoding exactly as before, including a minimal
-  `SandboxCreateRequest`. A compile-time check keeps the four types comparable. Tests document the promoted `MarshalJSON` and
+  `SandboxCreateRequest`, and a `SandboxCreateRequest` decoded from JSON
+  without `resourceLimits` and `networkPolicy` that sends neither. A
+  compile-time check keeps `PollTaskResponse` and `TaskResult` comparable. Tests document the promoted `MarshalJSON` and
   `UnmarshalJSON` on an embedding struct. A generator fixture with an optional
   nullable property fails generation.
 - Slice 2: self-test fixtures prove each fidelity rule fails on a synthetic
