@@ -25,14 +25,14 @@ here; do not maintain a second copy of those rules.
   checklist and the cited design. MVC-ish responsibility violations, OpenAPI
   drift and cross-language incompatibilities count as findings, including when
   generation and CI pass. Explain rejected findings with code/design evidence.
-- Validate every Codex finding before fixing it: reproduce it against the
-  current code (a failing test, fixture or command). Accept findings that
-  ordinary code or a plausible future change could hit. Reject findings that
-  only matter for deliberately obfuscated or evasive code that no contributor
-  would write and human review would catch, such as escape-encoded import
-  paths in a layering checker, or that target files and syntax the repository
-  does not use. Reply with the reason. Only accepted findings count toward the
-  round threshold.
+- When validating a finding under the shared process, reproduce behavior and
+  mechanically detectable claims against the current code with a failing test,
+  fixture or command. Validate design and responsibility findings by tracing the
+  code against the cited design. A finding is not real for the SDK when it only
+  matters for deliberately obfuscated or evasive code that no contributor would
+  write and human review would catch, such as escape-encoded import paths in a
+  layering checker, or when it targets files and syntax the repository does not
+  use. Reject those with the reason.
 - For a mechanically detectable layering finding, extend the owning SDK checker
   with a generic fixture test. Use SDK generators, drift and package-layout
   checks where applicable; web's checker paths are not SDK commands. Document
