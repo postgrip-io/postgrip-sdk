@@ -24,6 +24,11 @@ For an SDK-facing route, schema, enum or wire change:
    generated bindings or reference pages. Keep object schemas closed and
    complete unless the canonical contract explicitly permits open-ended data;
    preserve those declared maps instead of inventing arbitrary payloads.
+   TypeScript plane entries list their public names explicitly. To publish a
+   new generated name, add it to the plane's `index.ts` and regenerate
+   `typescript/test/public-surface.json` with
+   `UPDATE_PUBLIC_SURFACE=1 bun run test test/public-surface.test.ts`; review
+   that manifest diff as the deliberate surface change.
 4. Run the [SDK validation](testing.md) appropriate to every affected language,
    including recorded endpoint/cURL coverage and observable behavior tests.
    A generated method or tier assignment alone is not proof of live success.
