@@ -17,7 +17,7 @@ import re
 import time
 from typing import Any, Protocol
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
 
 from .config import validate_idempotency_key
@@ -194,8 +194,8 @@ class Executor:
         """Run one operation and return the bounded raw body of a successful or accepted response.
 
         ``headers`` are per-call caller headers; ``accepted_statuses`` are non-2xx
-        statuses the plane adapter handles; ``timeout`` raises this call's timeout
-        and never lowers it.
+        statuses the plane adapter handles; ``timeout`` replaces the configured
+        timeout for this call.
         """
 
         operation_id = getattr(operation.operation_id, "value", operation.operation_id)
@@ -207,6 +207,11 @@ class Executor:
         if operation.idempotency == "required":
             validate_idempotency_key(idempotency_key or "")
 
+        target = urlsplit(operation.path)
+        if target.scheme or target.netloc:
+            # An absolute or scheme-relative path would replace the configured origin
+            # and receive its credentials.
+            raise ValueError(f"PostGrip {self._plane} request path must be relative to the configured base URL")
         endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
         encoded_body = None if body is None else json.dumps(body, separators=(",", ":")).encode("utf-8")
         retry = self._retry
@@ -219,7 +224,7 @@ class Executor:
             and (operation.safety == "read-only" or bool(idempotency_key))
         )
         attempts = retry.max_attempts if eligible else 1
-        call_timeout = max(self._timeout, timeout or 0.0)
+        call_timeout = self._timeout if timeout is None else timeout
         cancel_event = REQUEST_CANCEL_EVENT.get()
         for attempt in range(1, attempts + 1):
             if cancel_event is not None and cancel_event.is_set():

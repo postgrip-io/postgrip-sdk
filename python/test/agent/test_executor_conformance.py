@@ -190,6 +190,24 @@ class AgentExecutorConformanceTests(unittest.TestCase):
             connection(headers={"Authorization": "Bearer configured"}).request("GET", "/healthz")
         self.assertIsNone(recorder.requests[0].get_header("Authorization"))  # type: ignore[attr-defined]
 
+    def test_raw_request_refuses_absolute_urls_before_sending(self) -> None:
+        recorder = Recorder([{}])
+        with patch("postgrip.agent._connection.urlopen", recorder):
+            for path in ("https://attacker.example/x", "//attacker.example/x"):
+                with self.subTest(path), self.assertRaisesRegex(ValueError, "relative to the configured base URL"):
+                    connection().request("GET", path, agent_auth=True)
+        self.assertEqual(recorder.requests, [])
+
+    def test_connection_headers_and_timeout_changes_apply_to_later_calls(self) -> None:
+        client = connection()
+        client.headers["X-Gateway"] = "rotated"
+        client.timeout = 7
+        recorder = Recorder([{"status": "ok"}])
+        with patch("postgrip.agent._connection.urlopen", recorder):
+            client.health()
+        self.assertEqual(recorder.requests[0].get_header("X-gateway"), "rotated")  # type: ignore[attr-defined]
+        self.assertEqual(recorder.timeouts, [7])
+
     def test_root_client_passes_retries_to_the_agent_plane(self) -> None:
         recorder = Recorder([http_error(503, {"code": "BUSY"}, "0"), {"status": "ok"}])
         with patch("postgrip.agent._connection.urlopen", recorder):

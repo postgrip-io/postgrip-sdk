@@ -180,7 +180,6 @@ class Connection:
             create_error=AgentAPIError._from_fields,
             max_response_bytes=_AGENT_MAX_RESPONSE_BYTES,
             delegated_credentials=self,
-            headers=self.headers,
             # Some CDN front-ends block urllib's default UA, so send a stable SDK identifier.
             default_headers={"User-Agent": "postgrip-agent-python"},
             sign=self._sign_agent_request,
@@ -264,11 +263,13 @@ class Connection:
             response = self._executor.exchange(
                 operation,
                 body=body,
-                headers=headers,
+                # The connection's headers and timeout are read on every call, so
+                # later changes apply here as they do in the upload and relay adapters.
+                headers={**self.headers, **(headers or {})},
                 # Poll Gone is a terminal shutdown directive, and a long poll's
                 # server hold counts against its lifetime, so it gets headroom.
                 accepted_statuses=frozenset({410}) if poll else frozenset(),
-                timeout=_poll_wait_seconds(operation.path) + 30 if poll else None,
+                timeout=max(self.timeout, _poll_wait_seconds(operation.path) + 30) if poll else self.timeout,
             )
         except ResponseTooLarge as exc:
             raise RuntimeError(str(exc)) from None
