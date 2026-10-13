@@ -57,6 +57,7 @@ jobs:
           cmp LICENSE python/LICENSE
           grep -Fq '"license": "Apache-2.0"' typescript/package.json
           grep -Fxq 'license = "Apache-2.0"' python/pyproject.toml
+          python3 scripts/check_package_layout.py --self-test
           python3 scripts/check_package_layout.py
       - name: Verify runtime wire contract
         run: |

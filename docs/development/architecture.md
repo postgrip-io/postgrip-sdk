@@ -70,9 +70,12 @@ and error changes remain proposed until delivered and reflected in current
 behavior guides; an architectural extraction must preserve existing plane
 behavior unless its design explicitly includes a behavior change.
 
-`scripts/check_package_layout.py` checks artifact layout, selected exports and
-selected plane-to-root imports. It does not enforce the full dependency matrix
-or responsibility ownership. Generator and drift checks likewise do not prove
+`scripts/check_package_layout.py` checks artifact layout, selected exports,
+selected plane-to-root imports and the absence of TypeScript wildcard
+re-exports; `--self-test` proves the wildcard rule against generic fixtures.
+`typescript/test/public-surface.test.ts` records each TypeScript entry's
+published names. Neither enforces the full dependency matrix or
+responsibility ownership. Generator and drift checks likewise do not prove
 runtime compatibility. Use the responsibility review below and the actual
 [validation checks](testing.md); web's architecture linters and size ratchets
 are not installed SDK enforcement.
