@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const AGENT = new URL('../../src/agent/', import.meta.url);
@@ -7,11 +8,38 @@ async function source(module: string): Promise<string> {
   return readFile(new URL(module, AGENT), 'utf8');
 }
 
+/** Every relative module a source imports: static, side-effect, re-export and dynamic forms. */
 function relativeImports(text: string): string[] {
-  return [...text.matchAll(/from '(\.[^']+)'/g)].map((match) => match[1]!).sort();
+  const { importedFiles } = ts.preProcessFile(text, true, true);
+  return importedFiles.map((file) => file.fileName).filter((name) => name.startsWith('.')).sort();
 }
 
 describe('Agent client module ownership', () => {
+  it('detects every import form the boundary checks rely on', () => {
+    const forms = [
+      "import { a } from './static.js';",
+      'import { b } from "./double.js";',
+      "import './side-effect.js';",
+      'import "./side-effect-double.js";',
+      "export { c } from './re-export.js';",
+      "export * from './star.js';",
+      "import type { D } from './type-only.js';",
+      "const lazy = await import('./dynamic.js');",
+      'const lazier = import("./dynamic-double.js");',
+    ].join('\n');
+    expect(relativeImports(forms)).toEqual([
+      './double.js',
+      './dynamic-double.js',
+      './dynamic.js',
+      './re-export.js',
+      './side-effect-double.js',
+      './side-effect.js',
+      './star.js',
+      './static.js',
+      './type-only.js',
+    ]);
+  });
+
   it('keeps every previously exported runtime name importable from client.js and connection.js', async () => {
     expect(Object.keys(await import('../../src/agent/client.js')).sort()).toEqual([
       'Client',
