@@ -65,6 +65,10 @@ def has_authorization_header(headers: dict[str, str]) -> bool:
     return any(name.lower() == "authorization" for name in headers)
 
 
+class ResponseTooLarge(ValueError):
+    """A response body exceeded its plane bound."""
+
+
 def read_bounded_response(
     source: Any,
     plane: str,
@@ -83,7 +87,7 @@ def read_bounded_response(
         remaining -= len(chunk)
     body = b"".join(chunks)
     if len(body) > maximum_bytes:
-        raise ValueError(f"PostGrip {plane} response is invalid or too large")
+        raise ResponseTooLarge(f"PostGrip {plane} response is invalid or too large")
     return body
 
 

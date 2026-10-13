@@ -94,9 +94,9 @@ operations through the shared executor in `go/internal/transport`; Agent keeps
 its archive-upload and WebSocket adapters. TypeScript Worker, Service and
 Agent run their JSON operations through the shared executor in
 `typescript/src/internal/transport.ts`; Agent keeps its archive-upload and
-WebSocket adapters. Python Worker and Service run their operations through the
-shared executor in `python/src/postgrip/_internal/transport.py`; Python Agent
-is not yet moved and still duplicates transport policy in its connection.
+WebSocket adapters. Python Worker, Service and Agent run their JSON operations
+through the shared executor in `python/src/postgrip/_internal/transport.py`;
+Agent keeps its archive-upload and WebSocket adapters.
 The design's remaining timeout, retry and error changes stay proposed until
 delivered and reflected in current behavior guides; an architectural extraction
 must preserve existing plane behavior unless its design explicitly includes a

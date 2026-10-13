@@ -136,7 +136,8 @@ class PythonSdkTests(unittest.TestCase):
                 }
             raise AssertionError(f"unexpected request path {path}")
 
-        connection._request = fake_request  # type: ignore[method-assign]
+        connection._execute = lambda operation, body, headers=None: fake_request(  # type: ignore[method-assign]
+            operation.method, operation.path, body, agent_auth=operation.auth_lane == "agent")
 
         self.assertTrue(connection.ensure_agent_session(agent_id="agent-1"))
         self.assertEqual(connection._agent_id, "agent-1")
@@ -164,7 +165,8 @@ class PythonSdkTests(unittest.TestCase):
                 return {"task": None}
             raise AssertionError(f"unexpected request path {path}")
 
-        connection._request = fake_request  # type: ignore[method-assign]
+        connection._execute = lambda operation, body, headers=None: fake_request(  # type: ignore[method-assign]
+            operation.method, operation.path, body, agent_auth=operation.auth_lane == "agent")
 
         self.assertTrue(connection.ensure_agent_session(worker_id="agent-compat"))
         self.assertEqual(connection._agent_id, "agent-compat")
@@ -196,7 +198,8 @@ class PythonSdkTests(unittest.TestCase):
                 return {"task": {"id": "task-1"}}
             raise AssertionError(f"unexpected request path {path}")
 
-        connection._request = fake_request  # type: ignore[method-assign]
+        connection._execute = lambda operation, body, headers=None: fake_request(  # type: ignore[method-assign]
+            operation.method, operation.path, body, agent_auth=operation.auth_lane == "agent")
 
         self.assertEqual(connection.complete_task("task-1", agent_id="agent-1", result={"ok": True})["id"], "task-1")
         self.assertEqual(connection.block_task("task-1", agent_id="agent-1", reason="wait")["id"], "task-1")

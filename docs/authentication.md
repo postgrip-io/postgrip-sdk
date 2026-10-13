@@ -41,17 +41,11 @@ configures its connection. A root management token therefore does not by itself
 prove that every Agent call uses the management lane. Keep management-only
 applications separate from host-injected runtime environments.
 
-Public operations must receive no bearer credential. The Go and TypeScript
-Agent connections run through their shared executors, which remove any
+Public operations must receive no bearer credential. The Agent connection in
+every language runs through its shared executor, which removes any
 `Authorization` header from a public request, in any spelling, including one
-configured through `ConnectionOptions.Headers` or `ConnectionOptions.headers`.
-The Python Agent adapter still copies caller-supplied headers before applying
-the auth lane, so there an explicit `Authorization` header can reach public
-session refresh. Use the token options, not a custom authorization header. That
-remaining gap is against the
-[architecture boundary](development/architecture.md), not permission to weaken
-it; the [layering design](design/contract-driven-sdk-layering.md) moves that
-adapter onto the executor.
+configured through the connection's headers. Use the token options, not a
+custom authorization header.
 
 ## Failure behavior
 
@@ -78,19 +72,17 @@ the original body for explicit inspection in both cases. These fields are server
 credentials or other secrets. Review and redact them before logging; arbitrary
 server error content is not safe log data.
 
-TypeScript Agent HTTP failures, including workspace uploads, raise
+TypeScript and Python Agent HTTP failures, including workspace uploads, raise
 `AgentAPIError`, a `PostGripAPIError` like `WorkerAPIError` and
-`ServiceAPIError`. Its text names only the method, route, status and standard
-status text. `code`, `requestId` and `details` come from the decoded envelope,
-and `responseBody` retains the original body; like Go's fields they are
-server-provided, so review and redact them before logging. A response body that
-is not valid JSON fails with a message naming the request, without the body.
-
-Python Agent HTTP failures currently use ordinary `RuntimeError` paths and can
-include server-provided text. The exported `PostGripAgentError` bases in
-TypeScript and Python cover workflow/activity failure types, not transport
-failures. Do not infer Go's and TypeScript's default error-text protection for
-Python; review and redact diagnostic content before logging it.
+`ServiceAPIError`; in Python it is also a `RuntimeError`, so existing handlers
+still match. Its text names only the method, route, status and standard status
+text, and Python's repr adds nothing more. The decoded envelope's code, message,
+request ID and details and the original response body (`responseBody`,
+`response_body`) remain available; like Go's fields they are server-provided, so
+review and redact them before logging. A response body that is not valid JSON
+fails with a message naming the request, without the body. The exported
+`PostGripAgentError` bases cover workflow/activity failure types, not transport
+failures.
 
 ## Untrusted clients
 

@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import enum
 import json
 import os
+import re
 import threading
 import time
 from datetime import datetime, timezone
 from collections.abc import Iterator, Mapping
 from typing import Any, Literal, Unpack
-from urllib.error import HTTPError
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from urllib.request import OpenerDirector, Request, build_opener
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -20,16 +21,17 @@ from .._internal.config import validate_base_url
 from .._internal.http import (
     CancellationAwareHTTPHandler,
     CancellationAwareHTTPSHandler,
+    ResponseTooLarge,
     SafeRedirectHandler,
-    has_authorization_header,
-    read_bounded_response,
     run_cancellable,
 )
+from .._internal.transport import Executor, RetryConfig
 from . import _history, _signing
+from .errors import AgentAPIError
 from .openapi import (
+    _OPERATION_TABLE,
     OpenAPIClient,
     OperationId,
-    openapi_auth_lane_for_request,
     resolve_openapi_operation,
 )
 from .types import (
@@ -94,6 +96,34 @@ def urlopen(request: Request, timeout: float | None = None) -> Any:
     return _AGENT_OPENER.open(request, timeout=timeout)
 
 
+class _ModuleOpener:
+    """Opens through this module's ``urlopen`` at call time, so it can be replaced."""
+
+    def open(self, request: Request, timeout: float | None = None) -> Any:
+        return urlopen(request, timeout=timeout)
+
+
+# The contract default wait_seconds the server holds a poll for when it is omitted.
+_DEFAULT_POLL_WAIT_SECONDS = 20
+
+
+@dataclass(frozen=True)
+class _RawOperation:
+    """The annotations a raw ``Connection.request`` call runs under."""
+
+    operation_id: str
+    method: str
+    path: str
+    auth_lane: str
+    safety: str
+    retry: str
+    signing: str
+    streaming_request: bool = False
+    websocket: bool = False
+    idempotency: str = "none"
+    header_parameters: tuple[str, ...] = ()
+
+
 class Connection:
     def __init__(
         self,
@@ -113,6 +143,7 @@ class Connection:
         agent_refresh_token: str | None = None,
         agent_access_expires_at: str | datetime | None = None,
         agent_signing_private_key: str | None = None,
+        enable_retries: bool = False,
     ):
         if not address:
             address = os.environ.get("POSTGRIP_AGENT_URL") or os.environ.get("POSTGRIP_URL") or DEFAULT_ADDRESS
@@ -139,6 +170,20 @@ class Connection:
         # runtimes.
         signing_private_key = agent_signing_private_key or os.environ.get("POSTGRIP_AGENT_SIGNING_PRIVATE_KEY")
         self._agent_sign_priv: Ed25519PrivateKey | None = _signing.decode_private_key(signing_private_key) if signing_private_key else None
+        self._executor = Executor(
+            plane="Agent",
+            base_url=self.address,
+            opener=_ModuleOpener(),
+            management_token=self.auth_token,
+            retry=RetryConfig(enabled=enable_retries, max_attempts=3, max_delay=2.0, retry_after_max=30.0),
+            timeout=timeout,
+            create_error=AgentAPIError._from_fields,
+            max_response_bytes=_AGENT_MAX_RESPONSE_BYTES,
+            delegated_credentials=self,
+            # Some CDN front-ends block urllib's default UA, so send a stable SDK identifier.
+            default_headers={"User-Agent": "postgrip-agent-python"},
+            sign=self._sign_agent_request,
+        )
         self.openapi = OpenAPIClient(self._request_openapi)
 
     @classmethod
@@ -183,9 +228,22 @@ class Connection:
                 self._agent_sign_priv = _signing.decode_private_key(signing_private_key)
 
     def request(self, method: str, path: str, body: Any = None, *, agent_auth: bool = False) -> Any:
-        # Raw agent-authenticated requests preserve the legacy signing default.
-        signing = "agent-task-v1" if agent_auth else ""
-        return self._request(method, path, body, agent_auth=agent_auth, signing=signing)
+        """Send a raw request under the annotations of the generated operation it
+        matches. ``agent_auth`` uses the delegated session and the legacy
+        agent-task-v1 signing default; an unmatched path is a management request."""
+        method = method.upper()
+        matched = _match_operation(method, path)
+        lane = "agent" if agent_auth else (matched.auth_lane if matched is not None else "management")
+        operation = _RawOperation(
+            operation_id=matched.operation_id.value if matched is not None else "rawRequest",
+            method=method,
+            path=path,
+            auth_lane=lane,
+            safety=matched.safety if matched is not None else "mutation",
+            retry=matched.retry if matched is not None else "none",
+            signing="agent-task-v1" if agent_auth else "",
+        )
+        return self._execute(operation, body)
 
     def _request_openapi(
         self,
@@ -196,99 +254,72 @@ class Connection:
         query: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> Any:
-        """Resolve generated HTTP metadata, retaining the custom transport."""
-        operation = resolve_openapi_operation(operation_id, path_parameters, query)
-        agent_auth = operation.auth_lane == "agent" or (
-            operation.auth_lane == "either" and self._has_agent_runtime_credentials()
-        )
-        return self._request(
-            operation.method,
-            operation.path,
-            body,
-            agent_auth=agent_auth,
-            management_auth=operation.auth_lane != "public",
-            signing=operation.signing,
-            request_headers=headers,
-        )
+        """Run one generated operation through the shared executor."""
+        return self._execute(resolve_openapi_operation(operation_id, path_parameters, query), body, headers)
 
-    def _request(
-        self,
-        method: str,
-        path: str,
-        body: Any = None,
-        *,
-        agent_auth: bool = False,
-        management_auth: bool = True,
-        signing: str = "",
-        request_headers: dict[str, str] | None = None,
-    ) -> Any:
-        data = b"" if body is None else json.dumps(body).encode()
-        auth_lane = openapi_auth_lane_for_request(method, path)
-        # Preserve the raw request API's opt-in behavior for agent-only paths;
-        # generated wrappers pass agent_auth explicitly. "Either" operations
-        # retain their historical automatic lane selection.
-        use_agent_auth = agent_auth or (
-            auth_lane == "either" and self._has_agent_runtime_credentials()
-        )
-        if use_agent_auth:
-            self.ensure_agent_session()
-        headers = dict(self.headers)
-        headers.update(request_headers or {})
-        # Some CDN front-ends block urllib's default UA. Always send a stable
-        # SDK identifier so behavior is consistent across local and proxied
-        # deployments.
-        headers.setdefault("User-Agent", "postgrip-agent-python")
-        if use_agent_auth and self._agent_access_token:
-            headers["Authorization"] = f"Bearer {self._agent_access_token}"
-        elif not use_agent_auth and management_auth and self.auth_token and not has_authorization_header(headers):
-            # An explicitly supplied header wins, so existing callers that
-            # hand-build one keep working.
-            headers["Authorization"] = f"Bearer {self.auth_token}"
-        if body is not None:
-            headers["Content-Type"] = "application/json"
-        if use_agent_auth and signing == "agent-task-v1" and self._agent_sign_priv is not None:
-            split = urlsplit(self.address + path)
-            ts = int(time.time())
-            headers[_signing.HEADER_AGENT_SIGNATURE_TIMESTAMP] = str(ts)
-            headers[_signing.HEADER_AGENT_SIGNATURE_KEY_ID] = _signing.public_key_id(self._agent_sign_priv.public_key())
-            headers[_signing.HEADER_AGENT_SIGNATURE] = _signing.sign_request(
-                self._agent_sign_priv, method, split.path, split.query, ts, data,
-            )
-        # urllib treats `data=b""` as a GET-with-body, which is wrong; pass None for empty bodies.
-        request = Request(self.address + path, data=(data or None) if body is not None else None, method=method, headers=headers)
+    def _execute(self, operation: Any, body: Any, headers: dict[str, str] | None = None) -> Any:
+        poll = urlsplit(operation.path).path == "/api/v1/agent/poll"
         try:
-            with urlopen(request, timeout=self.timeout) as response:
-                raw = read_bounded_response(
-                    response,
-                    "Agent",
-                    maximum_bytes=_AGENT_MAX_RESPONSE_BYTES,
-                )
-        except ValueError as exc:
-            raise RuntimeError(str(exc)) from exc
-        except HTTPError as exc:
+            response = self._executor.exchange(
+                operation,
+                body=body,
+                # The connection's headers and timeout are read on every call, so
+                # later changes apply here as they do in the upload and relay adapters.
+                headers={**self.headers, **(headers or {})},
+                # Poll Gone is a terminal shutdown directive, and a long poll's
+                # server hold counts against its lifetime, so it gets headroom.
+                accepted_statuses=frozenset({410}) if poll else frozenset(),
+                timeout=max(self.timeout, _poll_wait_seconds(operation.path) + 30) if poll else self.timeout,
+            )
+        except ResponseTooLarge as exc:
+            raise RuntimeError(str(exc)) from None
+        raw = response.body
+        if response.status == 410:
+            # Gone is terminal even if an intermediary strips or corrupts the
+            # response body. Preserve valid directive fields while making
+            # shutdown unconditionally reachable to the worker.
             try:
-                raw = read_bounded_response(exc, "Agent", maximum_bytes=_AGENT_MAX_RESPONSE_BYTES)
-            except ValueError as read_error:
-                raise RuntimeError(str(read_error)) from exc
-            finally:
-                exc.close()
-            if exc.code == 410 and urlsplit(path).path == "/api/v1/agent/poll":
-                # Gone is terminal even if an intermediary strips or corrupts
-                # the response body. Preserve valid directive fields while
-                # making shutdown unconditionally reachable to the worker.
-                try:
-                    parsed = json.loads(raw.decode()) if raw else {}
-                except (UnicodeDecodeError, json.JSONDecodeError):
-                    parsed = {}
-                if not isinstance(parsed, dict):
-                    parsed = {}
-                directive = parsed.get("directive")
-                if not isinstance(directive, dict):
-                    directive = {}
-                parsed["directive"] = {**directive, "type": "shutdown"}
-                return parsed
-            raise RuntimeError(raw.decode() or str(exc)) from exc
-        return json.loads(raw.decode()) if raw else None
+                parsed = json.loads(raw.decode()) if raw else {}
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                parsed = {}
+            if not isinstance(parsed, dict):
+                parsed = {}
+            directive = parsed.get("directive")
+            if not isinstance(directive, dict):
+                directive = {}
+            parsed["directive"] = {**directive, "type": "shutdown"}
+            return parsed
+        if not raw:
+            return None
+        try:
+            return json.loads(raw.decode())
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            # The body is server content, so the error names only the request.
+            raise RuntimeError(
+                f"postgrip-agent: {operation.method} {operation.path} -> {response.status} (parse failed)"
+            ) from None
+
+    def has_delegated(self) -> bool:
+        """The executor's credential check for the either lane."""
+        return self._has_agent_runtime_credentials()
+
+    def delegated(self) -> str:
+        """The executor's credential hook: refreshes the session when needed before every attempt."""
+        self.ensure_agent_session()
+        with self._agent_lock:
+            return self._agent_access_token or ""
+
+    def _sign_agent_request(self, method: str, url: str, headers: dict[str, str], body: bytes) -> None:
+        """Apply the agent-task-v1 signature over the exact encoded body. Without
+        an injected signing key the request is sent unsigned, as before."""
+        priv = self._agent_sign_priv
+        if priv is None:
+            return
+        split = urlsplit(url)
+        ts = int(time.time())
+        headers[_signing.HEADER_AGENT_SIGNATURE_TIMESTAMP] = str(ts)
+        headers[_signing.HEADER_AGENT_SIGNATURE_KEY_ID] = _signing.public_key_id(priv.public_key())
+        headers[_signing.HEADER_AGENT_SIGNATURE] = _signing.sign_request(priv, method, split.path, split.query, ts, body)
 
     def ensure_agent_session(self, *, namespace: str | None = None, queue: str | None = None, agent_id: str | None = None, worker_id: str | None = None) -> bool:
         with self._agent_lock:
@@ -547,3 +578,26 @@ def _parse_timestamp(value: Any) -> float:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.timestamp()
+
+
+def _match_operation(method: str, path: str) -> Any:
+    """The resolved generated operation a raw method and path match, if any."""
+    request_path = path.partition("?")[0]
+    for operation_id, operation in _OPERATION_TABLE.items():
+        if operation.method != method:
+            continue
+        pattern = re.sub(r"\{([^}]+)\}", r"(?P<\1>[^/]+)", operation.path)
+        found = re.fullmatch(pattern, request_path)
+        if found is not None:
+            return resolve_openapi_operation(operation_id, found.groupdict())
+    return None
+
+
+def _poll_wait_seconds(path: str) -> int:
+    """The poll's wait_seconds, or the contract default when it is omitted or invalid."""
+    values = parse_qs(urlsplit(path).query).get("wait_seconds")
+    try:
+        wait = int(values[0]) if values else _DEFAULT_POLL_WAIT_SECONDS
+    except ValueError:
+        return _DEFAULT_POLL_WAIT_SECONDS
+    return wait if wait >= 0 else _DEFAULT_POLL_WAIT_SECONDS

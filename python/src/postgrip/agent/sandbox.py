@@ -149,7 +149,11 @@ class SandboxClient:
         )
         import json
 
-        return json.loads(raw.decode()) if raw else {}
+        try:
+            return json.loads(raw.decode()) if raw else {}
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            # The body is server content, so the error names only the request.
+            raise RuntimeError(f"postgrip-agent: {operation.method} {operation.path} (parse failed)") from None
 
     def list_workspaces(self) -> list[SandboxWorkspace]:
         """List the tenant's uploaded workspaces, newest first."""

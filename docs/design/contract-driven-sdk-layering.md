@@ -240,7 +240,8 @@ before, a configured `Content-Type` was overwritten. Its decode-failure message
 keeps the method, route and status but no longer quotes the body. The server
 reports a terminal or unleased task mutation only as a 409 envelope message, so
 `isTerminalTaskMutation` reads that message from `AgentAPIError.responseBody`
-instead of the error text. Agent requests previously passed the caller's
+instead of the error text; Python's `is_terminal_task_mutation` reads the
+envelope `message` of a 409 `AgentAPIError` the same way. Agent requests previously passed the caller's
 `AbortSignal` to `fetch` directly; the executor now passes a signal linked to it
 that also carries the timeout.
 

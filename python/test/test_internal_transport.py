@@ -59,8 +59,7 @@ class ExecutorTests(unittest.TestCase):
 
     def test_refuses_delegated_and_unknown_lanes_signing_and_adapters_before_sending(self) -> None:
         for operation, message in (
-            (replace(Operation(), auth_lane="agent"), "unsupported auth lane agent"),
-            (replace(Operation(), auth_lane="either"), "unsupported auth lane either"),
+            (replace(Operation(), auth_lane="agent"), "requires delegated runtime credentials"),
             (replace(Operation(), auth_lane="unknown"), "unsupported auth lane unknown"),
             (replace(Operation(), signing="agent-task-v1"), "requires request signing"),
             (replace(Operation(), streaming_request=True), "protocol adapter"),
@@ -71,6 +70,11 @@ class ExecutorTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     executor(opener).request(operation)
                 self.assertEqual(opener.requests, [])
+
+    def test_either_lane_uses_the_management_bearer_without_delegated_credentials(self) -> None:
+        opener = FakeOpener([{}])
+        executor(opener).request(replace(Operation(), auth_lane="either"))
+        self.assertEqual(opener.requests[0].get_header("Authorization"), "Bearer pgt_management")
 
     def test_never_retries_a_protocol_operation(self) -> None:
         opener = FakeOpener([busy(), {}])
