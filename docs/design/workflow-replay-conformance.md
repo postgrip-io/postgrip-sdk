@@ -117,7 +117,11 @@ command, and the accessors report it from workflow entry, wherever the request
 sits in history.
 
 **Completion check.** Before a workflow task completes or continues as new, the
-runtime applies any remaining update boundaries in strict mode (below). If a
+runtime applies any remaining update boundaries in strict mode (below). If
+history records a cancellation request that the body has not yet observed, and
+the body is in a cancellable scope, the runtime raises the cancellation failure
+at this point instead of completing. A workflow that finishes its last command
+after a request therefore still observes it, as every language does today. If a
 body-owned command event is still unconsumed, the task fails with a determinism
 error instead of completing. When a replayed handler returns or raises, any of
 its own events left unconsumed are a determinism error too. The check does not
@@ -186,16 +190,28 @@ Go does today. The workflow code that follows registration therefore observes
 the update, which is also how TypeScript and Python histories were recorded
 before this design. TypeScript and Python registration is synchronous while
 their handlers may be `async`. Registration invokes each replayed handler
-synchronously, so its effects up to its first `await` are visible before
-registration returns. A handler that returns a pending promise or coroutine is
-tracked as in flight. The runtime awaits every in-flight replayed handler, in
-boundary order, before the workflow's next command is consumed, before a
-`condition` predicate is re-evaluated, and before completion. Later boundaries
-apply only after it settles. TypeScript and Python runtimes also apply deferred
-boundaries before evaluating a `condition` predicate. Workflow code that runs
-between registration and the next durable call sees an `async` handler's
-effects only up to its first `await`, which matches today's unawaited
-registration-time behavior. Signals keep their current behavior: every recorded
+synchronously, so a synchronous handler's effects are fully visible when
+registration returns. An `async` handler is tracked as in flight:
+
+- A TypeScript `async` handler runs up to its first `await` during
+  registration.
+- Calling a Python `async def` handler only creates its coroutine, so none of
+  its body runs during registration.
+
+The runtime awaits every in-flight replayed handler, in boundary order, before
+the workflow's next command is consumed, before a `condition` predicate is
+re-evaluated, and before completion. Later boundaries apply only after it
+settles. TypeScript and Python runtimes also apply deferred boundaries before
+evaluating a `condition` predicate.
+
+Workflow code that runs between registration and its next durable call,
+including the arguments of that call, therefore sees an `async` handler's
+effects only up to the point the language ran synchronously. Code after that
+call sees all of them. This is deterministic: the run that first recorded the
+command after the boundary applied the same synchronous prefix at the same
+point, so every replay chooses the same command. A workflow whose next command
+depends on an `async` handler's later effects awaits a `condition` on that
+state before issuing it. Signals keep their current behavior: every recorded
 signal is delivered when its handler is registered.
 
 **Body and update overlap.** The runtime unblocks the workflow task when an
@@ -208,6 +224,13 @@ determinism error on replay. The SDK cannot order this race alone. The runtime
 must either serialize update tasks with their source workflow task, or record
 workflow-task boundaries in history. That is an open gap for web coordination,
 shared with Go today.
+
+Cancellation has the same race. A run that fetched history before a
+cancellation request can schedule a command recorded after
+`WorkflowCancellationRequested`. Positional replay then observes the
+cancellation before that command, so code that handles cancellation finds the
+command left over. The same runtime remedies apply, and this is recorded in the
+same open gap.
 
 **Update tasks.** An update task replays its source workflow in replay-only
 mode until replay stops. It then inspects the next unconsumed update boundary:
@@ -235,8 +258,9 @@ Replay state owns the workflow clock:
 1. It starts at `created_at` of the first `WorkflowExecutionStarted` event. If
    history has none, it starts at the source workflow task's `created_at`.
 2. It moves forward to the `created_at` of each command event the replay
-   consumes, of each `TimerFired` event when a timer resolves, and of each update
-   boundary it applies. It never moves backwards.
+   consumes, of each `TimerFired` event when a timer resolves, of each update
+   boundary it applies, and of the cancellation request when it is first
+   observed. It never moves backwards.
 3. Before it moves to an event's time, the replay applies, in deferred mode,
    every update boundary with a lower history index. A timer that resolves as
    fired therefore applies the boundaries recorded between `TimerStarted` and
@@ -383,6 +407,11 @@ unit tests run every fixture. They cover:
   where U's replayed handler consumes A before observing the cancellation;
 - `Accepted(U), Completed(U), CancellationRequested`, where the accessor reports
   `False` until U has applied;
+- `Activity(A)`, then a workflow that returns after A against
+  `Activity(A), CancellationRequested`, which raises the cancellation failure at
+  completion, while a workflow that observed and handled it completes;
+- `Activity(A at t0), CancellationRequested(at t1)`, where the clock reads `t1`
+  once the cancellation is observed;
 - workflow code that catches a determinism error and returns, which still fails
   the task with that error;
 - `Accepted(U), Activity(B) owned by the body, Completed(U)`, where U's handler
@@ -419,10 +448,13 @@ Language runtime tests add:
 
 - a workflow whose branch depends on the clock taking the same branch on
   redelivery;
-- in TypeScript and Python, an `async` update handler that awaits a command and
-  then changes state, replayed so the workflow's next command observes the
-  changed state, and a synchronous handler whose state the code right after
-  registration observes, as in `setHandler(U); await activity(flag ? 'A' : 'B')`;
+- in TypeScript and Python, a synchronous update handler whose state the code
+  right after registration observes, as in
+  `setHandler(U); await activity(flag ? 'A' : 'B')`; an `async` handler that
+  awaits a command and then changes state, where code after the workflow's next
+  durable call observes the change, and that call's arguments see the same
+  state on every replay; and a body that waits on a `condition` for the async
+  state before choosing its command;
 - an update task that appends its `update-handler-started` event, schedules an
   activity under its own task ID and blocks; a second update task that fails
   with `WorkflowUpdateConflict` without appending the event or running its
