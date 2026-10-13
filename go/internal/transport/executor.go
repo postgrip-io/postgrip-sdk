@@ -43,7 +43,11 @@ type Executor struct {
 	// the plane's redirect policy. The executor adds no shorter bound.
 	HTTPClient  *http.Client
 	Credentials Credentials
-	Retry       RetryConfig
+	// OverrideCallerAuthorization replaces a caller-supplied Authorization
+	// header with the management bearer on management lanes. Without it an
+	// explicit caller header keeps precedence there.
+	OverrideCallerAuthorization bool
+	Retry                       RetryConfig
 	// MaxResponseBytes bounds every response body; zero uses the default.
 	MaxResponseBytes int64
 	// SuccessResponseBytes overrides MaxResponseBytes for 2xx responses of the
@@ -217,6 +221,10 @@ func (e *Executor) send(ctx context.Context, operation Operation, header http.He
 			request.Header.Add(name, value)
 		}
 	}
+	if !operation.DeclaresHeader("If-Match") {
+		// Header.Add canonicalizes names, so this removes every spelling.
+		request.Header.Del("If-Match")
+	}
 	if err := e.authorize(ctx, request, operation.AuthLane, delegated); err != nil {
 		return nil, err
 	}
@@ -247,9 +255,9 @@ func (e *Executor) authorize(ctx context.Context, request *http.Request, lane st
 	if token == "" {
 		return nil
 	}
-	// A caller-supplied header keeps its precedence on management lanes; the
-	// delegated session always replaces it.
-	if !delegated && request.Header.Get("Authorization") != "" {
+	// A caller-supplied header keeps its precedence on management lanes unless
+	// the plane overrides it; the delegated session always replaces it.
+	if !delegated && !e.OverrideCallerAuthorization && request.Header.Get("Authorization") != "" {
 		return nil
 	}
 	request.Header.Set("Authorization", "Bearer "+token)

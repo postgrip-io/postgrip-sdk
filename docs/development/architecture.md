@@ -85,10 +85,10 @@ that all existing code has been migrated. The
 [contract-driven layering design](../design/contract-driven-sdk-layering.md)
 delivers executor decoupling and transport consolidation in slices. Go's
 generated operation tables emit `transport.Operation` values, and Go Worker
-runs its operations through the shared executor in `go/internal/transport`.
-Other planes are not yet moved: Go Service keeps its own retry, error and
-response loop, Go's generated Agent client still holds a concrete `Connection`,
-and TypeScript and Python still duplicate transport policy in plane clients.
+and Go Service run their operations through the shared executor in
+`go/internal/transport`. Other planes are not yet moved: Go's generated Agent
+client still holds a concrete `Connection`, and TypeScript and Python still
+duplicate transport policy in plane clients.
 The design's remaining timeout, retry and error changes stay proposed until
 delivered and reflected in current behavior guides; an architectural extraction
 must preserve existing plane behavior unless its design explicitly includes a

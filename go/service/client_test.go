@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -411,21 +412,38 @@ func TestTrafficStatusRejectsAmbiguousWorkerResult(t *testing.T) {
 	}
 }
 
+// The Retry-After rules live in the shared executor; assert them through the
+// public client rather than the private helpers Service used to copy.
 func TestRetryAfterPreservesZeroAndCapsOversizedValues(t *testing.T) {
-	policy := serviceRetryLimits{maxDelay: 2 * time.Second, retryAfterMax: 30 * time.Second}
-	response := &http.Response{StatusCode: http.StatusServiceUnavailable, Header: http.Header{"Retry-After": []string{"0"}}}
-	apiErr, retryAfterSet := decodeAPIError(response, nil, policy.retryAfterMax)
-	retryAfter, retryAfterSet := retryAfterForStatus(response.StatusCode, apiErr.RetryAfter, retryAfterSet)
-	if !retryAfterSet || retryAfter != 0 {
-		t.Fatalf("Retry-After zero = %s, present = %v", retryAfter, retryAfterSet)
-	}
-	if delay := retryDelay(1, retryAfter, retryAfterSet, policy); delay != 0 {
-		t.Fatalf("retry delay = %s, want zero", delay)
-	}
-
-	retryAfter, retryAfterSet = parseRetryAfter(strings.Repeat("9", 100), policy.retryAfterMax)
-	if !retryAfterSet || retryAfter != policy.retryAfterMax {
-		t.Fatalf("oversized Retry-After = %s, present = %v", retryAfter, retryAfterSet)
+	for _, test := range []struct {
+		value string
+		want  time.Duration
+	}{{"0", 0}, {strings.Repeat("9", 100), defaultRetryAfterMaxDelay}} {
+		synctest.Test(t, func(t *testing.T) {
+			var attempts []time.Time
+			client := fakeServiceClient(t, 0, func(config *Config) { config.EnableRetries = true }, func(r *http.Request) (*http.Response, error) {
+				attempts = append(attempts, time.Now())
+				if len(attempts) == 1 {
+					return serviceJSONResponse(r, http.StatusServiceUnavailable, http.Header{"Retry-After": {test.value}}, ""), nil
+				}
+				return serviceJSONResponse(r, http.StatusOK, nil, `{}`), nil
+			})
+			var out json.RawMessage
+			if err := client.OpenAPI().Do(context.Background(), "resolveService", nil, nil, nil, nil, &out); err != nil {
+				t.Fatal(err)
+			}
+			if len(attempts) != 2 || attempts[1].Sub(attempts[0]) != test.want {
+				t.Fatalf("Retry-After %.8s: attempts = %d, delay = %s, want %s", test.value, len(attempts), attempts[len(attempts)-1].Sub(attempts[0]), test.want)
+			}
+		})
+		client := fakeServiceClient(t, 0, nil, func(r *http.Request) (*http.Response, error) {
+			return serviceJSONResponse(r, http.StatusServiceUnavailable, http.Header{"Retry-After": {test.value}}, ""), nil
+		})
+		_, err := client.Resolve(context.Background(), "api")
+		var apiErr *APIError
+		if !errors.As(err, &apiErr) || apiErr.RetryAfter != test.want {
+			t.Fatalf("Retry-After %.8s: error = %#v", test.value, err)
+		}
 	}
 }
 

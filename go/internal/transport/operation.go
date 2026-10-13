@@ -1,5 +1,7 @@
 package transport
 
+import "strings"
+
 // Auth lanes declared by an operation's x-postgrip-auth-lane annotation.
 const (
 	LanePublic            = "public"
@@ -13,7 +15,8 @@ const (
 // Operation is one generated contract operation and the x-postgrip execution
 // policy the executor applies to it. Generated plane modules emit one value per
 // operation; Path holds the route template until the plane's generated resolver
-// substitutes path parameters and appends the query.
+// substitutes path parameters and appends the query. HeaderParameters lists the
+// request headers the contract declares, such as Idempotency-Key and If-Match.
 type Operation struct {
 	ID               string
 	Method           string
@@ -29,6 +32,18 @@ type Operation struct {
 	RequestSchema    string
 	ResponseSchema   string
 	PathParameters   []string
+	HeaderParameters []string
+}
+
+// DeclaresHeader reports whether the contract declares the named request
+// header for the operation, compared case-insensitively.
+func (o Operation) DeclaresHeader(name string) bool {
+	for _, declared := range o.HeaderParameters {
+		if strings.EqualFold(declared, name) {
+			return true
+		}
+	}
+	return false
 }
 
 // RetryEligible reports the contract retry rule: the operation is annotated

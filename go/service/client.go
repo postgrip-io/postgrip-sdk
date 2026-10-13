@@ -2,23 +2,22 @@
 package service
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/postgrip-io/postgrip-agent-sdks/go/internal/transport"
 )
 
+// Service execution policy: a 4 MiB response bound with a 24 MiB bound for
+// successful getServiceDeploymentScreenshot responses, and configurable retry
+// ceilings that default to and never exceed three attempts, 2-second backoff
+// and a 30-second Retry-After cap.
 const (
 	maxResponseBytes           = 4 << 20
 	maxScreenshotResponseBytes = 24 << 20
@@ -49,18 +48,12 @@ type Client struct {
 type Connection struct {
 	baseURL        *url.URL
 	token          string
-	httpClient     *http.Client
-	retriesEnabled bool
-	retryPolicy    serviceRetryLimits
 	followInterval time.Duration
+	executor       *transport.Executor
 }
 
-type serviceRetryLimits struct {
-	maxAttempts   int
-	maxDelay      time.Duration
-	retryAfterMax time.Duration
-}
-
+// APIError is a Service management failure decoded from the common error
+// envelope. It is distinct from other planes' error types.
 type APIError struct {
 	StatusCode int
 	Code       string
@@ -80,6 +73,12 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("postgrip-service: %s (HTTP %d): %s", e.Code, e.StatusCode, e.Message)
 }
 
+// newAPIError converts the shared decoded envelope into the Service error type.
+func newAPIError(err *transport.APIError) error {
+	return &APIError{StatusCode: err.StatusCode, Code: err.Code, Message: err.Message,
+		RequestID: err.RequestID, Details: err.Details, RetryAfter: err.RetryAfter}
+}
+
 func New(config Config) (*Client, error) {
 	baseURL, err := transport.ParseBaseURL("service", config.BaseURL, config.InsecureDevelopment)
 	if err != nil {
@@ -89,7 +88,6 @@ func New(config Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpClient := transport.HTTPClient(config.HTTPClient)
 	interval := config.FollowInterval
 	if interval <= 0 {
 		interval = 2 * time.Second
@@ -98,9 +96,20 @@ func New(config Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The Service management bearer replaces any caller-supplied Authorization.
+	executor := &transport.Executor{
+		Plane: "service", BaseURL: baseURL, HTTPClient: transport.HTTPClient(config.HTTPClient),
+		Credentials:                 transport.Credentials{ManagementToken: token},
+		OverrideCallerAuthorization: true,
+		Retry:                       retries,
+		MaxResponseBytes:            maxResponseBytes,
+		SuccessResponseBytes: map[string]int64{
+			string(openAPIGetServiceDeploymentScreenshot): maxScreenshotResponseBytes,
+		},
+		PlaneError: newAPIError,
+	}
 	return &Client{connection: &Connection{
-		baseURL: baseURL, token: token, httpClient: httpClient,
-		retriesEnabled: config.EnableRetries, retryPolicy: retries, followInterval: interval,
+		baseURL: baseURL, token: token, followInterval: interval, executor: executor,
 	}}, nil
 }
 
@@ -116,29 +125,32 @@ func NewFromEnv(config Config) (*Client, error) {
 	return New(config)
 }
 
-func configuredRetryPolicy(config Config) (serviceRetryLimits, error) {
-	policy := serviceRetryLimits{
-		maxAttempts:   config.RetryMaxAttempts,
-		maxDelay:      config.RetryMaxDelay,
-		retryAfterMax: config.RetryAfterMaxDelay,
+// configuredRetryPolicy applies the Service defaults to zero values and
+// rejects ceilings above the Service maximums.
+func configuredRetryPolicy(config Config) (transport.RetryConfig, error) {
+	policy := transport.RetryConfig{
+		Enabled:       config.EnableRetries,
+		MaxAttempts:   config.RetryMaxAttempts,
+		MaxDelay:      config.RetryMaxDelay,
+		RetryAfterMax: config.RetryAfterMaxDelay,
 	}
-	if policy.maxAttempts == 0 {
-		policy.maxAttempts = defaultRetryMaxAttempts
+	if policy.MaxAttempts == 0 {
+		policy.MaxAttempts = defaultRetryMaxAttempts
 	}
-	if policy.maxDelay == 0 {
-		policy.maxDelay = defaultRetryMaxDelay
+	if policy.MaxDelay == 0 {
+		policy.MaxDelay = defaultRetryMaxDelay
 	}
-	if policy.retryAfterMax == 0 {
-		policy.retryAfterMax = defaultRetryAfterMaxDelay
+	if policy.RetryAfterMax == 0 {
+		policy.RetryAfterMax = defaultRetryAfterMaxDelay
 	}
-	if policy.maxAttempts < 1 || policy.maxAttempts > maximumRetryMaxAttempts {
-		return serviceRetryLimits{}, fmt.Errorf("postgrip-service: retry max attempts must be between 1 and %d", maximumRetryMaxAttempts)
+	if policy.MaxAttempts < 1 || policy.MaxAttempts > maximumRetryMaxAttempts {
+		return transport.RetryConfig{}, fmt.Errorf("postgrip-service: retry max attempts must be between 1 and %d", maximumRetryMaxAttempts)
 	}
-	if policy.maxDelay < 0 || policy.maxDelay > maximumRetryMaxDelay {
-		return serviceRetryLimits{}, fmt.Errorf("postgrip-service: retry max delay must be between 0 and %s", maximumRetryMaxDelay)
+	if policy.MaxDelay < 0 || policy.MaxDelay > maximumRetryMaxDelay {
+		return transport.RetryConfig{}, fmt.Errorf("postgrip-service: retry max delay must be between 0 and %s", maximumRetryMaxDelay)
 	}
-	if policy.retryAfterMax < 0 || policy.retryAfterMax > maximumRetryAfterMaxDelay {
-		return serviceRetryLimits{}, fmt.Errorf("postgrip-service: Retry-After max delay must be between 0 and %s", maximumRetryAfterMaxDelay)
+	if policy.RetryAfterMax < 0 || policy.RetryAfterMax > maximumRetryAfterMaxDelay {
+		return transport.RetryConfig{}, fmt.Errorf("postgrip-service: Retry-After max delay must be between 0 and %s", maximumRetryAfterMaxDelay)
 	}
 	return policy, nil
 }
@@ -152,179 +164,23 @@ func withOpenAPIHeaders(ctx context.Context, headers http.Header) context.Contex
 }
 
 func validateIdempotencyKey(key string) error {
-	if len(key) == 0 || len(key) > 128 {
-		return errors.New("postgrip-service: idempotency key must contain 1 to 128 visible ASCII characters")
-	}
-	for _, value := range key {
-		if value < 0x21 || value > 0x7e {
-			return errors.New("postgrip-service: idempotency key must contain visible ASCII only")
-		}
-	}
-	return nil
+	return transport.ValidateIdempotencyKey("service", key)
 }
 
+// doOpenAPI runs a generated operation through the shared executor. Service
+// forwards the caller's headers; the executor applies the management bearer
+// and forwards If-Match only where the operation declares it.
 func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error {
 	operation, err := resolveOpenAPIOperation(id, pathParameters, query)
 	if err != nil {
 		return err
 	}
-	var bodyBytes []byte
-	if body != nil {
-		bodyBytes, err = json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("postgrip-service: encode request: %w", err)
-		}
-	}
-	headers := http.Header{}
+	header := http.Header{}
 	if configured, ok := ctx.Value(openAPIHeadersContextKey{}).(http.Header); ok {
-		headers = configured.Clone()
+		header = configured.Clone()
 	}
-	idempotencyKey := headers.Get("Idempotency-Key")
-	maxAttempts := 1
-	retrySafe := operation.Retry == "bounded" && (operation.Safety == "read-only" || idempotencyKey != "")
-	if c.retriesEnabled && retrySafe {
-		maxAttempts = c.retryPolicy.maxAttempts
-	}
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		response, requestErr := c.send(ctx, operation, bodyBytes, headers)
-		if requestErr != nil {
-			if attempt < maxAttempts && ctx.Err() == nil {
-				if err := waitRetry(ctx, retryDelay(attempt, 0, false, c.retryPolicy)); err != nil {
-					return err
-				}
-				continue
-			}
-			return requestErr
-		}
-		responseLimit := maxResponseBytes
-		if response.StatusCode >= 200 && response.StatusCode < 300 && id == openAPIGetServiceDeploymentScreenshot {
-			responseLimit = maxScreenshotResponseBytes
-		}
-		responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, int64(responseLimit)+1))
-		_ = response.Body.Close()
-		if readErr != nil || len(responseBody) > responseLimit {
-			return errors.New("postgrip-service: response is invalid or too large")
-		}
-		if response.StatusCode >= 200 && response.StatusCode < 300 {
-			if out == nil || len(bytes.TrimSpace(responseBody)) == 0 {
-				return nil
-			}
-			if err := json.Unmarshal(responseBody, out); err != nil {
-				return fmt.Errorf("postgrip-service: decode response: %w", err)
-			}
-			return nil
-		}
-		apiErr, retryAfterSet := decodeAPIError(response, responseBody, c.retryPolicy.retryAfterMax)
-		if attempt < maxAttempts && retryableStatus(operation, idempotencyKey, response.StatusCode) {
-			retryAfter, retryAfterSet := retryAfterForStatus(response.StatusCode, apiErr.RetryAfter, retryAfterSet)
-			if err := waitRetry(ctx, retryDelay(attempt, retryAfter, retryAfterSet, c.retryPolicy)); err != nil {
-				return err
-			}
-			continue
-		}
-		return apiErr
-	}
-	return errors.New("postgrip-service: request attempts exhausted")
-}
-
-func (c *Connection) send(ctx context.Context, operation transport.Operation, body []byte, headers http.Header) (*http.Response, error) {
-	endpoint, err := url.Parse(strings.TrimRight(c.baseURL.String(), "/") + operation.Path)
-	if err != nil {
-		return nil, fmt.Errorf("postgrip-service: resolve operation URL: %w", err)
-	}
-	request, err := http.NewRequestWithContext(ctx, operation.Method, endpoint.String(), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	request.Header.Set("Accept", "application/json")
-	if len(body) > 0 {
-		request.Header.Set("Content-Type", "application/json")
-	}
-	for name, values := range headers {
-		for _, value := range values {
-			request.Header.Add(name, value)
-		}
-	}
-	if operation.AuthLane == "service-management" {
-		request.Header.Set("Authorization", "Bearer "+c.token)
-	}
-	return c.httpClient.Do(request)
-}
-
-func decodeAPIError(response *http.Response, body []byte, retryAfterMax time.Duration) (*APIError, bool) {
-	payload := OpenAPIErrorResponse{}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		payload = OpenAPIErrorResponse{}
-	}
-	code := strings.TrimSpace(payload.Code)
-	if code == "" {
-		code = "HTTP_ERROR"
-	}
-	message := strings.TrimSpace(payload.Message)
-	if message == "" {
-		message = http.StatusText(response.StatusCode)
-	}
-	requestID := strings.TrimSpace(payload.RequestId)
-	if requestID == "" {
-		requestID = strings.TrimSpace(response.Header.Get("X-Request-ID"))
-	}
-	retryAfter, retryAfterSet := parseRetryAfter(response.Header.Get("Retry-After"), retryAfterMax)
-	return &APIError{StatusCode: response.StatusCode, Code: code, Message: message,
-		RequestID: requestID, Details: payload.Details, RetryAfter: retryAfter}, retryAfterSet
-}
-
-func parseRetryAfter(value string, maximum time.Duration) (time.Duration, bool) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return 0, false
-	}
-	if seconds, err := strconv.ParseUint(value, 10, 64); err == nil {
-		if maximum <= 0 || seconds > uint64(maximum/time.Second) {
-			return maximum, true
-		}
-		return time.Duration(seconds) * time.Second, true
-	} else if errors.Is(err, strconv.ErrRange) && strings.IndexFunc(value, func(value rune) bool {
-		return value < '0' || value > '9'
-	}) == -1 {
-		return maximum, true
-	}
-	if when, err := http.ParseTime(value); err == nil {
-		return min(max(time.Until(when), 0), maximum), true
-	}
-	return 0, false
-}
-
-func retryableStatus(operation transport.Operation, key string, status int) bool {
-	if operation.Retry != "bounded" || operation.Safety != "read-only" && key == "" {
-		return false
-	}
-	return status == 408 || status == 429 || status == 502 || status == 503 || status == 504
-}
-
-func retryAfterForStatus(status int, retryAfter time.Duration, retryAfterSet bool) (time.Duration, bool) {
-	if (status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable) && retryAfterSet {
-		return retryAfter, true
-	}
-	return 0, false
-}
-
-func retryDelay(attempt int, retryAfter time.Duration, retryAfterSet bool, policy serviceRetryLimits) time.Duration {
-	if retryAfterSet {
-		return min(max(retryAfter, 0), policy.retryAfterMax)
-	}
-	capDelay := min(200*time.Millisecond*time.Duration(1<<(attempt-1)), policy.maxDelay)
-	return time.Duration(rand.Int63n(max(int64(capDelay), 1)))
-}
-
-func waitRetry(ctx context.Context, delay time.Duration) error {
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
+	_, err = c.executor.Do(ctx, transport.Call{Operation: operation, Header: header, Body: body}, out)
+	return err
 }
 
 type Reference struct {
