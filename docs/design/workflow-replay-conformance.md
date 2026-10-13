@@ -177,10 +177,16 @@ consumes it:
   error. A failed entry runs its handler the same way, and expects it to raise,
   when it has the marker or owns at least one command event. Owned commands
   prove the handler ran, which covers legacy failures and failures recorded
-  before markers existed. Replay determinism errors, suspension and cancellation
-  raised inside the handler propagate unchanged. Only another error counts as
-  the recorded failure, which does not fail the workflow, and a handler that
-  returns instead is a determinism error. A failed entry with neither the
+  before markers existed. Control-flow and infrastructure errors raised inside
+  either kind of handler propagate unchanged. These are replay determinism
+  errors, suspension, cancellation, and the SDK's own transport and adapter
+  errors, such as a failed read of an owned command's task. They fail or
+  redeliver the workflow task without consuming the boundary. Any other error is
+  an application outcome. For a failed entry it is the recorded failure, which
+  does not fail the workflow, and a handler that returns instead is a
+  determinism error. For a completed entry it contradicts the recorded success,
+  so it becomes a recorded (sticky) determinism error even if workflow code
+  catches it. A failed entry with neither the
   marker nor owned commands is consumed without running a handler, as today. A pending entry suspends the workflow task until the update finishes.
 - **Deferred** application runs after each durable command and on handler
   registration. It applies
@@ -458,6 +464,10 @@ unit tests run every fixture. They cover:
   once the cancellation is observed;
 - workflow code that catches a determinism error and returns, which still fails
   the task with that error;
+- a completed update whose replayed handler now raises, which fails the task
+  with a determinism error even when workflow code catches the exception, and a
+  marked failed handler whose owned command's task read fails, which propagates
+  the transport error and leaves the boundary unconsumed;
 - `Accepted(U), Activity(B) owned by the body, Completed(U)`, where U's handler
   now issues `Activity(B)`, failing with a determinism error while the body's B
   replays normally;
