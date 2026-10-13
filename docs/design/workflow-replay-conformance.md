@@ -92,6 +92,13 @@ they own. When the body issues a command of kind K:
    `activity_type`, `workflow_type`, or `duration_ms` for timers. A mismatch is
    a determinism error and leaves the event unconsumed. A match consumes it.
 
+TypeScript and Python workflows can issue commands concurrently (for example
+`Promise.all` or `asyncio.gather`), and each new command is enqueued by its own
+request, so the runtime could record them in a different order than the calls.
+The runtime therefore schedules new commands one at a time, in call order, for
+each workflow invocation, so history records them in the order replay consumes
+them.
+
 Replay state records every determinism error it raises. Once one is recorded,
 the workflow task fails with that error when the workflow returns, raises,
 continues as new or suspends, even if workflow code caught the error and went

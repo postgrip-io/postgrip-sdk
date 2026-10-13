@@ -1,0 +1,49 @@
+{
+  "description": "Commands issued in recorded order replay, then the next command is new.",
+  "history": [
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "a1",
+      "attributes": {
+        "activity_type": "A"
+      }
+    },
+    {
+      "type": "TimerStarted",
+      "task_id": "t1",
+      "attributes": {
+        "duration_ms": 1000
+      }
+    },
+    {
+      "type": "ChildWorkflowExecutionStarted",
+      "task_id": "c1",
+      "attributes": {
+        "workflow_type": "Child",
+        "child_workflow_id": "child-c1"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "timer",
+      "duration_ms": 1000,
+      "expect": "replay"
+    },
+    {
+      "command": "child",
+      "workflow_type": "Child",
+      "expect": "replay"
+    },
+    {
+      "command": "activity",
+      "name": "B",
+      "expect": "new"
+    }
+  ]
+}

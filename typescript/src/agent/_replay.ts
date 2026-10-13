@@ -12,22 +12,26 @@ export class DeterminismError extends Error {
   }
 }
 
+const COMMAND_TYPES = new Set(['ActivityTaskScheduled', 'TimerStarted', 'ChildWorkflowExecutionStarted']);
+
 export class WorkflowReplay {
-  private readonly activities: WorkflowHistoryEvent[];
-  private readonly timers: WorkflowHistoryEvent[];
+  /** Command events in history order; workflow code must consume them in this order. */
+  private readonly commands: Array<{ event: WorkflowHistoryEvent; index: number }>;
   private readonly signals: WorkflowHistoryEvent[];
-  private readonly children: WorkflowHistoryEvent[];
   private readonly completedUpdates: WorkflowHistoryEvent[];
   private readonly cancellation: WorkflowHistoryEvent | undefined;
+  private commandCursor = 0;
   activityIndex = 0;
   private timerIndex = 0;
   private childIndex = 0;
+  /** The first determinism error raised; a caught one still fails the task. */
+  determinismError: DeterminismError | undefined;
 
   constructor(history: WorkflowHistoryEvent[]) {
-    this.activities = history.filter((event) => event.type === 'ActivityTaskScheduled');
-    this.timers = history.filter((event) => event.type === 'TimerStarted');
+    this.commands = history
+      .map((event, index) => ({ event, index }))
+      .filter(({ event }) => COMMAND_TYPES.has(event.type));
     this.signals = history.filter((event) => event.type === 'WorkflowSignaled');
-    this.children = history.filter((event) => event.type === 'ChildWorkflowExecutionStarted');
     this.completedUpdates = history.filter((event) => event.type === 'WorkflowUpdateCompleted');
     this.cancellation = history.find((event) => event.type === 'WorkflowCancellationRequested');
     this.history = history;
@@ -36,31 +40,62 @@ export class WorkflowReplay {
   private readonly history: WorkflowHistoryEvent[];
 
   nextActivity(activityType: string): WorkflowHistoryEvent | undefined {
-    const event = this.activities[this.activityIndex];
-    this.activityIndex += 1;
+    const event = this.nextCommand('ActivityTaskScheduled');
     if (event && event.attributes?.activity_type !== activityType) {
-      throw new DeterminismError(`activity command changed at index ${this.activityIndex}: history=${String(event.attributes?.activity_type)} replay=${activityType}`);
+      throw this.fail(`activity command changed at index ${this.activityIndex + 1}: history=${String(event.attributes?.activity_type)} replay=${activityType}`);
+    }
+    if (event) {
+      this.activityIndex += 1;
+      this.commandCursor += 1;
     }
     return event;
   }
 
   nextTimer(durationMs?: number): WorkflowHistoryEvent | undefined {
-    const event = this.timers[this.timerIndex];
-    this.timerIndex += 1;
+    const event = this.nextCommand('TimerStarted');
     const historyDuration = event?.attributes?.duration_ms;
     if (event && typeof durationMs === 'number' && typeof historyDuration === 'number' && Math.round(durationMs) !== historyDuration) {
-      throw new DeterminismError(`timer command changed at index ${this.timerIndex}: history=${historyDuration} replay=${Math.round(durationMs)}`);
+      throw this.fail(`timer command changed at index ${this.timerIndex + 1}: history=${historyDuration} replay=${Math.round(durationMs)}`);
+    }
+    if (event) {
+      this.timerIndex += 1;
+      this.commandCursor += 1;
     }
     return event;
   }
 
   nextChild(workflowType: string): WorkflowHistoryEvent | undefined {
-    const event = this.children[this.childIndex];
-    this.childIndex += 1;
+    const event = this.nextCommand('ChildWorkflowExecutionStarted');
     if (event && event.attributes?.workflow_type !== workflowType) {
-      throw new DeterminismError(`child workflow command changed at index ${this.childIndex}: history=${String(event.attributes?.workflow_type)} replay=${workflowType}`);
+      throw this.fail(`child workflow command changed at index ${this.childIndex + 1}: history=${String(event.attributes?.workflow_type)} replay=${workflowType}`);
+    }
+    if (event) {
+      this.childIndex += 1;
+      this.commandCursor += 1;
     }
     return event;
+  }
+
+  /**
+   * The earliest unconsumed command event, without consuming it. Undefined when
+   * none remains (the command is new). A different kind is a determinism error,
+   * covering reordering and a kind whose events ran out while others remain.
+   */
+  private nextCommand(kind: string): WorkflowHistoryEvent | undefined {
+    const next = this.commands[this.commandCursor];
+    if (!next) {
+      return undefined;
+    }
+    if (next.event.type !== kind) {
+      throw this.fail(`command changed at history index ${next.index}: history=${next.event.type} replay=${kind}`);
+    }
+    return next.event;
+  }
+
+  private fail(message: string): DeterminismError {
+    const error = new DeterminismError(message);
+    this.determinismError ??= error;
+    return error;
   }
 
   isTimerFired(timerStarted: WorkflowHistoryEvent): boolean {

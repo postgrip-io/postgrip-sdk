@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import io
 import os
+import threading
 import time
 import unittest
 from typing import get_type_hints
@@ -376,8 +377,86 @@ class PythonSdkTests(unittest.TestCase):
         task_id, error, result = connection.failed[0]
         self.assertEqual(task_id, "workflow-task-1")
         self.assertEqual(error, "activity command changed at index 1: history=A replay=B")
-        self.assertEqual(result["failure"]["type"], "DeterminismViolation")
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
         self.assertTrue(result["failure"]["non_retryable"])
+
+    def test_caught_determinism_violation_still_fails_the_task(self):
+        @workflow.defn(name="CatchingWorkflow")
+        class CatchingWorkflow:
+            @workflow.run
+            async def run(self) -> str:
+                try:
+                    await workflow.execute_activity("B")
+                except Exception:
+                    pass  # Ignored on purpose: nondeterminism must still fail the task.
+                return "done"
+
+        connection = FakeConnection()
+        connection.histories["run-1"] = [{
+            "type": "ActivityTaskScheduled",
+            "task_id": "activity-task-1",
+            "attributes": {"activity_type": "A"},
+        }]
+        agent = Agent(connection=connection, task_queue="default", workflows=[CatchingWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:CatchingWorkflow",
+            "payload": {"workflowType": "CatchingWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        asyncio.run(agent._execute(task))
+
+        self.assertEqual(connection.completed, [])
+        _, error, result = connection.failed[0]
+        self.assertEqual(error, "activity command changed at index 1: history=A replay=B")
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
+
+    def test_concurrent_new_commands_are_scheduled_in_call_order(self):
+        @workflow.defn(name="ConcurrentWorkflow")
+        class ConcurrentWorkflow:
+            @workflow.run
+            async def run(self) -> list:
+                return list(await asyncio.gather(workflow.execute_activity("First"), workflow.execute_activity("Second")))
+
+        connection = FakeConnection()
+        order: list[str] = []
+        first_started = threading.Event()
+        release_first = threading.Event()
+        original_enqueue = connection.enqueue_task
+
+        def enqueue(request: dict) -> dict:
+            order.append(f"start {request['type']}")
+            if request["type"] == "activity:First":
+                first_started.set()
+                release_first.wait(5)
+            order.append(f"end {request['type']}")
+            return original_enqueue(request)
+
+        connection.enqueue_task = enqueue
+        agent = Agent(connection=connection, task_queue="default", workflows=[ConcurrentWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:ConcurrentWorkflow",
+            "payload": {"workflowType": "ConcurrentWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        async def scenario() -> None:
+            running = asyncio.create_task(agent._execute(task))
+            await asyncio.to_thread(first_started.wait, 5)
+            await asyncio.sleep(0.05)
+            self.assertEqual(order, ["start activity:First"])
+            release_first.set()
+            await running
+
+        asyncio.run(scenario())
+
+        self.assertEqual(order, ["start activity:First", "end activity:First", "start activity:Second", "end activity:Second"])
 
     def test_workflow_sleep_schedules_durable_timer_and_replays_fired_timer(self):
         @workflow.defn(name="TimerWorkflow")

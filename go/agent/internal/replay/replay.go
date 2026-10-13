@@ -67,6 +67,7 @@ type Replay struct {
 	updateCursor   int
 
 	cancellationRequested bool
+	determinismErr        *DeterminismError
 }
 
 type indexedEvent struct {
@@ -148,75 +149,97 @@ func updateFromEvent(ev protocol.WorkflowHistoryEvent, index int, completed bool
 	return Update{TaskID: ev.TaskID, Name: name, Args: args, Completed: completed, index: index}
 }
 
-// NextActivity returns the next ActivityTaskScheduled event whose recorded
-// activity_type matches name. Returns (nil, nil) when the cursor is past
-// the recorded events; returns a DeterminismError when history disagrees.
+// NextActivity returns the next ActivityTaskScheduled event when it is the
+// earliest unconsumed command and its recorded activity_type matches name.
+// Returns (nil, nil) when no recorded command remains, so the caller schedules
+// a new one; returns a DeterminismError when history disagrees.
 func (r *Replay) NextActivity(name string) (*protocol.WorkflowHistoryEvent, error) {
-	if r.activityCursor >= len(r.activities) {
-		return nil, nil
-	}
-	indexed := &r.activities[r.activityCursor]
-	r.activityCursor++
-	if err := r.checkCommandOrder(indexed.index, EventActivityTaskScheduled); err != nil {
+	ev, err := r.nextCommand(EventActivityTaskScheduled)
+	if err != nil || ev == nil {
 		return nil, err
 	}
-	ev := &indexed.event
-	recorded, _ := ev.Attributes["activity_type"].(string)
+	recorded, _ := ev.event.Attributes["activity_type"].(string)
 	if recorded != "" && recorded != name {
-		return nil, &DeterminismError{Message: fmt.Sprintf("activity command changed at index %d: history=%q replay=%q", r.activityCursor-1, recorded, name)}
+		return nil, r.fail(fmt.Sprintf("activity command changed at index %d: history=%q replay=%q", r.activityCursor, recorded, name))
 	}
-	return ev, nil
+	r.activityCursor++
+	return &ev.event, nil
 }
 
 // NextTimer mirrors NextActivity for timers. duration_ms in the recorded
 // event must match what the workflow asked for (rounded to int) — workflow
 // code that varies sleep duration across replays is non-deterministic.
 func (r *Replay) NextTimer(durationMs int64) (*protocol.WorkflowHistoryEvent, error) {
-	if r.timerCursor >= len(r.timers) {
-		return nil, nil
-	}
-	indexed := &r.timers[r.timerCursor]
-	r.timerCursor++
-	if err := r.checkCommandOrder(indexed.index, EventTimerStarted); err != nil {
+	ev, err := r.nextCommand(EventTimerStarted)
+	if err != nil || ev == nil {
 		return nil, err
 	}
-	ev := &indexed.event
-	if recorded, ok := ev.Attributes["duration_ms"]; ok {
+	if recorded, ok := ev.event.Attributes["duration_ms"]; ok {
 		recordedMs, ok := numberAsInt64(recorded)
 		if ok && recordedMs != durationMs {
-			return nil, &DeterminismError{Message: fmt.Sprintf("timer command changed at index %d: history=%dms replay=%dms", r.timerCursor-1, recordedMs, durationMs)}
+			return nil, r.fail(fmt.Sprintf("timer command changed at index %d: history=%dms replay=%dms", r.timerCursor, recordedMs, durationMs))
 		}
 	}
-	return ev, nil
+	r.timerCursor++
+	return &ev.event, nil
 }
 
 // NextChild mirrors NextActivity for child workflows.
 func (r *Replay) NextChild(workflowType string) (*protocol.WorkflowHistoryEvent, error) {
-	if r.childCursor >= len(r.children) {
-		return nil, nil
-	}
-	indexed := &r.children[r.childCursor]
-	r.childCursor++
-	if err := r.checkCommandOrder(indexed.index, EventChildWorkflowStarted); err != nil {
+	ev, err := r.nextCommand(EventChildWorkflowStarted)
+	if err != nil || ev == nil {
 		return nil, err
 	}
-	ev := &indexed.event
-	recorded, _ := ev.Attributes["workflow_type"].(string)
+	recorded, _ := ev.event.Attributes["workflow_type"].(string)
 	if recorded != "" && recorded != workflowType {
-		return nil, &DeterminismError{Message: fmt.Sprintf("child workflow command changed at index %d: history=%q replay=%q", r.childCursor-1, recorded, workflowType)}
+		return nil, r.fail(fmt.Sprintf("child workflow command changed at index %d: history=%q replay=%q", r.childCursor, recorded, workflowType))
 	}
-	return ev, nil
+	r.childCursor++
+	return &ev.event, nil
 }
 
-func (r *Replay) checkCommandOrder(index int, commandType string) error {
-	nextIndex, nextType, ok := r.nextCommand()
-	if !ok || index <= nextIndex {
+// nextCommand returns the earliest unconsumed command event without consuming
+// it. It returns (nil, nil) when no recorded command remains, and a
+// DeterminismError when the earliest one is not of the requested kind; that
+// covers reordering and a kind whose events are exhausted while others remain.
+func (r *Replay) nextCommand(kind string) (*indexedEvent, error) {
+	index, recordedKind, ok := r.earliestCommand()
+	if !ok {
+		return nil, nil
+	}
+	if recordedKind != kind {
+		return nil, r.fail(fmt.Sprintf("command changed at history index %d: history=%q replay=%q", index, recordedKind, kind))
+	}
+	switch kind {
+	case EventActivityTaskScheduled:
+		return &r.activities[r.activityCursor], nil
+	case EventTimerStarted:
+		return &r.timers[r.timerCursor], nil
+	default:
+		return &r.children[r.childCursor], nil
+	}
+}
+
+// fail records the first determinism error. Once recorded, the worker fails
+// the workflow task with it whatever the workflow code does afterwards.
+func (r *Replay) fail(message string) error {
+	err := &DeterminismError{Message: message}
+	if r.determinismErr == nil {
+		r.determinismErr = err
+	}
+	return err
+}
+
+// DeterminismErr returns the first determinism error this replay raised, if
+// any, so a caught error still fails the workflow task.
+func (r *Replay) DeterminismErr() error {
+	if r == nil || r.determinismErr == nil {
 		return nil
 	}
-	return &DeterminismError{Message: fmt.Sprintf("command changed at history index %d: history=%q replay=%q", nextIndex, nextType, commandType)}
+	return r.determinismErr
 }
 
-func (r *Replay) nextCommand() (int, string, bool) {
+func (r *Replay) earliestCommand() (int, string, bool) {
 	index := len(r.history)
 	typeName := ""
 	if r.activityCursor < len(r.activities) && r.activities[r.activityCursor].index < index {
@@ -244,7 +267,7 @@ func (r *Replay) NextUpdateBeforeCommand() (*Update, bool) {
 		return nil, false
 	}
 	update := &r.updates[r.updateCursor]
-	commandIndex, _, hasCommand := r.nextCommand()
+	commandIndex, _, hasCommand := r.earliestCommand()
 	if hasCommand && update.index > commandIndex {
 		return nil, false
 	}

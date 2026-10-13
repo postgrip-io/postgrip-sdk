@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { DeterminismError, WorkflowReplay } from '../../src/agent/_replay.js';
 import { Agent } from '../../src/agent/agent.js';
@@ -31,7 +32,7 @@ describe('workflow replay ownership', () => {
     expect((caught as Error).message).toBe('activity command changed at index 1: history=A replay=B');
   });
 
-  it('fails a diverging workflow task with the public DeterminismViolation failure', async () => {
+  it('fails a diverging workflow task with the public WorkflowDeterminismViolation failure', async () => {
     const previousManagedRuntime = process.env.POSTGRIP_AGENT_MANAGED_RUNTIME;
     process.env.POSTGRIP_AGENT_MANAGED_RUNTIME = 'true';
     const connection = {
@@ -84,8 +85,131 @@ describe('workflow replay ownership', () => {
       expect.any(String),
       'activity command changed at index 1: history=A replay=B',
       expect.objectContaining({
-        failure: expect.objectContaining({ type: 'DeterminismViolation', non_retryable: true }),
+        failure: expect.objectContaining({ type: 'WorkflowDeterminismViolation', non_retryable: true }),
       }),
     );
+  });
+});
+
+interface ReplayFixtureStep {
+  command: 'activity' | 'timer' | 'child';
+  name?: string;
+  duration_ms?: number;
+  workflow_type?: string;
+  expect: 'replay' | 'new' | 'nondeterministic';
+}
+
+const FIXTURES = new URL('../../../test/fixtures/replay/', import.meta.url);
+
+describe('shared replay conformance fixtures', () => {
+  for (const file of readdirSync(FIXTURES).filter((name) => name.endsWith('.json')).sort()) {
+    it(file, () => {
+      const fixture = JSON.parse(readFileSync(new URL(file, FIXTURES), 'utf8')) as {
+        history: WorkflowHistoryEvent[];
+        steps: ReplayFixtureStep[];
+      };
+      const replay = new WorkflowReplay(fixture.history);
+      for (const [index, step] of fixture.steps.entries()) {
+        let outcome: ReplayFixtureStep['expect'];
+        try {
+          const event = step.command === 'activity'
+            ? replay.nextActivity(step.name ?? '')
+            : step.command === 'timer'
+              ? replay.nextTimer(step.duration_ms)
+              : replay.nextChild(step.workflow_type ?? '');
+          outcome = event ? 'replay' : 'new';
+        } catch (err) {
+          expect(err).toBeInstanceOf(DeterminismError);
+          outcome = 'nondeterministic';
+        }
+        expect({ index, outcome }).toEqual({ index, outcome: step.expect });
+      }
+      const expectsViolation = fixture.steps.some((step) => step.expect === 'nondeterministic');
+      expect(replay.determinismError !== undefined).toBe(expectsViolation);
+    });
+  }
+});
+
+describe('workflow runtime replay rules', () => {
+  function runtimeConnection(history: WorkflowHistoryEvent[]) {
+    return {
+      health: vi.fn(async () => ({ status: 'ok' })),
+      configureAgentAuth: vi.fn(),
+      getWorkflowHistory: vi.fn(async () => history),
+      heartbeatTask: vi.fn(async () => ({})),
+      appendTaskEvent: vi.fn(async () => ({ id: 'event-1' })),
+      failTask: vi.fn(async () => ({})),
+      completeTask: vi.fn(async () => ({})),
+      blockTask: vi.fn(async () => ({})),
+      enqueueTask: vi.fn(async () => ({})),
+      getTask: vi.fn(async () => ({})),
+    };
+  }
+
+  async function runWorkflowTask(connection: ReturnType<typeof runtimeConnection>, workflows: Record<string, (...args: unknown[]) => Promise<unknown>>, type: string): Promise<void> {
+    const previous = process.env.POSTGRIP_AGENT_MANAGED_RUNTIME;
+    process.env.POSTGRIP_AGENT_MANAGED_RUNTIME = 'true';
+    let agent: Agent;
+    try {
+      agent = await Agent.create({ connection: connection as unknown as Connection, taskQueue: 'default', workflows });
+    } finally {
+      if (previous == null) delete process.env.POSTGRIP_AGENT_MANAGED_RUNTIME;
+      else process.env.POSTGRIP_AGENT_MANAGED_RUNTIME = previous;
+    }
+    await (agent as unknown as { executeTask(task: Task): Promise<void> }).executeTask({
+      id: 'task-1', namespace: 'default', queue: 'default', type: `workflow:${type}`,
+      payload: { workflowType: type, workflowId: 'workflow-1', runId: 'run-1', args: [] },
+      state: 'leased', attempt: 1, lease_timeout_seconds: 30,
+      created_at: '2026-10-13T00:00:00Z', updated_at: '2026-10-13T00:00:00Z',
+    } as Task);
+  }
+
+  it('fails the task when workflow code catches a determinism violation', async () => {
+    const connection = runtimeConnection([scheduled('A')]);
+    const { B } = proxyActivities<{ B(): Promise<string> }>();
+    async function CatchingWorkflow(): Promise<string> {
+      try {
+        await B();
+      } catch {
+        // Ignored on purpose: nondeterminism must still fail the task.
+      }
+      return 'done';
+    }
+    await runWorkflowTask(connection, { CatchingWorkflow }, 'CatchingWorkflow');
+    expect(connection.completeTask).not.toHaveBeenCalled();
+    expect(connection.failTask).toHaveBeenCalledWith(
+      'task-1',
+      expect.any(String),
+      'activity command changed at index 1: history=A replay=B',
+      expect.objectContaining({ failure: expect.objectContaining({ type: 'WorkflowDeterminismViolation' }) }),
+    );
+  });
+
+  it('schedules concurrent new commands one at a time in call order', async () => {
+    const connection = runtimeConnection([]);
+    const order: string[] = [];
+    let releaseFirst!: () => void;
+    const firstHeld = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    connection.enqueueTask = vi.fn(async (request: { type: string }) => {
+      order.push(`start ${request.type}`);
+      if (request.type === 'activity:First') {
+        await firstHeld;
+      }
+      order.push(`end ${request.type}`);
+      return {};
+    });
+    const { First } = proxyActivities<{ First(): Promise<string> }>();
+    const { Second } = proxyActivities<{ Second(): Promise<string> }>();
+    async function ConcurrentWorkflow(): Promise<unknown> {
+      return Promise.all([First(), Second()]);
+    }
+    const running = runWorkflowTask(connection, { ConcurrentWorkflow }, 'ConcurrentWorkflow');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(order).toEqual(['start activity:First']);
+    releaseFirst();
+    await running;
+    expect(order).toEqual(['start activity:First', 'end activity:First', 'start activity:Second', 'end activity:Second']);
   });
 });

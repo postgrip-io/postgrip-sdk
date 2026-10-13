@@ -54,6 +54,8 @@ export class Agent {
   private readonly pollIntervalMs: number;
   private readonly maxConcurrentTasks: number;
   private readonly inFlightTasks = new Set<Promise<void>>();
+  /** Per-invocation chain that schedules new commands one at a time, in call order. */
+  private readonly commandQueues = new WeakMap<WorkflowReplay, Promise<unknown>>();
   private runController: AbortController | undefined;
 
   private constructor(options: AgentOptions) {
@@ -198,6 +200,7 @@ export class Agent {
 
   private async executeWorkflowTaskLeased(task: Task<WorkflowPayload>): Promise<void> {
     const startedAt = new Date().toISOString();
+    let replay: WorkflowReplay | undefined;
     try {
       if (!task.type.startsWith('workflow:')) {
         throw ApplicationFailure.nonRetryable(`unsupported TypeScript task type ${task.type}`, 'UnsupportedTaskType', task.type);
@@ -211,8 +214,9 @@ export class Agent {
       const workflowId = task.payload?.workflowId ?? task.id;
       const workflowRunId = task.payload?.runId ?? workflowId;
       const history = await this.connection.getWorkflowHistory(workflowRunId);
-      const replay = new WorkflowReplay(history);
-      const handlers = new WorkflowHandlers(replay);
+      const workflowReplay = new WorkflowReplay(history);
+      replay = workflowReplay;
+      const handlers = new WorkflowHandlers(workflowReplay);
       await this.emit(task.id, 'started', 'workflow', `started workflow ${workflowType}`, { workflowType });
       const value = await runInWorkflowRuntime({
         workflowId,
@@ -220,19 +224,20 @@ export class Agent {
         taskQueue: task.queue,
         workflowType,
         cancellationScopes: [],
-        executeActivity: (name, args, options) => this.executeActivityCommand(task, replay, name, args, options),
-        executeChild: (name, args, options) => this.executeChildWorkflowCommand(task, replay, name, args, options),
+        executeActivity: (name, args, options) => this.executeActivityCommand(task, workflowReplay, name, args, options),
+        executeChild: (name, args, options) => this.executeChildWorkflowCommand(task, workflowReplay, name, args, options),
         continueAsNew: (name, args, options) => {
           throw new ContinueAsNewCommand(name, args, options);
         },
-        sleep: (ms, cancellationScope) => this.executeTimerCommand(task, replay, ms, cancellationScope),
-        condition: (predicate, timeoutMs, cancellationScope) => this.executeConditionCommand(task, replay, predicate, timeoutMs, cancellationScope),
-        cancellationRequested: () => replay.isCancellationRequested(),
+        sleep: (ms, cancellationScope) => this.executeTimerCommand(task, workflowReplay, ms, cancellationScope),
+        condition: (predicate, timeoutMs, cancellationScope) => this.executeConditionCommand(task, workflowReplay, predicate, timeoutMs, cancellationScope),
+        cancellationRequested: () => workflowReplay.isCancellationRequested(),
         setSignalHandler: (name, handler) => handlers.setSignalHandler(name, handler),
         setQueryHandler: (name, handler) => handlers.setQueryHandler(name, handler),
         setUpdateHandler: (name, handler) => handlers.setUpdateHandler(name, handler),
         emit: (event) => this.emit(task.id, event.kind ?? 'progress', event.stage, event.message, event.details),
       }, () => workflow(...(task.payload?.args ?? [])));
+      throwIfNondeterministic(workflowReplay);
       const result: TaskResult = {
         value,
         message: 'workflow completed',
@@ -241,7 +246,10 @@ export class Agent {
       };
       await this.emit(task.id, 'completed', 'workflow', `completed workflow ${workflowType}`);
       await this.connection.completeTask(task.id, this.identity, result).catch(ignoreTerminalTaskMutation);
-    } catch (err) {
+    } catch (thrown) {
+      // Nondeterminism is sticky: a recorded violation fails the task even when
+      // workflow code caught it and then suspended, continued or raised.
+      const err = replay?.determinismError ? determinismViolation(replay.determinismError.message) : thrown;
       if (err instanceof WorkflowBlocked) {
         await this.connection.blockTask(task.id, this.identity, err.message).catch(ignoreTerminalTaskMutation);
         return;
@@ -329,6 +337,7 @@ export class Agent {
           throw err;
         }
       }
+      throwIfNondeterministic(replay);
       const handler = kind === 'query' ? handlers.queryHandler(name) : handlers.updateHandler(name);
       if (!handler) {
         throw ApplicationFailure.nonRetryable(`${kind} ${name} is not registered`, missingCode, name);
@@ -411,7 +420,7 @@ export class Agent {
       }
       throw new WorkflowBlocked(`waiting for activity ${name}`);
     }
-    await this.connection.enqueueTask<ActivityInvocationPayload>({
+    await this.scheduleInOrder(replay, () => this.connection.enqueueTask<ActivityInvocationPayload>({
       type: `activity:${name}`,
       namespace: workflowTask.namespace,
       queue: workflowTask.queue,
@@ -426,7 +435,7 @@ export class Agent {
         args,
       },
       lease_timeout_seconds: options.startToCloseTimeoutMs ? Math.ceil(options.startToCloseTimeoutMs / 1000) : undefined,
-    });
+    }));
     throw new WorkflowBlocked(`scheduled activity ${name}`);
   }
 
@@ -445,7 +454,7 @@ export class Agent {
     const normalizedDurationMs = Math.max(0, Math.round(durationMs));
     const timerId = crypto.randomUUID();
     const fireAt = new Date(Date.now() + normalizedDurationMs).toISOString();
-    await this.connection.enqueueTask<TimerPayload>({
+    await this.scheduleInOrder(replay, () => this.connection.enqueueTask<TimerPayload>({
       type: 'timer',
       namespace: workflowTask.namespace,
       queue: workflowTask.queue,
@@ -457,7 +466,7 @@ export class Agent {
         durationMs: normalizedDurationMs,
         fireAt,
       },
-    });
+    }));
     throw new WorkflowBlocked(`scheduled timer for ${normalizedDurationMs}ms`);
   }
 
@@ -483,7 +492,7 @@ export class Agent {
       throw new WorkflowBlocked(`waiting for child workflow ${workflowType}`);
     }
     const childWorkflowId = options.workflowId ?? crypto.randomUUID();
-    await this.connection.enqueueTask<WorkflowPayload>({
+    await this.scheduleInOrder(replay, () => this.connection.enqueueTask<WorkflowPayload>({
       type: `workflow:${workflowType}`,
       namespace: workflowTask.namespace,
       queue: options.taskQueue ?? workflowTask.queue,
@@ -500,7 +509,7 @@ export class Agent {
         args,
       },
       lease_timeout_seconds: options.leaseTimeoutSeconds,
-    });
+    }));
     throw new WorkflowBlocked(`scheduled child workflow ${workflowType}`);
   }
 
@@ -618,6 +627,18 @@ export class Agent {
     throw new WorkflowQueryReady('waiting for condition');
   }
 
+  /**
+   * Schedules a new command after every earlier one in this invocation. Commands
+   * issued concurrently (for example with Promise.all) are then recorded in call
+   * order, which is the order replay consumes them.
+   */
+  private scheduleInOrder<T>(replay: WorkflowReplay, schedule: () => Promise<T>): Promise<T> {
+    const previous = this.commandQueues.get(replay) ?? Promise.resolve();
+    const next = previous.then(schedule);
+    this.commandQueues.set(replay, next.catch(() => undefined));
+    return next;
+  }
+
   private throwIfCancelled(replay: WorkflowReplay, cancellationScope: 'cancellable' | 'non_cancellable' = 'cancellable'): void {
     if (cancellationScope === 'non_cancellable' || !replay.isCancellationRequested()) {
       return;
@@ -723,6 +744,12 @@ class WorkflowHandlers {
   }
 }
 
+function throwIfNondeterministic(replay: WorkflowReplay): void {
+  if (replay.determinismError) {
+    throw determinismViolation(replay.determinismError.message);
+  }
+}
+
 /** Runs one replay step, translating a replay-owned determinism error into the public failure. */
 function replayCommand<T>(step: () => T): T {
   try {
@@ -774,7 +801,7 @@ function failureInfoFromError(err: unknown): FailureInfo {
 }
 
 function determinismViolation(message: string): ApplicationFailure {
-  return ApplicationFailure.nonRetryable(message, 'DeterminismViolation');
+  return ApplicationFailure.nonRetryable(message, 'WorkflowDeterminismViolation');
 }
 
 function delay(ms: number, signal?: AbortSignal): Promise<void> {

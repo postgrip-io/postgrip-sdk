@@ -95,8 +95,14 @@ func TestNextActivityAdvancesCursorAndDetectsDeterminism(t *testing.T) {
 	if !errors.As(err, &det) {
 		t.Fatalf("expected DeterminismError, got %T: %v", err, err)
 	}
-	// Cursor still advanced past the violation, so the next call returns nil
-	// (history exhausted).
+	// A mismatch leaves the recorded event unconsumed and is recorded, so a
+	// caught violation still fails the task.
+	if !errors.Is(r.DeterminismErr(), err) {
+		t.Fatalf("DeterminismErr = %v, want the first violation %v", r.DeterminismErr(), err)
+	}
+	if next, err := r.NextActivity("Farewell"); err != nil || next == nil || next.TaskID != "act-2" {
+		t.Fatalf("NextActivity after a mismatch = %+v, err=%v; want the unconsumed act-2", next, err)
+	}
 	if next, err := r.NextActivity("Anything"); err != nil || next != nil {
 		t.Fatalf("NextActivity past end = %+v, err=%v", next, err)
 	}

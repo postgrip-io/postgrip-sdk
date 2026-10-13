@@ -1,0 +1,24 @@
+{
+  "description": "A different timer duration is a determinism error.",
+  "history": [
+    {
+      "type": "TimerStarted",
+      "task_id": "t1",
+      "attributes": {
+        "duration_ms": 1000
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "timer",
+      "duration_ms": 2000,
+      "expect": "nondeterministic"
+    },
+    {
+      "command": "timer",
+      "duration_ms": 1000,
+      "expect": "replay"
+    }
+  ]
+}

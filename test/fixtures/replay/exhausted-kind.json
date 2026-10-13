@@ -1,0 +1,29 @@
+{
+  "description": "A timer issued while only an activity remains is a determinism error, not a new command.",
+  "history": [
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "a1",
+      "attributes": {
+        "activity_type": "A"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "timer",
+      "duration_ms": 1000,
+      "expect": "nondeterministic"
+    },
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "timer",
+      "duration_ms": 1000,
+      "expect": "new"
+    }
+  ]
+}

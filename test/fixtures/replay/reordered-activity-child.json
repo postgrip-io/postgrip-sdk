@@ -1,0 +1,37 @@
+{
+  "description": "A child issued before the recorded activity is a determinism error.",
+  "history": [
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "a1",
+      "attributes": {
+        "activity_type": "A"
+      }
+    },
+    {
+      "type": "ChildWorkflowExecutionStarted",
+      "task_id": "c1",
+      "attributes": {
+        "workflow_type": "Child",
+        "child_workflow_id": "child-c1"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "child",
+      "workflow_type": "Child",
+      "expect": "nondeterministic"
+    },
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "child",
+      "workflow_type": "Child",
+      "expect": "replay"
+    }
+  ]
+}

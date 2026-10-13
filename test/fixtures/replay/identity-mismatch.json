@@ -1,0 +1,29 @@
+{
+  "description": "A different activity type is a determinism error and leaves the recorded event unconsumed.",
+  "history": [
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "a1",
+      "attributes": {
+        "activity_type": "A"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "activity",
+      "name": "B",
+      "expect": "nondeterministic"
+    },
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "new"
+    }
+  ]
+}

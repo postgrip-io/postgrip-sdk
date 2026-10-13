@@ -179,7 +179,7 @@ export function validateWorkflowSandbox(workflow: WorkflowFunction): void {
   if (violations.length > 0) {
     throw ApplicationFailure.nonRetryable(
       `workflow sandbox rejected nondeterministic API use: ${violations.join('; ')}`,
-      'DeterminismViolation',
+      'WorkflowDeterminismViolation',
     );
   }
 }

@@ -7,6 +7,7 @@ import os
 import threading
 import time
 import uuid
+import weakref
 from typing import Any, Awaitable, Callable, Iterable
 
 from . import activity, workflow
@@ -60,6 +61,8 @@ class Agent:
         self._stopping = False
         self._shutdown_timeout: float | None = None
         self._in_flight: set[asyncio.Task[None]] = set()
+        # Per-invocation locks that schedule new commands one at a time, in call order.
+        self._command_locks: weakref.WeakKeyDictionary[WorkflowReplay, asyncio.Lock] = weakref.WeakKeyDictionary()
 
     @classmethod
     async def create(cls, **options: Any) -> "Agent":
@@ -149,7 +152,14 @@ class Agent:
             replay = WorkflowReplay(history)
             handlers = WorkflowHandlers(replay)
             await self._emit(task["id"], "started", "workflow", f"started workflow {workflow_type}", {"workflowType": workflow_type})
-            value = await self._run_workflow(target, task, payload, replay, handlers)
+            try:
+                value = await self._run_workflow(target, task, payload, replay, handlers)
+            except Exception:
+                # Nondeterminism is sticky: a recorded violation fails the task even
+                # when workflow code caught it and then suspended, continued or raised.
+                _raise_if_nondeterministic(replay)
+                raise
+            _raise_if_nondeterministic(replay)
             await self._emit(task["id"], "completed", "workflow", f"completed workflow {workflow_type}")
             await self._complete_task(task, {
                 "value": value,
@@ -201,6 +211,7 @@ class Agent:
                 await self._run_workflow(target, source_task, source_task.get("payload") or {}, replay, handlers, query_mode=True)
             except WorkflowQueryReady:
                 pass
+            _raise_if_nondeterministic(replay)
             handler = handlers.query_handler(name) if kind == "query" else handlers.update_handler(name)
             if handler is None:
                 raise ApplicationFailure.non_retryable_failure(f"{kind} {name} is not registered", missing_code, name)
@@ -276,7 +287,7 @@ class Agent:
                 raise ApplicationFailure(str(task.get("error") or "activity failed"), type="ActivityFailure")
             raise WorkflowBlocked(f"waiting for activity {name}")
         payload = workflow_task.get("payload") or {}
-        await asyncio.to_thread(self.connection.enqueue_task, {
+        await self._schedule_in_order(replay, self.connection.enqueue_task, {
             "type": f"activity:{name}",
             "namespace": workflow_task["namespace"],
             "queue": workflow_task["queue"],
@@ -307,7 +318,7 @@ class Agent:
                 return
             raise WorkflowBlocked("waiting for timer")
         payload = workflow_task.get("payload") or {}
-        await asyncio.to_thread(self.connection.enqueue_task, {
+        await self._schedule_in_order(replay, self.connection.enqueue_task, {
             "type": "timer",
             "namespace": workflow_task["namespace"],
             "queue": workflow_task["queue"],
@@ -337,7 +348,7 @@ class Agent:
             raise WorkflowBlocked(f"waiting for child workflow {workflow_type}")
         payload = workflow_task.get("payload") or {}
         child_workflow_id = options.get("workflow_id") or options.get("workflowId") or str(uuid.uuid4())
-        await asyncio.to_thread(self.connection.enqueue_task, {
+        await self._schedule_in_order(replay, self.connection.enqueue_task, {
             "type": f"workflow:{workflow_type}",
             "namespace": workflow_task["namespace"],
             "queue": options.get("task_queue") or options.get("taskQueue") or workflow_task["queue"],
@@ -521,6 +532,16 @@ class Agent:
             if not is_terminal_task_mutation(fail_exc):
                 raise
 
+    async def _schedule_in_order(self, replay: WorkflowReplay, enqueue: Callable[..., Any], *args: Any) -> Any:
+        """Schedule a new command after every earlier one in this invocation.
+
+        Commands issued concurrently (for example with ``asyncio.gather``) are
+        then recorded in call order, which is the order replay consumes them.
+        """
+        lock = self._command_locks.setdefault(replay, asyncio.Lock())
+        async with lock:
+            return await asyncio.to_thread(enqueue, *args)
+
     def _throw_if_cancelled(self, replay: WorkflowReplay, cancellation_scope: str | None = "cancellable") -> None:
         if cancellation_scope == "non_cancellable" or not replay.is_cancellation_requested():
             return
@@ -598,6 +619,11 @@ class WorkflowHandlers:
 
     def update_handler(self, name: str) -> Callable[..., Any] | None:
         return self.update_handlers.get(name)
+
+
+def _raise_if_nondeterministic(replay: WorkflowReplay) -> None:
+    if replay.determinism_error is not None:
+        raise _determinism_violation(str(replay.determinism_error)) from None
 
 
 def _replay_command(step: Callable[[], Any]) -> Any:
@@ -685,7 +711,7 @@ def _child_run_id_from_event(event: dict[str, Any]) -> str | None:
 
 
 def _determinism_violation(message: str) -> ApplicationFailure:
-    return ApplicationFailure.non_retryable_failure(message, "DeterminismViolation")
+    return ApplicationFailure.non_retryable_failure(message, "WorkflowDeterminismViolation")
 
 
 def _raise_continue_as_new(workflow_type: str, args: list[Any], options: dict[str, Any]) -> None:
