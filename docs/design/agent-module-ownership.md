@@ -54,7 +54,7 @@ consumed, never on a concrete adapter class:
 | Workflow operations | get, list, count, history (page and walk), signal, signal-with-start, cancel, terminate |
 | Schedule operations | create, get, list, update, delete, pause, unpause, trigger, backfill |
 | Sandbox operations | sandbox and workspace lifecycle, session creation, archive upload |
-| Runtime operations | health, poll, heartbeat, complete, fail, block, append event, agent auth configuration, workflow history and task pages |
+| Runtime operations | health, poll, heartbeat, complete, fail, block, append event, agent auth configuration, workflow history and task pages, workflow execution and task lookup, and enqueue for the commands workflows schedule |
 
 - **Go.** Unexported interfaces in `agent/client` (for example `taskOps`) are
   satisfied by `*Connection`. The client structs hold those interfaces.
@@ -83,7 +83,9 @@ Root and plane constructors keep composing the concrete `Connection`.
 
 Each split moves code without changing it, apart from imports. The old module
 re-exports every public name it previously defined, so import paths keep
-working:
+working. It also re-exports the private helpers that existing tests import from
+it: `_parse_timestamp` from `postgrip.agent.client`, and
+`_same_origin_websocket_connection_factory` from `postgrip.agent.sandbox`.
 
 - **Python Agent client.** `agent/_connection.py` takes the `Connection`
   adapter: HTTP, signing, session and the opener. Multi-page history walking,
