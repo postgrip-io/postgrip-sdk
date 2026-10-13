@@ -2,23 +2,27 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Iterator, Mapping
-from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from http.client import HTTPConnection, HTTPSConnection
 import json
 import os
 import random
-import socket
-from threading import Event, Thread
+from threading import Event
 import time
 from typing import Any, Literal, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
-from urllib.request import HTTPHandler, HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
+from urllib.request import HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
 
 from .._internal.config import validate_base_url, validate_idempotency_key, validate_management_token
+from .._internal.http import (
+    REQUEST_CANCEL_EVENT,
+    CancellationAwareHTTPHandler,
+    CancellationAwareHTTPSHandler,
+    RequestCancelled,
+    run_cancellable,
+)
 from .._internal.pagination import iterate_pages, iterate_pages_async
 
 from .openapi import (
@@ -43,103 +47,6 @@ from .openapi import (
 
 _RETRYABLE_STATUS = {408, 429, 502, 503, 504}
 _MAX_RESPONSE_BYTES = 4 << 20
-_REQUEST_CANCEL_EVENT: ContextVar[Event | None] = ContextVar("postgrip_worker_request_cancel", default=None)
-
-
-class _RequestCancelled(Exception):
-    pass
-
-
-class _CancellationAwareConnection:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self._cancel_event = _REQUEST_CANCEL_EVENT.get()
-        self._request_done = Event()
-        self._receiving_response = False
-        self._response_open = False
-        self._active_socket: socket.socket | None = None
-        if self._cancel_event is not None:
-            Thread(target=self._watch_for_cancellation, daemon=True).start()
-
-    def _watch_for_cancellation(self) -> None:
-        assert self._cancel_event is not None
-        while not self._request_done.wait(0.01):
-            if self._cancel_event.is_set():
-                active_socket = self._active_socket
-                if active_socket is not None:
-                    try:
-                        active_socket.shutdown(socket.SHUT_RDWR)
-                    except OSError:
-                        pass
-                super().close()
-                return
-
-    def connect(self) -> None:
-        if self._cancel_event is not None and self._cancel_event.is_set():
-            raise OSError("request cancelled")
-        super().connect()
-        self._active_socket = self.sock
-        if self._cancel_event is not None and self._cancel_event.is_set():
-            try:
-                if self._active_socket is not None:
-                    self._active_socket.shutdown(socket.SHUT_RDWR)
-            finally:
-                super().close()
-            raise OSError("request cancelled")
-
-    def getresponse(self) -> Any:
-        self._receiving_response = True
-        try:
-            response = super().getresponse()
-        except BaseException:
-            self._request_done.set()
-            raise
-        finally:
-            self._receiving_response = False
-        self._response_open = True
-        close_response = response.close
-
-        def close() -> None:
-            try:
-                close_response()
-            finally:
-                self._response_open = False
-                self._request_done.set()
-
-        response.close = close
-        return response
-
-    def close(self) -> None:
-        super().close()
-        if not self._receiving_response and not self._response_open:
-            self._request_done.set()
-
-
-class _CancellationAwareHTTPConnection(_CancellationAwareConnection, HTTPConnection):
-    pass
-
-
-class _CancellationAwareHTTPSConnection(_CancellationAwareConnection, HTTPSConnection):
-    pass
-
-
-class _CancellationAwareHTTPHandler(HTTPHandler):
-    handler_order = 400
-
-    def http_open(self, request: Request) -> Any:
-        return self.do_open(_CancellationAwareHTTPConnection, request)
-
-
-class _CancellationAwareHTTPSHandler(HTTPSHandler):
-    handler_order = 400
-
-    def https_open(self, request: Request) -> Any:
-        return self.do_open(
-            _CancellationAwareHTTPSConnection,
-            request,
-            context=getattr(self, "_context", None),
-            check_hostname=getattr(self, "_check_hostname", None),
-        )
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -157,8 +64,8 @@ def _redirect_safe_opener(opener: OpenerDirector | None) -> OpenerDirector:
                 https_check_hostname = getattr(handler, "_check_hostname", None)
                 break
     cancellation_handlers = (
-        _CancellationAwareHTTPHandler(),
-        _CancellationAwareHTTPSHandler(context=https_context, check_hostname=https_check_hostname),
+        CancellationAwareHTTPHandler(),
+        CancellationAwareHTTPSHandler(context=https_context, check_hostname=https_check_hostname),
     )
     if opener is None:
         return build_opener(_NoRedirect(), *cancellation_handlers)
@@ -376,13 +283,13 @@ class WorkerClient:
         cursor = query.pop("cursor", None)
         last_id: int | None = None
         while cancel is None or not cancel.is_set():
-            cancel_token = _REQUEST_CANCEL_EVENT.set(cancel)
+            cancel_token = REQUEST_CANCEL_EVENT.set(cancel)
             try:
                 page = loader(worker_id, cursor=cursor, **query)
-            except _RequestCancelled:
+            except RequestCancelled:
                 return
             finally:
-                _REQUEST_CANCEL_EVENT.reset(cancel_token)
+                REQUEST_CANCEL_EVENT.reset(cancel_token)
             cursor = page["nextCursor"]
             for entry in page["items"]:
                 if cancel is not None and cancel.is_set():
@@ -408,10 +315,10 @@ class WorkerClient:
         operation = resolve_openapi_operation(operation_id, path, clean_query)
         attempts = 3 if self._enable_retries and (operation.method == "GET" or idempotency_key) else 1
         endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
-        cancel_event = _REQUEST_CANCEL_EVENT.get()
+        cancel_event = REQUEST_CANCEL_EVENT.get()
         for attempt in range(1, attempts + 1):
             if cancel_event is not None and cancel_event.is_set():
-                raise _RequestCancelled
+                raise RequestCancelled
             encoded_body = None if body is None else json.dumps(body, separators=(",", ":")).encode("utf-8")
             request = Request(endpoint, data=encoded_body, method=operation.method, headers={
                 "Accept": "application/json",
@@ -424,33 +331,33 @@ class WorkerClient:
                     return _decode_success(response)
             except HTTPError as error:
                 if cancel_event is not None and cancel_event.is_set():
-                    raise _RequestCancelled from None
+                    raise RequestCancelled from None
                 api_error = _decode_http_error(error)
                 if attempt < attempts and error.code in _RETRYABLE_STATUS:
                     retry_after = api_error.retry_after if error.code in {429, 503} else None
                     delay = retry_after if retry_after is not None else _jitter(attempt)
                     if cancel_event is not None:
                         if cancel_event.wait(delay):
-                            raise _RequestCancelled
+                            raise RequestCancelled
                     else:
                         time.sleep(delay)
                     continue
                 raise api_error from None
             except URLError:
                 if cancel_event is not None and cancel_event.is_set():
-                    raise _RequestCancelled from None
+                    raise RequestCancelled from None
                 if attempt < attempts:
                     delay = _jitter(attempt)
                     if cancel_event is not None:
                         if cancel_event.wait(delay):
-                            raise _RequestCancelled
+                            raise RequestCancelled
                     else:
                         time.sleep(delay)
                     continue
                 raise
             except Exception:
                 if cancel_event is not None and cancel_event.is_set():
-                    raise _RequestCancelled from None
+                    raise RequestCancelled from None
                 raise
         raise RuntimeError("PostGrip Worker request attempts exhausted")
 
@@ -472,15 +379,7 @@ class AsyncWorkerClient:
         return cls(**options)
 
     async def _run(self, callback: Any, *args: Any, **kwargs: Any) -> Any:
-        cancel_event = Event()
-        token = _REQUEST_CANCEL_EVENT.set(cancel_event)
-        try:
-            return await asyncio.to_thread(callback, *args, **kwargs)
-        except asyncio.CancelledError:
-            cancel_event.set()
-            raise
-        finally:
-            _REQUEST_CANCEL_EVENT.reset(token)
+        return await run_cancellable(callback, *args, **kwargs)
 
     async def list(self, **options: Any) -> ListWorkersResponseBody:
         return await self._run(self._sync.list, **options)
