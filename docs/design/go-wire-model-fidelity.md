@@ -43,14 +43,15 @@ and [validation](../development/testing.md).
 The contract is the owner of every HTTP model. The 59 `go/protocol`
 declarations remain the public Go representation of their schemas, because
 removing or retyping them would break callers. They are a declared compatibility
-mechanism, not an independent model. Both guides state this:
+mechanism, not an independent model. Today the guides disagree, as described
+above. The fidelity-check slice updates both so they state:
 
-- [Contracts](../development/contracts.md) states that `go/protocol` holds
+- [Contracts](../development/contracts.md): `go/protocol` holds
   runtime-only types plus the compatibility declarations for the
   `GO_PROTOCOL_SCHEMAS` list, which the generator aliases and the fidelity check
   verifies against the contract.
-- [Architecture](../development/architecture.md) states the same exception
-  instead of a blanket prohibition. No other HTTP model may be declared by hand.
+- [Architecture](../development/architecture.md): the same exception, instead
+  of a blanket prohibition. No other HTTP model may be declared by hand.
 
 A fidelity check replaces the field-name comparison for those schemas. For
 every property it requires the following of the Go field:
@@ -62,7 +63,13 @@ every property it requires the following of the Go field:
 - `omitempty` exactly when the property is optional, unless the field is a
   non-pointer value whose zero value the schema rejects;
 - a pointer, slice or map exactly when the property is optional and nullable,
-  or presence-aware.
+  or presence-aware;
+- for an optional nullable property, an entry in the `go/protocol` presence
+  round-trip test table. A pointer alone also collapses `null` into omission, so
+  the check requires every optional nullable property in the contract to appear
+  in that table, and the table's tests prove absent, `null` and value round-trip
+  unchanged. Removing a type's presence handling then fails its tests, and
+  adding a nullable property without an entry fails the check.
 
 The check runs in `check_drift.py` with self-test fixtures for each rule.
 Mismatches it finds are corrected in the declarations in the same PR when the
@@ -88,6 +95,14 @@ A value decoded from `{"task":null}` therefore re-encodes as `{"task":null}`. A
 value built in code has no record and encodes exactly as today. Equality of two
 values can now differ only in that record.
 
+Adding a field, even an unexported one, stops unkeyed composite literals of
+these two types from compiling, for example
+`protocol.PollTaskResponse{task, directive}`. Keyed literals, field access and
+encoding are unaffected. This follows Go's compatibility convention, under which
+adding struct fields is compatible and unkeyed literals of another package's
+structs may break; `go vet` already reports such literals. The release notes
+still name it as a source-compatibility note for the two types.
+
 The generator rejects an optional nullable property in any schema it generates
 as a Go struct, rather than mapping it lossily. None exists today, and one that
 appears needs its presence support designed first.
@@ -111,18 +126,21 @@ needs `&`. The release notes record it as a breaking change under the
 - No exported name is removed.
 - `protocol.PollTaskResponse` and `protocol.Sandbox` keep their exported fields.
   Decoded values re-encode explicit `null`s, and constructed values encode as
-  today.
+  today. Unkeyed literals of these two types stop compiling, as described
+  above, and the release notes say so.
 - `OpenAPIServiceRuntimeLogWorkerStatus.Settings` and `.Storage` become
-  pointers. This is the only breaking change, and the release notes record it.
+  pointers. This is a breaking change to exported field types, and the release
+  notes record it.
 - Protocol declarations change only where the fidelity check finds a mismatch
   that can be corrected compatibly.
 
 ## Delivery slices
 
-1. **Fidelity check and policy.** Add the check and its self-test, correct any
-   compatible mismatches, and update the contracts and architecture guides.
-2. **Nullable presence.** Add presence handling to `PollTaskResponse` and
-   `Sandbox`, plus the generator rejection.
+1. **Nullable presence.** Add presence handling to `PollTaskResponse` and
+   `Sandbox` with the round-trip test table, plus the generator rejection.
+2. **Fidelity check and policy.** Add the check and its self-test, including
+   the round-trip table rule, correct any compatible mismatches, and update the
+   contracts and architecture guides.
 3. **Optional inline objects.** Change the generator, regenerate, and add the
    release note.
 
@@ -130,11 +148,13 @@ Each slice is its own PR under the [review process](../development/contributing.
 
 ## Acceptance
 
-- Slice 1: self-test fixtures prove each fidelity rule fails on a synthetic
-  mismatch. `check_drift.py --monorepo` passes on the corrected declarations.
-- Slice 2: round-trip tests cover absent, `null` and value for each of the five
+- Slice 1: round-trip tests cover absent, `null` and value for each of the five
   properties, and a constructed value encodes as before. A generator fixture
   with an optional nullable property fails generation.
+- Slice 2: self-test fixtures prove each fidelity rule fails on a synthetic
+  mismatch, including an optional nullable property missing from the
+  round-trip table. `check_drift.py --monorepo` passes on the corrected
+  declarations.
 - Slice 3: `ServiceRuntimeLogWorkerStatus` round-trips with `settings` and
   `storage` absent, present-empty and populated. Only the Service generated Go
   file changes.
