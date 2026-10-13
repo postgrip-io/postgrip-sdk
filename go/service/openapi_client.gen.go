@@ -9,15 +9,22 @@ import (
 	"net/url"
 )
 
+// openAPIOperationExecutor is the contract generated operations depend on:
+// execute one resolved JSON operation. The plane's Connection implements it
+// and is injected by OpenAPI, so generated code holds no concrete adapter.
+type openAPIOperationExecutor interface {
+	doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error
+}
+
 // OpenAPIClient is the generated low-level JSON API. Streaming workspace
 // uploads and WebSocket sessions remain on Connection's custom adapters.
 type OpenAPIClient struct {
-	connection *Connection
+	executor openAPIOperationExecutor
 }
 
 // OpenAPI returns the generated low-level client bound to this connection.
 func (c *Connection) OpenAPI() *OpenAPIClient {
-	return &OpenAPIClient{connection: c}
+	return &OpenAPIClient{executor: c}
 }
 
 // Do executes an ordinary generated JSON operation by stable operation ID.
@@ -32,7 +39,7 @@ func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParamete
 		return fmt.Errorf("postgrip-agent: operation %q requires its protocol adapter", operationID)
 	}
 	ctx = withOpenAPIHeaders(ctx, headers)
-	return c.connection.doOpenAPI(ctx, id, pathParameters, query, body, out)
+	return c.executor.doOpenAPI(ctx, id, pathParameters, query, body, out)
 }
 
 type OpenAPICheckServiceGitHubRepositoryFileQuery struct {
@@ -1273,617 +1280,617 @@ func (p OpenAPIVerifyServiceDomainHeaders) values() http.Header {
 
 func (c *OpenAPIClient) AdoptGitHubRepository(ctx context.Context, serviceId string, headers OpenAPIAdoptGitHubRepositoryHeaders, body OpenAPIAdoptGitHubRepositoryRequestBody) (OpenAPIAdoptGitHubRepositoryResponseBody, error) {
 	var response OpenAPIAdoptGitHubRepositoryResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIAdoptGitHubRepository, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIAdoptGitHubRepository, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ApplyPostGripConfigurationPlan(ctx context.Context, stackKey string, planId string, headers OpenAPIApplyPostGripConfigurationPlanHeaders, body OpenAPIApplyPostGripConfigurationPlanRequestBody) (OpenAPIApplyPostGripConfigurationPlanResponseBody, error) {
 	var response OpenAPIApplyPostGripConfigurationPlanResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyPostGripConfigurationPlan, map[string]string{"stackKey": stackKey, "planId": planId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyPostGripConfigurationPlan, map[string]string{"stackKey": stackKey, "planId": planId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ApplyServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, planId string, headers OpenAPIApplyServiceDNSPlanHeaders, body OpenAPIApplyServiceDNSPlanRequestBody) (OpenAPIApplyServiceDNSPlanResponseBody, error) {
 	var response OpenAPIApplyServiceDNSPlanResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ApplyServiceVariables(ctx context.Context, serviceId string, headers OpenAPIApplyServiceVariablesHeaders, body OpenAPIApplyServiceVariablesRequestBody) (OpenAPIApplyServiceVariablesResponseBody, error) {
 	var response OpenAPIApplyServiceVariablesResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyServiceVariables, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIApplyServiceVariables, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) AttachTargetService(ctx context.Context, headers OpenAPIAttachTargetServiceHeaders, body OpenAPIAttachTargetServiceRequestBody) (OpenAPIAttachTargetServiceResponseBody, error) {
 	var response OpenAPIAttachTargetServiceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIAttachTargetService, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIAttachTargetService, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) BindServiceVolume(ctx context.Context, serviceId string, environmentId string, headers OpenAPIBindServiceVolumeHeaders, body OpenAPIBindServiceVolumeRequestBody) (OpenAPIBindServiceVolumeResponseBody, error) {
 	var response OpenAPIBindServiceVolumeResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIBindServiceVolume, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIBindServiceVolume, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CancelServiceDeployment(ctx context.Context, serviceId string, deploymentId string, headers OpenAPICancelServiceDeploymentHeaders) (OpenAPICancelServiceDeploymentResponseBody, error) {
 	var response OpenAPICancelServiceDeploymentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICancelServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICancelServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CancelServiceReleaseGroup(ctx context.Context, releaseGroupId string, headers OpenAPICancelServiceReleaseGroupHeaders) (OpenAPICancelServiceReleaseGroupResponseBody, error) {
 	var response OpenAPICancelServiceReleaseGroupResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICancelServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICancelServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CheckService(ctx context.Context, source string, serviceId string, headers OpenAPICheckServiceHeaders, body *OpenAPICheckServiceRequestBody) (OpenAPICheckServiceResponseBody, error) {
 	var response OpenAPICheckServiceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICheckService, map[string]string{"source": source, "serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICheckService, map[string]string{"source": source, "serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CheckServiceGitHubRepositoryFile(ctx context.Context, query OpenAPICheckServiceGitHubRepositoryFileQuery) (OpenAPICheckServiceGitHubRepositoryFileResponseBody, error) {
 	var response OpenAPICheckServiceGitHubRepositoryFileResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICheckServiceGitHubRepositoryFile, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICheckServiceGitHubRepositoryFile, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ClearServiceRepositoryCredential(ctx context.Context, serviceId string, credentialKind string, headers OpenAPIClearServiceRepositoryCredentialHeaders) (OpenAPIClearServiceRepositoryCredentialResponseBody, error) {
 	var response OpenAPIClearServiceRepositoryCredentialResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ClearServiceVariableValue(ctx context.Context, serviceId string, environmentId string, variableId string, headers OpenAPIClearServiceVariableValueHeaders) (OpenAPIClearServiceVariableValueResponseBody, error) {
 	var response OpenAPIClearServiceVariableValueResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearServiceVariableValue, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearServiceVariableValue, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ClearTargetServiceConnection(ctx context.Context, serviceId string, headers OpenAPIClearTargetServiceConnectionHeaders) (OpenAPIClearTargetServiceConnectionResponseBody, error) {
 	var response OpenAPIClearTargetServiceConnectionResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearTargetServiceConnection, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearTargetServiceConnection, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreatePostGripConfigurationPlan(ctx context.Context, stackKey string, headers OpenAPICreatePostGripConfigurationPlanHeaders, body OpenAPICreatePostGripConfigurationPlanRequestBody) (OpenAPICreatePostGripConfigurationPlanResponseBody, error) {
 	var response OpenAPICreatePostGripConfigurationPlanResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreatePostGripConfigurationPlan, map[string]string{"stackKey": stackKey}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreatePostGripConfigurationPlan, map[string]string{"stackKey": stackKey}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceApp(ctx context.Context, headers OpenAPICreateServiceAppHeaders, body OpenAPICreateServiceAppRequestBody) (OpenAPICreateServiceAppResponseBody, error) {
 	var response OpenAPICreateServiceAppResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceApp, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceApp, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPICreateServiceDNSPlanHeaders, body OpenAPICreateServiceDNSPlanRequestBody) (OpenAPICreateServiceDNSPlanResponseBody, error) {
 	var response OpenAPICreateServiceDNSPlanResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceDomain(ctx context.Context, serviceId string, environmentId string, headers OpenAPICreateServiceDomainHeaders, body OpenAPICreateServiceDomainRequestBody) (OpenAPICreateServiceDomainResponseBody, error) {
 	var response OpenAPICreateServiceDomainResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceEnvironment(ctx context.Context, serviceId string, headers OpenAPICreateServiceEnvironmentHeaders, body OpenAPICreateServiceEnvironmentRequestBody) (OpenAPICreateServiceEnvironmentResponseBody, error) {
 	var response OpenAPICreateServiceEnvironmentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceEnvironment, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceEnvironment, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceProject(ctx context.Context, headers OpenAPICreateServiceProjectHeaders, body OpenAPICreateServiceProjectRequestBody) (OpenAPICreateServiceProjectResponseBody, error) {
 	var response OpenAPICreateServiceProjectResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceProject, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceProject, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceReleaseGroup(ctx context.Context, headers OpenAPICreateServiceReleaseGroupHeaders, body OpenAPICreateServiceReleaseGroupRequestBody) (OpenAPICreateServiceReleaseGroupResponseBody, error) {
 	var response OpenAPICreateServiceReleaseGroupResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceReleaseGroup, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceReleaseGroup, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceVariable(ctx context.Context, serviceId string, environmentId string, headers OpenAPICreateServiceVariableHeaders, body OpenAPICreateServiceVariableRequestBody) (OpenAPICreateServiceVariableResponseBody, error) {
 	var response OpenAPICreateServiceVariableResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceVariable, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceVariable, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateServiceVolume(ctx context.Context, serviceId string, headers OpenAPICreateServiceVolumeHeaders, body OpenAPICreateServiceVolumeRequestBody) (OpenAPICreateServiceVolumeResponseBody, error) {
 	var response OpenAPICreateServiceVolumeResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceVolume, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateServiceVolume, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceApp(ctx context.Context, appId string, headers OpenAPIDeleteServiceAppHeaders) (OpenAPIDeleteServiceAppResponseBody, error) {
 	var response OpenAPIDeleteServiceAppResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceApp, map[string]string{"appId": appId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceApp, map[string]string{"appId": appId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceComposeFile(ctx context.Context, serviceId string, environmentId string, headers OpenAPIDeleteServiceComposeFileHeaders) (OpenAPIDeleteServiceComposeFileResponseBody, error) {
 	var response OpenAPIDeleteServiceComposeFileResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceDomain(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIDeleteServiceDomainHeaders) (OpenAPIDeleteServiceDomainResponseBody, error) {
 	var response OpenAPIDeleteServiceDomainResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceEnvironment(ctx context.Context, serviceId string, environmentId string, headers OpenAPIDeleteServiceEnvironmentHeaders, body OpenAPIDeleteServiceEnvironmentRequestBody) (OpenAPIDeleteServiceEnvironmentResponseBody, error) {
 	var response OpenAPIDeleteServiceEnvironmentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceProject(ctx context.Context, serviceId string, headers OpenAPIDeleteServiceProjectHeaders, body OpenAPIDeleteServiceProjectRequestBody) (OpenAPIDeleteServiceProjectResponseBody, error) {
 	var response OpenAPIDeleteServiceProjectResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceProject, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceProject, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceVariable(ctx context.Context, serviceId string, environmentId string, variableId string, headers OpenAPIDeleteServiceVariableHeaders) (OpenAPIDeleteServiceVariableResponseBody, error) {
 	var response OpenAPIDeleteServiceVariableResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceVariable, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceVariable, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteServiceVolume(ctx context.Context, serviceId string, volumeRef string, headers OpenAPIDeleteServiceVolumeHeaders, body OpenAPIDeleteServiceVolumeRequestBody) (OpenAPIDeleteServiceVolumeResponseBody, error) {
 	var response OpenAPIDeleteServiceVolumeResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceVolume, map[string]string{"serviceId": serviceId, "volumeRef": volumeRef}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeleteServiceVolume, map[string]string{"serviceId": serviceId, "volumeRef": volumeRef}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeployService(ctx context.Context, serviceId string, headers OpenAPIDeployServiceHeaders, body OpenAPIDeployServiceRequestBody) (OpenAPIDeployServiceResponseBody, error) {
 	var response OpenAPIDeployServiceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeployService, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDeployService, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DetachTargetService(ctx context.Context, serviceId string, headers OpenAPIDetachTargetServiceHeaders, body OpenAPIDetachTargetServiceRequestBody) (OpenAPIDetachTargetServiceResponseBody, error) {
 	var response OpenAPIDetachTargetServiceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDetachTargetService, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIDetachTargetService, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ExportServiceVariables(ctx context.Context, serviceId string, environmentId string) (OpenAPIExportServiceVariablesResponseBody, error) {
 	var response OpenAPIExportServiceVariablesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIExportServiceVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIExportServiceVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) FlushServiceBuildLogs(ctx context.Context, serviceId string, headers OpenAPIFlushServiceBuildLogsHeaders) (OpenAPIFlushServiceBuildLogsResponseBody, error) {
 	var response OpenAPIFlushServiceBuildLogsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceBuildLogs, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceBuildLogs, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) FlushServiceRuntimeLogs(ctx context.Context, serviceId string, query OpenAPIFlushServiceRuntimeLogsQuery, headers OpenAPIFlushServiceRuntimeLogsHeaders) (OpenAPIFlushServiceRuntimeLogsResponseBody, error) {
 	var response OpenAPIFlushServiceRuntimeLogsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceRuntimeLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceRuntimeLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) FlushServiceTraffic(ctx context.Context, serviceId string, query OpenAPIFlushServiceTrafficQuery, headers OpenAPIFlushServiceTrafficHeaders) (OpenAPIFlushServiceTrafficResponseBody, error) {
 	var response OpenAPIFlushServiceTrafficResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceTraffic, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceTraffic, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetPostGripConfigurationPlan(ctx context.Context, stackKey string, planId string) (OpenAPIGetPostGripConfigurationPlanResponseBody, error) {
 	var response OpenAPIGetPostGripConfigurationPlanResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetPostGripConfigurationPlan, map[string]string{"stackKey": stackKey, "planId": planId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetPostGripConfigurationPlan, map[string]string{"stackKey": stackKey, "planId": planId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetPostGripConfigurationStack(ctx context.Context, stackKey string) (OpenAPIGetPostGripConfigurationStackResponseBody, error) {
 	var response OpenAPIGetPostGripConfigurationStackResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetPostGripConfigurationStack, map[string]string{"stackKey": stackKey}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetPostGripConfigurationStack, map[string]string{"stackKey": stackKey}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetPostGripConfigurationStackOperation(ctx context.Context, stackKey string, operationId string) (OpenAPIGetPostGripConfigurationStackOperationResponseBody, error) {
 	var response OpenAPIGetPostGripConfigurationStackOperationResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetPostGripConfigurationStackOperation, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetPostGripConfigurationStackOperation, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetService(ctx context.Context, source string, serviceId string) (OpenAPIGetServiceResponseBody, error) {
 	var response OpenAPIGetServiceResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetService, map[string]string{"source": source, "serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetService, map[string]string{"source": source, "serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceApp(ctx context.Context, appId string) (OpenAPIGetServiceAppResponseBody, error) {
 	var response OpenAPIGetServiceAppResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceApp, map[string]string{"appId": appId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceApp, map[string]string{"appId": appId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceBuildLogSettings(ctx context.Context, serviceId string) (OpenAPIGetServiceBuildLogSettingsResponseBody, error) {
 	var response OpenAPIGetServiceBuildLogSettingsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceBuildLogSettings, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceBuildLogSettings, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceComposeFile(ctx context.Context, serviceId string, environmentId string) (OpenAPIGetServiceComposeFileResponseBody, error) {
 	var response OpenAPIGetServiceComposeFileResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceConfigurationOperation(ctx context.Context, operationId string) (OpenAPIGetServiceConfigurationOperationResponseBody, error) {
 	var response OpenAPIGetServiceConfigurationOperationResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceDNSCanonicalState(ctx context.Context, serviceId string, environmentId string, domainId string) (OpenAPIGetServiceDNSCanonicalStateResponseBody, error) {
 	var response OpenAPIGetServiceDNSCanonicalStateResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDNSCanonicalState, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDNSCanonicalState, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceDNSFailoverPolicy(ctx context.Context, serviceId string, environmentId string, domainId string) (OpenAPIGetServiceDNSFailoverPolicyResponseBody, error) {
 	var response OpenAPIGetServiceDNSFailoverPolicyResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDNSFailoverPolicy, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDNSFailoverPolicy, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, planId string) (OpenAPIGetServiceDNSPlanResponseBody, error) {
 	var response OpenAPIGetServiceDNSPlanResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceDeployment(ctx context.Context, serviceId string, deploymentId string) (OpenAPIGetServiceDeploymentResponseBody, error) {
 	var response OpenAPIGetServiceDeploymentResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceDeploymentScreenshot(ctx context.Context, serviceId string, deploymentId string) (OpenAPIGetServiceDeploymentScreenshotResponseBody, error) {
 	var response OpenAPIGetServiceDeploymentScreenshotResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDeploymentScreenshot, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDeploymentScreenshot, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceDomainVerification(ctx context.Context, serviceId string, environmentId string, domainId string) (OpenAPIGetServiceDomainVerificationResponseBody, error) {
 	var response OpenAPIGetServiceDomainVerificationResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceDomainVerification, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDomainVerification, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceEnvironment(ctx context.Context, serviceId string, environmentId string) (OpenAPIGetServiceEnvironmentResponseBody, error) {
 	var response OpenAPIGetServiceEnvironmentResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceEnvironmentRemovalImpact(ctx context.Context, serviceId string, environmentId string) (OpenAPIGetServiceEnvironmentRemovalImpactResponseBody, error) {
 	var response OpenAPIGetServiceEnvironmentRemovalImpactResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceEnvironmentRemovalImpact, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceEnvironmentRemovalImpact, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceProjectRemovalImpact(ctx context.Context, serviceId string) (OpenAPIGetServiceProjectRemovalImpactResponseBody, error) {
 	var response OpenAPIGetServiceProjectRemovalImpactResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceProjectRemovalImpact, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceProjectRemovalImpact, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceReleaseGroup(ctx context.Context, releaseGroupId string) (OpenAPIGetServiceReleaseGroupResponseBody, error) {
 	var response OpenAPIGetServiceReleaseGroupResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceRepository(ctx context.Context, serviceId string) (OpenAPIGetServiceRepositoryResponseBody, error) {
 	var response OpenAPIGetServiceRepositoryResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceRepository, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceRepository, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceRuntimeLogSettings(ctx context.Context, serviceId string, query OpenAPIGetServiceRuntimeLogSettingsQuery) (OpenAPIGetServiceRuntimeLogSettingsResponseBody, error) {
 	var response OpenAPIGetServiceRuntimeLogSettingsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceRuntimeLogSettings, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceRuntimeLogSettings, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceStatus(ctx context.Context, source string, serviceId string, query OpenAPIGetServiceStatusQuery) (OpenAPIGetServiceStatusResponseBody, error) {
 	var response OpenAPIGetServiceStatusResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceStatus, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceStatus, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceTrafficReport(ctx context.Context, serviceId string, query OpenAPIGetServiceTrafficReportQuery) (OpenAPIGetServiceTrafficReportResponseBody, error) {
 	var response OpenAPIGetServiceTrafficReportResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceTrafficReport, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceTrafficReport, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceTrafficStatus(ctx context.Context, serviceId string, query OpenAPIGetServiceTrafficStatusQuery) (OpenAPIGetServiceTrafficStatusResponseBody, error) {
 	var response OpenAPIGetServiceTrafficStatusResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceTrafficStatus, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceTrafficStatus, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceVolume(ctx context.Context, serviceId string, volumeRef string) (OpenAPIGetServiceVolumeResponseBody, error) {
 	var response OpenAPIGetServiceVolumeResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceVolume, map[string]string{"serviceId": serviceId, "volumeRef": volumeRef}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceVolume, map[string]string{"serviceId": serviceId, "volumeRef": volumeRef}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetServiceVolumeRemovalImpact(ctx context.Context, serviceId string, volumeRef string) (OpenAPIGetServiceVolumeRemovalImpactResponseBody, error) {
 	var response OpenAPIGetServiceVolumeRemovalImpactResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetServiceVolumeRemovalImpact, map[string]string{"serviceId": serviceId, "volumeRef": volumeRef}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceVolumeRemovalImpact, map[string]string{"serviceId": serviceId, "volumeRef": volumeRef}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetTargetServiceRemovalImpact(ctx context.Context, serviceId string) (OpenAPIGetTargetServiceRemovalImpactResponseBody, error) {
 	var response OpenAPIGetTargetServiceRemovalImpactResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetTargetServiceRemovalImpact, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetTargetServiceRemovalImpact, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListGitHubAppRepositories(ctx context.Context, query OpenAPIListGitHubAppRepositoriesQuery) (OpenAPIListGitHubAppRepositoriesResponseBody, error) {
 	var response OpenAPIListGitHubAppRepositoriesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListGitHubAppRepositories, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListGitHubAppRepositories, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListPostGripConfigurationPlanActions(ctx context.Context, stackKey string, planId string, query OpenAPIListPostGripConfigurationPlanActionsQuery) (OpenAPIListPostGripConfigurationPlanActionsResponseBody, error) {
 	var response OpenAPIListPostGripConfigurationPlanActionsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListPostGripConfigurationPlanActions, map[string]string{"stackKey": stackKey, "planId": planId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListPostGripConfigurationPlanActions, map[string]string{"stackKey": stackKey, "planId": planId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListPostGripConfigurationStackOperationActions(ctx context.Context, stackKey string, operationId string, query OpenAPIListPostGripConfigurationStackOperationActionsQuery) (OpenAPIListPostGripConfigurationStackOperationActionsResponseBody, error) {
 	var response OpenAPIListPostGripConfigurationStackOperationActionsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListPostGripConfigurationStackOperationActions, map[string]string{"stackKey": stackKey, "operationId": operationId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListPostGripConfigurationStackOperationActions, map[string]string{"stackKey": stackKey, "operationId": operationId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceApps(ctx context.Context) (OpenAPIListServiceAppsResponseBody, error) {
 	var response OpenAPIListServiceAppsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceApps, nil, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceApps, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceConfigurationOperations(ctx context.Context, query OpenAPIListServiceConfigurationOperationsQuery) (OpenAPIListServiceConfigurationOperationsResponseBody, error) {
 	var response OpenAPIListServiceConfigurationOperationsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceConfigurationOperations, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceConfigurationOperations, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceDNSPlans(ctx context.Context, serviceId string, environmentId string, domainId string) (OpenAPIListServiceDNSPlansResponseBody, error) {
 	var response OpenAPIListServiceDNSPlansResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceDNSPlans, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceDNSPlans, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceDeployments(ctx context.Context, source string, serviceId string, query OpenAPIListServiceDeploymentsQuery) (OpenAPIListServiceDeploymentsResponseBody, error) {
 	var response OpenAPIListServiceDeploymentsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceDeployments, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceDeployments, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceDomains(ctx context.Context, serviceId string, environmentId string) (OpenAPIListServiceDomainsResponseBody, error) {
 	var response OpenAPIListServiceDomainsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceDomains, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceDomains, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceEnvironments(ctx context.Context, source string, serviceId string, query OpenAPIListServiceEnvironmentsQuery) (OpenAPIListServiceEnvironmentsResponseBody, error) {
 	var response OpenAPIListServiceEnvironmentsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceEnvironments, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceEnvironments, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceGitHubBranches(ctx context.Context, query OpenAPIListServiceGitHubBranchesQuery) (OpenAPIListServiceGitHubBranchesResponseBody, error) {
 	var response OpenAPIListServiceGitHubBranchesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceGitHubBranches, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceGitHubBranches, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceLogs(ctx context.Context, source string, serviceId string, query OpenAPIListServiceLogsQuery) (OpenAPIListServiceLogsResponseBody, error) {
 	var response OpenAPIListServiceLogsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceLogs, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceLogs, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServicePromotions(ctx context.Context, serviceId string, query OpenAPIListServicePromotionsQuery) (OpenAPIListServicePromotionsResponseBody, error) {
 	var response OpenAPIListServicePromotionsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServicePromotions, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServicePromotions, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceReleaseGroupEvents(ctx context.Context, releaseGroupId string, query OpenAPIListServiceReleaseGroupEventsQuery) (OpenAPIListServiceReleaseGroupEventsResponseBody, error) {
 	var response OpenAPIListServiceReleaseGroupEventsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceReleaseGroupEvents, map[string]string{"releaseGroupId": releaseGroupId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceReleaseGroupEvents, map[string]string{"releaseGroupId": releaseGroupId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceReleaseGroups(ctx context.Context, query OpenAPIListServiceReleaseGroupsQuery) (OpenAPIListServiceReleaseGroupsResponseBody, error) {
 	var response OpenAPIListServiceReleaseGroupsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceReleaseGroups, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceReleaseGroups, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceVariables(ctx context.Context, serviceId string, environmentId string) (OpenAPIListServiceVariablesResponseBody, error) {
 	var response OpenAPIListServiceVariablesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceVolumes(ctx context.Context, serviceId string) (OpenAPIListServiceVolumesResponseBody, error) {
 	var response OpenAPIListServiceVolumesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceVolumes, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceVolumes, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServiceWebhookDispatchEvents(ctx context.Context, serviceId string, query OpenAPIListServiceWebhookDispatchEventsQuery) (OpenAPIListServiceWebhookDispatchEventsResponseBody, error) {
 	var response OpenAPIListServiceWebhookDispatchEventsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServiceWebhookDispatchEvents, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceWebhookDispatchEvents, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListServices(ctx context.Context, query OpenAPIListServicesQuery) (OpenAPIListServicesResponseBody, error) {
 	var response OpenAPIListServicesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListServices, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListServices, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PreviewGitHubRepositoryAdoption(ctx context.Context, serviceId string, headers OpenAPIPreviewGitHubRepositoryAdoptionHeaders, body OpenAPIPreviewGitHubRepositoryAdoptionRequestBody) (OpenAPIPreviewGitHubRepositoryAdoptionResponseBody, error) {
 	var response OpenAPIPreviewGitHubRepositoryAdoptionResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPreviewGitHubRepositoryAdoption, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPreviewGitHubRepositoryAdoption, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PreviewServiceDeploy(ctx context.Context, serviceId string, query OpenAPIPreviewServiceDeployQuery) (OpenAPIPreviewServiceDeployResponseBody, error) {
 	var response OpenAPIPreviewServiceDeployResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIPreviewServiceDeploy, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIPreviewServiceDeploy, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PreviewServiceEnvironmentReassignment(ctx context.Context, serviceId string, environmentId string, headers OpenAPIPreviewServiceEnvironmentReassignmentHeaders, body OpenAPIPreviewServiceEnvironmentReassignmentRequestBody) (OpenAPIPreviewServiceEnvironmentReassignmentResponseBody, error) {
 	var response OpenAPIPreviewServiceEnvironmentReassignmentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPreviewServiceEnvironmentReassignment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPreviewServiceEnvironmentReassignment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PreviewServicePromotion(ctx context.Context, serviceId string, query OpenAPIPreviewServicePromotionQuery) (OpenAPIPreviewServicePromotionResponseBody, error) {
 	var response OpenAPIPreviewServicePromotionResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIPreviewServicePromotion, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIPreviewServicePromotion, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PreviewServiceReleaseGroup(ctx context.Context, body OpenAPIPreviewServiceReleaseGroupRequestBody) (OpenAPIPreviewServiceReleaseGroupResponseBody, error) {
 	var response OpenAPIPreviewServiceReleaseGroupResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIPreviewServiceReleaseGroup, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIPreviewServiceReleaseGroup, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PromoteServiceDeployment(ctx context.Context, serviceId string, headers OpenAPIPromoteServiceDeploymentHeaders, body OpenAPIPromoteServiceDeploymentRequestBody) (OpenAPIPromoteServiceDeploymentResponseBody, error) {
 	var response OpenAPIPromoteServiceDeploymentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPromoteServiceDeployment, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPromoteServiceDeployment, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PutServiceComposeFile(ctx context.Context, serviceId string, environmentId string, headers OpenAPIPutServiceComposeFileHeaders, body OpenAPIPutServiceComposeFileRequestBody) (OpenAPIPutServiceComposeFileResponseBody, error) {
 	var response OpenAPIPutServiceComposeFileResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceComposeFile, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PutServiceRepositoryCredential(ctx context.Context, serviceId string, credentialKind string, headers OpenAPIPutServiceRepositoryCredentialHeaders, body OpenAPIPutServiceRepositoryCredentialRequestBody) (OpenAPIPutServiceRepositoryCredentialResponseBody, error) {
 	var response OpenAPIPutServiceRepositoryCredentialResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PutServiceTrafficSettings(ctx context.Context, serviceId string, headers OpenAPIPutServiceTrafficSettingsHeaders, body OpenAPIPutServiceTrafficSettingsRequestBody) (OpenAPIPutServiceTrafficSettingsResponseBody, error) {
 	var response OpenAPIPutServiceTrafficSettingsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceTrafficSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceTrafficSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PutServiceVariableValue(ctx context.Context, serviceId string, environmentId string, variableId string, headers OpenAPIPutServiceVariableValueHeaders, body OpenAPIPutServiceVariableValueRequestBody) (OpenAPIPutServiceVariableValueResponseBody, error) {
 	var response OpenAPIPutServiceVariableValueResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceVariableValue, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutServiceVariableValue, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PutTargetServiceConnection(ctx context.Context, serviceId string, headers OpenAPIPutTargetServiceConnectionHeaders, body OpenAPIPutTargetServiceConnectionRequestBody) (OpenAPIPutTargetServiceConnectionResponseBody, error) {
 	var response OpenAPIPutTargetServiceConnectionResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutTargetServiceConnection, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIPutTargetServiceConnection, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ReassignServiceEnvironment(ctx context.Context, serviceId string, environmentId string, headers OpenAPIReassignServiceEnvironmentHeaders, body OpenAPIReassignServiceEnvironmentRequestBody) (OpenAPIReassignServiceEnvironmentResponseBody, error) {
 	var response OpenAPIReassignServiceEnvironmentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIReassignServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIReassignServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RedeployService(ctx context.Context, serviceId string, headers OpenAPIRedeployServiceHeaders, body OpenAPIRedeployServiceRequestBody) (OpenAPIRedeployServiceResponseBody, error) {
 	var response OpenAPIRedeployServiceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRedeployService, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRedeployService, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RefreshServiceRepositoryCredential(ctx context.Context, serviceId string, credentialKind string, headers OpenAPIRefreshServiceRepositoryCredentialHeaders) (OpenAPIRefreshServiceRepositoryCredentialResponseBody, error) {
 	var response OpenAPIRefreshServiceRepositoryCredentialResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRefreshServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRefreshServiceRepositoryCredential, map[string]string{"serviceId": serviceId, "credentialKind": credentialKind}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ReportServiceDNSProviderResult(ctx context.Context, serviceId string, environmentId string, domainId string, planId string, headers OpenAPIReportServiceDNSProviderResultHeaders, body OpenAPIReportServiceDNSProviderResultRequestBody) (OpenAPIReportServiceDNSProviderResultResponseBody, error) {
 	var response OpenAPIReportServiceDNSProviderResultResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIReportServiceDNSProviderResult, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIReportServiceDNSProviderResult, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RequestServiceDNSFailover(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIRequestServiceDNSFailoverHeaders, body OpenAPIRequestServiceDNSFailoverRequestBody) (OpenAPIRequestServiceDNSFailoverResponseBody, error) {
 	var response OpenAPIRequestServiceDNSFailoverResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRequestServiceDNSFailover, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRequestServiceDNSFailover, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ResolveService(ctx context.Context, query OpenAPIResolveServiceQuery) (OpenAPIResolveServiceResponseBody, error) {
 	var response OpenAPIResolveServiceResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIResolveService, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIResolveService, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ResolveServiceEnvironment(ctx context.Context, serviceId string, query OpenAPIResolveServiceEnvironmentQuery) (OpenAPIResolveServiceEnvironmentResponseBody, error) {
 	var response OpenAPIResolveServiceEnvironmentResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIResolveServiceEnvironment, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIResolveServiceEnvironment, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RestartServiceRuntime(ctx context.Context, serviceId string, environmentId string, headers OpenAPIRestartServiceRuntimeHeaders, body OpenAPIRestartServiceRuntimeRequestBody) (OpenAPIRestartServiceRuntimeResponseBody, error) {
 	var response OpenAPIRestartServiceRuntimeResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRestartServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRestartServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ResubmitPostGripConfigurationSecretInputs(ctx context.Context, stackKey string, operationId string, headers OpenAPIResubmitPostGripConfigurationSecretInputsHeaders, body OpenAPIResubmitPostGripConfigurationSecretInputsRequestBody) (OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody, error) {
 	var response OpenAPIResubmitPostGripConfigurationSecretInputsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIResubmitPostGripConfigurationSecretInputs, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIResubmitPostGripConfigurationSecretInputs, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RetryPostGripConfigurationStackOperation(ctx context.Context, stackKey string, operationId string, headers OpenAPIRetryPostGripConfigurationStackOperationHeaders) (OpenAPIRetryPostGripConfigurationStackOperationResponseBody, error) {
 	var response OpenAPIRetryPostGripConfigurationStackOperationResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryPostGripConfigurationStackOperation, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryPostGripConfigurationStackOperation, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RetryServiceConfigurationOperation(ctx context.Context, operationId string, headers OpenAPIRetryServiceConfigurationOperationHeaders) (OpenAPIRetryServiceConfigurationOperationResponseBody, error) {
 	var response OpenAPIRetryServiceConfigurationOperationResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RetryServiceReleaseGroup(ctx context.Context, releaseGroupId string, headers OpenAPIRetryServiceReleaseGroupHeaders) (OpenAPIRetryServiceReleaseGroupResponseBody, error) {
 	var response OpenAPIRetryServiceReleaseGroupResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RollbackServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, planId string, headers OpenAPIRollbackServiceDNSPlanHeaders, body OpenAPIRollbackServiceDNSPlanRequestBody) (OpenAPIRollbackServiceDNSPlanResponseBody, error) {
 	var response OpenAPIRollbackServiceDNSPlanResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRollbackServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRollbackServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RollbackServiceDeployment(ctx context.Context, serviceId string, deploymentId string, headers OpenAPIRollbackServiceDeploymentHeaders) (OpenAPIRollbackServiceDeploymentResponseBody, error) {
 	var response OpenAPIRollbackServiceDeploymentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRollbackServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRollbackServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) StartServiceRuntime(ctx context.Context, serviceId string, environmentId string, headers OpenAPIStartServiceRuntimeHeaders, body OpenAPIStartServiceRuntimeRequestBody) (OpenAPIStartServiceRuntimeResponseBody, error) {
 	var response OpenAPIStartServiceRuntimeResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIStartServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIStartServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) StopServiceRuntime(ctx context.Context, serviceId string, environmentId string, headers OpenAPIStopServiceRuntimeHeaders, body OpenAPIStopServiceRuntimeRequestBody) (OpenAPIStopServiceRuntimeResponseBody, error) {
 	var response OpenAPIStopServiceRuntimeResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIStopServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIStopServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) TrimServiceBuildLogs(ctx context.Context, serviceId string, headers OpenAPITrimServiceBuildLogsHeaders) (OpenAPITrimServiceBuildLogsResponseBody, error) {
 	var response OpenAPITrimServiceBuildLogsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceBuildLogs, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceBuildLogs, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) TrimServiceRuntimeLogs(ctx context.Context, serviceId string, query OpenAPITrimServiceRuntimeLogsQuery, headers OpenAPITrimServiceRuntimeLogsHeaders) (OpenAPITrimServiceRuntimeLogsResponseBody, error) {
 	var response OpenAPITrimServiceRuntimeLogsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceRuntimeLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceRuntimeLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) TrimServiceTraffic(ctx context.Context, serviceId string, query OpenAPITrimServiceTrafficQuery, headers OpenAPITrimServiceTrafficHeaders) (OpenAPITrimServiceTrafficResponseBody, error) {
 	var response OpenAPITrimServiceTrafficResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceTraffic, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceTraffic, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UnbindServiceVolume(ctx context.Context, serviceId string, environmentId string, volumeRef string, headers OpenAPIUnbindServiceVolumeHeaders) (OpenAPIUnbindServiceVolumeResponseBody, error) {
 	var response OpenAPIUnbindServiceVolumeResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUnbindServiceVolume, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "volumeRef": volumeRef}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUnbindServiceVolume, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "volumeRef": volumeRef}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceApp(ctx context.Context, appId string, headers OpenAPIUpdateServiceAppHeaders, body OpenAPIUpdateServiceAppRequestBody) (OpenAPIUpdateServiceAppResponseBody, error) {
 	var response OpenAPIUpdateServiceAppResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceApp, map[string]string{"appId": appId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceApp, map[string]string{"appId": appId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceBuildLogSettings(ctx context.Context, serviceId string, headers OpenAPIUpdateServiceBuildLogSettingsHeaders, body OpenAPIUpdateServiceBuildLogSettingsRequestBody) (OpenAPIUpdateServiceBuildLogSettingsResponseBody, error) {
 	var response OpenAPIUpdateServiceBuildLogSettingsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceBuildLogSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceBuildLogSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceDNSFailoverPolicy(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIUpdateServiceDNSFailoverPolicyHeaders, body OpenAPIUpdateServiceDNSFailoverPolicyRequestBody) (OpenAPIUpdateServiceDNSFailoverPolicyResponseBody, error) {
 	var response OpenAPIUpdateServiceDNSFailoverPolicyResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceDNSFailoverPolicy, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceDNSFailoverPolicy, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceDomain(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIUpdateServiceDomainHeaders, body OpenAPIUpdateServiceDomainRequestBody) (OpenAPIUpdateServiceDomainResponseBody, error) {
 	var response OpenAPIUpdateServiceDomainResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceEnvironment(ctx context.Context, serviceId string, environmentId string, headers OpenAPIUpdateServiceEnvironmentHeaders, body OpenAPIUpdateServiceEnvironmentRequestBody) (OpenAPIUpdateServiceEnvironmentResponseBody, error) {
 	var response OpenAPIUpdateServiceEnvironmentResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceEnvironment, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceProject(ctx context.Context, serviceId string, headers OpenAPIUpdateServiceProjectHeaders, body OpenAPIUpdateServiceProjectRequestBody) (OpenAPIUpdateServiceProjectResponseBody, error) {
 	var response OpenAPIUpdateServiceProjectResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceProject, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceProject, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceRepository(ctx context.Context, serviceId string, headers OpenAPIUpdateServiceRepositoryHeaders, body OpenAPIUpdateServiceRepositoryRequestBody) (OpenAPIUpdateServiceRepositoryResponseBody, error) {
 	var response OpenAPIUpdateServiceRepositoryResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceRepository, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceRepository, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceRuntimeLogSettings(ctx context.Context, serviceId string, query OpenAPIUpdateServiceRuntimeLogSettingsQuery, headers OpenAPIUpdateServiceRuntimeLogSettingsHeaders, body OpenAPIUpdateServiceRuntimeLogSettingsRequestBody) (OpenAPIUpdateServiceRuntimeLogSettingsResponseBody, error) {
 	var response OpenAPIUpdateServiceRuntimeLogSettingsResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceRuntimeLogSettings, map[string]string{"serviceId": serviceId}, query.values(), body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceRuntimeLogSettings, map[string]string{"serviceId": serviceId}, query.values(), body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceVariable(ctx context.Context, serviceId string, environmentId string, variableId string, headers OpenAPIUpdateServiceVariableHeaders, body OpenAPIUpdateServiceVariableRequestBody) (OpenAPIUpdateServiceVariableResponseBody, error) {
 	var response OpenAPIUpdateServiceVariableResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceVariable, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceVariable, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "variableId": variableId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceVolumeBinding(ctx context.Context, serviceId string, environmentId string, volumeRef string, headers OpenAPIUpdateServiceVolumeBindingHeaders, body OpenAPIUpdateServiceVolumeBindingRequestBody) (OpenAPIUpdateServiceVolumeBindingResponseBody, error) {
 	var response OpenAPIUpdateServiceVolumeBindingResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceVolumeBinding, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "volumeRef": volumeRef}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceVolumeBinding, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "volumeRef": volumeRef}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateTargetService(ctx context.Context, serviceId string, headers OpenAPIUpdateTargetServiceHeaders, body OpenAPIUpdateTargetServiceRequestBody) (OpenAPIUpdateTargetServiceResponseBody, error) {
 	var response OpenAPIUpdateTargetServiceResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateTargetService, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateTargetService, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ValidatePostGripConfiguration(ctx context.Context, body OpenAPIValidatePostGripConfigurationRequestBody) (OpenAPIValidatePostGripConfigurationResponseBody, error) {
 	var response OpenAPIValidatePostGripConfigurationResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIValidatePostGripConfiguration, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIValidatePostGripConfiguration, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIVerifyServiceDomainHeaders) (OpenAPIVerifyServiceDomainResponseBody, error) {
 	var response OpenAPIVerifyServiceDomainResponseBody
-	err := c.connection.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIVerifyServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIVerifyServiceDomain, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
 

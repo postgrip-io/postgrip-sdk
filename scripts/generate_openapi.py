@@ -730,7 +730,7 @@ def go_openapi_client_source(rows: list[dict[str, Any]], digest: str, include_he
             body_expression = "nil"
         path_expression = f"map[string]string{{{', '.join(path_values)}}}" if path_values else "nil"
         call = (
-            f"c.connection.doOpenAPI({context_expression}, openAPI{operation_name}, {path_expression}, "
+            f"c.executor.doOpenAPI({context_expression}, openAPI{operation_name}, {path_expression}, "
             f"{query_expression}, {body_expression}, "
         )
         response_schema = row["response_schema"]
@@ -769,15 +769,22 @@ import (
 \t"net/url"
 {time_import})
 
+// openAPIOperationExecutor is the contract generated operations depend on:
+// execute one resolved JSON operation. The plane's Connection implements it
+// and is injected by OpenAPI, so generated code holds no concrete adapter.
+type openAPIOperationExecutor interface {{
+\tdoOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error
+}}
+
 // OpenAPIClient is the generated low-level JSON API. Streaming workspace
 // uploads and WebSocket sessions remain on Connection's custom adapters.
 type OpenAPIClient struct {{
-\tconnection *Connection
+\texecutor openAPIOperationExecutor
 }}
 
 // OpenAPI returns the generated low-level client bound to this connection.
 func (c *Connection) OpenAPI() *OpenAPIClient {{
-\treturn &OpenAPIClient{{connection: c}}
+\treturn &OpenAPIClient{{executor: c}}
 }}
 
 // Do executes an ordinary generated JSON operation by stable operation ID.
@@ -792,7 +799,7 @@ func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParamete
 \t\treturn fmt.Errorf("postgrip-agent: operation %q requires its protocol adapter", operationID)
 \t}}
 {dynamic_headers}
-\treturn c.connection.doOpenAPI(ctx, id, pathParameters, query, body, out)
+\treturn c.executor.doOpenAPI(ctx, id, pathParameters, query, body, out)
 }}
 
 {chr(10).join(query_types)}

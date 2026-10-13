@@ -9,15 +9,22 @@ import (
 	"net/url"
 )
 
+// openAPIOperationExecutor is the contract generated operations depend on:
+// execute one resolved JSON operation. The plane's Connection implements it
+// and is injected by OpenAPI, so generated code holds no concrete adapter.
+type openAPIOperationExecutor interface {
+	doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error
+}
+
 // OpenAPIClient is the generated low-level JSON API. Streaming workspace
 // uploads and WebSocket sessions remain on Connection's custom adapters.
 type OpenAPIClient struct {
-	connection *Connection
+	executor openAPIOperationExecutor
 }
 
 // OpenAPI returns the generated low-level client bound to this connection.
 func (c *Connection) OpenAPI() *OpenAPIClient {
-	return &OpenAPIClient{connection: c}
+	return &OpenAPIClient{executor: c}
 }
 
 // Do executes an ordinary generated JSON operation by stable operation ID.
@@ -34,7 +41,7 @@ func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParamete
 	if len(headers) != 0 {
 		return fmt.Errorf("postgrip-agent: operation %q does not accept generated header parameters", operationID)
 	}
-	return c.connection.doOpenAPI(ctx, id, pathParameters, query, body, out)
+	return c.executor.doOpenAPI(ctx, id, pathParameters, query, body, out)
 }
 
 type OpenAPIAppendAgentTaskEventQuery struct {
@@ -369,215 +376,215 @@ func (p OpenAPIPollAgentTaskQuery) values() url.Values {
 
 func (c *OpenAPIClient) AppendAgentTaskEvent(ctx context.Context, taskId string, query OpenAPIAppendAgentTaskEventQuery, body OpenAPIAppendAgentTaskEventRequestBody) (OpenAPIAppendAgentTaskEventResponseBody, error) {
 	var response OpenAPIAppendAgentTaskEventResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIAppendAgentTaskEvent, map[string]string{"taskId": taskId}, query.values(), body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIAppendAgentTaskEvent, map[string]string{"taskId": taskId}, query.values(), body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) BackfillSchedule(ctx context.Context, scheduleId string, body OpenAPIBackfillScheduleRequestBody) (OpenAPIBackfillScheduleResponseBody, error) {
 	var response OpenAPIBackfillScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIBackfillSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIBackfillSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) BlockAgentTask(ctx context.Context, taskId string, query OpenAPIBlockAgentTaskQuery, body OpenAPIBlockAgentTaskRequestBody) (OpenAPIBlockAgentTaskResponseBody, error) {
 	var response OpenAPIBlockAgentTaskResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIBlockAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIBlockAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CancelWorkflow(ctx context.Context, workflowId string, body OpenAPICancelWorkflowRequestBody) (OpenAPICancelWorkflowResponseBody, error) {
 	var response OpenAPICancelWorkflowResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICancelWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICancelWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CompleteAgentTask(ctx context.Context, taskId string, query OpenAPICompleteAgentTaskQuery, body OpenAPICompleteAgentTaskRequestBody) (OpenAPICompleteAgentTaskResponseBody, error) {
 	var response OpenAPICompleteAgentTaskResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICompleteAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICompleteAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CountWorkflows(ctx context.Context, query OpenAPICountWorkflowsQuery) (OpenAPICountWorkflowsResponseBody, error) {
 	var response OpenAPICountWorkflowsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICountWorkflows, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICountWorkflows, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateNamespace(ctx context.Context, body OpenAPICreateNamespaceRequestBody) (OpenAPICreateNamespaceResponseBody, error) {
 	var response OpenAPICreateNamespaceResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICreateNamespace, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICreateNamespace, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateSandbox(ctx context.Context, body OpenAPICreateSandboxRequestBody) (OpenAPICreateSandboxResponseBody, error) {
 	var response OpenAPICreateSandboxResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICreateSandbox, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICreateSandbox, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateSandboxSession(ctx context.Context, sandboxId string, body OpenAPICreateSandboxSessionRequestBody) (OpenAPICreateSandboxSessionResponseBody, error) {
 	var response OpenAPICreateSandboxSessionResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICreateSandboxSession, map[string]string{"sandboxId": sandboxId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICreateSandboxSession, map[string]string{"sandboxId": sandboxId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) CreateSchedule(ctx context.Context, body OpenAPICreateScheduleRequestBody) (OpenAPICreateScheduleResponseBody, error) {
 	var response OpenAPICreateScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPICreateSchedule, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPICreateSchedule, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteSandbox(ctx context.Context, sandboxId string) (OpenAPIDeleteSandboxResponseBody, error) {
 	var response OpenAPIDeleteSandboxResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIDeleteSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIDeleteSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteSchedule(ctx context.Context, scheduleId string) (OpenAPIDeleteScheduleResponseBody, error) {
 	var response OpenAPIDeleteScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIDeleteSchedule, map[string]string{"scheduleId": scheduleId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIDeleteSchedule, map[string]string{"scheduleId": scheduleId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) DeleteWorkspace(ctx context.Context, workspaceId string) error {
-	return c.connection.doOpenAPI(ctx, openAPIDeleteWorkspace, map[string]string{"workspaceId": workspaceId}, nil, nil, nil)
+	return c.executor.doOpenAPI(ctx, openAPIDeleteWorkspace, map[string]string{"workspaceId": workspaceId}, nil, nil, nil)
 }
 func (c *OpenAPIClient) EnqueueTask(ctx context.Context, body OpenAPIEnqueueTaskRequestBody) (OpenAPIEnqueueTaskResponseBody, error) {
 	var response OpenAPIEnqueueTaskResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIEnqueueTask, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIEnqueueTask, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) FailAgentTask(ctx context.Context, taskId string, query OpenAPIFailAgentTaskQuery, body OpenAPIFailAgentTaskRequestBody) (OpenAPIFailAgentTaskResponseBody, error) {
 	var response OpenAPIFailAgentTaskResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIFailAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIFailAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetSandbox(ctx context.Context, sandboxId string) (OpenAPIGetSandboxResponseBody, error) {
 	var response OpenAPIGetSandboxResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetSchedule(ctx context.Context, scheduleId string) (OpenAPIGetScheduleResponseBody, error) {
 	var response OpenAPIGetScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetSchedule, map[string]string{"scheduleId": scheduleId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetSchedule, map[string]string{"scheduleId": scheduleId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetTask(ctx context.Context, taskId string) (OpenAPIGetTaskResponseBody, error) {
 	var response OpenAPIGetTaskResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetTask, map[string]string{"taskId": taskId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetTask, map[string]string{"taskId": taskId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetWorkflow(ctx context.Context, workflowId string) (OpenAPIGetWorkflowResponseBody, error) {
 	var response OpenAPIGetWorkflowResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetWorkflow, map[string]string{"workflowId": workflowId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetWorkflow, map[string]string{"workflowId": workflowId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetWorkspace(ctx context.Context, workspaceId string) (OpenAPIGetWorkspaceResponseBody, error) {
 	var response OpenAPIGetWorkspaceResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIGetWorkspace, map[string]string{"workspaceId": workspaceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIGetWorkspace, map[string]string{"workspaceId": workspaceId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) Health(ctx context.Context) (OpenAPIHealthResponseBody, error) {
 	var response OpenAPIHealthResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIHealth, nil, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIHealth, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) HeartbeatAgentTask(ctx context.Context, taskId string, query OpenAPIHeartbeatAgentTaskQuery, body OpenAPIHeartbeatAgentTaskRequestBody) (OpenAPIHeartbeatAgentTaskResponseBody, error) {
 	var response OpenAPIHeartbeatAgentTaskResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIHeartbeatAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIHeartbeatAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListNamespaces(ctx context.Context) (OpenAPIListNamespacesResponseBody, error) {
 	var response OpenAPIListNamespacesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListNamespaces, nil, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListNamespaces, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListSandboxes(ctx context.Context) (OpenAPIListSandboxesResponseBody, error) {
 	var response OpenAPIListSandboxesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListSandboxes, nil, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListSandboxes, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListSchedules(ctx context.Context, query OpenAPIListSchedulesQuery) (OpenAPIListSchedulesResponseBody, error) {
 	var response OpenAPIListSchedulesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListSchedules, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListSchedules, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListTaskEvents(ctx context.Context, taskId string, query OpenAPIListTaskEventsQuery) (OpenAPIListTaskEventsResponseBody, error) {
 	var response OpenAPIListTaskEventsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListTaskEvents, map[string]string{"taskId": taskId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListTaskEvents, map[string]string{"taskId": taskId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListTaskEventsBatch(ctx context.Context, query OpenAPIListTaskEventsBatchQuery) (OpenAPIListTaskEventsBatchResponseBody, error) {
 	var response OpenAPIListTaskEventsBatchResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListTaskEventsBatch, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListTaskEventsBatch, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListTasks(ctx context.Context, query OpenAPIListTasksQuery) (OpenAPIListTasksResponseBody, error) {
 	var response OpenAPIListTasksResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListTasks, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListTasks, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkflowHistory(ctx context.Context, workflowId string, query OpenAPIListWorkflowHistoryQuery) (OpenAPIListWorkflowHistoryResponseBody, error) {
 	var response OpenAPIListWorkflowHistoryResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkflowHistory, map[string]string{"workflowId": workflowId}, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkflowHistory, map[string]string{"workflowId": workflowId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkflows(ctx context.Context, query OpenAPIListWorkflowsQuery) (OpenAPIListWorkflowsResponseBody, error) {
 	var response OpenAPIListWorkflowsResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkflows, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkflows, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkspaces(ctx context.Context) (OpenAPIListWorkspacesResponseBody, error) {
 	var response OpenAPIListWorkspacesResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIListWorkspaces, nil, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkspaces, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PauseSchedule(ctx context.Context, scheduleId string, body OpenAPIPauseScheduleRequestBody) (OpenAPIPauseScheduleResponseBody, error) {
 	var response OpenAPIPauseScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIPauseSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIPauseSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) PollAgentTask(ctx context.Context, query OpenAPIPollAgentTaskQuery) (OpenAPIPollAgentTaskResponseBody, error) {
 	var response OpenAPIPollAgentTaskResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIPollAgentTask, nil, query.values(), nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIPollAgentTask, nil, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) Ready(ctx context.Context) (OpenAPIReadyResponseBody, error) {
 	var response OpenAPIReadyResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIReady, nil, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIReady, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RefreshAgentSession(ctx context.Context, body OpenAPIRefreshAgentSessionRequestBody) (OpenAPIRefreshAgentSessionResponseBody, error) {
 	var response OpenAPIRefreshAgentSessionResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIRefreshAgentSession, nil, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIRefreshAgentSession, nil, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) SignalWithStartWorkflow(ctx context.Context, workflowId string, body OpenAPISignalWithStartWorkflowRequestBody) (OpenAPISignalWithStartWorkflowResponseBody, error) {
 	var response OpenAPISignalWithStartWorkflowResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPISignalWithStartWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPISignalWithStartWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) SignalWorkflow(ctx context.Context, workflowId string, body OpenAPISignalWorkflowRequestBody) (OpenAPISignalWorkflowResponseBody, error) {
 	var response OpenAPISignalWorkflowResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPISignalWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPISignalWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) StartSandbox(ctx context.Context, sandboxId string) (OpenAPIStartSandboxResponseBody, error) {
 	var response OpenAPIStartSandboxResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIStartSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIStartSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) StopSandbox(ctx context.Context, sandboxId string) (OpenAPIStopSandboxResponseBody, error) {
 	var response OpenAPIStopSandboxResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIStopSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIStopSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) TerminateWorkflow(ctx context.Context, workflowId string, body OpenAPITerminateWorkflowRequestBody) (OpenAPITerminateWorkflowResponseBody, error) {
 	var response OpenAPITerminateWorkflowResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPITerminateWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPITerminateWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) TriggerSchedule(ctx context.Context, scheduleId string, body OpenAPITriggerScheduleRequestBody) (OpenAPITriggerScheduleResponseBody, error) {
 	var response OpenAPITriggerScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPITriggerSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPITriggerSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UnpauseSchedule(ctx context.Context, scheduleId string, body OpenAPIUnpauseScheduleRequestBody) (OpenAPIUnpauseScheduleResponseBody, error) {
 	var response OpenAPIUnpauseScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIUnpauseSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIUnpauseSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateSchedule(ctx context.Context, scheduleId string, body OpenAPIUpdateScheduleRequestBody) (OpenAPIUpdateScheduleResponseBody, error) {
 	var response OpenAPIUpdateScheduleResponseBody
-	err := c.connection.doOpenAPI(ctx, openAPIUpdateSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
+	err := c.executor.doOpenAPI(ctx, openAPIUpdateSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
 	return response, err
 }
 
