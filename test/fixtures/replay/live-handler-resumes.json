@@ -1,0 +1,38 @@
+{
+  "description": "A live update handler replays the commands it owns from an earlier delivery, then schedules new ones.",
+  "history": [
+    {
+      "type": "WorkflowUpdateAccepted",
+      "task_id": "update-1",
+      "attributes": {
+        "update_name": "U"
+      }
+    },
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "act-b",
+      "attributes": {
+        "activity_type": "B"
+      }
+    }
+  ],
+  "owners": {
+    "act-b": "update-1"
+  },
+  "steps": [
+    {
+      "command": "activity",
+      "name": "B",
+      "owner": "update-1",
+      "live": true,
+      "expect": "replay"
+    },
+    {
+      "command": "timer",
+      "duration_ms": 1000,
+      "owner": "update-1",
+      "live": true,
+      "expect": "new"
+    }
+  ]
+}

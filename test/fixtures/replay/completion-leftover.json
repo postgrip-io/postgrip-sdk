@@ -1,0 +1,30 @@
+{
+  "description": "A workflow that completes before replaying a recorded body command fails the completion check.",
+  "history": [
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "act-a",
+      "attributes": {
+        "activity_type": "A"
+      }
+    },
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "act-b",
+      "attributes": {
+        "activity_type": "B"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "complete",
+      "expect": "nondeterministic"
+    }
+  ]
+}

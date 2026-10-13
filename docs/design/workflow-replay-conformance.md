@@ -442,8 +442,14 @@ and `python/docs` `workflow-runtime.md`) in the same PR.
       outcome is reported, and the aligned TypeScript and
       Python failure types. Until slice 2.2, commands issued by update handlers
       share the invocation's cursor, as they shared the per-kind cursors before.
-   2. **Ownership and completion.** Command ownership, the per-owner ordered
-      cursors and the completion check.
+   2. **Ownership and completion.** Command ownership read before replay, the
+      per-owner ordered cursors with legacy entries positioned at their
+      earliest owned command, and the completion check's leftover-command test
+      for the body, replayed handlers and query replay. Go runs replayed and
+      live update handlers under their own cursors. TypeScript and Python
+      handlers issue only body-owned commands today, so their handler execution
+      contexts, and strict boundary application in the completion check in all
+      three languages, come with slice 3.
    3. **Positional cancellation.**
 3. **Updates.** Apply TypeScript and Python updates at their boundaries from the
    runtime and run update tasks live after their own boundary. In all three

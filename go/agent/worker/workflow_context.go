@@ -147,8 +147,17 @@ func (w *workflowContext) applyDurableUpdates(deferBoundary bool) error {
 		if update.TaskID != "" {
 			w.taskID = update.TaskID
 		}
+		// The replayed handler consumes only the command events it owns.
+		restore := w.replay.EnterOwner(update.TaskID, false)
 		_, err := handler(update.Args)
+		restore()
 		w.taskID = previousTaskID
+		if err != nil && workflow.IsSuspended(err) {
+			return err
+		}
+		if leftover := w.replay.CheckOwnerConsumed(update.TaskID); leftover != nil {
+			return translateReplayError(leftover)
+		}
 		if err != nil {
 			return fmt.Errorf("postgrip-agent: replay update handler %q: %w", update.Name, err)
 		}

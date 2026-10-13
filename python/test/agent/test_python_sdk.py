@@ -414,6 +414,87 @@ class PythonSdkTests(unittest.TestCase):
         self.assertEqual(error, "activity command changed at index 1: history=A replay=B")
         self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
 
+    def _run_owned(self, workflow_cls, connection: "FakeConnection") -> None:
+        agent = Agent(connection=connection, task_queue="default", workflows=[workflow_cls])
+        name = workflow_cls.__name__
+        asyncio.run(agent._execute({
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": f"workflow:{name}",
+            "payload": {"workflowType": name, "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }))
+
+    def test_workflow_completing_before_recorded_commands_fails(self):
+        @workflow.defn(name="ShortenedWorkflow")
+        class ShortenedWorkflow:
+            @workflow.run
+            async def run(self) -> str:
+                return "done"
+
+        connection = FakeConnection()
+        connection.histories["run-1"] = [{"type": "ActivityTaskScheduled", "task_id": "act-a", "attributes": {"activity_type": "A"}}]
+        self._run_owned(ShortenedWorkflow, connection)
+
+        self.assertEqual(connection.completed, [])
+        _, error, result = connection.failed[0]
+        self.assertIn("finished before replaying recorded command", error)
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
+
+    def test_continue_as_new_before_recorded_commands_fails(self):
+        @workflow.defn(name="ContinuingWorkflow")
+        class ContinuingWorkflow:
+            @workflow.run
+            async def run(self) -> None:
+                workflow.continue_as_new()
+
+        connection = FakeConnection()
+        connection.histories["run-1"] = [{"type": "ActivityTaskScheduled", "task_id": "act-a", "attributes": {"activity_type": "A"}}]
+        self._run_owned(ContinuingWorkflow, connection)
+
+        self.assertEqual(connection.completed, [])
+        _, error, result = connection.failed[0]
+        self.assertIn("finished before replaying recorded command", error)
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
+
+    def test_update_owned_command_is_kept_out_of_the_body_cursor(self):
+        @workflow.defn(name="BodyWorkflow")
+        class BodyWorkflow:
+            @workflow.run
+            async def run(self) -> str:
+                return await workflow.execute_activity("B")
+
+        connection = FakeConnection()
+        connection.histories["run-1"] = [
+            {"type": "WorkflowUpdateAccepted", "task_id": "update-1", "attributes": {"update_name": "U"}},
+            {"type": "ActivityTaskScheduled", "task_id": "activity-update", "attributes": {"activity_type": "B"}},
+        ]
+        connection.tasks["activity-update"] = {"id": "activity-update", "state": "succeeded", "payload": {"workflowTaskId": "update-1"}}
+        self._run_owned(BodyWorkflow, connection)
+
+        # The recorded B belongs to the update, so the body's B is a new command.
+        self.assertEqual([request["type"] for request in connection.enqueued], ["activity:B"])
+        self.assertEqual(connection.failed, [])
+
+    def test_query_replay_returning_before_recorded_commands_fails(self):
+        answer_query = workflow.define_query("answer")
+
+        @workflow.defn(name="QueriedWorkflow")
+        class QueriedWorkflow:
+            @workflow.run
+            async def run(self) -> None:
+                workflow.set_handler(answer_query, lambda: "ready")
+
+        connection = self._run_query(QueriedWorkflow, [
+            {"type": "ActivityTaskScheduled", "task_id": "act-a", "attributes": {"activity_type": "A"}},
+        ])
+
+        self.assertEqual(connection.completed, [])
+        _, error, result = connection.failed[0]
+        self.assertIn("finished before replaying recorded command", error)
+        self.assertEqual(result["failure"]["type"], "WorkflowDeterminismViolation")
+
     def test_concurrent_new_commands_are_scheduled_in_call_order(self):
         @workflow.defn(name="ConcurrentWorkflow")
         class ConcurrentWorkflow:

@@ -1,0 +1,59 @@
+{
+  "description": "Commands an update handler issued belong to its cursor, not the body's, even when interleaved.",
+  "history": [
+    {
+      "type": "WorkflowUpdateAccepted",
+      "task_id": "update-1",
+      "attributes": {
+        "update_name": "U"
+      }
+    },
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "act-b",
+      "attributes": {
+        "activity_type": "B"
+      }
+    },
+    {
+      "type": "ActivityTaskScheduled",
+      "task_id": "act-a",
+      "attributes": {
+        "activity_type": "A"
+      }
+    },
+    {
+      "type": "WorkflowUpdateCompleted",
+      "task_id": "update-1",
+      "attributes": {
+        "update_name": "U"
+      }
+    }
+  ],
+  "owners": {
+    "act-b": "update-1",
+    "act-a": "workflow-task-1"
+  },
+  "steps": [
+    {
+      "command": "activity",
+      "name": "A",
+      "expect": "replay"
+    },
+    {
+      "command": "activity",
+      "name": "B",
+      "owner": "update-1",
+      "expect": "replay"
+    },
+    {
+      "command": "handler_done",
+      "owner": "update-1",
+      "expect": "ok"
+    },
+    {
+      "command": "complete",
+      "expect": "ok"
+    }
+  ]
+}

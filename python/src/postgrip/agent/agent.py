@@ -11,7 +11,7 @@ import weakref
 from typing import Any, Awaitable, Callable, Iterable
 
 from . import activity, workflow
-from ._replay import DeterminismError, WorkflowReplay
+from ._replay import DeterminismError, WorkflowReplay, ownership_candidates
 from .client import Client, Connection
 from .errors import ApplicationFailure, CancelledFailure, is_terminal_task_mutation
 
@@ -149,19 +149,23 @@ class Agent:
             workflow_id = payload.get("workflowId") or task["id"]
             workflow_run_id = payload.get("runId") or workflow_id
             history = await asyncio.to_thread(self.connection.get_workflow_history, workflow_run_id)
-            replay = WorkflowReplay(history)
+            replay = WorkflowReplay(history, await self._read_command_owners(history))
             handlers = WorkflowHandlers(replay)
             await self._emit(task["id"], "started", "workflow", f"started workflow {workflow_type}", {"workflowType": workflow_type})
             try:
                 value = await self._run_workflow(target, task, payload, replay, handlers)
-            except Exception:
+            except Exception as exc:
                 # Nondeterminism is sticky: a recorded violation fails the task even
                 # when workflow code caught it and then suspended, continued or raised.
                 await self._drain_commands(replay)
+                if isinstance(exc, workflow.ContinueAsNewCommand):
+                    # Continuing as new is a completion too.
+                    _check_body_consumed(replay)
                 _raise_if_nondeterministic(replay)
                 raise
             await self._drain_commands(replay)
-            _raise_if_nondeterministic(replay)
+            # A completing workflow must have replayed every command it recorded.
+            _check_body_consumed(replay)
             await self._emit(task["id"], "completed", "workflow", f"completed workflow {workflow_type}")
             await self._complete_task(task, {
                 "value": value,
@@ -206,7 +210,7 @@ class Agent:
             source_workflow = await asyncio.to_thread(self.connection.get_workflow, payload.get("workflowRunId") or payload["workflowId"])
             source_task = await asyncio.to_thread(self.connection.get_task, source_workflow["task_id"])
             history = await asyncio.to_thread(self.connection.get_workflow_history, payload.get("workflowRunId") or payload["workflowId"])
-            replay = WorkflowReplay(history)
+            replay = WorkflowReplay(history, await self._read_command_owners(history))
             handlers = WorkflowHandlers(replay)
             await self._emit(task["id"], "started", kind, f"started {kind} {name}", {"workflowType": workflow_type})
             try:
@@ -217,6 +221,10 @@ class Agent:
                 # Nondeterminism is sticky on every exit from interaction replay.
                 _raise_if_nondeterministic(replay)
                 raise
+            else:
+                # A replay that returns normally must have consumed every recorded
+                # body command, so the interaction sees state consistent with history.
+                _check_body_consumed(replay)
             _raise_if_nondeterministic(replay)
             handler = handlers.query_handler(name) if kind == "query" else handlers.update_handler(name)
             if handler is None:
@@ -560,6 +568,20 @@ class Agent:
         finally:
             state.pending -= 1
 
+    async def _read_command_owners(self, history: list[dict[str, Any]]) -> dict[str, str]:
+        """Read, once per replay, which task issued each command that could belong to an update.
+
+        A command task's payload names its scheduling task and never changes.
+        """
+        owners: dict[str, str] = {}
+        for task_id in ownership_candidates(history):
+            command_task = await asyncio.to_thread(self.connection.get_task, task_id)
+            command_payload = command_task.get("payload") or {}
+            owner = command_payload.get("workflowTaskId") or command_payload.get("parentWorkflowTaskId")
+            if owner:
+                owners[task_id] = owner
+        return owners
+
     async def _drain_commands(self, replay: WorkflowReplay) -> None:
         """Wait until every command this invocation started has settled.
 
@@ -664,6 +686,15 @@ class WorkflowHandlers:
 def _raise_if_nondeterministic(replay: WorkflowReplay) -> None:
     if replay.determinism_error is not None:
         raise _determinism_violation(str(replay.determinism_error)) from None
+
+
+def _check_body_consumed(replay: WorkflowReplay) -> None:
+    """Run the completion check's leftover test; the first recorded determinism error wins."""
+    try:
+        replay.check_body_consumed()
+    except DeterminismError:
+        pass
+    _raise_if_nondeterministic(replay)
 
 
 def _replay_command(step: Callable[[], Any]) -> Any:

@@ -76,6 +76,12 @@ func (w *Worker) runWorkflow(ctx context.Context, task *client.Task) (*client.Ta
 	// the duplicate-work bug we exist to prevent. Block the task with a
 	// clear reason so the runtime service redelivers and we can try again.
 	history, err := w.opts.Connection.GetWorkflowHistory(ctx, workflowID)
+	var owners replay.Owners
+	if err == nil {
+		// A command owner that cannot be read is treated like a failed
+		// history fetch: replay without it could misattribute commands.
+		owners, err = w.readCommandOwners(ctx, history)
+	}
 	if err != nil {
 		w.logger.Warn("workflow history fetch failed; blocking task for redelivery",
 			"workflow_id", workflowID,
@@ -87,9 +93,14 @@ func (w *Worker) runWorkflow(ctx context.Context, task *client.Task) (*client.Ta
 		}
 		return nil, errWorkflowAlreadyBlocked
 	}
-	rp := replay.New(history)
+	rp := replay.New(history, owners)
 	wfctx := newWorkflowContext(ctx, w, task, workflowID, workflowType, rp)
 	value, err := fn(wfctx, args)
+	// A workflow that completes or continues as new must have replayed every
+	// command it recorded; the check records a sticky determinism error.
+	if err == nil || workflow.IsContinueAsNew(err) {
+		_ = rp.CheckBodyConsumed()
+	}
 	// Nondeterminism is sticky: a violation fails the task even when workflow
 	// code caught it and then returned, suspended or continued as new.
 	if detErr := rp.DeterminismErr(); detErr != nil {
@@ -168,7 +179,13 @@ func (w *Worker) runWorkflowUpdate(ctx context.Context, task *client.Task) (*cli
 	wfctx.replay.ConsumeUpdate(task.ID)
 	wfctx.replayOnly = false
 	wfctx.taskID = task.ID
+	// The live handler first replays the commands it owns from an earlier
+	// delivery of this task, then schedules new ones.
+	wfctx.replay.EnterOwner(task.ID, true)
 	value, err := handler(args)
+	if detErr := wfctx.replay.DeterminismErr(); detErr != nil {
+		return &client.TaskResult{}, translateReplayError(detErr)
+	}
 	if err != nil {
 		if workflow.IsSuspended(err) {
 			if _, blockErr := w.opts.Connection.BlockTask(ctx, task.ID, w.opts.AgentID, err.Error()); blockErr != nil {
@@ -227,9 +244,18 @@ func (w *Worker) replayWorkflowForInteraction(
 	if err != nil {
 		return nil, fmt.Errorf("load workflow history for %s: %w", interactionTask.Type, err)
 	}
-	wfctx := newWorkflowContext(ctx, w, sourceTask, workflowID, workflowType, replay.New(history))
+	owners, err := w.readCommandOwners(ctx, history)
+	if err != nil {
+		return nil, fmt.Errorf("load workflow history for %s: %w", interactionTask.Type, err)
+	}
+	wfctx := newWorkflowContext(ctx, w, sourceTask, workflowID, workflowType, replay.New(history, owners))
 	wfctx.replayOnly = true
 	_, runErr := fn(wfctx, args)
+	// A replay that returns normally must have consumed every recorded body
+	// command, so interactions run only against state consistent with history.
+	if runErr == nil {
+		_ = wfctx.replay.CheckBodyConsumed()
+	}
 	if detErr := wfctx.replay.DeterminismErr(); detErr != nil {
 		return nil, translateReplayError(detErr)
 	}
@@ -287,4 +313,31 @@ func decodeWorkflowPayload(task *client.Task) ([]any, string, error) {
 		wfID = task.ID
 	}
 	return envelope.Args, wfID, nil
+}
+
+// readCommandOwners reads, once per replay, which task issued each command
+// event that could belong to an update. A command task's payload names its
+// scheduling task and never changes.
+func (w *Worker) readCommandOwners(ctx context.Context, history []client.WorkflowHistoryEvent) (replay.Owners, error) {
+	candidates := replay.OwnershipCandidates(history)
+	if len(candidates) == 0 {
+		return nil, nil
+	}
+	owners := make(replay.Owners, len(candidates))
+	for _, taskID := range candidates {
+		task, err := w.opts.Connection.GetTask(ctx, taskID)
+		if err != nil {
+			return nil, fmt.Errorf("read owner of command task %s: %w", taskID, err)
+		}
+		var payload struct {
+			WorkflowTaskID       string `json:"workflowTaskId"`
+			ParentWorkflowTaskID string `json:"parentWorkflowTaskId"`
+		}
+		_ = json.Unmarshal(task.Payload, &payload)
+		owners[taskID] = payload.WorkflowTaskID
+		if owners[taskID] == "" {
+			owners[taskID] = payload.ParentWorkflowTaskID
+		}
+	}
+	return owners, nil
 }

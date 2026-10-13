@@ -82,7 +82,7 @@ func TestSleepSchedulesAndSuspendsWhenHistoryExhausted(t *testing.T) {
 		taskID:     "wf-task",
 		workflowID: "wf-1",
 		now:        time.Now().UTC(),
-		replay:     replay.New(nil),
+		replay:     replay.New(nil, nil),
 	}
 	err := wfctx.Sleep(2 * time.Second)
 	if !workflow.IsSuspended(err) {
@@ -108,7 +108,7 @@ func TestExecuteActivityReturnsHistoryResult(t *testing.T) {
 		conn:    conn,
 		replay: replay.New([]client.WorkflowHistoryEvent{
 			{Type: replay.EventActivityTaskScheduled, TaskID: "act-1", Attributes: map[string]any{"activity_type": "Greet"}},
-		}),
+		}, nil),
 	}
 	var result string
 	if err := wfctx.ExecuteActivity("Greet", []any{"world"}, &result, nil); err != nil {
@@ -134,7 +134,7 @@ func TestExecuteActivitySuspendsWhenActivityStillRunning(t *testing.T) {
 		conn:    conn,
 		replay: replay.New([]client.WorkflowHistoryEvent{
 			{Type: replay.EventActivityTaskScheduled, TaskID: "act-1", Attributes: map[string]any{"activity_type": "Greet"}},
-		}),
+		}, nil),
 	}
 	var ignored string
 	err := wfctx.ExecuteActivity("Greet", nil, &ignored, nil)
@@ -150,7 +150,7 @@ func TestExecuteActivityRaisesDeterminismOnNameDrift(t *testing.T) {
 		logger:  slog.Default(),
 		replay: replay.New([]client.WorkflowHistoryEvent{
 			{Type: replay.EventActivityTaskScheduled, TaskID: "act-1", Attributes: map[string]any{"activity_type": "Greet"}},
-		}),
+		}, nil),
 	}
 	err := wfctx.ExecuteActivity("Farewell", nil, nil, nil)
 	if err == nil || !strings.Contains(err.Error(), "activity command changed") {
@@ -463,7 +463,7 @@ func newReplayCtx(t *testing.T, history []client.WorkflowHistoryEvent) *workflow
 		taskID:     "wf-task",
 		workflowID: "wf-1",
 		now:        time.Now().UTC(),
-		replay:     replay.New(history),
+		replay:     replay.New(history, nil),
 	}
 }
 

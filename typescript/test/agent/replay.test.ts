@@ -1,11 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { DeterminismError, WorkflowReplay } from '../../src/agent/_replay.js';
+import { DeterminismError, ownershipCandidates, WorkflowReplay } from '../../src/agent/_replay.js';
 import { Agent } from '../../src/agent/agent.js';
 import type { Connection } from '../../src/agent/connection.js';
 import { ApplicationFailure } from '../../src/agent/errors.js';
 import type { Task, WorkflowHistoryEvent } from '../../src/agent/types.js';
-import { defineQuery, proxyActivities, setHandler, sleep } from '../../src/agent/workflow.js';
+import { continueAsNew, defineQuery, proxyActivities, setHandler, sleep } from '../../src/agent/workflow.js';
 
 function scheduled(activityType: string): WorkflowHistoryEvent {
   return {
@@ -92,35 +92,69 @@ describe('workflow replay ownership', () => {
 });
 
 interface ReplayFixtureStep {
-  command: 'activity' | 'timer' | 'child';
+  command: 'activity' | 'timer' | 'child' | 'complete' | 'handler_done';
   name?: string;
   duration_ms?: number;
   workflow_type?: string;
-  expect: 'replay' | 'new' | 'nondeterministic';
+  owner?: string;
+  live?: boolean;
+  expect: 'replay' | 'new' | 'nondeterministic' | 'ok';
 }
 
 const FIXTURES = new URL('../../../test/fixtures/replay/', import.meta.url);
+
+describe('ownership candidates', () => {
+  it('covers only commands inside an update window', () => {
+    const event = (type: string, taskId: string) => ({ type, task_id: taskId }) as WorkflowHistoryEvent;
+    expect(ownershipCandidates([
+      event('ActivityTaskScheduled', 'before-any-update'),
+      event('WorkflowUpdateAccepted', 'update-1'),
+      event('TimerStarted', 'inside-update-1'),
+      event('WorkflowUpdateCompleted', 'update-1'),
+      event('ChildWorkflowExecutionStarted', 'between-updates'),
+      event('WorkflowUpdateAccepted', 'update-2'),
+      event('ActivityTaskScheduled', 'while-update-2-pending'),
+    ])).toEqual(['inside-update-1', 'while-update-2-pending']);
+    expect(ownershipCandidates([
+      event('ActivityTaskScheduled', 'before-legacy'),
+      event('WorkflowUpdateCompleted', 'legacy-1'),
+      event('ActivityTaskScheduled', 'after-legacy'),
+    ])).toEqual(['before-legacy']);
+  });
+});
 
 describe('shared replay conformance fixtures', () => {
   for (const file of readdirSync(FIXTURES).filter((name) => name.endsWith('.json')).sort()) {
     it(file, () => {
       const fixture = JSON.parse(readFileSync(new URL(file, FIXTURES), 'utf8')) as {
         history: WorkflowHistoryEvent[];
+        owners?: Record<string, string>;
         steps: ReplayFixtureStep[];
       };
-      const replay = new WorkflowReplay(fixture.history);
+      const replay = new WorkflowReplay(fixture.history, fixture.owners);
       for (const [index, step] of fixture.steps.entries()) {
         let outcome: ReplayFixtureStep['expect'];
+        const restore = step.owner ? replay.enterOwner(step.owner, step.live ?? false) : () => undefined;
         try {
-          const event = step.command === 'activity'
-            ? replay.nextActivity(step.name ?? '')
-            : step.command === 'timer'
-              ? replay.nextTimer(step.duration_ms)
-              : replay.nextChild(step.workflow_type ?? '');
-          outcome = event ? 'replay' : 'new';
+          if (step.command === 'complete') {
+            replay.checkBodyConsumed();
+            outcome = 'ok';
+          } else if (step.command === 'handler_done') {
+            replay.checkOwnerConsumed(step.owner ?? '');
+            outcome = 'ok';
+          } else {
+            const event = step.command === 'activity'
+              ? replay.nextActivity(step.name ?? '')
+              : step.command === 'timer'
+                ? replay.nextTimer(step.duration_ms)
+                : replay.nextChild(step.workflow_type ?? '');
+            outcome = event ? 'replay' : 'new';
+          }
         } catch (err) {
           expect(err).toBeInstanceOf(DeterminismError);
           outcome = 'nondeterministic';
+        } finally {
+          restore();
         }
         expect({ index, outcome }).toEqual({ index, outcome: step.expect });
       }
@@ -251,6 +285,84 @@ describe('workflow runtime replay rules', () => {
     }
     await runWorkflowTask(connection, { SlowEventWorkflow }, 'SlowEventWorkflow');
     expect(enqueued).toEqual(['activity:First', 'activity:Second']);
+  });
+});
+
+describe('command ownership and the completion check', () => {
+  function connection(history: WorkflowHistoryEvent[], tasks: Record<string, unknown> = {}) {
+    return {
+      health: vi.fn(async () => ({ status: 'ok' })),
+      configureAgentAuth: vi.fn(),
+      getWorkflowHistory: vi.fn(async () => history),
+      heartbeatTask: vi.fn(async () => ({})),
+      appendTaskEvent: vi.fn(async () => ({ id: 'event-1' })),
+      failTask: vi.fn(async () => ({})),
+      completeTask: vi.fn(async () => ({})),
+      blockTask: vi.fn(async () => ({})),
+      enqueueTask: vi.fn(async () => ({})),
+      getTask: vi.fn(async (taskId: string) => tasks[taskId] ?? { id: taskId, state: 'succeeded', result: { value: 'ok' } }),
+    };
+  }
+
+  async function run(conn: ReturnType<typeof connection>, name: string, workflow: (...args: unknown[]) => Promise<unknown>): Promise<void> {
+    const previous = process.env.POSTGRIP_AGENT_MANAGED_RUNTIME;
+    process.env.POSTGRIP_AGENT_MANAGED_RUNTIME = 'true';
+    let agent: Agent;
+    try {
+      agent = await Agent.create({ connection: conn as unknown as Connection, taskQueue: 'default', workflows: { [name]: workflow } });
+    } finally {
+      if (previous == null) delete process.env.POSTGRIP_AGENT_MANAGED_RUNTIME;
+      else process.env.POSTGRIP_AGENT_MANAGED_RUNTIME = previous;
+    }
+    await (agent as unknown as { executeTask(task: Task): Promise<void> }).executeTask({
+      id: 'workflow-task-1', namespace: 'default', queue: 'default', type: `workflow:${name}`,
+      payload: { workflowType: name, workflowId: 'workflow-1', runId: 'run-1', args: [] },
+      state: 'leased', attempt: 1, lease_timeout_seconds: 30,
+      created_at: '2026-10-13T00:00:00Z', updated_at: '2026-10-13T00:00:00Z',
+    } as Task);
+  }
+
+  const leftoverViolation = expect.objectContaining({
+    failure: expect.objectContaining({ type: 'WorkflowDeterminismViolation' }),
+  });
+
+  it('fails a workflow that completes before replaying a recorded command', async () => {
+    const conn = connection([scheduled('A')]);
+    async function ShortenedWorkflow(): Promise<string> {
+      return 'done';
+    }
+    await run(conn, 'ShortenedWorkflow', ShortenedWorkflow);
+    expect(conn.completeTask).not.toHaveBeenCalled();
+    expect(conn.failTask).toHaveBeenCalledWith('workflow-task-1', expect.any(String), expect.stringContaining('finished before replaying recorded command'), leftoverViolation);
+  });
+
+  it('fails a workflow that continues as new before replaying a recorded command', async () => {
+    const conn = connection([scheduled('A')]);
+    async function ContinuingWorkflow(): Promise<void> {
+      await continueAsNew<typeof ContinuingWorkflow>();
+    }
+    await run(conn, 'ContinuingWorkflow', ContinuingWorkflow);
+    expect(conn.completeTask).not.toHaveBeenCalled();
+    expect(conn.failTask).toHaveBeenCalledWith('workflow-task-1', expect.any(String), expect.stringContaining('finished before replaying recorded command'), leftoverViolation);
+  });
+
+  it('reads command owners and keeps an update-owned command out of the body cursor', async () => {
+    const history = [
+      { id: 'e1', workflow_id: 'workflow-1', task_id: 'update-1', type: 'WorkflowUpdateAccepted', attributes: { update_name: 'U' }, created_at: '2026-10-13T00:00:00Z' },
+      { ...scheduled('B'), task_id: 'activity-update' },
+    ] as WorkflowHistoryEvent[];
+    const conn = connection(history, {
+      'activity-update': { id: 'activity-update', state: 'succeeded', payload: { workflowTaskId: 'update-1' } },
+    });
+    const { B } = proxyActivities<{ B(): Promise<string> }>();
+    async function BodyWorkflow(): Promise<string> {
+      return B();
+    }
+    await run(conn, 'BodyWorkflow', BodyWorkflow);
+    expect(conn.getTask).toHaveBeenCalledWith('activity-update');
+    // The recorded B belongs to the update, so the body's B is a new command.
+    expect(conn.enqueueTask).toHaveBeenCalledWith(expect.objectContaining({ type: 'activity:B' }));
+    expect(conn.blockTask).toHaveBeenCalled();
   });
 });
 
@@ -394,6 +506,20 @@ describe('interaction replay determinism', () => {
       'query-task-1',
       expect.any(String),
       expect.stringContaining('timer'),
+      expect.objectContaining({ failure: expect.objectContaining({ type: 'WorkflowDeterminismViolation' }) }),
+    );
+  });
+
+  it('fails a query whose replay returns before replaying a recorded command', async () => {
+    async function QueriedWorkflow(): Promise<void> {
+      setHandler(answer, () => 'ready');
+    }
+    const connection = await runQuery([scheduled('A')], QueriedWorkflow);
+    expect(connection.completeTask).not.toHaveBeenCalled();
+    expect(connection.failTask).toHaveBeenCalledWith(
+      'query-task-1',
+      expect.any(String),
+      expect.stringContaining('finished before replaying recorded command'),
       expect.objectContaining({ failure: expect.objectContaining({ type: 'WorkflowDeterminismViolation' }) }),
     );
   });

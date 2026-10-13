@@ -11,6 +11,7 @@ package replay
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/postgrip-io/postgrip-agent-sdks/go/protocol"
 )
@@ -48,23 +49,30 @@ type DeterminismError struct {
 
 func (e *DeterminismError) Error() string { return e.Message }
 
-// Replay walks a workflow's durable history. Each command type (activity,
-// timer, child workflow) has its own cursor: every call from the workflow
-// advances the cursor by one event in that type's filtered slice. Mismatches
-// raise a DeterminismError; cursor exhaustion returns (nil, nil) so the
-// caller knows to schedule a fresh command and suspend.
+// Owners maps a command event's task_id to the task that issued the command:
+// the workflow task for body commands, or an update task. The Agent reads it
+// from each command task's payload before replay; a command missing from the
+// map belongs to the body.
+type Owners map[string]string
+
+// Replay walks a workflow's durable history. The body and each update entry
+// have their own ordered cursor over the command events they own; a command
+// must match the earliest unconsumed event of its executing owner.
+// Mismatches raise a DeterminismError; cursor exhaustion returns (nil, nil)
+// so the caller knows to schedule a fresh command and suspend.
 type Replay struct {
 	history []protocol.WorkflowHistoryEvent
 
-	activities []indexedEvent
-	timers     []indexedEvent
-	children   []indexedEvent
-	updates    []Update
+	body    cursor
+	owned   map[string]*cursor
+	updates []Update
 
-	activityCursor int
-	timerCursor    int
-	childCursor    int
-	updateCursor   int
+	// owner is the executing update task, or "" while the body runs. A
+	// replayed handler already finished, so it never schedules new commands.
+	owner     string
+	ownerLive bool
+
+	updateCursor int
 
 	cancellationRequested bool
 	determinismErr        *DeterminismError
@@ -73,6 +81,16 @@ type Replay struct {
 type indexedEvent struct {
 	event protocol.WorkflowHistoryEvent
 	index int
+}
+
+// cursor is one owner's ordered position over its command events, with the
+// count consumed of each kind for error messages.
+type cursor struct {
+	events     []indexedEvent
+	next       int
+	activities int
+	timers     int
+	children   int
 }
 
 // Update is an accepted workflow update in its durable-history position.
@@ -88,11 +106,11 @@ type Update struct {
 	index     int
 }
 
-// New builds a Replay from durable history. Worker.runWorkflow constructs
-// one before each workflow body invocation so the body sees the same
-// command results across replays.
-func New(history []protocol.WorkflowHistoryEvent) *Replay {
-	r := &Replay{history: history}
+// New builds a Replay from durable history and the command owners the Agent
+// read for it. Worker.runWorkflow constructs one before each workflow body
+// invocation so the body sees the same command results across replays.
+func New(history []protocol.WorkflowHistoryEvent, owners Owners) *Replay {
+	r := &Replay{history: history, owned: make(map[string]*cursor)}
 	completed := make(map[string]bool)
 	failed := make(map[string]bool)
 	accepted := make(map[string]bool)
@@ -108,15 +126,28 @@ func New(history []protocol.WorkflowHistoryEvent) *Replay {
 			accepted[ev.TaskID] = true
 		}
 	}
+	updateTasks := make(map[string]bool)
+	for i := range history {
+		switch ev := &history[i]; ev.Type {
+		case EventWorkflowUpdateAccepted, EventWorkflowUpdateCompleted, EventWorkflowUpdateFailed:
+			if ev.TaskID != "" {
+				updateTasks[ev.TaskID] = true
+			}
+		}
+	}
 	for i := range history {
 		ev := &history[i]
 		switch ev.Type {
-		case EventActivityTaskScheduled:
-			r.activities = append(r.activities, indexedEvent{event: *ev, index: i})
-		case EventTimerStarted:
-			r.timers = append(r.timers, indexedEvent{event: *ev, index: i})
-		case EventChildWorkflowStarted:
-			r.children = append(r.children, indexedEvent{event: *ev, index: i})
+		case EventActivityTaskScheduled, EventTimerStarted, EventChildWorkflowStarted:
+			event := indexedEvent{event: *ev, index: i}
+			if owner := owners[ev.TaskID]; ev.TaskID != "" && updateTasks[owner] {
+				if r.owned[owner] == nil {
+					r.owned[owner] = &cursor{}
+				}
+				r.owned[owner].events = append(r.owned[owner].events, event)
+				continue
+			}
+			r.body.events = append(r.body.events, event)
 		case EventWorkflowUpdateAccepted:
 			update := updateFromEvent(*ev, i, completed[ev.TaskID])
 			update.Failed = failed[ev.TaskID]
@@ -137,7 +168,122 @@ func New(history []protocol.WorkflowHistoryEvent) *Replay {
 			r.cancellationRequested = true
 		}
 	}
+	// A legacy entry has no accepted event. It is positioned at its earliest
+	// owned command so its handler replays through the commands it issued.
+	for i := range r.updates {
+		update := &r.updates[i]
+		if accepted[update.TaskID] {
+			continue
+		}
+		if owned := r.owned[update.TaskID]; owned != nil && owned.events[0].index < update.index {
+			update.index = owned.events[0].index
+		}
+	}
+	sort.SliceStable(r.updates, func(i, j int) bool { return r.updates[i].index < r.updates[j].index })
 	return r
+}
+
+// OwnershipCandidates returns the task IDs of the command events that could
+// belong to an update: those between an accepted update event and its terminal
+// event, or the end of history while it is pending, and those before the
+// terminal event of a legacy entry that has no accepted event. The Agent reads
+// each one's owner before building a Replay.
+func OwnershipCandidates(history []protocol.WorkflowHistoryEvent) []string {
+	acceptedAt := make(map[string]int)
+	terminalAt := make(map[string]int)
+	for i := range history {
+		ev := &history[i]
+		if ev.TaskID == "" {
+			continue
+		}
+		switch ev.Type {
+		case EventWorkflowUpdateAccepted:
+			if _, ok := acceptedAt[ev.TaskID]; !ok {
+				acceptedAt[ev.TaskID] = i
+			}
+		case EventWorkflowUpdateCompleted, EventWorkflowUpdateFailed:
+			if _, ok := terminalAt[ev.TaskID]; !ok {
+				terminalAt[ev.TaskID] = i
+			}
+		}
+	}
+	inWindow := func(index int) bool {
+		for taskID, terminal := range terminalAt {
+			start, accepted := acceptedAt[taskID]
+			if !accepted {
+				start = -1
+			}
+			if index > start && index < terminal {
+				return true
+			}
+		}
+		for taskID, start := range acceptedAt {
+			if _, done := terminalAt[taskID]; !done && index > start {
+				return true
+			}
+		}
+		return false
+	}
+	var candidates []string
+	seen := make(map[string]bool)
+	for i := range history {
+		ev := &history[i]
+		switch ev.Type {
+		case EventActivityTaskScheduled, EventTimerStarted, EventChildWorkflowStarted:
+			if ev.TaskID != "" && !seen[ev.TaskID] && inWindow(i) {
+				seen[ev.TaskID] = true
+				candidates = append(candidates, ev.TaskID)
+			}
+		}
+	}
+	return candidates
+}
+
+// EnterOwner makes the update task the executing owner until the returned
+// function restores the previous one. A live owner schedules new commands
+// once its recorded ones are consumed; a replayed owner already finished, so
+// a further command is a determinism error.
+func (r *Replay) EnterOwner(taskID string, live bool) func() {
+	previous, previousLive := r.owner, r.ownerLive
+	r.owner, r.ownerLive = taskID, live
+	return func() { r.owner, r.ownerLive = previous, previousLive }
+}
+
+func (r *Replay) current() *cursor {
+	if r.owner == "" {
+		return &r.body
+	}
+	c := r.owned[r.owner]
+	if c == nil {
+		c = &cursor{}
+		r.owned[r.owner] = c
+	}
+	return c
+}
+
+// CheckBodyConsumed is the completion check's leftover test: a body-owned
+// command event left unconsumed when the workflow completes, continues as new
+// or, in query replay, returns, is a recorded determinism error.
+func (r *Replay) CheckBodyConsumed() error {
+	return r.checkConsumed(&r.body, "workflow")
+}
+
+// CheckOwnerConsumed reports a replayed update handler that returned or raised
+// with its own command events left unconsumed.
+func (r *Replay) CheckOwnerConsumed(taskID string) error {
+	c := r.owned[taskID]
+	if c == nil {
+		return nil
+	}
+	return r.checkConsumed(c, fmt.Sprintf("update %s handler", taskID))
+}
+
+func (r *Replay) checkConsumed(c *cursor, who string) error {
+	if c.next >= len(c.events) {
+		return nil
+	}
+	left := c.events[c.next]
+	return r.fail(fmt.Sprintf("%s finished before replaying recorded command at history index %d: history=%q", who, left.index, left.event.Type))
 }
 
 func updateFromEvent(ev protocol.WorkflowHistoryEvent, index int, completed bool) Update {
@@ -158,11 +304,13 @@ func (r *Replay) NextActivity(name string) (*protocol.WorkflowHistoryEvent, erro
 	if err != nil || ev == nil {
 		return nil, err
 	}
+	c := r.current()
 	recorded, _ := ev.event.Attributes["activity_type"].(string)
 	if recorded != "" && recorded != name {
-		return nil, r.fail(fmt.Sprintf("activity command changed at index %d: history=%q replay=%q", r.activityCursor, recorded, name))
+		return nil, r.fail(fmt.Sprintf("activity command changed at index %d: history=%q replay=%q", c.activities, recorded, name))
 	}
-	r.activityCursor++
+	c.activities++
+	c.next++
 	return &ev.event, nil
 }
 
@@ -174,13 +322,15 @@ func (r *Replay) NextTimer(durationMs int64) (*protocol.WorkflowHistoryEvent, er
 	if err != nil || ev == nil {
 		return nil, err
 	}
+	c := r.current()
 	if recorded, ok := ev.event.Attributes["duration_ms"]; ok {
 		recordedMs, ok := numberAsInt64(recorded)
 		if ok && recordedMs != durationMs {
-			return nil, r.fail(fmt.Sprintf("timer command changed at index %d: history=%dms replay=%dms", r.timerCursor, recordedMs, durationMs))
+			return nil, r.fail(fmt.Sprintf("timer command changed at index %d: history=%dms replay=%dms", c.timers, recordedMs, durationMs))
 		}
 	}
-	r.timerCursor++
+	c.timers++
+	c.next++
 	return &ev.event, nil
 }
 
@@ -190,34 +340,35 @@ func (r *Replay) NextChild(workflowType string) (*protocol.WorkflowHistoryEvent,
 	if err != nil || ev == nil {
 		return nil, err
 	}
+	c := r.current()
 	recorded, _ := ev.event.Attributes["workflow_type"].(string)
 	if recorded != "" && recorded != workflowType {
-		return nil, r.fail(fmt.Sprintf("child workflow command changed at index %d: history=%q replay=%q", r.childCursor, recorded, workflowType))
+		return nil, r.fail(fmt.Sprintf("child workflow command changed at index %d: history=%q replay=%q", c.children, recorded, workflowType))
 	}
-	r.childCursor++
+	c.children++
+	c.next++
 	return &ev.event, nil
 }
 
-// nextCommand returns the earliest unconsumed command event without consuming
-// it. It returns (nil, nil) when no recorded command remains, and a
-// DeterminismError when the earliest one is not of the requested kind; that
-// covers reordering and a kind whose events are exhausted while others remain.
+// nextCommand returns the executing owner's earliest unconsumed command event
+// without consuming it. It returns (nil, nil) when no recorded command remains,
+// and a DeterminismError when the earliest one is not of the requested kind;
+// that covers reordering and a kind whose events are exhausted while others
+// remain. A replayed update handler with no recorded command left has already
+// finished, so a further command is a DeterminismError, never a new one.
 func (r *Replay) nextCommand(kind string) (*indexedEvent, error) {
-	index, recordedKind, ok := r.earliestCommand()
-	if !ok {
+	c := r.current()
+	if c.next >= len(c.events) {
+		if r.owner != "" && !r.ownerLive {
+			return nil, r.fail(fmt.Sprintf("update %s handler issued %q after its recorded commands", r.owner, kind))
+		}
 		return nil, nil
 	}
-	if recordedKind != kind {
-		return nil, r.fail(fmt.Sprintf("command changed at history index %d: history=%q replay=%q", index, recordedKind, kind))
+	ev := &c.events[c.next]
+	if ev.event.Type != kind {
+		return nil, r.fail(fmt.Sprintf("command changed at history index %d: history=%q replay=%q", ev.index, ev.event.Type, kind))
 	}
-	switch kind {
-	case EventActivityTaskScheduled:
-		return &r.activities[r.activityCursor], nil
-	case EventTimerStarted:
-		return &r.timers[r.timerCursor], nil
-	default:
-		return &r.children[r.childCursor], nil
-	}
+	return ev, nil
 }
 
 // fail records the first determinism error. Once recorded, the worker fails
@@ -239,35 +390,25 @@ func (r *Replay) DeterminismErr() error {
 	return r.determinismErr
 }
 
-func (r *Replay) earliestCommand() (int, string, bool) {
-	index := len(r.history)
-	typeName := ""
-	if r.activityCursor < len(r.activities) && r.activities[r.activityCursor].index < index {
-		index = r.activities[r.activityCursor].index
-		typeName = EventActivityTaskScheduled
+// earliestBodyCommand returns the history index of the earliest unconsumed
+// body-owned command event; update boundaries apply only before it.
+func (r *Replay) earliestBodyCommand() (int, bool) {
+	if r.body.next >= len(r.body.events) {
+		return 0, false
 	}
-	if r.timerCursor < len(r.timers) && r.timers[r.timerCursor].index < index {
-		index = r.timers[r.timerCursor].index
-		typeName = EventTimerStarted
-	}
-	if r.childCursor < len(r.children) && r.children[r.childCursor].index < index {
-		index = r.children[r.childCursor].index
-		typeName = EventChildWorkflowStarted
-	}
-	return index, typeName, typeName != ""
+	return r.body.events[r.body.next].index, true
 }
 
-// NextUpdateBeforeCommand returns the next accepted update when it precedes
-// the next unconsumed durable command. The caller must call ConsumeUpdate
-// before invoking its handler. This lets handler commands consume the command
-// events immediately following that update instead of letting the workflow
-// body consume them out of order.
+// NextUpdateBeforeCommand returns the next update boundary when it precedes
+// the earliest unconsumed body-owned command event, or when none remains. The
+// caller must call ConsumeUpdate before invoking its handler, which consumes
+// its own command events under EnterOwner.
 func (r *Replay) NextUpdateBeforeCommand() (*Update, bool) {
 	if r == nil || r.updateCursor >= len(r.updates) {
 		return nil, false
 	}
 	update := &r.updates[r.updateCursor]
-	commandIndex, _, hasCommand := r.earliestCommand()
+	commandIndex, hasCommand := r.earliestBodyCommand()
 	if hasCommand && update.index > commandIndex {
 		return nil, false
 	}
