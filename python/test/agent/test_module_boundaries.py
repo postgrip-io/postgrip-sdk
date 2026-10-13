@@ -29,8 +29,15 @@ class AgentModuleBoundariesTest(unittest.TestCase):
     """
 
     def test_sandbox_does_not_import_client(self) -> None:
-        imported = _imported_modules(AGENT / "sandbox.py")
-        self.assertFalse(imported & {".client", "postgrip.agent.client"}, imported)
+        for module in ("sandbox.py", "_sandbox_models.py", "_sandbox_transport.py"):
+            imported = _imported_modules(AGENT / module)
+            self.assertFalse(imported & {".client", "postgrip.agent.client"}, (module, imported))
+
+    def test_sandbox_models_and_transport_do_not_import_orchestration(self) -> None:
+        for module in ("_sandbox_models.py", "_sandbox_transport.py"):
+            imported = _imported_modules(AGENT / module)
+            self.assertFalse(imported & {".sandbox", "postgrip.agent.sandbox"}, (module, imported))
+        self.assertFalse(_imported_modules(AGENT / "_sandbox_models.py") & {"._sandbox_transport", "urllib.request"})
 
     def test_connection_adapter_does_not_import_client_or_sandbox(self) -> None:
         imported = _imported_modules(AGENT / "_connection.py")
