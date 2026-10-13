@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
   workflow_call:
+    inputs:
+      force_full:
+        description: Keep reusable release validation on the full suite.
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -14,7 +19,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.select.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Test CI selection and aggregate gate
+        run: python3 -m unittest discover -s scripts -p test_ci_policy.py
+      - name: Select validation from the tested PR merge
+        id: select
+        env:
+          CI_FORCE_FULL: ${{ inputs.force_full == true }}
+        run: python3 scripts/ci_policy.py
+
   contracts:
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,13 +72,12 @@ jobs:
           PYTHONPATH=python/src python3 scripts/test_live_api.py --self-test
           python3 scripts/test_service_domain_verification_live.py --self-test
           python3 scripts/test_live_api.py --tier production-smoke --scenario test/live/production-smoke.json --validate-only
-      - name: Verify detailed API documentation and cURL
-        run: |
-          python3 scripts/generate_api_docs.py --check
-          python3 scripts/check_api_docs.py
-          python3 scripts/test_curl_examples.py --plane all
+      - name: Verify recorded cURL examples
+        run: python3 scripts/test_curl_examples.py --plane all
 
   go:
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +123,8 @@ jobs:
           check_coverage ./service 85
 
   typescript:
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -118,6 +143,8 @@ jobs:
       - run: npm pack --dry-run --json
 
   python:
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -143,6 +170,8 @@ jobs:
           python -c "from postgrip import PostGrip, AsyncPostGrip; import postgrip.agent, postgrip.worker, postgrip.service"
 
   recorded-endpoints:
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -161,6 +190,8 @@ jobs:
       - run: python3 scripts/test_api_endpoints.py --plane all
 
   artifacts:
+    needs: changes
+    if: ${{ needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -184,14 +215,31 @@ jobs:
 
   documentation:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install "mkdocs-material>=9.7,<10"
+      - name: Verify generated API documentation
+        run: |
+          python3 scripts/generate_api_docs.py --check
+          python3 scripts/check_api_docs.py
       - run: mkdocs build --strict --site-dir /tmp/postgrip-docs
       - run: mkdocs build --strict --site-dir /tmp/postgrip-typescript-docs
         working-directory: typescript
       - run: mkdocs build --strict --site-dir /tmp/postgrip-python-docs
         working-directory: python
+
+  sdk-validation:
+    if: ${{ always() }}
+    needs: [changes, contracts, go, typescript, python, recorded-endpoints, artifacts, documentation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require every selected validation job to pass
+        env:
+          CI_NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci_policy.py --check-result
