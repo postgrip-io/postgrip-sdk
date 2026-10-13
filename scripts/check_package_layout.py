@@ -12,16 +12,20 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# `export *`, `export * as name` and `export type *` re-exports, after comments
-# are blanked so commented-out code cannot trip the rule.
-_WILDCARD_EXPORT = re.compile(r"^[ \t]*export[ \t]+(?:type[ \t]+)?\*", re.MULTILINE)
-_TYPESCRIPT_COMMENT = re.compile(r"/\*.*?\*/|//[^\n]*", re.DOTALL)
+# `export *`, `export * as name` and `export type *` re-exports in any legal
+# spacing or position. Comments and string literals are blanked first, in one
+# left-to-right pass, so neither can hide or fake a wildcard.
+_WILDCARD_EXPORT = re.compile(r"(?<![\w$.])export\s+(?:type\s+)?\*")
+_TYPESCRIPT_COMMENT_OR_STRING = re.compile(
+    r"/\*.*?\*/|//[^\n]*|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\"|`(?:\\.|[^`\\])*`",
+    re.DOTALL,
+)
 
 
 def wildcard_export_lines(source: str) -> list[int]:
     """Return the 1-based lines of TypeScript wildcard re-exports in *source*."""
 
-    blanked = _TYPESCRIPT_COMMENT.sub(lambda match: re.sub(r"[^\n]", " ", match.group()), source)
+    blanked = _TYPESCRIPT_COMMENT_OR_STRING.sub(lambda match: re.sub(r"[^\n]", " ", match.group()), source)
     return [blanked.count("\n", 0, match.start()) + 1 for match in _WILDCARD_EXPORT.finditer(blanked)]
 
 
@@ -38,6 +42,13 @@ def self_test() -> int:
         "export const value = 2 * 3;\n": [],
         "// export * from './client.js';\n": [],
         "/*\nexport * from './client.js';\n*/\nexport { A } from './a.js';\n": [],
+        "export\n* from './split.js';\n": [1],
+        "export type\n  *\n  from './split.js';\n": [1],
+        "const a = 1; export * from './inline.js';\n": [1],
+        "const text = 'export * from x';\n": [],
+        "const url = 'https://example.test'; export * from './after-string.js';\n": [1],
+        "const doc = `\nexport * from './template.js';\n`;\n": [],
+        "module.export * 2;\n": [],
     }
     failures = [
         f"{source!r}: got {wildcard_export_lines(source)}, want {expected}"
