@@ -107,7 +107,9 @@ workflow replay use the same cursors.
 **Cancellation.** A recorded `WorkflowCancellationRequested` is observed only
 when no unconsumed command event owned by the executing context, and no
 unapplied update boundary, precedes it in history. The executing context is the body, or the update handler that is
-running. This applies at every cancellable point (before a command, and in
+running. A replayed completed or failed handler never observes a request
+recorded after its own terminal event, because its original execution finished
+before that request existed. This applies at every cancellable point (before a command, and in
 `condition`) and to the synchronous `cancellationRequested()` accessors of
 TypeScript (`workflow.ts`) and Python (`workflow.py`). Commands recorded before
 the request replay normally, including those of an update handler that issued
@@ -198,10 +200,22 @@ registration returns. An `async` handler is tracked as in flight:
 - Calling a Python `async def` handler only creates its coroutine, so none of
   its body runs during registration.
 
-The runtime awaits every in-flight replayed handler, in boundary order, before
-the workflow's next command is consumed, before a `condition` predicate is
-re-evaluated, and before completion. Later boundaries apply only after it
-settles. TypeScript and Python runtimes also apply deferred boundaries before
+Before the body's next command is consumed, before the body re-evaluates a
+`condition` predicate, and before completion, the runtime awaits every
+in-flight replayed handler in boundary order. Later boundaries apply only after
+it settles. A handler's own operations, its commands and `condition` waits, do
+not wait at that barrier. They run in the handler's execution context and
+consume the handler's owned events, so a handler never awaits itself or a later
+handler.
+
+Each execution context (the body and each running handler) has its own
+cancellation-scope stack. Today TypeScript keeps one mutable
+`cancellationScopes` array per invocation, and Python one scope `ContextVar`
+that concurrent tasks may share. A handler that enters
+`CancellationScope.nonCancellable()` and suspends must not change the scope the
+body sees. TypeScript keys the stack by execution context, for example through
+`AsyncLocalStorage`. Python gives each handler task its own context copy with
+an independent stack. TypeScript and Python runtimes also apply deferred boundaries before
 evaluating a `condition` predicate.
 
 Workflow code that runs between registration and its next durable call,
@@ -229,8 +243,11 @@ Cancellation has the same race. A run that fetched history before a
 cancellation request can schedule a command recorded after
 `WorkflowCancellationRequested`. Positional replay then observes the
 cancellation before that command, so code that handles cancellation finds the
-command left over. The same runtime remedies apply, and this is recorded in the
-same open gap.
+command left over. Signals have the same race: a run that fetched history
+before `WorkflowSignaled(S)` can record a command after S that was chosen
+without S, while replay delivers S at handler registration. The same runtime
+remedies apply to both, and both are recorded in the same open gap. Signal
+delivery stays deterministic for runs that do not race.
 
 **Update tasks.** An update task replays its source workflow in replay-only
 mode until replay stops. It then inspects the next unconsumed update boundary:
@@ -406,7 +423,12 @@ unit tests run every fixture. They cover:
 - `Accepted(U), Activity(A) owned by U, CancellationRequested, Failed(U)`,
   where U's replayed handler consumes A before observing the cancellation;
 - `Accepted(U), Completed(U), CancellationRequested`, where the accessor reports
-  `False` until U has applied;
+  `False` until U has applied, and U's replayed handler itself reads `False`;
+- an `async` replayed handler that awaits its own owned command and a
+  `condition` without deadlocking, and a body command after it that waits for
+  it;
+- an `async` handler inside `nonCancellable()` that suspends while the body's
+  next cancellation check still uses the body's own scope;
 - `Activity(A)`, then a workflow that returns after A against
   `Activity(A), CancellationRequested`, which raises the cancellation failure at
   completion, while a workflow that observed and handled it completes;
