@@ -247,4 +247,39 @@ describe('Agent request cancellation', () => {
 
     await expect(events.next()).rejects.toThrow('task lookup failed');
   });
+
+  it('rejects watchEvents for an unrelated failure that settles after the abort', async () => {
+    const pending = deferred();
+    let fail!: (error: Error) => void;
+    // This transport ignores the signal, so its own failure settles after the abort.
+    const { client } = routedConnection(() => {
+      pending.resolve();
+      return new Promise<Response>((_resolve, reject) => {
+        fail = reject;
+      });
+    });
+    const controller = new AbortController();
+    const events = client.task.watchEvents('task-1', { signal: controller.signal });
+
+    const next = events.next();
+    await pending.promise;
+    controller.abort();
+    fail(new TypeError('network down'));
+
+    await expect(next).rejects.toThrow('network down');
+  });
+
+  it('stops waiting on a refresh when the signal aborts while the refresh starts', async () => {
+    const controller = new AbortController();
+    const { client } = routedConnection((url) => {
+      if (url.pathname === '/api/v1/agent/session/refresh') {
+        controller.abort();
+        return new Promise<Response>(() => undefined);
+      }
+      throw new Error(`unexpected request ${url.pathname}`);
+    }, { refreshToken: 'refresh-token' });
+    const events = client.task.watchEvents('task-1', { signal: controller.signal });
+
+    await expect(events.next()).resolves.toEqual({ done: true, value: undefined });
+  });
 });

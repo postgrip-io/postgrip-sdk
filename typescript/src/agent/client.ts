@@ -298,7 +298,7 @@ export class WorkflowHandle<R = unknown> {
     try {
       taskId = await this.resolveTaskId(options.signal);
     } catch (error) {
-      if (options.signal?.aborted) return;
+      if (isAbortFrom(error, options.signal)) return;
       throw error;
     }
     yield* watchTaskEvents(this.connection, taskId, options);
@@ -718,9 +718,15 @@ async function* watchTaskEvents(
     }
   } catch (error) {
     // The caller's abort ends the watch as the loop check does; other failures propagate.
-    if (signal?.aborted) return;
+    if (isAbortFrom(error, signal)) return;
     throw error;
   }
+}
+
+/** Whether `error` is the rejection caused by aborting `signal`, not an unrelated failure. */
+function isAbortFrom(error: unknown, signal: AbortSignal | undefined): boolean {
+  if (!signal?.aborted) return false;
+  return error === signal.reason || (error instanceof Error && error.name === 'AbortError');
 }
 
 function delay(ms: number): Promise<void> {

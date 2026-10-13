@@ -761,8 +761,13 @@ async function* iterateHistoryPages<T>(
 function waitUnlessAborted<T>(work: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
   if (!signal) return work;
   return new Promise<T>((resolve, reject) => {
-    const abort = () => reject(signal.reason);
+    const abort = () => {
+      signal.removeEventListener('abort', abort);
+      reject(signal.reason);
+    };
     signal.addEventListener('abort', abort, { once: true });
+    // The abort may have fired while `work` was being created, before this listener.
+    if (signal.aborted) abort();
     work.then(
       (value) => {
         signal.removeEventListener('abort', abort);
