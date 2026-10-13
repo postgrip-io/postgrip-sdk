@@ -367,19 +367,19 @@ export interface OpenAPIOperationTypes {
 }
 
 const operationTable = {
-  checkWorker: {"method":"POST","path":"/api/v1/workers/{workerId}/check","authLane":"worker-management","safety":"mutation","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"CheckWorkerResponse","pathParameters":["workerId"]},
-  createWorker: {"method":"POST","path":"/api/v1/workers","authLane":"worker-management","safety":"mutation","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":"CreateWorkerRequest","responseSchema":"CreateWorkerResponse","pathParameters":[]},
-  getWorker: {"method":"GET","path":"/api/v1/workers/{workerId}","authLane":"worker-management","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"Worker","pathParameters":["workerId"]},
-  getWorkerJob: {"method":"GET","path":"/api/v1/workers/{workerId}/jobs/{jobId}","authLane":"worker-management","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"Job","pathParameters":["workerId","jobId"]},
-  listWorkerAssignments: {"method":"GET","path":"/api/v1/workers/{workerId}/assignments","authLane":"worker-management","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"AssignmentList","pathParameters":["workerId"]},
-  listWorkerJobs: {"method":"GET","path":"/api/v1/workers/{workerId}/jobs","authLane":"worker-management","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"JobList","pathParameters":["workerId"]},
-  listWorkerOperationalLogs: {"method":"GET","path":"/api/v1/workers/{workerId}/operational-logs","authLane":"worker-management","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"OperationalLogList","pathParameters":["workerId"]},
-  listWorkerSecurityLogs: {"method":"GET","path":"/api/v1/workers/{workerId}/security-logs","authLane":"worker-management","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"SecurityLogList","pathParameters":["workerId"]},
-  listWorkers: {"method":"GET","path":"/api/v1/workers","authLane":"worker-management","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"WorkerList","pathParameters":[]},
-  placeWorkerInMaintenance: {"method":"POST","path":"/api/v1/workers/{workerId}/maintenance","authLane":"worker-management","safety":"mutation","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"WorkerOperationResponse","pathParameters":["workerId"]},
-  resumeWorkerFromMaintenance: {"method":"POST","path":"/api/v1/workers/{workerId}/maintenance/resume","authLane":"worker-management","safety":"mutation","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"WorkerOperationResponse","pathParameters":["workerId"]},
-  upgradeWorker: {"method":"POST","path":"/api/v1/workers/{workerId}/upgrade","authLane":"worker-management","safety":"mutation","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"UpgradeWorkerResponse","pathParameters":["workerId"]},
-  workerOrchestratorHealth: {"method":"GET","path":"/health","authLane":"public","safety":"read-only","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"HealthResponse","pathParameters":[]},
+  checkWorker: {"method":"POST","path":"/api/v1/workers/{workerId}/check","authLane":"worker-management","safety":"mutation","idempotency":"required","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"CheckWorkerResponse","pathParameters":["workerId"],"headerParameters":["Idempotency-Key"]},
+  createWorker: {"method":"POST","path":"/api/v1/workers","authLane":"worker-management","safety":"mutation","idempotency":"required","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":"CreateWorkerRequest","responseSchema":"CreateWorkerResponse","pathParameters":[],"headerParameters":["Idempotency-Key"]},
+  getWorker: {"method":"GET","path":"/api/v1/workers/{workerId}","authLane":"worker-management","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"Worker","pathParameters":["workerId"],"headerParameters":[]},
+  getWorkerJob: {"method":"GET","path":"/api/v1/workers/{workerId}/jobs/{jobId}","authLane":"worker-management","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"Job","pathParameters":["workerId","jobId"],"headerParameters":[]},
+  listWorkerAssignments: {"method":"GET","path":"/api/v1/workers/{workerId}/assignments","authLane":"worker-management","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"AssignmentList","pathParameters":["workerId"],"headerParameters":[]},
+  listWorkerJobs: {"method":"GET","path":"/api/v1/workers/{workerId}/jobs","authLane":"worker-management","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"JobList","pathParameters":["workerId"],"headerParameters":[]},
+  listWorkerOperationalLogs: {"method":"GET","path":"/api/v1/workers/{workerId}/operational-logs","authLane":"worker-management","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"OperationalLogList","pathParameters":["workerId"],"headerParameters":[]},
+  listWorkerSecurityLogs: {"method":"GET","path":"/api/v1/workers/{workerId}/security-logs","authLane":"worker-management","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"SecurityLogList","pathParameters":["workerId"],"headerParameters":[]},
+  listWorkers: {"method":"GET","path":"/api/v1/workers","authLane":"worker-management","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"WorkerList","pathParameters":[],"headerParameters":[]},
+  placeWorkerInMaintenance: {"method":"POST","path":"/api/v1/workers/{workerId}/maintenance","authLane":"worker-management","safety":"mutation","idempotency":"required","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"WorkerOperationResponse","pathParameters":["workerId"],"headerParameters":["Idempotency-Key"]},
+  resumeWorkerFromMaintenance: {"method":"POST","path":"/api/v1/workers/{workerId}/maintenance/resume","authLane":"worker-management","safety":"mutation","idempotency":"required","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"WorkerOperationResponse","pathParameters":["workerId"],"headerParameters":["Idempotency-Key"]},
+  upgradeWorker: {"method":"POST","path":"/api/v1/workers/{workerId}/upgrade","authLane":"worker-management","safety":"mutation","idempotency":"required","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"UpgradeWorkerResponse","pathParameters":["workerId"],"headerParameters":["Idempotency-Key"]},
+  workerOrchestratorHealth: {"method":"GET","path":"/health","authLane":"public","safety":"read-only","idempotency":"none","pagination":"none","retry":"bounded","signing":null,"streamingRequest":false,"webSocket":false,"requestSchema":null,"responseSchema":"HealthResponse","pathParameters":[],"headerParameters":[]},
 } as const;
 
 export type OpenAPIOperationId = keyof typeof operationTable;
@@ -521,12 +521,15 @@ export interface ResolvedOpenAPIOperation {
   readonly path: string;
   readonly authLane: OpenAPIAuthLane;
   readonly safety: string;
+  readonly idempotency: string;
+  readonly pagination: string;
   readonly retry: string;
   readonly signing?: string;
   readonly streamingRequest: boolean;
   readonly webSocket: boolean;
   readonly requestSchema?: string;
   readonly responseSchema?: string;
+  readonly headerParameters: readonly string[];
 }
 
 export function resolveOpenAPIOperation(
@@ -551,11 +554,14 @@ export function resolveOpenAPIOperation(
     path: resolvedPath,
     authLane: source.authLane,
     safety: source.safety,
+    idempotency: source.idempotency,
+    pagination: source.pagination,
     retry: source.retry,
     ...(source.signing ? { signing: source.signing } : {}),
     streamingRequest: source.streamingRequest,
     webSocket: source.webSocket,
     ...(source.requestSchema ? { requestSchema: source.requestSchema } : {}),
     ...(source.responseSchema ? { responseSchema: source.responseSchema } : {}),
+    headerParameters: source.headerParameters,
   };
 }

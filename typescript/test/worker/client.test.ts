@@ -178,6 +178,8 @@ describe('WorkerClient', () => {
       token: 'pgt_test-token',
       fetch: fetchMock,
       enableRetries: true,
+      // Distinct from the 30-second Retry-After this test must not honor.
+      timeoutMs: 45_000,
     });
 
     try {

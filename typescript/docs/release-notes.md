@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Worker requests run through a shared contract-driven executor. Each exchange
+  is bounded at 30 seconds by default (`WorkerClientConfig.timeoutMs`), and an
+  earlier `AbortSignal` abort still wins.
+- `WorkerAPIError` keeps its fields, constructor and `name`; it now extends an
+  internal shared API error base that the other planes will also use.
+- The generated low-level Worker operations (`WorkerClient.openapi`) reject a
+  missing or invalid required `Idempotency-Key` before sending.
+- Worker `Retry-After` parsing ignores signed values such as `+5`, which are
+  not valid delta-seconds, and backs off with jitter instead.
+
 ## 0.13.0
 
 - Consolidates Agent, Worker-management, and Service-management into one
