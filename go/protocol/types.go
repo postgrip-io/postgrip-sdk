@@ -163,6 +163,8 @@ func (t Task) MarshalJSON() ([]byte, error) {
 type PollTaskResponse struct {
 	Task      *Task               `json:"task,omitempty"`
 	Directive *AgentPollDirective `json:"directive,omitempty"`
+
+	presence presence
 }
 
 type AgentPollDirective struct {
@@ -350,6 +352,8 @@ type TaskResult struct {
 	ContinueAsNew *ContinueAsNewResult `json:"continue_as_new,omitempty"`
 	StartedAt     time.Time            `json:"started_at,omitempty"`
 	FinishedAt    time.Time            `json:"finished_at,omitempty"`
+
+	presence presence
 }
 
 type FailureInfo struct {

@@ -8,6 +8,22 @@ nav_order: 7
 
 ## Unreleased
 
+- `protocol.PollTaskResponse`, `protocol.Sandbox`, `protocol.TaskResult` and
+  `protocol.SandboxCreateRequest` (and their `client` aliases) keep an explicit
+  JSON `null` for their optional nullable properties when a decoded value is
+  re-encoded. A decoded `TaskResult` no longer re-encodes absent
+  `started_at`/`finished_at` as year-one timestamps. Values built in code
+  encode exactly as before.
+- A `SandboxCreateRequest` decoded from JSON that omits `resourceLimits` or
+  `networkPolicy` now sends them omitted instead of as zero-valued objects;
+  both properties are optional in the contract.
+- Source compatibility: the four types gained an unexported field, so unkeyed
+  composite literals of them, such as `protocol.PollTaskResponse{task, nil}`,
+  no longer compile; keyed literals are unaffected. Their new `MarshalJSON`
+  and `UnmarshalJSON` methods are promoted to structs that embed them
+  anonymously, so such a wrapper's own JSON fields are neither encoded nor
+  decoded.
+
 ## v0.13.0
 
 - Consolidates Agent, Worker-management, Service-management, and protocol

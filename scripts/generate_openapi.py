@@ -405,11 +405,31 @@ def go_schema_type(schema: dict[str, Any], optional: bool = False) -> str:
     return f"*{value}" if optional and value != "any" else value
 
 
+def schema_is_nullable(schema: dict[str, Any]) -> bool:
+    """Whether a property schema admits null: explicitly, or as an unconstrained value such as JsonValue."""
+    if schema.get("nullable") is True or schema.get("type") == "null":
+        return True
+    if isinstance(schema.get("type"), list) and "null" in schema["type"]:
+        return True
+    variants = schema.get("oneOf") or schema.get("anyOf") or []
+    if any(isinstance(variant, dict) and variant.get("type") == "null" for variant in variants):
+        return True
+    return schema_ref_name(schema) == "JsonValue" or not schema
+
+
 def go_struct_fields(schema: dict[str, Any]) -> str:
     required = set(schema.get("required", []))
     fields: list[str] = []
     for name, property_schema in schema.get("properties", {}).items():
         optional = name not in required
+        if optional and schema_is_nullable(property_schema):
+            # A pointer or interface with omitempty collapses an explicit null
+            # into omission; such a property needs presence support designed
+            # first (docs/design/go-wire-model-fidelity.md).
+            raise SystemExit(
+                f"Go struct generation cannot represent optional nullable property {name!r} "
+                "without presence handling"
+            )
         field_type = go_schema_type(property_schema, optional=optional)
         tag = name + (",omitempty" if optional else "")
         fields.append(f"\t{pascal_name(name)} {field_type} `json:{json.dumps(tag)}`")

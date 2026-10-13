@@ -234,6 +234,8 @@ type Sandbox struct {
 	UpdatedAt          time.Time             `json:"updatedAt"`
 	StoppedAt          *time.Time            `json:"stoppedAt,omitempty"`
 	DeletedAt          *time.Time            `json:"deletedAt,omitempty"`
+
+	presence presence
 }
 
 // Ready reports whether the sandbox is running *and* the agent has observed
@@ -275,6 +277,8 @@ type SandboxCreateRequest struct {
 	NetworkPolicy  SandboxNetworkPolicy  `json:"networkPolicy,omitempty"`
 	Labels         map[string]string     `json:"labels,omitempty"`
 	ExpiresAt      *time.Time            `json:"expiresAt,omitempty"`
+
+	presence presence
 }
 
 // SandboxListResponse is the envelope returned by GET /api/v1/sandboxes.
