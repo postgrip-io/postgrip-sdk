@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import codecs
 import json
 from pathlib import Path
 import re
@@ -40,7 +41,26 @@ _GO_STRING = re.compile(r'"((?:\\.|[^"\\\n])*)"|`([^`]*)`')
 _TYPESCRIPT_TOKEN = re.compile(
     r"/\*.*?\*/|//[^\n]*|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\"|`(?:\\.|[^`\\])*`", re.DOTALL,
 )
-_TYPESCRIPT_IMPORT = re.compile(r"\bfrom\s*S(\d+)S|\bimport\s*\(\s*S(\d+)S|\bimport\s*S(\d+)S")
+_TYPESCRIPT_IMPORT = re.compile(
+    r"\bfrom\s*S(\d+)S|\bimport\s*\(\s*S(\d+)S|\bimport\s*S(\d+)S|\brequire\s*\(\s*S(\d+)S"
+)
+_TEMPLATE_INTERPOLATION = re.compile(r"\$\{((?:[^{}]|\{[^{}]*\})*)\}")
+# Node's built-in modules, importable without the `node:` prefix.
+NODE_BUILTINS = frozenset("""
+assert async_hooks buffer child_process cluster console constants crypto dgram diagnostics_channel dns domain
+events fs http http2 https inspector module net os path perf_hooks process punycode querystring readline repl
+stream string_decoder sys timers tls trace_events tty url util v8 vm wasi worker_threads zlib
+""".split())
+
+
+def decode_escapes(literal: str) -> str:
+    """The value of a Go interpreted or JavaScript string literal body, with escapes decoded."""
+
+    literal = re.sub(r"\\u\{([0-9A-Fa-f]+)\}", lambda match: chr(int(match.group(1), 16)), literal)
+    try:
+        return codecs.decode(literal.encode("utf-8"), "unicode_escape").encode("latin-1").decode("utf-8")
+    except (UnicodeDecodeError, UnicodeEncodeError, ValueError):
+        return literal
 
 
 def is_generated(source: str) -> bool:
@@ -63,7 +83,7 @@ def edge_violation(source: Role, target: Role) -> str | None:
     if source_kind == "protocol":
         return None if target_kind == "protocol" else "protocol wire types import no plane or transport"
     if source_kind == "internal":
-        return None if target_kind in ("internal", "protocol") else "transport imports no plane"
+        return None if target_kind in ("internal", "protocol") else "transport and other infrastructure import no plane"
     if target_kind in ("internal", "protocol"):
         return None
     if target_plane != source_plane:
@@ -79,9 +99,10 @@ def go_role(relative: Path, source: str) -> Role:
     parts = relative.parts
     if parts[0] in PLANES:
         return ("gen" if is_generated(source) else "adapter", parts[0])
-    if parts[0] in ("internal", "protocol"):
-        return (parts[0], "")
-    return ("root", "")
+    if parts[0] == "protocol":
+        return ("protocol", "")
+    # Only the module's top-level files are the facade; any other directory is infrastructure.
+    return ("root", "") if len(parts) == 1 else ("internal", "")
 
 
 def go_import_role(import_path: str) -> Role:
@@ -93,9 +114,9 @@ def go_import_role(import_path: str) -> Role:
     rest = import_path[len(GO_MODULE):].strip("/").split("/")
     if rest[0] in PLANES:
         return ("adapter", rest[0])
-    if rest[0] in ("internal", "protocol"):
-        return (rest[0], "")
-    return ("root", "")
+    if rest[0] == "protocol":
+        return ("protocol", "")
+    return ("root", "") if rest == [""] else ("internal", "")
 
 
 def go_imports(source: str) -> list[str]:
@@ -104,7 +125,7 @@ def go_imports(source: str) -> list[str]:
     code = _GO_TOKEN.sub(lambda match: re.sub(r"[^\n]", " ", match.group()) if match.group().startswith("/") else match.group(), source)
     paths = []
     for declaration in _GO_IMPORT_DECL.findall(code):
-        paths.extend(double or raw for double, raw in _GO_STRING.findall(declaration))
+        paths.extend(decode_escapes(double) if double else raw for double, raw in _GO_STRING.findall(declaration))
     return paths
 
 
@@ -115,32 +136,41 @@ def typescript_role(relative: Path, source: str | None = None) -> Role:
     if parts and parts[0] in PLANES:
         generated = is_generated(source) if source is not None else "generated" in parts
         return ("gen" if generated else "adapter", parts[0])
-    if parts and parts[0] == "internal":
-        return ("internal", "")
-    return ("root", "")
+    # Only the top-level entry modules are the facade; any other directory is infrastructure.
+    return ("root", "") if len(parts) == 1 else ("internal", "")
 
 
 def typescript_specifiers(source: str) -> list[str]:
     """Module specifiers *source* imports, re-exports or loads; comments and other strings are ignored."""
 
     strings: list[str] = []
+    interpolated: list[str] = []
 
     def mask(match: re.Match[str]) -> str:
         token = match.group()
         if token.startswith("/"):
             return re.sub(r"[^\n]", " ", token)
-        strings.append(token[1:-1])
+        body = token[1:-1]
+        if token.startswith("`"):
+            # Template text is inert, but its ${...} expressions run.
+            for expression in _TEMPLATE_INTERPOLATION.findall(body):
+                interpolated.extend(typescript_specifiers(expression))
+            if "${" in body:
+                return " "
+        strings.append(decode_escapes(body))
         return f"S{len(strings) - 1}S"
 
     code = _TYPESCRIPT_TOKEN.sub(mask, source)
-    return [strings[int(next(group for group in match if group))] for match in _TYPESCRIPT_IMPORT.findall(code)]
+    found = [strings[int(next(group for group in match if group))] for match in _TYPESCRIPT_IMPORT.findall(code)]
+    return found + interpolated
 
 
 def typescript_target_role(relative: Path, specifier: str, root: Path | None = None) -> Role:
     """The role of what *specifier*, imported by the module at *relative*, refers to."""
 
     if not specifier.startswith("."):
-        return ("stdlib", "") if specifier.startswith("node:") else ("external", specifier)
+        builtin = specifier.startswith("node:") or specifier.split("/")[0] in NODE_BUILTINS
+        return ("stdlib", "") if builtin else ("external", specifier)
     parts: list[str] = list(relative.parent.parts)
     for part in specifier.split("/"):
         if part == "..":
@@ -172,9 +202,8 @@ def python_role(module: str, source: str | None = None) -> Role:
     if len(parts) > 1 and parts[1] in PLANES:
         generated = is_generated(source) if source is not None else ("generated" in parts[2:] or parts[-1] == "openapi")
         return ("gen" if generated else "adapter", parts[1])
-    if len(parts) > 1 and parts[1] == "_internal":
-        return ("internal", "")
-    return ("root", "")
+    # Only the package itself and its facade module are the root; any other package is infrastructure.
+    return ("root", "") if len(parts) == 1 or parts[1] in ("client", "__init__") else ("internal", "")
 
 
 def python_imports(module: str, is_package: bool, source: str) -> list[str]:
@@ -267,6 +296,8 @@ def edge_self_test_failures() -> tuple[list[str], int]:
         ("Go transport imports a plane", "internal/transport/executor.go", f'import "{GO_MODULE}/worker"\n', True),
         ("Go protocol imports transport", "protocol/types.go", f'import "{GO_MODULE}/internal/transport"\n', True),
         ("Go plane imports the root", "agent/client/connection.go", f'import "{GO_MODULE}"\n', True),
+        ("Go escaped import path of another plane", "agent/client/connection.go", f'import "{GO_MODULE[:-1]}\\x6f/service"\n', True),
+        ("Go helper directory imports a plane", "helpers/cache.go", f'import "{GO_MODULE}/agent/client"\n', True),
         ("Go comment and string mentioning another plane", "worker/client.go",
          f'// import "{GO_MODULE}/service"\nconst path = "{GO_MODULE}/service"\n', False),
         ("Go plane imports its own subpackage and a third party", "agent/worker/dispatch.go",
@@ -288,6 +319,12 @@ def edge_self_test_failures() -> tuple[list[str], int]:
         ("TS generated imports its adapter", "agent/generated/openapi.ts", f"// {header}import {{ C }} from '../connection.js';\n", True),
         ("TS generated imports a package", "agent/generated/openapi.ts", f"// {header}import axios from 'axios';\n", True),
         ("TS transport imports a plane", "internal/transport.ts", "import { WorkerClient } from '../worker/client.js';\n", True),
+        ("TS escaped specifier of another plane", "agent/client.ts", "import { W } from '\\x2e\\x2e/worker/client.js';\n", True),
+        ("TS CommonJS require of another plane", "agent/client.cts", "const w = require('../worker/client.cjs');\n", True),
+        ("TS import-equals require of another plane", "agent/client.cts", "import w = require('../worker/client.cjs');\n", True),
+        ("TS dynamic import inside a template", "agent/client.ts", "const s = `${await import('../worker/client.js')}`;\n", True),
+        ("TS helper directory imports a plane", "helpers/cache.ts", "import { W } from '../worker/client.js';\n", True),
+        ("TS generated imports a bare Node built-in", "agent/generated/openapi.ts", f"// {header}import {{ format }} from 'util';\n", False),
         ("TS comment and string mentioning another plane", "worker/client.ts",
          "// import '../service/client.js';\nconst s = \"import '../service/client.js'\";\n", False),
         ("TS adapter imports generated and internal", "worker/client.tsx",
@@ -309,6 +346,7 @@ def edge_self_test_failures() -> tuple[list[str], int]:
          f"# {header}from .client import ServiceClient\n", True),
         ("Python generated imports a third-party package", "postgrip.worker.openapi", False, f"# {header}import requests\n", True),
         ("Python transport imports a plane", "postgrip._internal.transport", False, "from ..agent.errors import AgentAPIError\n", True),
+        ("Python helper package imports a plane", "postgrip.helpers.cache", False, "from ..worker import WorkerClient\n", True),
         ("Python package init imports its adapter", "postgrip.worker", True, "from .client import WorkerClient\n", False),
         ("Python adapter imports generated, internal and third-party", "postgrip.agent.client", False,
          "from .openapi import OperationId\nfrom .._internal.transport import Executor\nimport cryptography\n", False),
@@ -419,7 +457,7 @@ def main() -> int:
 
     failures.extend(import_edge_failures())
 
-    for source in sorted((ROOT / "typescript" / "src").rglob("*.ts")):
+    for source in sorted(p for ext in TYPESCRIPT_EXTENSIONS for p in (ROOT / "typescript" / "src").rglob(f"*{ext}")):
         for line in wildcard_export_lines(source.read_text(encoding="utf-8")):
             failures.append(f"TypeScript wildcard export: {source.relative_to(ROOT)}:{line}; list public names explicitly")
 
