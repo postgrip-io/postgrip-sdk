@@ -219,7 +219,10 @@ low-level operations: they reject a missing or invalid required
 `Idempotency-Key` before sending, as Worker's do, and `Do` drops a
 caller-supplied `If-Match` on an operation whose contract does not declare it.
 The high-level methods already validated keys and sent `If-Match` only where
-declared.
+declared. Moving TypeScript Service makes the same two low-level changes. It
+also gains the 30-second default timeout, and its `Retry-After` parser, which
+accepted any value `Number()` parses, such as `+5` or `1e1`, becomes the shared
+parser.
 
 Moving Go Agent onto the executor also adds an `Accept: application/json`
 header to its requests, which Worker and Service already send, and lets a
