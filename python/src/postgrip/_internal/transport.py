@@ -95,6 +95,27 @@ class TransportOperation(Protocol):
     def header_parameters(self) -> tuple[str, ...]: ...
 
 
+class DelegatedCredentials(Protocol):
+    """Delegated runtime credentials for the ``agent`` and ``either`` lanes."""
+
+    def has_delegated(self) -> bool:
+        """Whether delegated credentials are configured; ``either`` prefers them when true."""
+        ...
+
+    def delegated(self) -> str:
+        """The current delegated access token, refreshed when needed, before every attempt."""
+        ...
+
+
+@dataclass(frozen=True)
+class ExchangeResponse:
+    """The bounded raw response of a successful or accepted exchange."""
+
+    status: int
+    headers: Any
+    body: bytes
+
+
 @dataclass(frozen=True)
 class RetryConfig:
     enabled: bool
@@ -111,14 +132,23 @@ class Executor:
         *,
         plane: str,
         base_url: str,
-        opener: OpenerDirector,
-        management_token: str,
+        opener: Any,
+        management_token: str | None,
         retry: RetryConfig,
         timeout: float,
         create_error: Callable[[APIErrorFields], Exception],
         max_response_bytes: int = DEFAULT_MAX_RESPONSE_BYTES,
         success_response_bytes: Mapping[str, int] | None = None,
+        delegated_credentials: DelegatedCredentials | None = None,
+        headers: Mapping[str, str] | None = None,
+        default_headers: Mapping[str, str] | None = None,
+        sign: Callable[[str, str, dict[str, str], bytes], None] | None = None,
     ) -> None:
+        """``headers`` are configured on the plane connection: they replace the
+        executor's own value for the same name, and an ``Authorization`` among them
+        keeps precedence on management lanes. ``default_headers`` apply only when
+        not already set. ``sign`` adds signature headers to the final request of a
+        signed operation over the exact encoded body; the executor never holds the key."""
         self._plane = plane
         self._base_url = base_url.rstrip("/") + "/"
         self._opener = opener
@@ -128,9 +158,13 @@ class Executor:
         self._create_error = create_error
         self._max_response_bytes = max_response_bytes
         self._success_response_bytes = dict(success_response_bytes or {})
+        self._delegated_credentials = delegated_credentials
+        self._headers = dict(headers or {})
+        self._default_headers = dict(default_headers or {})
+        self._sign = sign
 
     @property
-    def opener(self) -> OpenerDirector:
+    def opener(self) -> Any:
         return self._opener
 
     def request(
@@ -143,30 +177,38 @@ class Executor:
     ) -> Any:
         """Run one operation and decode its JSON body; an empty body returns None."""
 
+        raw = self.exchange(operation, body=body, idempotency_key=idempotency_key, if_match=if_match).body
+        return json.loads(raw) if raw.strip() else None
+
+    def exchange(
+        self,
+        operation: TransportOperation,
+        *,
+        body: Any = None,
+        idempotency_key: str | None = None,
+        if_match: str | None = None,
+        headers: Mapping[str, str] | None = None,
+        accepted_statuses: frozenset[int] = frozenset(),
+        timeout: float | None = None,
+    ) -> ExchangeResponse:
+        """Run one operation and return the bounded raw body of a successful or accepted response.
+
+        ``headers`` are per-call caller headers; ``accepted_statuses`` are non-2xx
+        statuses the plane adapter handles; ``timeout`` raises this call's timeout
+        and never lowers it.
+        """
+
         operation_id = getattr(operation.operation_id, "value", operation.operation_id)
         if operation.streaming_request or operation.websocket:
             raise ValueError(f"PostGrip {self._plane} operation {operation_id} requires its protocol adapter")
-        if operation.signing:
+        if operation.signing and self._sign is None:
             raise ValueError(f"PostGrip {self._plane} operation {operation_id} requires request signing")
-        if operation.auth_lane not in _MANAGEMENT_LANES and operation.auth_lane != "public":
-            raise ValueError(
-                f"PostGrip {self._plane} operation {operation_id} uses unsupported auth lane {operation.auth_lane}"
-            )
+        delegated = self._delegated_lane(operation, operation_id)
         if operation.idempotency == "required":
             validate_idempotency_key(idempotency_key or "")
 
         endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
         encoded_body = None if body is None else json.dumps(body, separators=(",", ":")).encode("utf-8")
-        headers = {"Accept": "application/json"}
-        if encoded_body is not None:
-            headers["Content-Type"] = "application/json"
-        if operation.auth_lane in _MANAGEMENT_LANES:
-            headers["Authorization"] = f"Bearer {self._management_token}"
-        if idempotency_key and "Idempotency-Key" in operation.header_parameters:
-            headers["Idempotency-Key"] = idempotency_key
-        if if_match and "If-Match" in operation.header_parameters:
-            headers["If-Match"] = if_match
-
         retry = self._retry
         # Protocol and signed operations are never retried, even if mis-annotated as bounded.
         eligible = (
@@ -177,19 +219,32 @@ class Executor:
             and (operation.safety == "read-only" or bool(idempotency_key))
         )
         attempts = retry.max_attempts if eligible else 1
+        call_timeout = max(self._timeout, timeout or 0.0)
         cancel_event = REQUEST_CANCEL_EVENT.get()
         for attempt in range(1, attempts + 1):
             if cancel_event is not None and cancel_event.is_set():
                 raise RequestCancelled
-            request = Request(endpoint, data=encoded_body, method=operation.method, headers=headers)
+            # A credential or signing failure happens before sending, so it is never retried.
+            request_headers = self._request_headers(
+                operation, encoded_body is not None, delegated, headers, idempotency_key, if_match,
+            )
+            if operation.signing and self._sign is not None:
+                self._sign(operation.method, endpoint, request_headers, encoded_body or b"")
+            request = Request(endpoint, data=encoded_body, method=operation.method, headers=request_headers)
             try:
-                with self._opener.open(request, timeout=self._timeout) as response:
+                with self._opener.open(request, timeout=call_timeout) as response:
                     limit = self._success_response_bytes.get(str(operation_id), self._max_response_bytes)
                     raw = read_bounded_response(response, self._plane, maximum_bytes=limit)
-                    return json.loads(raw) if raw.strip() else None
+                    return ExchangeResponse(status=getattr(response, "status", 200), headers=getattr(response, "headers", None), body=raw)
             except HTTPError as error:
                 if cancel_event is not None and cancel_event.is_set():
                     raise RequestCancelled from None
+                if error.code in accepted_statuses:
+                    try:
+                        raw = read_bounded_response(error, self._plane, maximum_bytes=self._max_response_bytes)
+                    finally:
+                        error.close()
+                    return ExchangeResponse(status=error.code, headers=error.headers, body=raw)
                 fields = self._decode_error(operation, error)
                 if attempt < attempts and error.code in RETRYABLE_STATUS:
                     retry_after = fields.retry_after if error.code in {429, 503} else None
@@ -208,6 +263,59 @@ class Executor:
                     raise RequestCancelled from None
                 raise
         raise RuntimeError(f"PostGrip {self._plane} request attempts exhausted")
+
+    def _delegated_lane(self, operation: TransportOperation, operation_id: Any) -> bool:
+        """Fix the credential class for every attempt of one call."""
+
+        lane = operation.auth_lane
+        if lane == "agent":
+            if self._delegated_credentials is None:
+                raise ValueError(
+                    f"PostGrip {self._plane} operation {operation_id} requires delegated runtime credentials"
+                )
+            return True
+        if lane == "either":
+            return self._delegated_credentials is not None and self._delegated_credentials.has_delegated()
+        if lane == "public" or lane in _MANAGEMENT_LANES:
+            return False
+        raise ValueError(f"PostGrip {self._plane} operation {operation_id} uses unsupported auth lane {lane}")
+
+    def _request_headers(
+        self,
+        operation: TransportOperation,
+        has_body: bool,
+        delegated: bool,
+        caller: Mapping[str, str] | None,
+        idempotency_key: str | None,
+        if_match: str | None,
+    ) -> dict[str, str]:
+        headers: dict[str, str] = {"Accept": "application/json"}
+        if has_body:
+            headers["Content-Type"] = "application/json"
+        for source in (self._headers, caller or {}):
+            for name, value in source.items():
+                _set_header(headers, name, value)
+        for name, value in self._default_headers.items():
+            if not _has_header(headers, name):
+                headers[name] = value
+        if idempotency_key and "Idempotency-Key" in operation.header_parameters:
+            _set_header(headers, "Idempotency-Key", idempotency_key)
+        if "If-Match" not in operation.header_parameters:
+            _delete_header(headers, "If-Match")
+        elif if_match:
+            _set_header(headers, "If-Match", if_match)
+        if operation.auth_lane == "public":
+            _delete_header(headers, "Authorization")
+        elif delegated:
+            assert self._delegated_credentials is not None
+            token = self._delegated_credentials.delegated()
+            if not token:
+                raise RuntimeError(f"PostGrip {self._plane} delegated runtime credential is empty")
+            _set_header(headers, "Authorization", f"Bearer {token}")
+        elif self._management_token and not _has_header(headers, "Authorization"):
+            # A configured Authorization header keeps its precedence on management lanes.
+            headers["Authorization"] = f"Bearer {self._management_token}"
+        return headers
 
     def _decode_error(self, operation: TransportOperation, error: HTTPError) -> APIErrorFields:
         try:
@@ -233,6 +341,21 @@ class Executor:
                 raise RequestCancelled
         else:
             time.sleep(delay)
+
+
+def _has_header(headers: Mapping[str, str], name: str) -> bool:
+    return any(key.lower() == name.lower() for key in headers)
+
+
+def _delete_header(headers: dict[str, str], name: str) -> None:
+    for key in [key for key in headers if key.lower() == name.lower()]:
+        del headers[key]
+
+
+def _set_header(headers: dict[str, str], name: str, value: str) -> None:
+    """Set a header, replacing any spelling of the same name."""
+    _delete_header(headers, name)
+    headers[name] = value
 
 
 def api_error_fields(

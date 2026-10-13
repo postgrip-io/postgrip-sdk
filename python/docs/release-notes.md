@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Agent HTTP failures, including workspace uploads, raise the new exported
+  `AgentAPIError`, a `PostGripAPIError` and still a `RuntimeError`, instead of a
+  `RuntimeError` carrying the server body. Its `str()` and `repr()` name only
+  the method, route and status; `code`, `message`, `request_id`, `details` and
+  the untrusted `response_body` remain available. A response that is not valid
+  JSON fails without quoting its body.
+- Agent requests run through the shared executor. `Connection(enable_retries=True)`,
+  which `PostGrip(enable_retries=True)` now also sets for Agent, opts into
+  bounded retry of the 18 contract-annotated reads, refreshing the delegated
+  session before each attempt. A long poll's timeout is its wait plus 30
+  seconds. Public-lane requests (`health` and the session refresh) no longer
+  send a configured `Authorization` header, and request bodies are compact JSON.
 - Service requests run through the same shared executor. `ServiceAPIError`
   keeps its fields, constructor, equality and text and subclasses the shared
   `PostGripAPIError` base. The generated low-level Service operations

@@ -437,6 +437,7 @@ class ConnectionOptions(TypedDict, total=False):
     agent_refresh_token: str | None
     agent_access_expires_at: str | _datetime | None
     agent_signing_private_key: str | None
+    enable_retries: bool
 
 
 class ListTasksOptions(TypedDict, total=False):

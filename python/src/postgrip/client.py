@@ -45,6 +45,7 @@ class PostGrip:
             auth_token=resolved.token,
             insecure_development=insecure_development,
             timeout=timeout,
+            enable_retries=enable_retries,
         ))
         self.workers = WorkerClient(base_url=resolved.worker_url, token=resolved.token, **common)
         self.services = ServiceClient(base_url=resolved.service_url, token=resolved.token, **common)
@@ -89,6 +90,7 @@ class AsyncPostGrip:
             auth_token=resolved.token,
             insecure_development=insecure_development,
             timeout=timeout,
+            enable_retries=enable_retries,
         ))
         self.workers = AsyncWorkerClient(base_url=resolved.worker_url, token=resolved.token, **common)
         self.services = AsyncServiceClient(base_url=resolved.service_url, token=resolved.token, **common)

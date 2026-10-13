@@ -5,10 +5,13 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import IO, Any
 from urllib.error import HTTPError
+from urllib.parse import urlsplit
 from urllib.request import Request
 
 from .._internal.http import read_bounded_response, redirect_safe_open as urlopen
+from .._internal.transport import api_error_fields
 from ._sandbox_models import sandbox_exec_exit_code
+from .errors import AgentAPIError
 
 #: Bound on a single frame through the session relay, in either direction. A
 #: peer writing more has its session closed rather than forwarded, so chunk
@@ -170,5 +173,6 @@ def upload_archive(
             raise RuntimeError(str(read_error)) from exc
         finally:
             exc.close()
-        raise RuntimeError(raw.decode() or str(exc)) from exc
+        route = urlsplit(url).path
+        raise AgentAPIError._from_fields(api_error_fields(exc.code, exc.reason, exc.headers, raw, method, route, 30.0)) from None
     return raw

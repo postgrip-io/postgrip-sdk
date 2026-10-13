@@ -1,6 +1,6 @@
 from . import activity, types, workflow
 from .client import Client, Connection, ScheduleClient, TaskClient, WorkflowClient, WorkflowHandle, WorkflowUpdateHandle
-from .errors import ApplicationFailure, CancelledFailure, PostGripAgentError, TaskFailedError, TimeoutFailure
+from .errors import AgentAPIError, ApplicationFailure, CancelledFailure, PostGripAgentError, TaskFailedError, TimeoutFailure
 from .sandbox import (
     SANDBOX_EXEC_CLOSE_STATUS_BASE,
     SANDBOX_EXEC_CLOSE_STATUS_MAX,
@@ -146,6 +146,7 @@ __all__ = [
     "PauseScheduleRequest",
     "PollTaskResponse",
     "PostGripAgentError",
+    "AgentAPIError",
     "ReadyResponse",
     "RetryPolicy",
     "SANDBOX_EXEC_CLOSE_STATUS_BASE",
