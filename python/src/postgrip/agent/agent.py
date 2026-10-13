@@ -10,6 +10,7 @@ import uuid
 from typing import Any, Awaitable, Callable, Iterable
 
 from . import activity, workflow
+from ._replay import DeterminismError, WorkflowReplay
 from .client import Client, Connection
 from .errors import ApplicationFailure, CancelledFailure, is_terminal_task_mutation
 
@@ -146,8 +147,9 @@ class Agent:
             workflow_run_id = payload.get("runId") or workflow_id
             history = await asyncio.to_thread(self.connection.get_workflow_history, workflow_run_id)
             replay = WorkflowReplay(history)
+            handlers = WorkflowHandlers(replay)
             await self._emit(task["id"], "started", "workflow", f"started workflow {workflow_type}", {"workflowType": workflow_type})
-            value = await self._run_workflow(target, task, payload, replay)
+            value = await self._run_workflow(target, task, payload, replay, handlers)
             await self._emit(task["id"], "completed", "workflow", f"completed workflow {workflow_type}")
             await self._complete_task(task, {
                 "value": value,
@@ -193,12 +195,13 @@ class Agent:
             source_task = await asyncio.to_thread(self.connection.get_task, source_workflow["task_id"])
             history = await asyncio.to_thread(self.connection.get_workflow_history, payload.get("workflowRunId") or payload["workflowId"])
             replay = WorkflowReplay(history)
+            handlers = WorkflowHandlers(replay)
             await self._emit(task["id"], "started", kind, f"started {kind} {name}", {"workflowType": workflow_type})
             try:
-                await self._run_workflow(target, source_task, source_task.get("payload") or {}, replay, query_mode=True)
+                await self._run_workflow(target, source_task, source_task.get("payload") or {}, replay, handlers, query_mode=True)
             except WorkflowQueryReady:
                 pass
-            handler = replay.query_handler(name) if kind == "query" else replay.update_handler(name)
+            handler = handlers.query_handler(name) if kind == "query" else handlers.update_handler(name)
             if handler is None:
                 raise ApplicationFailure.non_retryable_failure(f"{kind} {name} is not registered", missing_code, name)
             value = await _maybe_await(handler(*(payload.get("args") or [])))
@@ -232,7 +235,7 @@ class Agent:
             await self._emit(task["id"], "failed", "activity", str(exc))
             await self._fail_task(task, str(exc), exc, started_at=started_at)
 
-    async def _run_workflow(self, target: Callable[..., Any] | type, task: dict[str, Any], payload: dict[str, Any], replay: "WorkflowReplay", *, query_mode: bool = False) -> Any:
+    async def _run_workflow(self, target: Callable[..., Any] | type, task: dict[str, Any], payload: dict[str, Any], replay: WorkflowReplay, handlers: "WorkflowHandlers", *, query_mode: bool = False) -> Any:
         workflow.validate_workflow_sandbox(target)
         workflow_type = payload.get("workflowType") or task["type"].removeprefix("workflow:")
         if inspect.isclass(target):
@@ -253,14 +256,14 @@ class Agent:
             sleep=lambda ms, scope: self._replay_timer_for_query(replay) if query_mode else self._execute_timer_command(task, replay, ms, scope),
             condition=lambda predicate, timeout_ms, scope: self._replay_condition_for_query(predicate) if query_mode else self._execute_condition_command(task, replay, predicate, timeout_ms, scope),
             cancellation_requested=replay.is_cancellation_requested,
-            set_handler=lambda kind, name, handler: replay.set_handler(kind, name, handler),
+            set_handler=lambda kind, name, handler: handlers.set_handler(kind, name, handler),
             emit=lambda event: self._emit(task["id"], event.get("kind") or "progress", event.get("stage"), event.get("message"), event.get("details")) if not query_mode else _noop_emit(),
         )
         return await workflow.run_in_workflow_runtime(runtime, lambda: workflow_fn(*(payload.get("args") or [])))
 
-    async def _execute_activity_command(self, workflow_task: dict[str, Any], replay: "WorkflowReplay", name: str, args: list[Any], options: dict[str, Any]) -> Any:
+    async def _execute_activity_command(self, workflow_task: dict[str, Any], replay: WorkflowReplay, name: str, args: list[Any], options: dict[str, Any]) -> Any:
         self._throw_if_cancelled(replay, options.get("cancellation_scope"))
-        scheduled = replay.next_activity(name)
+        scheduled = _replay_command(lambda: replay.next_activity(name))
         if scheduled and scheduled.get("task_id"):
             task = await asyncio.to_thread(self.connection.get_task, scheduled["task_id"])
             if task["state"] == "succeeded":
@@ -296,9 +299,9 @@ class Agent:
         })
         raise WorkflowBlocked(f"scheduled activity {name}")
 
-    async def _execute_timer_command(self, workflow_task: dict[str, Any], replay: "WorkflowReplay", duration_ms: int, cancellation_scope: str = "cancellable") -> None:
+    async def _execute_timer_command(self, workflow_task: dict[str, Any], replay: WorkflowReplay, duration_ms: int, cancellation_scope: str = "cancellable") -> None:
         self._throw_if_cancelled(replay, cancellation_scope)
-        started = replay.next_timer(duration_ms)
+        started = _replay_command(lambda: replay.next_timer(duration_ms))
         if started and started.get("task_id"):
             if replay.is_timer_fired(started):
                 return
@@ -319,9 +322,9 @@ class Agent:
         })
         raise WorkflowBlocked(f"scheduled timer for {duration_ms}ms")
 
-    async def _execute_child_command(self, workflow_task: dict[str, Any], replay: "WorkflowReplay", workflow_type: str, args: list[Any], options: dict[str, Any]) -> Any:
+    async def _execute_child_command(self, workflow_task: dict[str, Any], replay: WorkflowReplay, workflow_type: str, args: list[Any], options: dict[str, Any]) -> Any:
         self._throw_if_cancelled(replay, options.get("cancellation_scope"))
-        started = replay.next_child(workflow_type)
+        started = _replay_command(lambda: replay.next_child(workflow_type))
         if started:
             child_workflow_id = _child_workflow_id_from_event(started)
             if not child_workflow_id:
@@ -354,7 +357,7 @@ class Agent:
         })
         raise WorkflowBlocked(f"scheduled child workflow {workflow_type}")
 
-    async def _execute_condition_command(self, workflow_task: dict[str, Any], replay: "WorkflowReplay", predicate: Callable[[], bool], timeout_ms: int | None, cancellation_scope: str) -> bool:
+    async def _execute_condition_command(self, workflow_task: dict[str, Any], replay: WorkflowReplay, predicate: Callable[[], bool], timeout_ms: int | None, cancellation_scope: str) -> bool:
         self._throw_if_cancelled(replay, cancellation_scope)
         if predicate():
             return True
@@ -363,10 +366,10 @@ class Agent:
         await self._execute_timer_command(workflow_task, replay, timeout_ms, cancellation_scope)
         return predicate()
 
-    async def _replay_activity_for_query(self, replay: "WorkflowReplay", name: str) -> Any:
+    async def _replay_activity_for_query(self, replay: WorkflowReplay, name: str) -> Any:
         if replay.is_cancellation_requested():
             raise WorkflowQueryReady("workflow cancelled")
-        scheduled = replay.next_activity(name)
+        scheduled = _replay_command(lambda: replay.next_activity(name))
         if not scheduled or not scheduled.get("task_id"):
             raise WorkflowQueryReady()
         task = await asyncio.to_thread(self.connection.get_task, scheduled["task_id"])
@@ -380,17 +383,17 @@ class Agent:
             raise ApplicationFailure(str(task.get("error") or "activity failed"), type="ActivityFailure")
         raise WorkflowQueryReady(f"waiting for activity {name}")
 
-    async def _replay_timer_for_query(self, replay: "WorkflowReplay") -> None:
+    async def _replay_timer_for_query(self, replay: WorkflowReplay) -> None:
         if replay.is_cancellation_requested():
             raise WorkflowQueryReady("workflow cancelled")
-        started = replay.next_timer()
+        started = _replay_command(lambda: replay.next_timer())
         if not started or not started.get("task_id") or not replay.is_timer_fired(started):
             raise WorkflowQueryReady("waiting for timer")
 
-    async def _replay_child_for_query(self, replay: "WorkflowReplay", name: str) -> Any:
+    async def _replay_child_for_query(self, replay: WorkflowReplay, name: str) -> Any:
         if replay.is_cancellation_requested():
             raise WorkflowQueryReady("workflow cancelled")
-        started = replay.next_child(name)
+        started = _replay_command(lambda: replay.next_child(name))
         if not started:
             raise WorkflowQueryReady()
         child_workflow_id = _child_workflow_id_from_event(started)
@@ -518,7 +521,7 @@ class Agent:
             if not is_terminal_task_mutation(fail_exc):
                 raise
 
-    def _throw_if_cancelled(self, replay: "WorkflowReplay", cancellation_scope: str | None = "cancellable") -> None:
+    def _throw_if_cancelled(self, replay: WorkflowReplay, cancellation_scope: str | None = "cancellable") -> None:
         if cancellation_scope == "non_cancellable" or not replay.is_cancellation_requested():
             return
         raise CancelledFailure(replay.cancellation_reason())
@@ -566,68 +569,27 @@ class WorkflowQueryReady(Exception):
     pass
 
 
-class WorkflowReplay:
-    def __init__(self, history: list[dict[str, Any]]):
-        self.history = history
-        self.activities = [event for event in history if event.get("type") == "ActivityTaskScheduled"]
-        self.timers = [event for event in history if event.get("type") == "TimerStarted"]
-        self.signals = [event for event in history if event.get("type") == "WorkflowSignaled"]
-        self.children = [event for event in history if event.get("type") == "ChildWorkflowExecutionStarted"]
-        self.completed_updates = [event for event in history if event.get("type") == "WorkflowUpdateCompleted"]
-        self.cancellation = next((event for event in history if event.get("type") == "WorkflowCancellationRequested"), None)
-        self.activity_index = 0
-        self.timer_index = 0
-        self.child_index = 0
+class WorkflowHandlers:
+    """Per-invocation handler registries.
+
+    Replay supplies the recorded signal and update arguments; the runtime owns
+    the handlers and invokes them.
+    """
+
+    def __init__(self, replay: WorkflowReplay):
+        self.replay = replay
         self.query_handlers: dict[str, Callable[..., Any]] = {}
         self.update_handlers: dict[str, Callable[..., Any]] = {}
 
-    def next_activity(self, activity_type: str) -> dict[str, Any] | None:
-        event = self.activities[self.activity_index] if self.activity_index < len(self.activities) else None
-        self.activity_index += 1
-        if event and (event.get("attributes") or {}).get("activity_type") != activity_type:
-            raise _determinism_violation(f"activity command changed at index {self.activity_index}: history={(event.get('attributes') or {}).get('activity_type')} replay={activity_type}")
-        return event
-
-    def next_timer(self, duration_ms: int | None = None) -> dict[str, Any] | None:
-        event = self.timers[self.timer_index] if self.timer_index < len(self.timers) else None
-        self.timer_index += 1
-        history_duration = (event.get("attributes") or {}).get("duration_ms") if event else None
-        if event and duration_ms is not None and history_duration is not None and round(duration_ms) != history_duration:
-            raise _determinism_violation(f"timer command changed at index {self.timer_index}: history={history_duration} replay={round(duration_ms)}")
-        return event
-
-    def next_child(self, workflow_type: str) -> dict[str, Any] | None:
-        event = self.children[self.child_index] if self.child_index < len(self.children) else None
-        self.child_index += 1
-        if event and (event.get("attributes") or {}).get("workflow_type") != workflow_type:
-            raise _determinism_violation(f"child workflow command changed at index {self.child_index}: history={(event.get('attributes') or {}).get('workflow_type')} replay={workflow_type}")
-        return event
-
-    def is_timer_fired(self, timer_started: dict[str, Any]) -> bool:
-        return any(event.get("type") == "TimerFired" and event.get("task_id") == timer_started.get("task_id") for event in self.history)
-
-    def is_activity_canceled(self, activity_scheduled: dict[str, Any]) -> bool:
-        return any(event.get("type") == "ActivityTaskCanceled" and event.get("task_id") == activity_scheduled.get("task_id") for event in self.history)
-
-    def has_activity_retry_scheduled(self, activity_scheduled: dict[str, Any]) -> bool:
-        return any(event.get("type") == "ActivityTaskRetryScheduled" and (event.get("attributes") or {}).get("previous_task") == activity_scheduled.get("task_id") for event in self.history)
-
-    def activity_cancellation_reason(self, activity_scheduled: dict[str, Any]) -> str:
-        event = next((candidate for candidate in self.history if candidate.get("type") == "ActivityTaskCanceled" and candidate.get("task_id") == activity_scheduled.get("task_id")), None)
-        reason = (event.get("attributes") or {}).get("reason") if event else None
-        return reason if isinstance(reason, str) and reason else "activity cancellation requested"
-
     def set_handler(self, kind: str, name: str, handler: Callable[..., Any]) -> None:
         if kind == "signal":
-            for event in self.signals:
-                if (event.get("attributes") or {}).get("signal_name") == name:
-                    handler(*((event.get("attributes") or {}).get("args") or []))
+            for args in self.replay.signal_args(name):
+                handler(*args)
             return
         if kind == "update":
             self.update_handlers[name] = handler
-            for event in self.completed_updates:
-                if (event.get("attributes") or {}).get("update_name") == name:
-                    handler(*((event.get("attributes") or {}).get("args") or []))
+            for args in self.replay.completed_update_args(name):
+                handler(*args)
             return
         self.query_handlers[name] = handler
 
@@ -637,12 +599,13 @@ class WorkflowReplay:
     def update_handler(self, name: str) -> Callable[..., Any] | None:
         return self.update_handlers.get(name)
 
-    def is_cancellation_requested(self) -> bool:
-        return self.cancellation is not None
 
-    def cancellation_reason(self) -> str:
-        reason = (self.cancellation.get("attributes") or {}).get("reason") if self.cancellation else None
-        return reason if isinstance(reason, str) and reason else "workflow cancellation requested"
+def _replay_command(step: Callable[[], Any]) -> Any:
+    """Run one replay step, translating a replay-owned determinism error into the public failure."""
+    try:
+        return step()
+    except DeterminismError as exc:
+        raise _determinism_violation(str(exc)) from None
 
 
 def failure_info(exc: Exception) -> dict[str, Any]:
