@@ -84,17 +84,25 @@ Thread the caller's `AbortSignal` through every request `watchEvents` makes:
 - `Connection.getTask(taskId, options?: { signal?: AbortSignal })` and
   `Connection.getWorkflow(workflowId, options?)`, the latter used when
   `watchEvents` first resolves the handle's task ID;
-- `HistoryPageOptions.signal`, forwarded by `getTaskEventsPage` to the
-  generated operation for every page;
+- `HistoryPageOptions.signal`, forwarded to the generated operation by every
+  method that accepts that type: `getTaskEventsPage` and
+  `getWorkflowHistoryPage`;
 - `iterateTaskEvents(taskId, options?)` and `getTaskEvents(taskId, options?)`,
   passing the signal to each page fetch.
+
+The shared history page iterator checks the signal before fetching each page and
+before yielding each item. When the signal is aborted it throws the signal's
+reason, as `followPages` does and as an aborted page fetch already does. A
+direct `iterateTaskEvents` consumer that aborts after one event therefore
+receives no further buffered event, and `getTaskEvents` rejects.
 
 `watchTaskEvents` passes `options.signal` to both calls and waits with
 `abortableDelay` from `src/internal/polling.ts`. It also checks the signal
 before yielding each event, so a consumer that aborts between two `next()`
 calls receives no further buffered event. When the caller's signal is aborted,
-the generator returns without yielding further events and without throwing,
-which is how it ends at the loop check today. Errors that are not caused by
+including an abort the page iterator or a request reports, the generator
+returns without yielding further events and without throwing, which is how it
+ends at the loop check today. Errors that are not caused by
 that signal still propagate.
 
 These reads can first wait on a delegated-session refresh. `ensureAgentSession`
@@ -116,8 +124,9 @@ observable:
   resolving a task ID.
 - Aborting a TypeScript `watchEvents` signal ends the iterator promptly during
   a pending request or delay.
-- TypeScript `getTask`, `getWorkflow`, `getTaskEvents`, `iterateTaskEvents`
-  and `getTaskEventsPage` accept an optional signal.
+- TypeScript `getTask`, `getWorkflow`, `getTaskEvents`, `iterateTaskEvents`,
+  `getTaskEventsPage` and `getWorkflowHistoryPage` accept an optional signal.
+  Aborting it during `iterateTaskEvents` throws the signal's reason.
 
 ## Delivery slices
 
@@ -147,6 +156,8 @@ Each slice is its own PR under the [review process](../development/contributing.
   for the request or delay. The aborted request receives the signal, and an
   aborted refresh wait leaves the shared refresh to complete for another
   caller. Aborting between two `next()` calls while a page still holds
-  unyielded events yields none of them. An error not caused by the abort still
-  rejects.
+  unyielded events yields none of them, both through `watchEvents` and through
+  a direct `iterateTaskEvents` loop, which throws the signal's reason. A signal
+  passed to `getWorkflowHistoryPage` reaches its request. An error not caused by
+  the abort still rejects.
 - Existing Agent tests in both languages pass.
