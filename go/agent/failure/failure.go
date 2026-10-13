@@ -30,6 +30,11 @@ type SDKError struct {
 	// ResponseBody is untrusted server content and can contain secrets. Inspect
 	// and redact it explicitly before logging; Error does not include this field.
 	ResponseBody []byte
+	// Code, RequestID and Details come from the decoded error envelope of an
+	// HTTP failure. They are server-provided, so Error does not include them.
+	Code      string
+	RequestID string
+	Details   map[string]any
 }
 
 func (e *SDKError) Error() string {

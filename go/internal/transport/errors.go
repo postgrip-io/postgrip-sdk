@@ -17,6 +17,11 @@ type APIError struct {
 	RequestID  string
 	Details    map[string]any
 	RetryAfter time.Duration
+	// Method and Route identify the request; Body is the bounded raw response,
+	// which is untrusted server content for planes that expose it explicitly.
+	Method string
+	Route  string
+	Body   []byte
 }
 
 // Error returns text without server-provided content. Plane error types
@@ -61,3 +66,21 @@ func decodeAPIError(response *http.Response, body []byte, retryAfterMax time.Dur
 	return &APIError{StatusCode: response.StatusCode, Code: code, Message: message,
 		RequestID: requestID, Details: payload.Details, RetryAfter: retryAfter}, retryAfterSet
 }
+
+// Error is an executor-local failure that is not an HTTP status, such as an
+// encoding, response-bound or decoding failure. Its text keeps the plane prefix
+// planes already expose, and planes may map Op and Err to their own types.
+type Error struct {
+	Plane string
+	Op    string
+	Err   error
+}
+
+func (e *Error) Error() string {
+	if e.Err == nil {
+		return fmt.Sprintf("postgrip-%s: %s", e.Plane, e.Op)
+	}
+	return fmt.Sprintf("postgrip-%s: %s: %v", e.Plane, e.Op, e.Err)
+}
+
+func (e *Error) Unwrap() error { return e.Err }

@@ -86,10 +86,10 @@ that all existing code has been migrated. The
 delivers executor decoupling and transport consolidation in slices. Go's
 generated operation tables emit `transport.Operation` values, and each Go
 plane's generated client depends on an operation-executor interface that its
-`Connection` implements. Go Worker and Go Service run their operations through
-the shared executor in `go/internal/transport`. Other planes are not yet moved:
-Go Agent's `Connection` still executes its own requests, and TypeScript and
-Python still duplicate transport policy in plane clients.
+`Connection` implements. Go Worker, Go Service and Go Agent run their JSON
+operations through the shared executor in `go/internal/transport`; Agent keeps
+its archive-upload and WebSocket adapters. Other planes are not yet moved:
+TypeScript and Python still duplicate transport policy in plane clients.
 The design's remaining timeout, retry and error changes stay proposed until
 delivered and reflected in current behavior guides; an architectural extraction
 must preserve existing plane behavior unless its design explicitly includes a

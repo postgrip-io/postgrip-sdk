@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 )
 
 // DefaultMaxResponseBytes bounds a response body when a plane names no bound.
@@ -47,7 +48,10 @@ type Executor struct {
 	// header with the management bearer on management lanes. Without it an
 	// explicit caller header keeps precedence there.
 	OverrideCallerAuthorization bool
-	Retry                       RetryConfig
+	// CallerHeadersReplace makes a caller header replace the executor's own
+	// value for that name (such as Content-Type) instead of adding to it.
+	CallerHeadersReplace bool
+	Retry                RetryConfig
 	// MaxResponseBytes bounds every response body; zero uses the default.
 	MaxResponseBytes int64
 	// SuccessResponseBytes overrides MaxResponseBytes for 2xx responses of the
@@ -74,6 +78,10 @@ type Call struct {
 	// AcceptedStatuses are non-2xx statuses the plane adapter handles itself.
 	// Their bounded raw body is returned without envelope decoding.
 	AcceptedStatuses []int
+	// Lifetime raises the exchange's client timeout for this call, for example
+	// a long poll whose server hold counts against it. It never lowers a
+	// configured timeout, and an unbounded client stays unbounded.
+	Lifetime time.Duration
 }
 
 // Response is the bounded raw response of a successful or accepted exchange.
@@ -117,7 +125,7 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 	if call.Body != nil {
 		encoded, err := json.Marshal(call.Body)
 		if err != nil {
-			return nil, fmt.Errorf("postgrip-%s: encode request: %w", e.Plane, err)
+			return nil, &Error{Plane: e.Plane, Op: "encode request", Err: err}
 		}
 		body = encoded
 	}
@@ -127,7 +135,7 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 	}
 	maxAttempts := e.Retry.attempts(operation, idempotencyKey)
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		response, requestErr := e.send(ctx, operation, call.Header, body, delegated)
+		response, requestErr := e.send(ctx, operation, call.Header, body, delegated, call.Lifetime)
 		if requestErr != nil {
 			if attempt < maxAttempts && ctx.Err() == nil {
 				if err := waitRetry(ctx, e.Retry.delay(attempt, 0, 0, false)); err != nil {
@@ -148,7 +156,7 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 		responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, limit+1))
 		_ = response.Body.Close()
 		if readErr != nil || int64(len(responseBody)) > limit {
-			return nil, fmt.Errorf("postgrip-%s: response is invalid or too large", e.Plane)
+			return nil, &Error{Plane: e.Plane, Op: "response is invalid or too large"}
 		}
 		result := &Response{StatusCode: response.StatusCode, Header: response.Header, Body: responseBody}
 		if slices.Contains(call.AcceptedStatuses, response.StatusCode) {
@@ -159,11 +167,12 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 				return result, nil
 			}
 			if err := json.Unmarshal(responseBody, out); err != nil {
-				return nil, fmt.Errorf("postgrip-%s: decode response: %w", e.Plane, err)
+				return nil, &Error{Plane: e.Plane, Op: "decode response", Err: err}
 			}
 			return result, nil
 		}
 		apiErr, retryAfterSet := decodeAPIError(response, responseBody, e.Retry.RetryAfterMax)
+		apiErr.Method, apiErr.Route, apiErr.Body = operation.Method, operation.Path, responseBody
 		if attempt < maxAttempts && RetryableStatus(response.StatusCode) {
 			if err := waitRetry(ctx, e.Retry.delay(attempt, response.StatusCode, apiErr.RetryAfter, retryAfterSet)); err != nil {
 				return nil, err
@@ -195,7 +204,7 @@ func (e *Executor) delegatedLane(lane string) (bool, error) {
 	}
 }
 
-func (e *Executor) send(ctx context.Context, operation Operation, header http.Header, body []byte, delegated bool) (*http.Response, error) {
+func (e *Executor) send(ctx context.Context, operation Operation, header http.Header, body []byte, delegated bool, lifetime time.Duration) (*http.Response, error) {
 	endpoint, err := url.Parse(strings.TrimRight(e.BaseURL.String(), "/") + operation.Path)
 	if err != nil {
 		return nil, fmt.Errorf("postgrip-%s: resolve operation URL: %w", e.Plane, err)
@@ -209,6 +218,9 @@ func (e *Executor) send(ctx context.Context, operation Operation, header http.He
 		request.Header.Set("Content-Type", "application/json")
 	}
 	for name, values := range header {
+		if e.CallerHeadersReplace {
+			request.Header.Del(name)
+		}
 		for _, value := range values {
 			request.Header.Add(name, value)
 		}
@@ -233,7 +245,13 @@ func (e *Executor) send(ctx context.Context, operation Operation, header http.He
 			return nil, err
 		}
 	}
-	return e.HTTPClient.Do(request)
+	client := e.HTTPClient
+	if lifetime > 0 && client.Timeout > 0 && lifetime > client.Timeout {
+		extended := *client
+		extended.Timeout = lifetime
+		client = &extended
+	}
+	return client.Do(request)
 }
 
 func (e *Executor) authorize(ctx context.Context, request *http.Request, lane string, delegated bool) error {

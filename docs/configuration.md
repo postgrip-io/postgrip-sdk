@@ -62,9 +62,15 @@ bound requests through an `AbortSignal` where exposed or their injected fetch
 implementation. These APIs do not yet offer one common timeout setting across
 languages.
 
-Root retry options currently reach Worker and Service only. Agent ordinary
-HTTP exchanges do not automatically retry. Service and Go Worker eligibility
-use generated retry/safety metadata plus an idempotency key for mutations.
+Root retry options reach Worker and Service in every language, and Go Agent
+through `ConnectionOptions.EnableRetries`, which `postgrip.New` sets from
+`Config.EnableRetries`. TypeScript and Python Agent ordinary HTTP exchanges do
+not automatically retry. Go Agent retries only contract-eligible operations:
+annotated bounded reads, never signed runtime actions, protocol operations or
+streaming uploads. A Go Agent long poll's lifetime is its `wait_seconds` plus 30
+seconds when that exceeds the request timeout. Service, Go Worker and Go Agent
+eligibility use generated retry/safety metadata plus an idempotency key for
+mutations.
 TypeScript and Python Worker currently use GET-or-idempotency-key eligibility,
 which selects the same requests for Worker's current contract operations.
 Retries remain opt-in, with attempt counts bounded by the plane

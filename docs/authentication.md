@@ -41,14 +41,16 @@ configures its connection. A root management token therefore does not by itself
 prove that every Agent call uses the management lane. Keep management-only
 applications separate from host-injected runtime environments.
 
-Public operations must receive no bearer credential. The normal Agent token
-option is omitted on public requests, but current Agent adapters in all three
-languages still copy caller-supplied headers before applying the auth lane.
-An explicit `Authorization` header can therefore reach public session refresh.
-Use the token options, not a custom authorization header. This is an open
-implementation gap against the [architecture boundary](development/architecture.md),
-not permission to weaken that boundary; transport remediation is proposed in
-the [layering proposal](https://github.com/postgrip-io/postgrip-sdk/pull/69).
+Public operations must receive no bearer credential. The Go Agent connection
+runs through the shared executor, which removes any `Authorization` header from
+a public request, in any spelling, including one configured through
+`ConnectionOptions.Headers`. The TypeScript and Python Agent adapters still copy
+caller-supplied headers before applying the auth lane, so there an explicit
+`Authorization` header can reach public session refresh. Use the token options,
+not a custom authorization header. That remaining gap is against the
+[architecture boundary](development/architecture.md), not permission to weaken
+it; the [layering design](design/contract-driven-sdk-layering.md) moves those
+adapters onto the executor.
 
 ## Failure behavior
 
@@ -68,9 +70,11 @@ log authorization headers. Rotate or revoke a token that may have entered a
 log, trace, crash report, shell history, URL, or process argument list.
 
 Go Agent HTTP failures omit server response content from their default error
-text. The typed `SDKError.ResponseBody` retains the original body for explicit
-inspection and may contain reflected credentials or other secrets. Review and
-redact it before logging; arbitrary server error messages are not safe log data.
+text. The typed `SDKError` carries the decoded envelope's `Code`, `RequestID`
+and `Details`, and `ResponseBody` retains the original body for explicit
+inspection. These fields are server-provided and may contain reflected
+credentials or other secrets. Review and redact them before logging; arbitrary
+server error content is not safe log data.
 
 TypeScript and Python Agent HTTP failures currently use ordinary `Error` and
 `RuntimeError` paths and can include server-provided text. Their exported
