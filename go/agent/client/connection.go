@@ -27,6 +27,8 @@ const DefaultAddress = "https://agentorchestrator1.postgrip.io"
 // keeping every ordinary response read finite.
 const maxResponseBytes = 40 << 20
 
+const defaultUploadTimeout = 30 * time.Minute
+
 // ConnectionOptions configures the HTTP connection to the agent runtime
 // service. Address is the base URL (defaults to DefaultAddress).
 // AuthToken is the common tenant-bound bearer sent as
@@ -287,6 +289,11 @@ func queryValues(params map[string]string) url.Values {
 // and the agent request signature covers the body, which would mean buffering
 // an archive that can reach 512 MiB just to sign it.
 func (c *Connection) doStream(ctx context.Context, method, path string, body io.Reader, headers map[string]string, out any) error {
+	if _, bounded := ctx.Deadline(); !bounded {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultUploadTimeout)
+		defer cancel()
+	}
 	req, err := http.NewRequestWithContext(ctx, method, c.address+path, body)
 	if err != nil {
 		return &failure.SDKError{Message: "build request", Cause: err}
@@ -300,13 +307,9 @@ func (c *Connection) doStream(ctx context.Context, method, path string, body io.
 	if c.authHeader != "" && !hasAuthorizationHeader(req.Header) {
 		req.Header.Set("Authorization", c.authHeader)
 	}
-	// Not c.httpClient: its Timeout is a bound on the *whole* exchange, body
-	// included, and it defaults to 30 seconds. Applied to an upload that may
-	// approach the server's 512 MiB workspace limit, that aborts every archive
-	// bigger than the link can move in 30s — so the documented maximum would be
-	// unusable at the default configuration, and every caller would have to
-	// know to raise RequestTimeout. A streaming upload is bounded by ctx, which
-	// the caller controls per call.
+	// Archives can reach 512 MiB, so use the upload context's deadline instead
+	// of the ordinary request timeout. A caller deadline takes precedence over
+	// the generous default above, including when a slower link needs longer.
 	streamClient := *c.httpClient
 	streamClient.Timeout = 0
 	resp, err := streamClient.Do(req)

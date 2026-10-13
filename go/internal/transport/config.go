@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // ParseBaseURL validates a plane URL and preserves any reverse-proxy path.
@@ -31,13 +32,16 @@ func ManagementToken(plane, raw string) (string, error) {
 	return token, nil
 }
 
-// HTTPClient returns a copy that refuses cross-origin redirects so bearer
-// credentials cannot be forwarded to another origin.
+// HTTPClient returns a copy with a finite timeout that refuses cross-origin
+// redirects so bearer credentials cannot be forwarded to another origin.
 func HTTPClient(source *http.Client) *http.Client {
 	if source == nil {
 		source = http.DefaultClient
 	}
 	clientCopy := *source
+	if clientCopy.Timeout <= 0 {
+		clientCopy.Timeout = 30 * time.Second
+	}
 	priorRedirect := clientCopy.CheckRedirect
 	clientCopy.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) == 0 {
