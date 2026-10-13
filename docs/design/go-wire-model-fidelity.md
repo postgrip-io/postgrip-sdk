@@ -19,10 +19,13 @@ architecture audit of `main` at `3675b2f2` found two Go gaps:
   `protocol.Task` and its peers are public. Nothing shows that the mirror bytes
   differ today.
 - **Presence (A14).** Two representations lose information:
-  - The five optional nullable Agent properties, `PollTaskResponse.task` and
-    `Sandbox.expiresAt`, `lastActivityAt`, `stoppedAt` and `deletedAt`, use a
-    pointer with `omitempty`. Decoding `{"task":null}` and encoding the result
-    yields `{}`.
+  - Six optional nullable Agent properties lose an explicit `null`. Five are
+    declared nullable: `PollTaskResponse.task` and `Sandbox.expiresAt`,
+    `lastActivityAt`, `stoppedAt` and `deletedAt`, each a pointer with
+    `omitempty`. The sixth, `TaskResult.value`, references the unconstrained
+    `JsonValue` schema, which accepts `null`, and is an `any` with `omitempty`.
+    Decoding `{"task":null}` or `{"value":null}` and encoding the result yields
+    `{}`.
   - `go_schema_type` ignores optionality for inline objects. The two optional
     inline objects, `ServiceRuntimeLogWorkerStatus.settings` and `storage`,
     become non-pointer structs, so a decoded value without them re-encodes with
@@ -69,12 +72,16 @@ requires the following of the Go field:
 - `omitempty` exactly when the property is optional, unless the field is a
   non-pointer value whose zero value the schema rejects.
 - For an optional property, a representation that can express absence: a
-  pointer, slice or map, or a value with `omitempty` whose zero value the schema
-  rejects. For example, `PollTaskResponse.Directive *AgentPollDirective` is
-  optional and non-nullable, and the pointer is what lets it be absent. A
-  required non-nullable property does not use a pointer.
-- for an optional nullable property, an entry in the `go/protocol` presence
-  round-trip test table. A pointer alone also collapses `null` into omission, so
+  pointer, slice, map, or a value with `omitempty`. For example,
+  `PollTaskResponse.Directive *AgentPollDirective` is optional and non-nullable,
+  and the pointer is what lets it be absent. A required non-nullable property
+  does not use a pointer. A value with `omitempty` encodes a present zero value
+  or empty collection as absence; that loss is covered under **Present zero
+  values** below, not by this rule.
+- For an optional nullable property, an entry in the `go/protocol` presence
+  round-trip test table. A property is nullable when its schema allows `null`
+  explicitly, or when it references an unconstrained schema such as
+  `JsonValue`. A pointer alone also collapses `null` into omission, so
   the check requires every optional nullable property in the contract to appear
   in that table, and the table's tests prove absent, `null` and value round-trip
   unchanged. Removing a type's presence handling then fails its tests, and
@@ -85,6 +92,27 @@ Mismatches it finds are corrected in the declarations in the same PR when the
 correction keeps the exported field type. Any other mismatch stops that slice
 and is raised as a design change; there is no exception list.
 
+Declarations alone do not show the wire shape of the protocol types that
+encode through a custom `MarshalJSON` and a shadow struct, such as `Task`,
+`TaskEvent` and `AgentSessionResponse`. A Go test therefore encodes a fully
+populated value of every such type, and the check compares its emitted keys
+with the schema's property set in both directions. A dropped or retagged
+shadow field fails it.
+
+### Present zero values
+
+Go maps an optional non-nullable property to a value with `omitempty` by
+convention. For 117 such fields across the 59 declarations, the schema accepts
+the zero value or an empty collection, which then encodes as absence. Examples
+are `TaskResult.ExitCode`, `AgentPollDirective.Force`, `Sandbox.SetupCommand`
+and `Sandbox.Labels`. Preserving a present zero value needs either pointer
+fields, which changes exported field types across the protocol package, or
+presence records on most types. Either is a broad migration with its own
+compatibility cost, so this design does not change these fields. It records them
+as an open gap for a separate migration design. The fidelity check enforces the
+rest of each field's mapping without listing them as exceptions. The guides
+state the loss explicitly.
+
 Generating the declarations themselves into `go/protocol` is not part of this
 design. It needs a type-override table that reproduces every current exported
 field type, and an exported-API comparison that proves the result is identical.
@@ -92,15 +120,17 @@ That migration needs its own design.
 
 ### Presence for optional nullable properties
 
-The five properties keep their exported pointer fields. Each owning type,
-`PollTaskResponse` and `Sandbox`, gains an unexported record of which of its
-nullable properties were decoded as an explicit `null`, and custom JSON methods:
+The six properties keep their exported field types. Each owning type,
+`PollTaskResponse`, `Sandbox` and `TaskResult`, gains an unexported record of
+which of its nullable properties were decoded as an explicit `null`, and custom
+JSON methods:
 
 - `UnmarshalJSON` first clears the record, then sets it for each property
   present as `null`. A reused value decoded from `{"task":null}` and then from
   `{}` therefore re-encodes as `{}`.
 - `MarshalJSON` writes `null` for a property whose field is `nil` and whose
-  record is set, and otherwise behaves as today.
+  record is set, and otherwise behaves as today. None of the three types has
+  custom JSON methods today.
 
 A value decoded from `{"task":null}` therefore re-encodes as `{"task":null}`. A
 value built in code has no record and encodes exactly as today. Equality of two
@@ -112,7 +142,14 @@ these two types from compiling, for example
 encoding are unaffected. This follows Go's compatibility convention, under which
 adding struct fields is compatible and unkeyed literals of another package's
 structs may break; `go vet` already reports such literals. The release notes
-still name it as a source-compatibility note for the two types.
+still name it as a source-compatibility note for the three types.
+
+Custom JSON methods are also promoted to any struct that anonymously embeds one
+of these types. For example, marshaling a wrapper that embeds `PollTaskResponse`
+and adds its own JSON field would then use the promoted `MarshalJSON` and drop
+the wrapper's field. This is a behavior change for such embedding callers. The
+release notes name it, and a regression test documents the promoted behavior so
+it changes only deliberately.
 
 The generator rejects an optional nullable property in any schema it generates
 as a Go struct, rather than mapping it lossily. None exists today, and one that
@@ -135,10 +172,13 @@ needs `&`. The release notes record it as a breaking change under the
 ## Compatibility
 
 - No exported name is removed.
-- `protocol.PollTaskResponse` and `protocol.Sandbox` keep their exported fields.
-  Decoded values re-encode explicit `null`s, and constructed values encode as
-  today. Unkeyed literals of these two types stop compiling, as described
-  above, and the release notes say so.
+- `protocol.PollTaskResponse`, `protocol.Sandbox` and `protocol.TaskResult`
+  keep their exported fields. Decoded values re-encode explicit `null`s, and
+  constructed values encode as today when used directly. Unkeyed literals of
+  these types stop compiling, and structs that anonymously embed them inherit
+  their JSON methods. The release notes record both.
+- Present zero values of the 117 optional fields stay lossy, as today, and are
+  recorded as an open gap.
 - `OpenAPIServiceRuntimeLogWorkerStatus.Settings` and `.Storage` become
   pointers. This is a breaking change to exported field types, and the release
   notes record it.
@@ -147,8 +187,9 @@ needs `&`. The release notes record it as a breaking change under the
 
 ## Delivery slices
 
-1. **Nullable presence.** Add presence handling to `PollTaskResponse` and
-   `Sandbox` with the round-trip test table, plus the generator rejection.
+1. **Nullable presence.** Add presence handling to `PollTaskResponse`,
+   `Sandbox` and `TaskResult` with the round-trip test table, the embedding
+   regression test and the generator rejection.
 2. **Fidelity check and policy.** Add the check and its self-test, including
    the round-trip table rule, correct any compatible mismatches, and update the
    contracts and architecture guides.
@@ -159,18 +200,22 @@ Each slice is its own PR under the [review process](../development/contributing.
 
 ## Acceptance
 
-- Slice 1: round-trip tests cover absent, `null` and value for each of the five
+- Slice 1: round-trip tests cover absent, `null` and value for each of the six
   properties, sequential decoding into one reused value (`null`, then absent),
-  and a constructed value encoding as before. A generator fixture
-  with an optional nullable property fails generation.
+  and a constructed value encoding as before. A test documents the promoted
+  `MarshalJSON` on an embedding struct. A generator fixture with an optional
+  nullable property fails generation.
 - Slice 2: self-test fixtures prove each fidelity rule fails on a synthetic
   mismatch, including an undeclared extra Go field, an optional nullable
   property missing from the round-trip table, and `json.RawMessage` for a
   closed object. They also prove an optional non-nullable pointer and a raw
-  array of `JsonValue` pass. `check_drift.py --monorepo` passes on the corrected
-  declarations.
+  array of `JsonValue` pass. The custom-marshaler wire-shape test fails on a
+  shadow struct with a dropped or retagged field. `check_drift.py --monorepo`
+  passes on the corrected declarations.
 - Slice 3: `ServiceRuntimeLogWorkerStatus` round-trips with `settings` and
-  `storage` absent, present-empty and populated. Only the Service generated Go
+  `storage` absent, minimally valid (only their required properties) and fully
+  populated. `{}` is not a valid value for either object, because both have
+  required properties. Only the Service generated Go
   file changes.
 - In every slice, Go tests and vet, generator checks, recorded endpoint and cURL
   runners, and strict documentation builds pass.
