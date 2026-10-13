@@ -77,10 +77,11 @@ make proposed timeout or Agent retry behavior available today.
 
 Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
-request on retries or response loss. Go Worker rejects a missing or invalid
-key on these operations before sending, including through its generated
-low-level client. Service administration writes may additionally require the
-current `If-Match` value.
+request on retries or response loss. Go Worker and Go Service reject a missing
+or invalid key on these operations before sending, including through their
+generated low-level clients. Service administration writes may additionally
+require the current `If-Match` value; Go Service forwards `If-Match` only on
+operations whose contract declares it.
 
 Do not blindly retry protocol operations, signed Agent runtime mutations,
 archive transfers, or WebSocket sessions. Their generated pages name the

@@ -175,6 +175,50 @@ func TestExecutorAgentLaneRequiresCredentialHook(t *testing.T) {
 	}
 }
 
+func TestExecutorOverrideCallerAuthorizationOnManagementLanes(t *testing.T) {
+	for _, lane := range []string{LaneManagement, LaneWorkerManagement, LaneServiceManagement, LaneEither, LanePublic} {
+		for _, header := range []http.Header{{"Authorization": {"Bearer caller"}}, {"authorization": {"Bearer caller"}}} {
+			server, rec := recordingServer(t, status(http.StatusOK, nil, `{}`))
+			executor := testExecutor(t, server)
+			executor.OverrideCallerAuthorization = true
+			if _, err := executor.Do(context.Background(), Call{Operation: operation(lane, "read-only", "none"), Header: header}, nil); err != nil {
+				t.Fatalf("%s: %v", lane, err)
+			}
+			want := []string{"Bearer management-token"}
+			if lane == LanePublic {
+				want = nil
+			}
+			if got := rec.all()[0].header.Values("Authorization"); strings.Join(got, ",") != strings.Join(want, ",") {
+				t.Fatalf("%s with caller %v: Authorization = %q, want %q", lane, header, got, want)
+			}
+		}
+	}
+}
+
+func TestExecutorForwardsIfMatchOnlyWhereDeclared(t *testing.T) {
+	for _, declared := range [][]string{nil, {"Idempotency-Key"}, {"Idempotency-Key", "If-Match"}, {"if-match"}} {
+		for _, header := range []http.Header{{"If-Match": {`"etag:1"`}}, {"if-match": {`"etag:1"`}}} {
+			server, rec := recordingServer(t, status(http.StatusOK, nil, `{}`))
+			call := Call{Operation: operation(LaneManagement, "read-only", "none"), Header: header}
+			call.Operation.HeaderParameters = declared
+			if _, err := testExecutor(t, server).Do(context.Background(), call, nil); err != nil {
+				t.Fatal(err)
+			}
+			var want []string
+			if call.Operation.DeclaresHeader("If-Match") {
+				want = []string{`"etag:1"`}
+			}
+			if got := rec.all()[0].header.Values("If-Match"); strings.Join(got, ",") != strings.Join(want, ",") {
+				t.Fatalf("declared %q with caller %v: If-Match = %q, want %q", declared, header, got, want)
+			}
+		}
+	}
+	if !(Operation{HeaderParameters: []string{"if-match"}}).DeclaresHeader("If-Match") ||
+		(Operation{HeaderParameters: []string{"Idempotency-Key"}}).DeclaresHeader("If-Match") {
+		t.Fatal("DeclaresHeader does not compare header names case-insensitively")
+	}
+}
+
 func TestExecutorDefaultHeadersYieldToCallerHeaders(t *testing.T) {
 	server, rec := recordingServer(t, status(http.StatusOK, nil, `{}`))
 	executor := testExecutor(t, server)

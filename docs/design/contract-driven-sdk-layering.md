@@ -212,6 +212,15 @@ records in its owner guide:
   such as `+5` is not valid delta-seconds. The 30-second cap, the retried status
   set and honoring `Retry-After` only for 429 and 503 are unchanged.
 
+Service already uses the contract rule, the `Retry-After` parser and the
+configurable ceilings, and the management bearer keeps replacing a
+caller-supplied `Authorization`. Moving Go Service changes only its generated
+low-level operations: they reject a missing or invalid required
+`Idempotency-Key` before sending, as Worker's do, and `Do` drops a
+caller-supplied `If-Match` on an operation whose contract does not declare it.
+The high-level methods already validated keys and sent `If-Match` only where
+declared.
+
 `RetryConfig` is named so that it does not collide with the runtime protocol's
 `RetryPolicy` wire type, which the drift checker reserves. With retries enabled, the 18
 `bounded` Agent reads become retryable. Generated output changes only through
