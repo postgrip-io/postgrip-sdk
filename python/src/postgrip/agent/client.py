@@ -8,7 +8,8 @@ import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator, Mapping
+from typing import Any, Unpack
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import OpenerDirector, Request, build_opener
@@ -31,7 +32,52 @@ from .openapi import (
     openapi_auth_lane_for_request,
     resolve_openapi_operation,
 )
-from .types import IsolationTier
+from .types import (
+    AgentSessionResponse,
+    BackfillScheduleRequest,
+    BackfillScheduleResponse,
+    ClientExecuteWorkflowOptions,
+    ClientStartWorkflowOptions,
+    ConnectionOptions,
+    CountWorkflowsOptions,
+    CreateScheduleRequest,
+    EnqueueTaskRequest,
+    HealthResponse,
+    IsolationTier,
+    JsonValue,
+    ListSchedulesOptions,
+    ListTasksOptions,
+    ListWorkflowsOptions,
+    Namespace,
+    PauseScheduleRequest,
+    PollTaskResponse,
+    ReadyResponse,
+    RetryPolicy,
+    Schedule,
+    ScheduleCalendarSpec,
+    ScheduleMissedRunPolicy,
+    ScheduleOverlapPolicy,
+    SignalWithStartWorkflowRequest,
+    SignalWithStartWorkflowResponse,
+    Task,
+    TaskEvent,
+    TaskEventInput,
+    TaskEventPage,
+    TaskResult,
+    TriggerScheduleRequest,
+    TriggerScheduleResponse,
+    UnpauseScheduleRequest,
+    UpdateScheduleRequest,
+    WorkflowClientExecuteOptions,
+    WorkflowClientStartOptions,
+    WorkflowCountOptions,
+    WorkflowExecution,
+    WorkflowHistoryEvent,
+    WorkflowHistoryPage,
+    WorkflowIdReusePolicy,
+    WorkflowListOptions,
+    WorkflowUIMetadata,
+)
 from .workflow import workflow_name
 
 _MISSING = object()
@@ -69,8 +115,8 @@ def has_authorization_header(headers: dict[str, str]) -> bool:
 
 
 def _iter_history_pages(
-    fetch_page: Callable[[str | None], dict[str, Any]],
-) -> Iterator[dict[str, Any]]:
+    fetch_page: Callable[[str | None], Mapping[str, Any]],
+) -> Iterator[Any]:
     cursor: str | None = None
     seen: set[str] = set()
     while True:
@@ -138,7 +184,7 @@ class Connection:
         self.openapi = OpenAPIClient(self._request_openapi)
 
     @classmethod
-    async def connect(cls, address: str | None = None, **options: Any) -> "Connection":
+    async def connect(cls, address: str | None = None, **options: Unpack[ConnectionOptions]) -> "Connection":
         connection = cls(address, **options)
         await run_cancellable(connection.health)
         return connection
@@ -316,34 +362,34 @@ class Connection:
         with self._agent_lock:
             return bool(self._agent_access_token or self._agent_refresh_token)
 
-    def _apply_agent_session(self, session: dict[str, Any]) -> None:
+    def _apply_agent_session(self, session: AgentSessionResponse) -> None:
         with self._agent_lock:
             self._agent_id = session.get("agentId") or self._agent_id
             self._agent_access_token = session.get("accessToken")
             self._agent_refresh_token = session.get("refreshToken")
             self._agent_access_expires_at = _parse_timestamp(session.get("accessExpiresAt"))
 
-    def health(self) -> dict[str, Any]:
+    def health(self) -> HealthResponse:
         return self.openapi.health()
 
-    def ready(self) -> dict[str, Any]:
+    def ready(self) -> ReadyResponse:
         return self.openapi.ready()
 
-    def list_namespaces(self) -> list[dict[str, Any]]:
+    def list_namespaces(self) -> list[Namespace]:
         return self.openapi.list_namespaces()
 
-    def create_namespace(self, name: str) -> dict[str, Any]:
+    def create_namespace(self, name: str) -> Namespace:
         return self.openapi.create_namespace({"name": name})
 
-    def enqueue_task(self, request: dict[str, Any]) -> dict[str, Any]:
+    def enqueue_task(self, request: EnqueueTaskRequest) -> Task:
         if _runtime_only_task_type(str(request.get("type") or "")) and not self._has_agent_runtime_credentials():
             raise RuntimeError("postgrip-agent: workflow tasks can only be enqueued from a managed runtime; submit workflow.runtime to an agent pool")
         return self.openapi.enqueue_task(request)
 
-    def list_tasks(self, **options: Any) -> list[dict[str, Any]]:
+    def list_tasks(self, **options: Unpack[ListTasksOptions]) -> list[Task]:
         return self.openapi.list_tasks(**_query_options(options))
 
-    def get_task(self, task_id: str) -> dict[str, Any]:
+    def get_task(self, task_id: str) -> Task:
         return self.openapi.get_task(task_id)
 
     def get_task_events_page(
@@ -352,10 +398,10 @@ class Connection:
         *,
         cursor: str | None = None,
         limit: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> TaskEventPage:
         return self.openapi.list_task_events(task_id, cursor=cursor, limit=limit)
 
-    def iter_task_events(self, task_id: str) -> Iterator[dict[str, Any]]:
+    def iter_task_events(self, task_id: str) -> Iterator[TaskEvent]:
         return _iter_history_pages(
             lambda cursor: self.get_task_events_page(
                 task_id,
@@ -364,41 +410,41 @@ class Connection:
             )
         )
 
-    def get_task_events(self, task_id: str) -> list[dict[str, Any]]:
+    def get_task_events(self, task_id: str) -> list[TaskEvent]:
         return list(self.iter_task_events(task_id))
 
-    def complete_task(self, task_id: str, agent_id: str | None = None, result: dict[str, Any] | object = _MISSING, *, worker_id: str | None = None) -> dict[str, Any]:
+    def complete_task(self, task_id: str, agent_id: str | None = None, result: TaskResult | object = _MISSING, *, worker_id: str | None = None) -> Task:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if result is _MISSING:
             raise TypeError("result is required")
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.complete_agent_task(task_id, {"result": result}, agent_id=resolved_agent_id)
 
-    def block_task(self, task_id: str, agent_id: str | None = None, reason: str | None = None, *, worker_id: str | None = None) -> dict[str, Any]:
+    def block_task(self, task_id: str, agent_id: str | None = None, reason: str | None = None, *, worker_id: str | None = None) -> Task:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.block_agent_task(task_id, {"reason": reason}, agent_id=resolved_agent_id)
 
-    def fail_task(self, task_id: str, agent_id: str | None = None, error: str | object = _MISSING, result: dict[str, Any] | None = None, *, worker_id: str | None = None) -> dict[str, Any]:
+    def fail_task(self, task_id: str, agent_id: str | None = None, error: str | object = _MISSING, result: TaskResult | None = None, *, worker_id: str | None = None) -> Task:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if error is _MISSING:
             raise TypeError("error is required")
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.fail_agent_task(task_id, {"error": error, "result": result}, agent_id=resolved_agent_id)
 
-    def heartbeat_task(self, task_id: str, agent_id: str | None = None, event: dict[str, Any] | None = None, *, worker_id: str | None = None) -> dict[str, Any]:
+    def heartbeat_task(self, task_id: str, agent_id: str | None = None, event: TaskEventInput | None = None, *, worker_id: str | None = None) -> Task:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.heartbeat_agent_task(task_id, {"event": event}, agent_id=resolved_agent_id)
 
-    def append_task_event(self, task_id: str, agent_id: str | None = None, event: dict[str, Any] | object = _MISSING, *, worker_id: str | None = None) -> dict[str, Any]:
+    def append_task_event(self, task_id: str, agent_id: str | None = None, event: TaskEventInput | object = _MISSING, *, worker_id: str | None = None) -> TaskEvent:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if event is _MISSING:
             raise TypeError("event is required")
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.append_agent_task_event(task_id, {"event": event}, agent_id=resolved_agent_id)
 
-    def poll_task_response(self, *, namespace: str, queue: str, agent_id: str | None = None, worker_id: str | None = None, wait_seconds: int = 20, task_types: list[str] | tuple[str, ...] | None = None) -> dict[str, Any]:
+    def poll_task_response(self, *, namespace: str, queue: str, agent_id: str | None = None, worker_id: str | None = None, wait_seconds: int = 20, task_types: list[str] | tuple[str, ...] | None = None) -> PollTaskResponse:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         self.ensure_agent_session(namespace=namespace, queue=queue, agent_id=resolved_agent_id)
         return self.openapi.poll_agent_task(
@@ -409,7 +455,7 @@ class Connection:
             task_types=",".join(task_types) if task_types else None,
         ) or {}
 
-    def poll_task(self, *, namespace: str, queue: str, agent_id: str | None = None, worker_id: str | None = None, wait_seconds: int = 20, task_types: list[str] | tuple[str, ...] | None = None) -> dict[str, Any] | None:
+    def poll_task(self, *, namespace: str, queue: str, agent_id: str | None = None, worker_id: str | None = None, wait_seconds: int = 20, task_types: list[str] | tuple[str, ...] | None = None) -> Task | None:
         response = self.poll_task_response(
             namespace=namespace,
             queue=queue,
@@ -420,7 +466,7 @@ class Connection:
         )
         return response.get("task")
 
-    def get_workflow(self, workflow_id_or_run_id: str) -> dict[str, Any]:
+    def get_workflow(self, workflow_id_or_run_id: str) -> WorkflowExecution:
         return self.openapi.get_workflow(workflow_id_or_run_id)
 
     def get_workflow_history_page(
@@ -429,14 +475,14 @@ class Connection:
         *,
         cursor: str | None = None,
         limit: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> WorkflowHistoryPage:
         return self.openapi.list_workflow_history(
             workflow_id_or_run_id,
             cursor=cursor,
             limit=limit,
         )
 
-    def iter_workflow_history(self, workflow_id_or_run_id: str) -> Iterator[dict[str, Any]]:
+    def iter_workflow_history(self, workflow_id_or_run_id: str) -> Iterator[WorkflowHistoryEvent]:
         return _iter_history_pages(
             lambda cursor: self.get_workflow_history_page(
                 workflow_id_or_run_id,
@@ -445,56 +491,56 @@ class Connection:
             )
         )
 
-    def get_workflow_history(self, workflow_id_or_run_id: str) -> list[dict[str, Any]]:
+    def get_workflow_history(self, workflow_id_or_run_id: str) -> list[WorkflowHistoryEvent]:
         return list(self.iter_workflow_history(workflow_id_or_run_id))
 
-    def list_workflows(self, **options: Any) -> list[dict[str, Any]]:
+    def list_workflows(self, **options: Unpack[ListWorkflowsOptions]) -> list[WorkflowExecution]:
         query_options, search = _generated_workflow_query(options)
         return self.openapi.list_workflows(search=search, **query_options)
 
-    def count_workflows(self, **options: Any) -> int:
+    def count_workflows(self, **options: Unpack[CountWorkflowsOptions]) -> int:
         query_options, search = _generated_workflow_query(options)
         return int(self.openapi.count_workflows(search=search, **query_options)["count"])
 
-    def signal_workflow(self, workflow_id_or_run_id: str, name: str, args: list[Any] | None = None) -> dict[str, Any]:
+    def signal_workflow(self, workflow_id_or_run_id: str, name: str, args: list[Any] | None = None) -> WorkflowHistoryEvent:
         return self.openapi.signal_workflow(workflow_id_or_run_id, {"name": name, "args": args or []})
 
-    def signal_with_start_workflow(self, workflow_id: str, request: dict[str, Any]) -> dict[str, Any]:
+    def signal_with_start_workflow(self, workflow_id: str, request: SignalWithStartWorkflowRequest) -> SignalWithStartWorkflowResponse:
         if not self._has_agent_runtime_credentials():
             raise RuntimeError("postgrip-agent: signal-with-start can only run from a managed runtime; submit workflow.runtime to an agent pool")
         return self.openapi.signal_with_start_workflow(workflow_id, request)
 
-    def cancel_workflow(self, workflow_id_or_run_id: str, reason: str | None = None) -> dict[str, Any]:
+    def cancel_workflow(self, workflow_id_or_run_id: str, reason: str | None = None) -> WorkflowHistoryEvent:
         return self.openapi.cancel_workflow(workflow_id_or_run_id, {"reason": reason or ""})
 
-    def terminate_workflow(self, workflow_id_or_run_id: str, reason: str | None = None) -> dict[str, Any]:
+    def terminate_workflow(self, workflow_id_or_run_id: str, reason: str | None = None) -> WorkflowHistoryEvent:
         return self.openapi.terminate_workflow(workflow_id_or_run_id, {"reason": reason or ""})
 
-    def create_schedule(self, request: dict[str, Any]) -> dict[str, Any]:
+    def create_schedule(self, request: CreateScheduleRequest) -> Schedule:
         return self.openapi.create_schedule(request)
 
-    def list_schedules(self, **options: Any) -> list[dict[str, Any]]:
+    def list_schedules(self, **options: Unpack[ListSchedulesOptions]) -> list[Schedule]:
         return self.openapi.list_schedules(**_query_options(options))
 
-    def get_schedule(self, schedule_id: str) -> dict[str, Any]:
+    def get_schedule(self, schedule_id: str) -> Schedule:
         return self.openapi.get_schedule(schedule_id)
 
-    def update_schedule(self, schedule_id: str, request: dict[str, Any]) -> dict[str, Any]:
+    def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -> Schedule:
         return self.openapi.update_schedule(schedule_id, request)
 
-    def delete_schedule(self, schedule_id: str) -> dict[str, Any]:
+    def delete_schedule(self, schedule_id: str) -> Schedule:
         return self.openapi.delete_schedule(schedule_id)
 
-    def pause_schedule(self, schedule_id: str, request: dict[str, Any] | None = None) -> dict[str, Any]:
+    def pause_schedule(self, schedule_id: str, request: PauseScheduleRequest | None = None) -> Schedule:
         return self.openapi.pause_schedule(schedule_id, request or {})
 
-    def unpause_schedule(self, schedule_id: str, request: dict[str, Any] | None = None) -> dict[str, Any]:
+    def unpause_schedule(self, schedule_id: str, request: UnpauseScheduleRequest | None = None) -> Schedule:
         return self.openapi.unpause_schedule(schedule_id, request or {})
 
-    def trigger_schedule(self, schedule_id: str, request: dict[str, Any] | None = None) -> dict[str, Any]:
+    def trigger_schedule(self, schedule_id: str, request: TriggerScheduleRequest | None = None) -> TriggerScheduleResponse:
         return self.openapi.trigger_schedule(schedule_id, request or {})
 
-    def backfill_schedule(self, schedule_id: str, request: dict[str, Any]) -> dict[str, Any]:
+    def backfill_schedule(self, schedule_id: str, request: BackfillScheduleRequest) -> BackfillScheduleResponse:
         return self.openapi.backfill_schedule(schedule_id, request)
 
 
@@ -511,13 +557,13 @@ class Client:
         self.sandbox = SandboxClient(self.connection)
 
     @classmethod
-    async def connect(cls, address: str | None = None, **options: Any) -> "Client":
+    async def connect(cls, address: str | None = None, **options: Unpack[ConnectionOptions]) -> "Client":
         return cls(await Connection.connect(address, **options))
 
-    async def start_workflow(self, workflow: Callable[..., Any] | str, *args: Any, **options: Any) -> "WorkflowHandle":
+    async def start_workflow(self, workflow: Callable[..., Any] | str, *args: Any, **options: Unpack[ClientStartWorkflowOptions]) -> "WorkflowHandle":
         return await run_cancellable(self.workflow.start, workflow, args=list(args), **_normalize_temporal_start_options(options))
 
-    async def execute_workflow(self, workflow: Callable[..., Any] | str, *args: Any, **options: Any) -> Any:
+    async def execute_workflow(self, workflow: Callable[..., Any] | str, *args: Any, **options: Unpack[ClientExecuteWorkflowOptions]) -> Any:
         timeout = options.pop("timeout", None)
         handle = await self.start_workflow(workflow, *args, **options)
         return await handle.result(timeout=timeout)
@@ -530,7 +576,7 @@ class WorkflowClient:
     def __init__(self, connection: Connection):
         self.connection = connection
 
-    def start(self, workflow: Callable[..., Any] | str, *, workflow_id: str | None = None, task_queue: str = "default", namespace: str = "default", args: list[Any] | None = None, **options: Any) -> "WorkflowHandle":
+    def start(self, workflow: Callable[..., Any] | str, *, workflow_id: str | None = None, task_queue: str = "default", namespace: str = "default", args: list[Any] | None = None, **options: Unpack[WorkflowClientStartOptions]) -> "WorkflowHandle":
         workflow_type = workflow_name(workflow)
         if not workflow_type:
             raise ValueError("workflow type is required")
@@ -554,11 +600,11 @@ class WorkflowClient:
         })
         return WorkflowHandle(self.connection, workflow_id, workflow_type, task_id=task["id"], run_id=(task.get("payload") or {}).get("runId"))
 
-    def execute(self, workflow: Callable[..., Any] | str, **options: Any) -> Any:
+    def execute(self, workflow: Callable[..., Any] | str, **options: Unpack[WorkflowClientExecuteOptions]) -> Any:
         timeout = options.pop("timeout", None)
         return self.start(workflow, **options).result_sync(timeout=timeout)
 
-    def signal_with_start(self, workflow: Callable[..., Any] | str, *, signal: str | Any, signal_args: list[Any] | None = None, workflow_id: str | None = None, task_queue: str = "default", namespace: str = "default", args: list[Any] | None = None, **options: Any) -> "WorkflowHandle":
+    def signal_with_start(self, workflow: Callable[..., Any] | str, *, signal: str | Any, signal_args: list[Any] | None = None, workflow_id: str | None = None, task_queue: str = "default", namespace: str = "default", args: list[Any] | None = None, **options: Unpack[WorkflowClientStartOptions]) -> "WorkflowHandle":
         workflow_type = workflow_name(workflow)
         if not workflow_type:
             raise ValueError("workflow type is required")
@@ -590,10 +636,10 @@ class WorkflowClient:
     def get_handle(self, workflow_id: str, *, run_id: str | None = None, workflow_type: str = "unknown") -> "WorkflowHandle":
         return WorkflowHandle(self.connection, workflow_id, workflow_type, run_id=run_id)
 
-    def list(self, **options: Any) -> list[dict[str, Any]]:
+    def list(self, **options: Unpack[WorkflowListOptions]) -> list[WorkflowExecution]:
         return self.connection.list_workflows(**_workflow_query_options(options))
 
-    def count(self, **options: Any) -> int:
+    def count(self, **options: Unpack[WorkflowCountOptions]) -> int:
         return self.connection.count_workflows(**_workflow_query_options(options))
 
 
@@ -605,10 +651,10 @@ class WorkflowHandle:
     task_id: str | None = None
     run_id: str | None = None
 
-    async def describe(self) -> dict[str, Any]:
+    async def describe(self) -> WorkflowExecution:
         return await run_cancellable(self.describe_sync)
 
-    def describe_sync(self) -> dict[str, Any]:
+    def describe_sync(self) -> WorkflowExecution:
         workflow = self.connection.get_workflow(self.run_id or self.workflow_id)
         self.task_id = workflow["task_id"]
         self.run_id = workflow.get("run_id")
@@ -653,17 +699,17 @@ class WorkflowHandle:
         if timeout is not None and time.time() - started > timeout:
             raise TimeoutFailure(f"workflow {self.workflow_id} timed out")
 
-    async def history(self) -> list[dict[str, Any]]:
+    async def history(self) -> list[WorkflowHistoryEvent]:
         return await run_cancellable(self.history_sync)
 
-    def history_sync(self) -> list[dict[str, Any]]:
+    def history_sync(self) -> list[WorkflowHistoryEvent]:
         return self.connection.get_workflow_history(self.run_id or self.workflow_id)
 
-    async def events(self) -> list[dict[str, Any]]:
+    async def events(self) -> list[TaskEvent]:
         task_id = self.task_id or (await self.describe())["task_id"]
         return await run_cancellable(self.connection.get_task_events, task_id)
 
-    async def watch_events(self, *, poll_interval: float = 1) -> Any:
+    async def watch_events(self, *, poll_interval: float = 1) -> AsyncIterator[TaskEvent]:
         task_id = self.task_id or (await self.describe())["task_id"]
         async for event in _watch_task_events(self.connection, task_id, poll_interval=poll_interval):
             yield event
@@ -728,10 +774,10 @@ class WorkflowUpdateHandle:
     async def result(self, *, timeout: float | None = None, poll_interval: float = 0.05) -> Any:
         return await _wait_for_task(self.connection, self.update_id, timeout=timeout, poll_interval=poll_interval, failure_message="workflow update failed")
 
-    async def events(self) -> list[dict[str, Any]]:
+    async def events(self) -> list[TaskEvent]:
         return await run_cancellable(self.connection.get_task_events, self.update_id)
 
-    async def watch_events(self, *, poll_interval: float = 1) -> Any:
+    async def watch_events(self, *, poll_interval: float = 1) -> AsyncIterator[TaskEvent]:
         async for event in _watch_task_events(self.connection, self.update_id, poll_interval=poll_interval):
             yield event
 
@@ -740,7 +786,7 @@ class TaskClient:
     def __init__(self, connection: Connection):
         self.connection = connection
 
-    def enqueue(self, *, type: str, namespace: str = "default", queue: str = "default", payload: Any = None, lease_timeout_seconds: int = 0) -> dict[str, Any]:
+    def enqueue(self, *, type: str, namespace: str = "default", queue: str = "default", payload: JsonValue = None, lease_timeout_seconds: int = 0) -> Task:
         return self.connection.enqueue_task({
             "namespace": namespace,
             "queue": queue,
@@ -749,7 +795,7 @@ class TaskClient:
             "lease_timeout_seconds": lease_timeout_seconds,
         })
 
-    def shell_exec(self, *, command: str, args: list[str] | None = None, env: dict[str, str] | None = None, working_dir: str | None = None, timeout_seconds: int | None = None, queue: str = "default", namespace: str = "default") -> dict[str, Any]:
+    def shell_exec(self, *, command: str, args: list[str] | None = None, env: dict[str, str] | None = None, working_dir: str | None = None, timeout_seconds: int | None = None, queue: str = "default", namespace: str = "default") -> Task:
         return self.enqueue(
             namespace=namespace,
             queue=queue,
@@ -775,7 +821,7 @@ class TaskClient:
         timeout_seconds: int | None = None,
         queue: str = "default",
         namespace: str = "default",
-    ) -> dict[str, Any]:
+    ) -> Task:
         """Enqueue a ``container.exec`` task.
 
         Mirrors :meth:`shell_exec` but runs the command inside a per-task
@@ -823,7 +869,7 @@ class TaskClient:
         runtime_namespace: str | None = None,
         runtime_id: str | None = None,
         lease_timeout_seconds: int = 0,
-    ) -> dict[str, Any]:
+    ) -> Task:
         """Enqueue a managed SDK runtime on an existing host-agent pool.
 
         ``isolation`` is the isolation floor the workload requires, one of
@@ -863,13 +909,13 @@ class TaskClient:
             lease_timeout_seconds=lease_timeout_seconds,
         )
 
-    def noop(self, *, queue: str = "default", namespace: str = "default") -> dict[str, Any]:
+    def noop(self, *, queue: str = "default", namespace: str = "default") -> Task:
         return self.enqueue(namespace=namespace, queue=queue, type="noop")
 
-    def events(self, task_id: str) -> list[dict[str, Any]]:
+    def events(self, task_id: str) -> list[TaskEvent]:
         return self.connection.get_task_events(task_id)
 
-    async def watch_events(self, task_id: str, *, poll_interval: float = 1) -> Any:
+    async def watch_events(self, task_id: str, *, poll_interval: float = 1) -> AsyncIterator[TaskEvent]:
         async for event in _watch_task_events(self.connection, task_id, poll_interval=poll_interval):
             yield event
 
@@ -878,10 +924,10 @@ class ScheduleClient:
     def __init__(self, connection: Connection):
         self.connection = connection
 
-    def create(self, request: dict[str, Any]) -> dict[str, Any]:
+    def create(self, request: CreateScheduleRequest) -> Schedule:
         return self.connection.create_schedule(request)
 
-    def create_workflow_schedule(self, *, workflow: Callable[..., Any] | str, schedule_id: str | None = None, namespace: str = "default", task_queue: str = "default", args: list[Any] | None = None, interval_seconds: int | None = None, cron: str | None = None, calendar: dict[str, Any] | None = None, timezone: str | None = None, jitter_seconds: int | None = None, catch_up_window_seconds: int | None = None, missed_run_policy: str | None = None, start_at: datetime | str | None = None, workflow_id: str | None = None, workflow_id_reuse_policy: str | None = None, overlap_policy: str | None = None, workflow_run_timeout_ms: int | None = None, retry: dict[str, Any] | None = None, memo: dict[str, Any] | None = None, search_attributes: dict[str, Any] | None = None, ui: dict[str, Any] | None = None) -> dict[str, Any]:
+    def create_workflow_schedule(self, *, workflow: Callable[..., Any] | str, schedule_id: str | None = None, namespace: str = "default", task_queue: str = "default", args: list[Any] | None = None, interval_seconds: int | None = None, cron: str | None = None, calendar: ScheduleCalendarSpec | None = None, timezone: str | None = None, jitter_seconds: int | None = None, catch_up_window_seconds: int | None = None, missed_run_policy: ScheduleMissedRunPolicy | None = None, start_at: datetime | str | None = None, workflow_id: str | None = None, workflow_id_reuse_policy: WorkflowIdReusePolicy | None = None, overlap_policy: ScheduleOverlapPolicy | None = None, workflow_run_timeout_ms: int | None = None, retry: RetryPolicy | None = None, memo: dict[str, JsonValue] | None = None, search_attributes: dict[str, JsonValue] | None = None, ui: WorkflowUIMetadata | None = None) -> Schedule:
         workflow_type = workflow_name(workflow)
         if isinstance(start_at, datetime):
             start_at = start_at.isoformat()
@@ -913,28 +959,28 @@ class ScheduleClient:
             },
         })
 
-    def list(self, **options: Any) -> list[dict[str, Any]]:
+    def list(self, **options: Unpack[ListSchedulesOptions]) -> list[Schedule]:
         return self.connection.list_schedules(**options)
 
-    def get(self, schedule_id: str) -> dict[str, Any]:
+    def get(self, schedule_id: str) -> Schedule:
         return self.connection.get_schedule(schedule_id)
 
-    def update(self, schedule_id: str, request: dict[str, Any]) -> dict[str, Any]:
+    def update(self, schedule_id: str, request: UpdateScheduleRequest) -> Schedule:
         return self.connection.update_schedule(schedule_id, request)
 
-    def delete(self, schedule_id: str) -> dict[str, Any]:
+    def delete(self, schedule_id: str) -> Schedule:
         return self.connection.delete_schedule(schedule_id)
 
-    def pause(self, schedule_id: str, request: dict[str, Any] | None = None) -> dict[str, Any]:
+    def pause(self, schedule_id: str, request: PauseScheduleRequest | None = None) -> Schedule:
         return self.connection.pause_schedule(schedule_id, request)
 
-    def unpause(self, schedule_id: str, request: dict[str, Any] | None = None) -> dict[str, Any]:
+    def unpause(self, schedule_id: str, request: UnpauseScheduleRequest | None = None) -> Schedule:
         return self.connection.unpause_schedule(schedule_id, request)
 
-    def trigger(self, schedule_id: str, request: dict[str, Any] | None = None) -> dict[str, Any]:
+    def trigger(self, schedule_id: str, request: TriggerScheduleRequest | None = None) -> TriggerScheduleResponse:
         return self.connection.trigger_schedule(schedule_id, request)
 
-    def backfill(self, schedule_id: str, request: dict[str, Any]) -> dict[str, Any]:
+    def backfill(self, schedule_id: str, request: BackfillScheduleRequest) -> BackfillScheduleResponse:
         return self.connection.backfill_schedule(schedule_id, request)
 
 
@@ -949,9 +995,9 @@ class _WorkflowResultStep:
 
 
 def _workflow_result_step(
-    task: dict[str, Any],
+    task: Task,
     task_id: str,
-    workflow: dict[str, Any] | None = None,
+    workflow: WorkflowExecution | None = None,
 ) -> _WorkflowResultStep:
     """Decide the next result-wait step; an empty step means keep waiting.
 
@@ -986,7 +1032,7 @@ async def _wait_for_task(connection: Connection, task_id: str, *, timeout: float
         await asyncio.sleep(poll_interval)
 
 
-async def _watch_task_events(connection: Connection, task_id: str, *, poll_interval: float) -> Any:
+async def _watch_task_events(connection: Connection, task_id: str, *, poll_interval: float) -> AsyncIterator[TaskEvent]:
     seen: set[str] = set()
     while True:
         events = await run_cancellable(connection.get_task_events, task_id)
@@ -1012,7 +1058,7 @@ def _runtime_only_task_type(task_type: str) -> bool:
     )
 
 
-def _query_options(options: dict[str, Any]) -> dict[str, Any]:
+def _query_options(options: Mapping[str, Any]) -> dict[str, Any]:
     query: dict[str, Any] = {}
     for key, value in options.items():
         if value is None:
@@ -1025,7 +1071,7 @@ def _query_options(options: dict[str, Any]) -> dict[str, Any]:
     return query
 
 
-def _generated_workflow_query(options: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+def _generated_workflow_query(options: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
     query = {
         key: value
         for key, value in options.items()
@@ -1036,7 +1082,7 @@ def _generated_workflow_query(options: dict[str, Any]) -> tuple[dict[str, Any], 
     return query, search or None
 
 
-def _workflow_query_options(options: dict[str, Any]) -> dict[str, Any]:
+def _workflow_query_options(options: Mapping[str, Any]) -> dict[str, Any]:
     mapping = {
         "workflow_id": "id",
         "run_id": "run_id",
@@ -1049,7 +1095,7 @@ def _workflow_query_options(options: dict[str, Any]) -> dict[str, Any]:
     return {mapping.get(key, key): value for key, value in options.items() if value is not None}
 
 
-def _memo_with_workflow_ui(memo: dict[str, Any] | None, ui: dict[str, Any] | None) -> dict[str, Any] | None:
+def _memo_with_workflow_ui(memo: Mapping[str, Any] | None, ui: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
     if not ui:
         return memo
     ui_memo = _workflow_ui_memo(ui)
@@ -1058,7 +1104,7 @@ def _memo_with_workflow_ui(memo: dict[str, Any] | None, ui: dict[str, Any] | Non
     return {**(memo or {}), _POSTGRIP_UI_MEMO_KEY: ui_memo}
 
 
-def _workflow_ui_memo(ui: dict[str, Any]) -> dict[str, Any]:
+def _workflow_ui_memo(ui: Mapping[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     display_name = _clean_string(ui.get("displayName") or ui.get("display_name"))
     if display_name:
@@ -1087,7 +1133,7 @@ def _clean_string(value: Any) -> str | None:
     return None
 
 
-def _normalize_temporal_start_options(options: dict[str, Any]) -> dict[str, Any]:
+def _normalize_temporal_start_options(options: Mapping[str, Any]) -> dict[str, Any]:
     normalized = dict(options)
     if "id" in normalized and "workflow_id" not in normalized:
         normalized["workflow_id"] = normalized.pop("id")

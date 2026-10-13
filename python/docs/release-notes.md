@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Types the Agent convenience methods on `Connection`, `Client`,
+  `WorkflowClient`, `WorkflowHandle`, `TaskClient`, `ScheduleClient` and
+  `SandboxClient` with the OpenAPI-generated aliases (`Task`, `Schedule`,
+  `WorkflowExecution`, `TaskEvent`, `Sandbox`, …) instead of `dict[str, Any]`,
+  and types their `**options` with `typing.Unpack` over new exported option
+  `TypedDict`s such as `ListTasksOptions` and `WorkflowClientStartOptions`.
+  Runtime behavior, keyword names and requests are unchanged, but static type
+  checkers are stricter: passing a value annotated `dict[str, Any]` where a
+  request `TypedDict` is expected, reading an undeclared key from a typed
+  response, or passing an undeclared keyword option now reports a type error.
+  Dictionary literals with the declared keys keep type-checking.
+
 ## 0.13.0
 
 - Consolidates Agent, Worker-management, and Service-management into one

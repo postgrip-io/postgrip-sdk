@@ -9,7 +9,8 @@ is rejected by every endpoint here.
 from __future__ import annotations
 
 import time
-from typing import IO, TYPE_CHECKING, Any, Iterable
+from collections.abc import Iterable, Mapping
+from typing import IO, TYPE_CHECKING, Any
 from urllib.error import HTTPError
 from urllib.request import Request
 
@@ -22,6 +23,12 @@ from .openapi import (
     UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REPOSITORY,
     UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REVISION,
     resolve_openapi_operation,
+)
+from .types import (
+    CreateSandboxSessionResponse,
+    Sandbox,
+    SandboxCreateRequest,
+    SandboxWorkspace,
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle only matters for typing
@@ -89,7 +96,7 @@ def sandbox_relay_url(
     return origin + operation.path
 
 
-def sandbox_is_ready(record: dict[str, Any]) -> bool:
+def sandbox_is_ready(record: Mapping[str, Any]) -> bool:
     """Readiness is observed state AND generation.
 
     A ``running`` reading can predate a start or stop the assigned agent has
@@ -110,12 +117,12 @@ class SandboxClient:
 
     # --- lifecycle ---------------------------------------------------------
 
-    def create(self, request: dict[str, Any]) -> dict[str, Any]:
+    def create(self, request: SandboxCreateRequest) -> Sandbox:
         """Provision a sandbox. Returns once the record exists — the sandbox is
         not yet running, so follow with :meth:`wait_until_running`."""
         return self.connection.openapi.create_sandbox(request)
 
-    def list(self) -> list[dict[str, Any]]:
+    def list(self) -> list[Sandbox]:
         """List live sandboxes.
 
         The endpoint returns an envelope, not a bare array; decoding it as an
@@ -124,19 +131,19 @@ class SandboxClient:
         response = self.connection.openapi.list_sandboxes() or {}
         return response.get("sandboxes") or []
 
-    def get(self, sandbox_id: str) -> dict[str, Any]:
+    def get(self, sandbox_id: str) -> Sandbox:
         _require_sandbox_id(sandbox_id)
         return self.connection.openapi.get_sandbox(sandbox_id)
 
-    def start(self, sandbox_id: str) -> dict[str, Any]:
+    def start(self, sandbox_id: str) -> Sandbox:
         _require_sandbox_id(sandbox_id)
         return self.connection.openapi.start_sandbox(sandbox_id)
 
-    def stop(self, sandbox_id: str) -> dict[str, Any]:
+    def stop(self, sandbox_id: str) -> Sandbox:
         _require_sandbox_id(sandbox_id)
         return self.connection.openapi.stop_sandbox(sandbox_id)
 
-    def delete(self, sandbox_id: str) -> dict[str, Any]:
+    def delete(self, sandbox_id: str) -> Sandbox:
         _require_sandbox_id(sandbox_id)
         return self.connection.openapi.delete_sandbox(sandbox_id)
 
@@ -148,7 +155,7 @@ class SandboxClient:
         command: list[str] | None = None,
         rows: int | None = None,
         columns: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> CreateSandboxSessionResponse:
         """Mint a single-use relay ticket.
 
         The sandbox must already be running; while it comes up the server
@@ -174,7 +181,7 @@ class SandboxClient:
         *,
         repository_name: str | None = None,
         revision: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> SandboxWorkspace:
         """Upload a gzipped tar archive; its ``id`` goes in ``workspaceId``.
 
         The body is the raw archive — not multipart. File-like inputs are sent
@@ -221,12 +228,12 @@ class SandboxClient:
 
         return json.loads(raw.decode()) if raw else {}
 
-    def list_workspaces(self) -> list[dict[str, Any]]:
+    def list_workspaces(self) -> list[SandboxWorkspace]:
         """List the tenant's uploaded workspaces, newest first."""
         response = self.connection.openapi.list_workspaces() or {}
         return response.get("workspaces") or []
 
-    def get_workspace(self, workspace_id: str) -> dict[str, Any]:
+    def get_workspace(self, workspace_id: str) -> SandboxWorkspace:
         """Fetch one uploaded workspace by id."""
         _require_workspace_id(workspace_id)
         return self.connection.openapi.get_workspace(workspace_id)
@@ -242,7 +249,7 @@ class SandboxClient:
         *,
         timeout: float = 120.0,
         poll_interval: float = 1.0,
-    ) -> dict[str, Any]:
+    ) -> Sandbox:
         """Poll until the sandbox is ready, fails, or the wait expires.
 
         Fails fast on ``failed`` with the sandbox's own message rather than
@@ -251,7 +258,7 @@ class SandboxClient:
         scheduling, mid-setup, or never picked up by an agent.
         """
         deadline = time.monotonic() + timeout
-        last: dict[str, Any] = {}
+        last: Mapping[str, Any] = {}
         while True:
             record = self.get(sandbox_id)
             last = record
