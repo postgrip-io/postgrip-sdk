@@ -214,6 +214,8 @@ class Executor:
             body = read_bounded_response(error, self._plane, maximum_bytes=self._max_response_bytes)
         except ValueError:
             body = b""
+        finally:
+            error.close()
         return api_error_fields(
             error.code,
             error.reason,

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Service requests run through the same shared executor. `ServiceAPIError`
+  keeps its fields, constructor, equality and text and subclasses the shared
+  `PostGripAPIError` base. The generated low-level Service operations
+  (`ServiceClient.openapi`) reject a missing or invalid required
+  `Idempotency-Key` before sending and forward `If-Match` only on operations
+  whose contract declares it. Service `Retry-After` parsing accepts only
+  non-negative delta-seconds or an HTTP date, so `+5` or `1.5` backs off with
+  jitter. Request bodies are encoded as compact JSON.
 - Worker requests run through a shared contract-driven executor.
   `WorkerAPIError` keeps its fields, constructor, equality and text, and now
   subclasses an internal shared `PostGripAPIError` base that the other planes

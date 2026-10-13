@@ -3,27 +3,15 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Iterator, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from email.utils import parsedate_to_datetime
-import json
-import math
 import os
-import random
 from threading import Event
 import time
 from typing import Any, Callable, Literal, cast
-from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
-from urllib.request import HTTPRedirectHandler, HTTPSHandler, OpenerDirector, Request, build_opener
+from urllib.request import OpenerDirector
 
 from .._internal.config import validate_base_url, validate_idempotency_key, validate_management_token
-from .._internal.http import (
-    REQUEST_CANCEL_EVENT,
-    CancellationAwareHTTPHandler,
-    CancellationAwareHTTPSHandler,
-    RequestCancelled,
-    run_cancellable,
-)
+from .._internal.http import REQUEST_CANCEL_EVENT, RequestCancelled, run_cancellable
+from .._internal.transport import APIErrorFields, Executor, PostGripAPIError, RetryConfig, no_redirect_opener
 from .._internal.pagination import iterate_pages, iterate_pages_async
 
 from .administration_types import (
@@ -84,8 +72,6 @@ from .openapi import (
     resolve_openapi_operation,
 )
 
-_RETRYABLE_STATUS = {408, 429, 502, 503, 504}
-_MAX_RESPONSE_BYTES = 4 << 20
 _MAX_SCREENSHOT_RESPONSE_BYTES = 24 << 20
 _MAXIMUM_RETRY_ATTEMPTS = 3
 _MAXIMUM_RETRY_DELAY = 2.0
@@ -174,44 +160,20 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
 }
 
 
-class _NoRedirect(HTTPRedirectHandler):
-    def redirect_request(self, req: Request, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
-        return None
-
-
-def _redirect_safe_opener(opener: OpenerDirector | None) -> OpenerDirector:
-    https_context = None
-    https_check_hostname = None
-    if opener is not None:
-        for handler in opener.handlers:
-            if isinstance(handler, HTTPSHandler):
-                https_context = getattr(handler, "_context", None)
-                https_check_hostname = getattr(handler, "_check_hostname", None)
-                break
-    cancellation_handlers = (
-        CancellationAwareHTTPHandler(),
-        CancellationAwareHTTPSHandler(context=https_context, check_hostname=https_check_hostname),
-    )
-    if opener is None:
-        return build_opener(_NoRedirect(), *cancellation_handlers)
-    redirect_methods = ("http_error_301", "http_error_302", "http_error_303", "http_error_307", "http_error_308")
-    handlers = [handler for handler in opener.handlers if not any(hasattr(handler, name) for name in redirect_methods)]
-    if len(handlers) == len(opener.handlers):
-        opener.add_handler(_NoRedirect())
-        for handler in cancellation_handlers:
-            opener.add_handler(handler)
-        return opener
-    return build_opener(*handlers, _NoRedirect(), *cancellation_handlers)
-
-
 @dataclass(frozen=True)
-class ServiceAPIError(Exception):
-    status: int
-    code: str
-    message: str
-    request_id: str = ""
-    details: Mapping[str, Any] | None = None
-    retry_after: float | None = None
+class ServiceAPIError(PostGripAPIError):
+    """A failed Service request, with the same fields as before and the shared base."""
+
+    @classmethod
+    def _from_fields(cls, fields: APIErrorFields) -> ServiceAPIError:
+        return cls(
+            status=fields.status,
+            code=fields.code,
+            message=fields.message,
+            request_id=fields.request_id,
+            details=fields.details,
+            retry_after=fields.retry_after,
+        )
 
     def __str__(self) -> str:
         return f"postgrip-service: {self.code} (HTTP {self.status}): {self.message}"
@@ -367,13 +329,22 @@ class ServiceClient:
         token = validate_management_token(token)
         self._base_url = base_url.rstrip("/") + "/"
         self._token = token
-        self._enable_retries = enable_retries
-        self._retry_max_attempts, self._retry_max_delay, self._retry_after_max_delay = _configured_retry_limits(
+        max_attempts, max_delay, retry_after_max = _configured_retry_limits(
             retry_max_attempts, retry_max_delay, retry_after_max_delay,
         )
         self._follow_interval = max(follow_interval, 0.001)
-        self._timeout = timeout
-        self._opener = _redirect_safe_opener(opener)
+        self._executor = Executor(
+            plane="Service",
+            base_url=base_url,
+            opener=no_redirect_opener(opener),
+            management_token=token,
+            retry=RetryConfig(
+                enabled=enable_retries, max_attempts=max_attempts, max_delay=max_delay, retry_after_max=retry_after_max,
+            ),
+            timeout=timeout,
+            create_error=ServiceAPIError._from_fields,
+            success_response_bytes={OperationId.GET_SERVICE_DEPLOYMENT_SCREENSHOT.value: _MAX_SCREENSHOT_RESPONSE_BYTES},
+        )
         self.openapi = OpenAPIClient(self._openapi_transport)
         self.administration = ServiceAdministration(self._openapi_transport)
 
@@ -633,64 +604,14 @@ class ServiceClient:
         if_match: str | None = None,
     ) -> Any:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
+        # Top-level None values are omitted, so default arguments are not sent as JSON null.
         clean_body = {key: value for key, value in (body or {}).items() if value is not None} if body is not None else None
         operation = resolve_openapi_operation(operation_id, path, clean_query)
-        retry_safe = operation.retry == "bounded" and (
-            operation.safety == "read-only" or idempotency_key is not None
-        )
-        attempts = self._retry_max_attempts if self._enable_retries and retry_safe else 1
-        endpoint = urljoin(self._base_url, operation.path.lstrip("/"))
-        encoded_body = json.dumps(clean_body).encode() if clean_body is not None else None
-        cancel_event = REQUEST_CANCEL_EVENT.get()
-        for attempt in range(1, attempts + 1):
-            if cancel_event is not None and cancel_event.is_set():
-                raise RequestCancelled
-            request = Request(endpoint, data=encoded_body, method=operation.method, headers={
-                "Accept": "application/json",
-                "Authorization": f"Bearer {self._token}",
-                **({"Content-Type": "application/json"} if encoded_body is not None else {}),
-                **({"Idempotency-Key": idempotency_key} if idempotency_key else {}),
-                **({"If-Match": if_match} if if_match else {}),
-            })
-            try:
-                with self._opener.open(request, timeout=self._timeout) as response:
-                    maximum_bytes = (
-                        _MAX_SCREENSHOT_RESPONSE_BYTES
-                        if operation_id is OperationId.GET_SERVICE_DEPLOYMENT_SCREENSHOT
-                        else _MAX_RESPONSE_BYTES
-                    )
-                    return _decode_success(response, maximum_bytes)
-            except HTTPError as error:
-                if cancel_event is not None and cancel_event.is_set():
-                    raise RequestCancelled from None
-                api_error = _decode_http_error(error, self._retry_after_max_delay)
-                if attempt < attempts and error.code in _RETRYABLE_STATUS:
-                    retry_after = api_error.retry_after if error.code in {429, 503} else None
-                    delay = retry_after if retry_after is not None else _jitter(attempt, self._retry_max_delay)
-                    if cancel_event is not None:
-                        if cancel_event.wait(delay):
-                            raise RequestCancelled
-                    else:
-                        time.sleep(delay)
-                    continue
-                raise api_error from None
-            except URLError:
-                if cancel_event is not None and cancel_event.is_set():
-                    raise RequestCancelled from None
-                if attempt < attempts:
-                    delay = _jitter(attempt, self._retry_max_delay)
-                    if cancel_event is not None:
-                        if cancel_event.wait(delay):
-                            raise RequestCancelled
-                    else:
-                        time.sleep(delay)
-                    continue
-                raise
-            except Exception:
-                if cancel_event is not None and cancel_event.is_set():
-                    raise RequestCancelled from None
-                raise
-        raise RuntimeError("PostGrip Service request attempts exhausted")
+        return self._executor.request(operation, body=clean_body, idempotency_key=idempotency_key, if_match=if_match)
+
+    @property
+    def _opener(self) -> OpenerDirector:
+        return self._executor.opener
 
     def _openapi_transport(
         self,
@@ -839,56 +760,6 @@ class AsyncServiceClient:
 
     async def restart(self, project_id: str, environment_id: str, **options: Any) -> RestartServiceRuntimeResponseBody:
         return await self._run(self._sync.restart, project_id, environment_id, **options)
-
-
-def _decode_success(response: Any, maximum_bytes: int = _MAX_RESPONSE_BYTES) -> Any:
-    body = response.read(maximum_bytes + 1)
-    if len(body) > maximum_bytes:
-        raise ValueError("PostGrip Service response is too large")
-    return json.loads(body) if body.strip() else None
-
-
-def _decode_http_error(error: HTTPError, retry_after_max_delay: float) -> ServiceAPIError:
-    try:
-        body = error.read(_MAX_RESPONSE_BYTES + 1)
-    finally:
-        error.close()
-    try:
-        value = json.loads(body) if len(body) <= _MAX_RESPONSE_BYTES else {}
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        value = {}
-    if not isinstance(value, dict):
-        value = {}
-    return ServiceAPIError(
-        status=error.code,
-        code=value.get("code", "HTTP_ERROR"),
-        message=value.get("message", error.reason or "request failed"),
-        request_id=value.get("requestId", error.headers.get("X-Request-ID", "")),
-        details=value.get("details") if isinstance(value.get("details"), dict) else None,
-        retry_after=_parse_retry_after(error.headers.get("Retry-After"), retry_after_max_delay),
-    )
-
-
-def _parse_retry_after(value: str | None, maximum: float) -> float | None:
-    if not value:
-        return None
-    try:
-        seconds = float(value)
-        if not math.isfinite(seconds):
-            return None
-        return min(max(seconds, 0.0), maximum)
-    except ValueError:
-        try:
-            when = parsedate_to_datetime(value)
-            if when.tzinfo is None:
-                when = when.replace(tzinfo=timezone.utc)
-            return min(max((when - datetime.now(timezone.utc)).total_seconds(), 0.0), maximum)
-        except (TypeError, ValueError, OverflowError):
-            return None
-
-
-def _jitter(attempt: int, maximum: float) -> float:
-    return random.random() * min(0.2 * (2 ** (attempt - 1)), maximum)
 
 
 def _configured_retry_limits(max_attempts: int, max_delay: float, retry_after_max_delay: float) -> tuple[int, float, float]:
