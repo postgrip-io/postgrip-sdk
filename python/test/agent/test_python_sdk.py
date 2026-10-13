@@ -337,6 +337,48 @@ class PythonSdkTests(unittest.TestCase):
         self.assertEqual(connection.completed[0][0], "workflow-task-1")
         self.assertEqual(connection.completed[0][1]["value"], "Hello PostGrip")
 
+    def test_replay_raises_replay_owned_determinism_error(self):
+        from postgrip.agent._replay import DeterminismError, WorkflowReplay
+        from postgrip.agent.errors import ApplicationFailure
+
+        replay = WorkflowReplay([{"type": "ActivityTaskScheduled", "task_id": "a", "attributes": {"activity_type": "A"}}])
+        with self.assertRaises(DeterminismError) as caught:
+            replay.next_activity("B")
+        self.assertNotIsInstance(caught.exception, ApplicationFailure)
+        self.assertEqual(str(caught.exception), "activity command changed at index 1: history=A replay=B")
+
+    def test_diverging_workflow_fails_with_public_determinism_violation(self):
+        @workflow.defn(name="DivergingWorkflow")
+        class DivergingWorkflow:
+            @workflow.run
+            async def run(self) -> str:
+                return await workflow.execute_activity("B")
+
+        connection = FakeConnection()
+        connection.histories["run-1"] = [{
+            "type": "ActivityTaskScheduled",
+            "task_id": "activity-task-1",
+            "attributes": {"activity_type": "A"},
+        }]
+        agent = Agent(connection=connection, task_queue="default", workflows=[DivergingWorkflow])
+        task = {
+            "id": "workflow-task-1",
+            "namespace": "default",
+            "queue": "default",
+            "type": "workflow:DivergingWorkflow",
+            "payload": {"workflowType": "DivergingWorkflow", "workflowId": "workflow-1", "runId": "run-1", "args": []},
+            "lease_timeout_seconds": 30,
+        }
+
+        asyncio.run(agent._execute(task))
+
+        self.assertEqual(connection.enqueued, [])
+        task_id, error, result = connection.failed[0]
+        self.assertEqual(task_id, "workflow-task-1")
+        self.assertEqual(error, "activity command changed at index 1: history=A replay=B")
+        self.assertEqual(result["failure"]["type"], "DeterminismViolation")
+        self.assertTrue(result["failure"]["non_retryable"])
+
     def test_workflow_sleep_schedules_durable_timer_and_replays_fired_timer(self):
         @workflow.defn(name="TimerWorkflow")
         class TimerWorkflow:

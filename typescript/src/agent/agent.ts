@@ -1,3 +1,4 @@
+import { DeterminismError, WorkflowReplay } from './_replay.js';
 import { runInActivityRuntime } from './activity.js';
 import { Connection } from './connection.js';
 import {
@@ -211,6 +212,7 @@ export class Agent {
       const workflowRunId = task.payload?.runId ?? workflowId;
       const history = await this.connection.getWorkflowHistory(workflowRunId);
       const replay = new WorkflowReplay(history);
+      const handlers = new WorkflowHandlers(replay);
       await this.emit(task.id, 'started', 'workflow', `started workflow ${workflowType}`, { workflowType });
       const value = await runInWorkflowRuntime({
         workflowId,
@@ -226,9 +228,9 @@ export class Agent {
         sleep: (ms, cancellationScope) => this.executeTimerCommand(task, replay, ms, cancellationScope),
         condition: (predicate, timeoutMs, cancellationScope) => this.executeConditionCommand(task, replay, predicate, timeoutMs, cancellationScope),
         cancellationRequested: () => replay.isCancellationRequested(),
-        setSignalHandler: (name, handler) => replay.setSignalHandler(name, handler),
-        setQueryHandler: (name, handler) => replay.setQueryHandler(name, handler),
-        setUpdateHandler: (name, handler) => replay.setUpdateHandler(name, handler),
+        setSignalHandler: (name, handler) => handlers.setSignalHandler(name, handler),
+        setQueryHandler: (name, handler) => handlers.setQueryHandler(name, handler),
+        setUpdateHandler: (name, handler) => handlers.setUpdateHandler(name, handler),
         emit: (event) => this.emit(task.id, event.kind ?? 'progress', event.stage, event.message, event.details),
       }, () => workflow(...(task.payload?.args ?? [])));
       const result: TaskResult = {
@@ -300,6 +302,7 @@ export class Agent {
       const sourceTask = await this.connection.getTask<WorkflowPayload>(sourceWorkflow.task_id);
       const history = await this.connection.getWorkflowHistory(payload.workflowRunId ?? payload.workflowId);
       const replay = new WorkflowReplay(history);
+      const handlers = new WorkflowHandlers(replay);
       await this.emit(task.id, 'started', kind, `started ${kind} ${name}`, { workflowType: payload.workflowType });
       try {
         await runInWorkflowRuntime({
@@ -316,9 +319,9 @@ export class Agent {
           sleep: () => this.replayTimerForQuery(replay),
           condition: (predicate) => this.replayConditionForQuery(predicate),
           cancellationRequested: () => replay.isCancellationRequested(),
-          setSignalHandler: (name, handler) => replay.setSignalHandler(name, handler),
-          setQueryHandler: (name, handler) => replay.setQueryHandler(name, handler),
-          setUpdateHandler: (name, handler) => replay.setUpdateHandler(name, handler),
+          setSignalHandler: (name, handler) => handlers.setSignalHandler(name, handler),
+          setQueryHandler: (name, handler) => handlers.setQueryHandler(name, handler),
+          setUpdateHandler: (name, handler) => handlers.setUpdateHandler(name, handler),
           emit: async () => undefined,
         }, () => workflow(...(sourceTask.payload?.args ?? [])));
       } catch (err) {
@@ -326,7 +329,7 @@ export class Agent {
           throw err;
         }
       }
-      const handler = kind === 'query' ? replay.queryHandler(name) : replay.updateHandler(name);
+      const handler = kind === 'query' ? handlers.queryHandler(name) : handlers.updateHandler(name);
       if (!handler) {
         throw ApplicationFailure.nonRetryable(`${kind} ${name} is not registered`, missingCode, name);
       }
@@ -393,7 +396,7 @@ export class Agent {
     options: ActivityOptions,
   ): Promise<unknown> {
     this.throwIfCancelled(replay, options.cancellationScope);
-    const scheduled = replay.nextActivity(name);
+    const scheduled = replayCommand(() => replay.nextActivity(name));
     if (scheduled?.task_id) {
       const task = await this.connection.getTask<ActivityInvocationPayload>(scheduled.task_id);
       if (task.state === 'succeeded') return task.result?.value;
@@ -434,7 +437,7 @@ export class Agent {
     cancellationScope: 'cancellable' | 'non_cancellable' = 'cancellable',
   ): Promise<void> {
     this.throwIfCancelled(replay, cancellationScope);
-    const started = replay.nextTimer(durationMs);
+    const started = replayCommand(() => replay.nextTimer(durationMs));
     if (started?.task_id) {
       if (replay.isTimerFired(started)) return;
       throw new WorkflowBlocked('waiting for timer');
@@ -466,7 +469,7 @@ export class Agent {
     options: ChildWorkflowOptions,
   ): Promise<unknown> {
     this.throwIfCancelled(replay, options.cancellationScope);
-    const started = replay.nextChild(workflowType);
+    const started = replayCommand(() => replay.nextChild(workflowType));
     if (started) {
       const childWorkflowId = childWorkflowIdFromEvent(started);
       if (!childWorkflowId) {
@@ -565,7 +568,7 @@ export class Agent {
 
   private async replayActivityForQuery(replay: WorkflowReplay, name: string): Promise<unknown> {
     if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
-    const scheduled = replay.nextActivity(name);
+    const scheduled = replayCommand(() => replay.nextActivity(name));
     if (!scheduled?.task_id) {
       throw new WorkflowQueryReady();
     }
@@ -585,7 +588,7 @@ export class Agent {
 
   private async replayTimerForQuery(replay: WorkflowReplay): Promise<void> {
     if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
-    const started = replay.nextTimer();
+    const started = replayCommand(() => replay.nextTimer());
     if (!started?.task_id || !replay.isTimerFired(started)) {
       throw new WorkflowQueryReady('waiting for timer');
     }
@@ -593,7 +596,7 @@ export class Agent {
 
   private async replayChildForQuery(replay: WorkflowReplay, name: string): Promise<unknown> {
     if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
-    const started = replay.nextChild(name);
+    const started = replayCommand(() => replay.nextChild(name));
     if (!started) {
       throw new WorkflowQueryReady();
     }
@@ -684,98 +687,18 @@ class WorkflowQueryReady extends Error {
   }
 }
 
-class WorkflowReplay {
-  private readonly activities: WorkflowHistoryEvent[];
-  private readonly timers: WorkflowHistoryEvent[];
-  private readonly signals: WorkflowHistoryEvent[];
-  private readonly children: WorkflowHistoryEvent[];
-  private readonly completedUpdates: WorkflowHistoryEvent[];
-  private readonly cancellation: WorkflowHistoryEvent | undefined;
+/**
+ * Per-invocation handler registries. Replay supplies the recorded signal and
+ * update arguments; the runtime owns the handlers and invokes them.
+ */
+class WorkflowHandlers {
   private readonly queryHandlers = new Map<string, (...args: unknown[]) => unknown>();
   private readonly updateHandlers = new Map<string, (...args: unknown[]) => unknown>();
-  activityIndex = 0;
-  private timerIndex = 0;
-  private childIndex = 0;
 
-  constructor(history: WorkflowHistoryEvent[]) {
-    this.activities = history.filter((event) => event.type === 'ActivityTaskScheduled');
-    this.timers = history.filter((event) => event.type === 'TimerStarted');
-    this.signals = history.filter((event) => event.type === 'WorkflowSignaled');
-    this.children = history.filter((event) => event.type === 'ChildWorkflowExecutionStarted');
-    this.completedUpdates = history.filter((event) => event.type === 'WorkflowUpdateCompleted');
-    this.cancellation = history.find((event) => event.type === 'WorkflowCancellationRequested');
-    this.history = history;
-  }
-
-  private readonly history: WorkflowHistoryEvent[];
-
-  nextActivity(activityType: string): WorkflowHistoryEvent | undefined {
-    const event = this.activities[this.activityIndex];
-    this.activityIndex += 1;
-    if (event && event.attributes?.activity_type !== activityType) {
-      throw determinismViolation(`activity command changed at index ${this.activityIndex}: history=${String(event.attributes?.activity_type)} replay=${activityType}`);
-    }
-    return event;
-  }
-
-  nextTimer(durationMs?: number): WorkflowHistoryEvent | undefined {
-    const event = this.timers[this.timerIndex];
-    this.timerIndex += 1;
-    const historyDuration = event?.attributes?.duration_ms;
-    if (event && typeof durationMs === 'number' && typeof historyDuration === 'number' && Math.round(durationMs) !== historyDuration) {
-      throw determinismViolation(`timer command changed at index ${this.timerIndex}: history=${historyDuration} replay=${Math.round(durationMs)}`);
-    }
-    return event;
-  }
-
-  nextChild(workflowType: string): WorkflowHistoryEvent | undefined {
-    const event = this.children[this.childIndex];
-    this.childIndex += 1;
-    if (event && event.attributes?.workflow_type !== workflowType) {
-      throw determinismViolation(`child workflow command changed at index ${this.childIndex}: history=${String(event.attributes?.workflow_type)} replay=${workflowType}`);
-    }
-    return event;
-  }
-
-  isTimerFired(timerStarted: WorkflowHistoryEvent): boolean {
-    return this.history.some((event) => (
-      event.type === 'TimerFired'
-      && event.task_id != null
-      && event.task_id === timerStarted.task_id
-    ));
-  }
-
-  isActivityCanceled(activityScheduled: WorkflowHistoryEvent): boolean {
-    return this.history.some((event) => (
-      event.type === 'ActivityTaskCanceled'
-      && event.task_id != null
-      && event.task_id === activityScheduled.task_id
-    ));
-  }
-
-  hasActivityRetryScheduled(activityScheduled: WorkflowHistoryEvent): boolean {
-    return this.history.some((event) => (
-      event.type === 'ActivityTaskRetryScheduled'
-      && event.attributes?.previous_task === activityScheduled.task_id
-    ));
-  }
-
-  activityCancellationReason(activityScheduled: WorkflowHistoryEvent): string {
-    const event = this.history.find((historyEvent) => (
-      historyEvent.type === 'ActivityTaskCanceled'
-      && historyEvent.task_id != null
-      && historyEvent.task_id === activityScheduled.task_id
-    ));
-    const reason = event?.attributes?.reason;
-    return typeof reason === 'string' && reason ? reason : 'activity cancellation requested';
-  }
+  constructor(private readonly replay: WorkflowReplay) {}
 
   setSignalHandler(name: string, handler: (...args: unknown[]) => unknown): void {
-    for (const event of this.signals) {
-      if (event.attributes?.signal_name !== name) {
-        continue;
-      }
-      const args = Array.isArray(event.attributes.args) ? event.attributes.args : [];
+    for (const args of this.replay.signalArgs(name)) {
       handler(...args);
     }
   }
@@ -790,11 +713,7 @@ class WorkflowReplay {
 
   setUpdateHandler(name: string, handler: (...args: unknown[]) => unknown): void {
     this.updateHandlers.set(name, handler);
-    for (const event of this.completedUpdates) {
-      if (event.attributes?.update_name !== name) {
-        continue;
-      }
-      const args = Array.isArray(event.attributes.args) ? event.attributes.args : [];
+    for (const args of this.replay.completedUpdateArgs(name)) {
       handler(...args);
     }
   }
@@ -802,14 +721,17 @@ class WorkflowReplay {
   updateHandler(name: string): ((...args: unknown[]) => unknown) | undefined {
     return this.updateHandlers.get(name);
   }
+}
 
-  isCancellationRequested(): boolean {
-    return this.cancellation != null;
-  }
-
-  cancellationReason(): string {
-    const reason = this.cancellation?.attributes?.reason;
-    return typeof reason === 'string' && reason ? reason : 'workflow cancellation requested';
+/** Runs one replay step, translating a replay-owned determinism error into the public failure. */
+function replayCommand<T>(step: () => T): T {
+  try {
+    return step();
+  } catch (err) {
+    if (err instanceof DeterminismError) {
+      throw determinismViolation(err.message);
+    }
+    throw err;
   }
 }
 
