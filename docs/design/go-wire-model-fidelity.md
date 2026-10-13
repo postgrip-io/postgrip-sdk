@@ -58,10 +58,13 @@ changes, so they state:
   of a blanket prohibition. No other HTTP model may be declared by hand.
 
 A fidelity check extends the field-name comparison for those schemas. It keeps
-bidirectional field-set equality: every schema property has a JSON-tagged Go
-field, and every JSON-tagged Go field has a schema property. These schemas are
-closed, so an extra serialized field is a mismatch. For every property it then
-requires the following of the Go field:
+bidirectional field-set equality over every field `encoding/json` serializes:
+tagged fields, exported untagged fields under their Go names, and fields
+promoted from untagged anonymous structs. Every schema property has such a
+field, and every such field has a schema property. These schemas are closed, so
+an extra serialized field is a mismatch. JSON tag options other than
+`omitempty` (for example `,string`) change the encoded type and are rejected.
+For every property it then requires the following of the Go field:
 
 - a type compatible with the schema: string, integer, number, boolean,
   date-time, array, map, or a referenced type. `any` is accepted where the
@@ -150,24 +153,29 @@ field types:
 
 Each owning type (`PollTaskResponse`, `Sandbox`, `TaskResult`,
 `SandboxCreateRequest`) gains an unexported presence record and custom JSON
-methods:
+methods. The record is a comparable value, a bitmask, so these types stay
+comparable and usable as map keys; a compile-time check guards that. Its bits
+are "decoded", one "null" bit per nullable property, and one "present" bit per
+struct property.
 
-- `UnmarshalJSON` first clears the record, then records each nullable property
-  present as `null` and each struct property present at all. A reused value
-  decoded from `{"task":null}` and then from `{}` therefore re-encodes as `{}`.
+- `UnmarshalJSON` decodes into a fresh zero value of the type and then replaces
+  the receiver, so no field or record bit from an earlier decode survives. It
+  sets "decoded", a "null" bit for each nullable property present as `null`,
+  and a "present" bit for each struct property present at all.
 - `MarshalJSON` writes `null` for a nullable property whose field is `nil` and
-  whose record is set. It omits a struct property whose value is the zero value
-  and that was not recorded as present. Everything else encodes as today. None
-  of the four types has custom JSON methods today.
+  whose "null" bit is set. On a decoded value, it omits a struct property whose
+  "present" bit is clear. Everything else encodes as today. None of the four
+  types has custom JSON methods today.
 
-A value decoded from `{"task":null}` re-encodes as `{"task":null}`, and a
-`TaskResult` decoded without `started_at` no longer re-encodes a year-one
-timestamp. A value built in code has no record. Its nullable fields encode as
-today, and zero-valued struct properties are now omitted instead of written.
-For `SandboxCreateRequest` that changes request bytes: a request built without
-resource limits or a network policy no longer sends zero-valued objects, which
-the contract treats as absent. The release notes record it. Equality of two
-values can now differ only in that record.
+Presence changes encoding only for decoded values. A value decoded from
+`{"task":null}` re-encodes as `{"task":null}`, and a `TaskResult` decoded
+without `started_at` no longer re-encodes a year-one timestamp. A value built in
+code has no "decoded" bit and encodes exactly as today, including zero-valued
+struct properties. Request bytes therefore do not change, and a caller can still
+send an intentionally zero `ResourceLimits` or all-false `NetworkPolicy`. A
+constructed value cannot express an absent struct property; that stays part of
+the open present-value gap. Equality of two values can now differ only in the
+record.
 
 Adding a field, even an unexported one, stops unkeyed composite literals of
 these four types from compiling, for example
@@ -207,13 +215,12 @@ needs `&`. The release notes record it as a breaking change under the
 
 - No exported name is removed.
 - `protocol.PollTaskResponse`, `protocol.Sandbox`, `protocol.TaskResult` and
-  `protocol.SandboxCreateRequest` keep their exported fields. Decoded values
-  re-encode explicit `null`s and omit struct properties that were absent.
-  Constructed values omit zero-valued optional struct properties. That changes
-  the bytes of a `SandboxCreateRequest` built without resource limits or a
-  network policy, which no longer sends zero-valued objects. Unkeyed literals
-  of these types stop compiling, and structs that anonymously embed them inherit
-  their JSON methods in both directions. The release notes record all three.
+  `protocol.SandboxCreateRequest` keep their exported fields and stay
+  comparable. Decoded values re-encode explicit `null`s and omit struct
+  properties that were absent. Constructed values, and so request bytes, encode
+  as today. Unkeyed literals of these types stop compiling, and structs that
+  anonymously embed them inherit their JSON methods in both directions. The
+  release notes record both.
 - Present zero values of the 117 optional fields, and nil encodings of three
   required arrays built in code, stay as today and are recorded as an open gap.
 - `OpenAPIServiceRuntimeLogWorkerStatus.Settings` and `.Storage` become
@@ -241,14 +248,16 @@ Each slice is its own PR under the [review process](../development/contributing.
 
 - Slice 1: round-trip tests cover absent, `null` and value for each of the six
   nullable properties, and absent and present for each of the four struct
-  properties. They also cover sequential decoding into one reused value (`null`,
-  then absent), constructed values (nullable fields as before, zero-valued
-  struct properties omitted), and a minimal `SandboxCreateRequest` that sends
-  no zero-valued objects. Tests document the promoted `MarshalJSON` and
+  properties. They also cover sequential decoding into one reused value
+  (`null` then absent, a value then absent, and a present struct then absent),
+  and constructed values encoding exactly as before, including a minimal
+  `SandboxCreateRequest`. A compile-time check keeps the four types comparable. Tests document the promoted `MarshalJSON` and
   `UnmarshalJSON` on an embedding struct. A generator fixture with an optional
   nullable property fails generation.
 - Slice 2: self-test fixtures prove each fidelity rule fails on a synthetic
-  mismatch, including an undeclared extra Go field, an optional nullable
+  mismatch, including an undeclared extra tagged Go field, an untagged
+  exported field, a field promoted from an untagged anonymous struct, a
+  `,string` tag option, an optional nullable
   property missing from the round-trip table, and `json.RawMessage` for a
   closed object. They also prove an optional non-nullable pointer and a raw
   array of `JsonValue` pass, as does `json.RawMessage` for an optional nullable
