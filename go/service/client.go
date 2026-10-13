@@ -227,7 +227,7 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 	return errors.New("postgrip-service: request attempts exhausted")
 }
 
-func (c *Connection) send(ctx context.Context, operation openAPIOperation, body []byte, headers http.Header) (*http.Response, error) {
+func (c *Connection) send(ctx context.Context, operation transport.Operation, body []byte, headers http.Header) (*http.Response, error) {
 	endpoint, err := url.Parse(strings.TrimRight(c.baseURL.String(), "/") + operation.Path)
 	if err != nil {
 		return nil, fmt.Errorf("postgrip-service: resolve operation URL: %w", err)
@@ -294,7 +294,7 @@ func parseRetryAfter(value string, maximum time.Duration) (time.Duration, bool) 
 	return 0, false
 }
 
-func retryableStatus(operation openAPIOperation, key string, status int) bool {
+func retryableStatus(operation transport.Operation, key string, status int) bool {
 	if operation.Retry != "bounded" || operation.Safety != "read-only" && key == "" {
 		return false
 	}

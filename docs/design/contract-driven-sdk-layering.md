@@ -153,7 +153,7 @@ of urllib's default. Python Worker and Service send no default `User-Agent`.
 
 ## Per-language shape
 
-**Go.** `go/internal/transport` gains `Operation`, `Executor`, `RetryPolicy`
+**Go.** `go/internal/transport` gains `Operation`, `Executor`, `RetryConfig`
 and `APIError`. The generator emits `transport.Operation` values, adding the
 idempotency and pagination annotations the current table omits. `worker.APIError`
 and `service.APIError` remain distinct named types, never type aliases. An alias
@@ -198,8 +198,22 @@ configuration, requests are unchanged except for three observable changes:
 Worker and Service error text, redirect handling, response size bounds and
 410 poll handling stay as they are.
 
-Worker retry behavior does not change: for its annotations, the contract rule
-selects the same operations as the method rule. With retries enabled, the 18
+Worker retry eligibility does not change: for its annotations, the contract
+rule selects the same operations as the method rule. Moving a Worker onto the
+executor does change two edge cases, which each language's Worker slice
+records in its owner guide:
+
+- The generated low-level operations (`OpenAPI()` and `Do` in Go) reject a
+  missing or invalid required `Idempotency-Key` before sending. Before, they
+  sent the request and let the server reject it. The high-level client methods
+  already validated the key.
+- `Retry-After` uses the Service parser. `0` or a past date retries without the
+  jittered backoff, an overflowing value caps at 30 seconds, and a signed value
+  such as `+5` is not valid delta-seconds. The 30-second cap, the retried status
+  set and honoring `Retry-After` only for 429 and 503 are unchanged.
+
+`RetryConfig` is named so that it does not collide with the runtime protocol's
+`RetryPolicy` wire type, which the drift checker reserves. With retries enabled, the 18
 `bounded` Agent reads become retryable. Generated output changes only through
 `scripts/generate_openapi.py`.
 

@@ -28,6 +28,25 @@ boundary or in a neutral contract module, and wire implementations at compositio
 Generated bindings should depend on an executor contract rather than a concrete
 runtime adapter. This is a dependency rule, not a prescribed class hierarchy.
 
+Every language layers HTTP execution the same way: generated plane modules,
+shared transport, runtime adapters, plane clients, then the root facade.
+
+- Generated plane modules hold schema types, the operation table and thin
+  typed operation functions. They import only the standard library and the
+  shared transport's operation types.
+- Shared transport owns the one executor, retry policy, base error type and
+  cursor paging. It imports no plane, runtime adapter or root facade.
+- Runtime adapters (signing, session refresh, long polling, WebSocket relay,
+  archive streams, log followers) wrap the executor through hooks and never
+  re-implement request execution.
+- Plane clients build idiomatic methods from generated operations, runtime
+  adapters and shared transport.
+- The root facade composes planes and passes common configuration to each.
+
+Planes never import the root facade or another plane. Plane differences, such
+as error type and text, retry ceilings, redirect policy and response bounds,
+are executor configuration rather than copies of the request loop.
+
 Group code by plane/capability, then separate responsibilities within it. A
 handwritten module owns one role and responsibility; split when ownership
 demands it, not at an arbitrary line count. Generated contract modules may
@@ -62,20 +81,25 @@ language-specific wire contract or imply support before those gates exist.
 ## Current implementation and enforcement limits
 
 The boundaries above are requirements for new and changed code, not a claim
-that all existing code has been migrated. Go's generated Agent client still
-holds a concrete `Connection`; transport policy is partly duplicated in plane
-clients. The [contract-driven layering proposal](https://github.com/postgrip-io/postgrip-sdk/pull/69)
-proposes executor decoupling and transport consolidation. Its timeout, retry
-and error changes remain proposed until delivered and reflected in current
-behavior guides; an architectural extraction must preserve existing plane
-behavior unless its design explicitly includes a behavior change.
+that all existing code has been migrated. The
+[contract-driven layering design](../design/contract-driven-sdk-layering.md)
+delivers executor decoupling and transport consolidation in slices. Go's
+generated operation tables emit `transport.Operation` values, and Go Worker
+runs its operations through the shared executor in `go/internal/transport`.
+Other planes are not yet moved: Go Service keeps its own retry, error and
+response loop, Go's generated Agent client still holds a concrete `Connection`,
+and TypeScript and Python still duplicate transport policy in plane clients.
+The design's remaining timeout, retry and error changes stay proposed until
+delivered and reflected in current behavior guides; an architectural extraction
+must preserve existing plane behavior unless its design explicitly includes a
+behavior change.
 
 `scripts/check_package_layout.py` checks artifact layout, selected exports,
 selected plane-to-root imports and the absence of TypeScript wildcard
 re-exports; `--self-test` proves the wildcard rule against generic fixtures.
 `typescript/test/public-surface.test.ts` records each TypeScript entry's
-published names. Neither enforces the full dependency matrix or
-responsibility ownership. Generator and drift checks likewise do not prove
+published names. Neither enforces the layering rule above, plane-to-plane or
+transport-to-plane imports, or responsibility ownership. Generator and drift checks likewise do not prove
 runtime compatibility. Use the responsibility review below and the actual
 [validation checks](testing.md); web's architecture linters and size ratchets
 are not installed SDK enforcement.
