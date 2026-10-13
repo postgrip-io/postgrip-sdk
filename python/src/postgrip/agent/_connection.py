@@ -8,7 +8,7 @@ import os
 import threading
 import time
 from datetime import datetime, timezone
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any, Literal, Unpack
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
@@ -25,7 +25,7 @@ from .._internal.http import (
     read_bounded_response,
     run_cancellable,
 )
-from . import _signing
+from . import _history, _signing
 from .openapi import (
     OpenAPIClient,
     OperationId,
@@ -80,9 +80,6 @@ DEFAULT_ADDRESS = "https://agentorchestrator1.postgrip.io"
 _AGENT_MAX_RESPONSE_BYTES = 40 << 20
 
 
-_HISTORY_PAGE_MAXIMUM_LIMIT = 500
-
-
 # Same-origin redirects only; cancelling an async call closes its active socket.
 _AGENT_OPENER: OpenerDirector = build_opener(
     SafeRedirectHandler(),
@@ -95,28 +92,6 @@ def urlopen(request: Request, timeout: float | None = None) -> Any:
     """Open one Agent request through the composed Agent opener."""
 
     return _AGENT_OPENER.open(request, timeout=timeout)
-
-
-def _iter_history_pages(
-    fetch_page: Callable[[str | None], Mapping[str, Any]],
-) -> Iterator[Any]:
-    cursor: str | None = None
-    seen: set[str] = set()
-    while True:
-        page = fetch_page(cursor)
-        items = page.get("items")
-        if not isinstance(items, list):
-            raise RuntimeError("postgrip-agent: history page is missing its items array")
-        yield from items
-        next_cursor = page.get("nextCursor")
-        if next_cursor is None:
-            return
-        if not isinstance(next_cursor, str) or not next_cursor.strip():
-            raise RuntimeError("postgrip-agent: history page returned an empty next cursor")
-        cursor = next_cursor.strip()
-        if cursor in seen:
-            raise RuntimeError("postgrip-agent: history page repeated its next cursor")
-        seen.add(cursor)
 
 
 class Connection:
@@ -385,13 +360,7 @@ class Connection:
         return self.openapi.list_task_events(task_id, cursor=cursor, limit=limit)
 
     def iter_task_events(self, task_id: str) -> Iterator[TaskEvent]:
-        return _iter_history_pages(
-            lambda cursor: self.get_task_events_page(
-                task_id,
-                cursor=cursor,
-                limit=_HISTORY_PAGE_MAXIMUM_LIMIT,
-            )
-        )
+        return _history.iter_task_events(self, task_id)
 
     def get_task_events(self, task_id: str) -> list[TaskEvent]:
         return list(self.iter_task_events(task_id))
@@ -466,13 +435,7 @@ class Connection:
         )
 
     def iter_workflow_history(self, workflow_id_or_run_id: str) -> Iterator[WorkflowHistoryEvent]:
-        return _iter_history_pages(
-            lambda cursor: self.get_workflow_history_page(
-                workflow_id_or_run_id,
-                cursor=cursor,
-                limit=_HISTORY_PAGE_MAXIMUM_LIMIT,
-            )
-        )
+        return _history.iter_workflow_history(self, workflow_id_or_run_id)
 
     def get_workflow_history(self, workflow_id_or_run_id: str) -> list[WorkflowHistoryEvent]:
         return list(self.iter_workflow_history(workflow_id_or_run_id))

@@ -90,8 +90,10 @@ it: `_parse_timestamp` from `postgrip.agent.client`, and
 - **Python Agent client.** `agent/_connection.py` takes the `Connection`
   adapter: HTTP, signing, session and the opener. Multi-page history walking,
   `_iter_history_pages` and its use in `iter_task_events` and
-  `iter_workflow_history`, moves to `agent/_history.py`, used by the clients and
-  handles. `Connection` keeps those two methods as thin wrappers over it.
+  `iter_workflow_history`, moves to `agent/_history.py`. `Connection` keeps
+  those two methods as thin wrappers over it, and the clients and handles keep
+  reaching history through `Connection` until the capability-interface slice
+  defines what they depend on.
   `agent/_workflow_models.py` takes the pure memo, UI, description and option
   normalizers. `agent/client.py` keeps client orchestration and re-exports
   `Connection` and `has_authorization_header` for import compatibility.
