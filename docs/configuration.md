@@ -57,11 +57,12 @@ default, including for uploads needing longer. Uploads remain independent of
 the ordinary request timeout.
 
 Python's root `timeout` defaults to 30 seconds and is passed to each plane.
-TypeScript Worker bounds each exchange at 30 seconds by default; set
-`WorkerClientConfig.timeoutMs` to change it, up to the 2,147,483,647 ms timer
-limit, and an earlier `AbortSignal` abort still wins. TypeScript Service and Agent have no SDK request-timeout
-option or default yet; callers bound those requests through an `AbortSignal`
-where exposed or their injected fetch implementation. These APIs do not yet
+TypeScript Worker and Service bound each exchange at 30 seconds by default;
+set `WorkerClientConfig.timeoutMs` or `ServiceClientConfig.timeoutMs` to change
+it, up to the 2,147,483,647 ms timer limit, and an earlier `AbortSignal` abort
+still wins. TypeScript Agent has no SDK request-timeout option or default yet;
+callers bound those requests through an `AbortSignal` where exposed or their
+injected fetch implementation. These APIs do not yet
 offer one common timeout setting across languages.
 
 Root retry options reach Worker and Service in every language, and Go Agent
@@ -80,23 +81,23 @@ uses GET-or-idempotency-key eligibility, which selects the same requests for
 Worker's current contract operations.
 Retries remain opt-in, with attempt counts bounded by the plane
 implementation; delay limits are not yet uniform across planes and languages.
-Go and TypeScript Worker parse `Retry-After` with the Service rules: `0` or a
-past date retries without backoff, larger values cap at 30 seconds, and a
+Go and TypeScript Worker and Service parse `Retry-After` with the same rules:
+`0` or a past date retries without backoff, larger values cap at 30 seconds, and a
 signed value such as `+5` is not valid delta-seconds, so the jittered backoff
 applies.
 The required contract-driven boundary is specified in
 [architecture](development/architecture.md). Until the remaining TypeScript
-and Python planes move onto their shared executors, the TypeScript Service and
-Agent request timeout and TypeScript and Python Agent retries remain proposed,
-not available.
+and Python planes move onto their shared executors, the TypeScript Agent
+request timeout and TypeScript and Python Agent retries remain proposed, not
+available.
 
 Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
-request on retries or response loss. Go Worker, Go Service and TypeScript
-Worker reject a missing or invalid key on these operations before sending,
-including through their generated low-level clients. Service administration writes may additionally
-require the current `If-Match` value; Go Service forwards `If-Match` only on
-operations whose contract declares it.
+request on retries or response loss. Go and TypeScript Worker and Service
+reject a missing or invalid key on these operations before sending, including
+through their generated low-level clients. Service administration writes may
+additionally require the current `If-Match` value; Go and TypeScript Service
+forward `If-Match` only on operations whose contract declares it.
 
 Do not blindly retry protocol operations, signed Agent runtime mutations,
 archive transfers, or WebSocket sessions. Their generated pages name the

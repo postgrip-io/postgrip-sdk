@@ -11,6 +11,15 @@
   missing or invalid required `Idempotency-Key` before sending.
 - Worker `Retry-After` parsing ignores signed values such as `+5`, which are
   not valid delta-seconds, and backs off with jitter instead.
+- Service requests run through the same executor. Each exchange is bounded at
+  30 seconds by default (`ServiceClientConfig.timeoutMs`), and an earlier
+  `AbortSignal` abort still wins. `ServiceAPIError` keeps its fields,
+  constructor and `name` and extends the same internal base.
+- The generated low-level Service operations (`ServiceClient.openapi`) reject a
+  missing or invalid required `Idempotency-Key` before sending, and forward
+  `If-Match` only on operations whose contract declares it.
+- Service `Retry-After` parsing accepts only non-negative delta-seconds or an
+  HTTP date; other values, such as `+5` or `1e1`, back off with jitter.
 
 ## 0.13.0
 
