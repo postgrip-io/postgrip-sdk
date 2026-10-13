@@ -519,3 +519,26 @@ describe('sandbox wait and session preconditions', () => {
     expect(receivedHeaders?.authorization).toBe('Bearer mgmt-token');
   });
 });
+
+describe('sandbox module ownership', () => {
+  it('keeps every previously exported runtime name importable from sandbox.js', async () => {
+    const sandbox = await import('../../src/agent/sandbox.js');
+    expect(Object.keys(sandbox).sort()).toEqual([
+      'SANDBOX_EXEC_CLOSE_STATUS_BASE',
+      'SANDBOX_EXEC_CLOSE_STATUS_MAX',
+      'SANDBOX_RELAY_MAX_FRAME_BYTES',
+      'SandboxClient',
+      'SandboxSession',
+      'sandboxExecExitCode',
+      'sandboxRelayUrl',
+    ]);
+  });
+
+  it('leaves raw WebSocket handling to the session adapter', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const source = await readFile(new URL('../../src/agent/sandbox.ts', import.meta.url), 'utf8');
+    for (const transportDetail of ['binaryType', 'addEventListener', 'new SandboxSession(', "from 'ws'", "import('ws')"]) {
+      expect(source).not.toContain(transportDetail);
+    }
+  });
+});
