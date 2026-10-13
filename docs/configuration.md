@@ -57,38 +57,42 @@ default, including for uploads needing longer. Uploads remain independent of
 the ordinary request timeout.
 
 Python's root `timeout` defaults to 30 seconds and is passed to each plane.
-TypeScript Worker and Service bound each exchange at 30 seconds by default;
-set `WorkerClientConfig.timeoutMs` or `ServiceClientConfig.timeoutMs` to change
-it, up to the 2,147,483,647 ms timer limit, and an earlier `AbortSignal` abort
-still wins. TypeScript Agent has no SDK request-timeout option or default yet;
-callers bound those requests through an `AbortSignal` where exposed or their
-injected fetch implementation. These APIs do not yet
-offer one common timeout setting across languages.
+TypeScript bounds each exchange in every plane at 30 seconds by default. The
+root `PostGripConfig.timeoutMs` is passed to each plane, and
+`WorkerClientConfig.timeoutMs`, `ServiceClientConfig.timeoutMs` and Agent
+`ConnectionOptions.timeoutMs` set it per plane, up to the 2,147,483,647 ms timer
+limit; an earlier `AbortSignal` abort still wins. A TypeScript Agent long poll's
+lifetime is its `wait_seconds` (the contract default of 20 when omitted) plus 30
+seconds when that exceeds the timeout. Workspace uploads keep their
+adapter-owned lifetime. These APIs do not yet offer one common timeout setting
+across languages.
 
-Root retry options reach Worker and Service in every language, and Go Agent
+Root retry options reach Worker and Service in every language, Go Agent
 through `ConnectionOptions.EnableRetries`, which `postgrip.New` sets from
-`Config.EnableRetries`. TypeScript and Python Agent ordinary HTTP exchanges do
-not automatically retry. Go Agent retries only contract-eligible operations:
-annotated bounded reads, never signed runtime actions, protocol operations or
-streaming uploads. When the Go Agent connection creates its own
+`Config.EnableRetries`, and TypeScript Agent through
+`ConnectionOptions.enableRetries`, which `PostGrip` sets from
+`PostGripConfig.enableRetries`. Python Agent ordinary HTTP exchanges do not
+automatically retry. Go and TypeScript Agent retry only contract-eligible
+operations: annotated bounded reads, never signed runtime actions, protocol
+operations or streaming uploads. Each attempt obtains the delegated session
+again, so a token that nears expiry during a backoff is refreshed first. When the Go Agent connection creates its own
 HTTP client, a long poll's lifetime is its `wait_seconds` (the contract default
 of 20 when omitted) plus 30 seconds when that exceeds the request timeout; a
 supplied `HTTPClient` keeps its `Timeout` as given. Service, Go Worker and Go Agent
 eligibility use generated retry/safety metadata plus an idempotency key for
 mutations.
-TypeScript Worker uses the same contract metadata. Python Worker currently
+TypeScript Worker and Agent use the same contract metadata. Python Worker currently
 uses GET-or-idempotency-key eligibility, which selects the same requests for
 Worker's current contract operations.
 Retries remain opt-in, with attempt counts bounded by the plane
 implementation; delay limits are not yet uniform across planes and languages.
-Go and TypeScript Worker and Service parse `Retry-After` with the same rules:
+Go and TypeScript Worker, Service and Agent parse `Retry-After` with the same rules:
 `0` or a past date retries without backoff, larger values cap at 30 seconds, and a
 signed value such as `+5` is not valid delta-seconds, so the jittered backoff
 applies.
 The required contract-driven boundary is specified in
-[architecture](development/architecture.md). Until the remaining TypeScript
-and Python planes move onto their shared executors, the TypeScript Agent
-request timeout and TypeScript and Python Agent retries remain proposed, not
+[architecture](development/architecture.md). Until the Python planes move
+onto their shared executor, Python Agent retries remain proposed, not
 available.
 
 Mutations that require idempotency use a fresh

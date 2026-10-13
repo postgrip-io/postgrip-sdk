@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Client } from '../../src/agent/client.js';
 import { Connection } from '../../src/agent/connection.js';
+import { AgentAPIError } from '../../src/agent/errors.js';
 import type { Task, TaskEvent } from '../../src/agent/types.js';
 
 const BASE_URL = 'https://agent.example.test';
@@ -72,7 +73,8 @@ describe('Agent request cancellation', () => {
     controller.abort();
 
     await expect(next).resolves.toEqual({ done: true, value: undefined });
-    expect(requests[0]?.init?.signal).toBe(controller.signal);
+    // The exchange signal is linked to the caller's and carries its abort.
+    expect(requests[0]?.init?.signal?.aborted).toBe(true);
     expect(paths(requests)).toEqual(['/api/v1/workflows/workflow-1']);
   });
 
@@ -91,7 +93,8 @@ describe('Agent request cancellation', () => {
 
     await expect(next).resolves.toEqual({ done: true, value: undefined });
     expect(paths(requests)).toEqual(['/api/v1/tasks/task-1/events']);
-    expect(requests[0]?.init?.signal).toBe(controller.signal);
+    // The exchange signal is linked to the caller's and carries its abort.
+    expect(requests[0]?.init?.signal?.aborted).toBe(true);
   });
 
   it('ends watchEvents while getTask is pending', async () => {
@@ -110,7 +113,8 @@ describe('Agent request cancellation', () => {
 
     await expect(next).resolves.toEqual({ done: true, value: undefined });
     expect(paths(requests)).toEqual(['/api/v1/tasks/task-1/events', '/api/v1/tasks/task-1']);
-    expect(requests[1]?.init?.signal).toBe(controller.signal);
+    // The exchange signal is linked to the caller's and carries its abort.
+    expect(requests[1]?.init?.signal?.aborted).toBe(true);
   });
 
   it('ends watchEvents while the poll delay is pending', async () => {
@@ -165,7 +169,8 @@ describe('Agent request cancellation', () => {
     await expect(other).resolves.toMatchObject({ id: 'task-2' });
 
     expect(paths(requests)).toEqual(['/api/v1/agent/session/refresh', '/api/v1/tasks/task-2']);
-    expect(requests[0]?.init?.signal).toBeUndefined();
+    // The shared refresh is not cancelled by one caller's abort.
+    expect(requests[0]?.init?.signal?.aborted).toBe(false);
     expect(new Headers(requests[1]?.init?.headers).get('authorization')).toBe('Bearer access-token');
     await expect(connection.ensureAgentSession()).resolves.toBe(true);
     expect(requests).toHaveLength(2);
@@ -222,7 +227,8 @@ describe('Agent request cancellation', () => {
     controller.abort(reason);
 
     await expect(events).rejects.toBe(reason);
-    expect(requests[0]?.init?.signal).toBe(controller.signal);
+    // The exchange signal is linked to the caller's and carries its abort.
+    expect(requests[0]?.init?.signal?.reason).toBe(reason);
   });
 
   it('forwards a signal to getWorkflowHistoryPage and getWorkflow requests', async () => {
@@ -233,9 +239,15 @@ describe('Agent request cancellation', () => {
 
     await connection.getWorkflowHistoryPage('workflow-1', { cursor: 'page-2', signal: controller.signal });
     await connection.getWorkflow('workflow-1', { signal: controller.signal });
-
-    expect(requests.map((request) => request.init?.signal)).toEqual([controller.signal, controller.signal]);
+    expect(requests).toHaveLength(2);
     expect(requests[0]?.url.searchParams.get('cursor')).toBe('page-2');
+
+    // An aborted caller signal reaches both requests before anything is sent.
+    const reason = new Error('stop');
+    controller.abort(reason);
+    await expect(connection.getWorkflowHistoryPage('workflow-1', { signal: controller.signal })).rejects.toBe(reason);
+    await expect(connection.getWorkflow('workflow-1', { signal: controller.signal })).rejects.toBe(reason);
+    expect(requests).toHaveLength(2);
   });
 
   it('still rejects watchEvents for an error the abort did not cause', async () => {
@@ -245,7 +257,10 @@ describe('Agent request cancellation', () => {
     const controller = new AbortController();
     const events = client.task.watchEvents('task-1', { signal: controller.signal });
 
-    await expect(events.next()).rejects.toThrow('task lookup failed');
+    const error = await events.next().catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(AgentAPIError);
+    expect(error).toMatchObject({ status: 500 });
+    expect((error as Error).message).not.toContain('task lookup failed');
   });
 
   it('rejects watchEvents for an unrelated failure that settles after the abort', async () => {

@@ -2,6 +2,8 @@ import { verify } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { Client } from '../../src/agent/client.js';
 import { Connection } from '../../src/agent/connection.js';
+import { AgentAPIError } from '../../src/agent/errors.js';
+import { PostGripAPIError } from '../../src/internal/transport.js';
 import { canonicalRequest, importSigningKeyFromBase64 } from '../../src/agent/_signing.js';
 import { Agent } from '../../src/agent/agent.js';
 import { activityStderr, activityStdout, Worker as IndexWorker } from '../../src/agent/index.js';
@@ -267,7 +269,7 @@ describe('PostGrip Agent TypeScript Connection', () => {
     expect(verified).toBe(true);
   });
 
-  it('uses the standard Agent error message with legacy fallback', async () => {
+  it('raises typed Agent errors whose text excludes server content', async () => {
     const responses = [
       Response.json({ code: 'FORBIDDEN', message: 'standard message', requestId: 'req-1', error: 'legacy message' }, { status: 403 }),
       Response.json({ error: 'legacy message' }, { status: 400 }),
@@ -279,8 +281,19 @@ describe('PostGrip Agent TypeScript Connection', () => {
       fetch: vi.fn<typeof fetch>(async () => responses.shift()!),
     });
 
-    await expect(connection.listNamespaces()).rejects.toThrow('standard message');
-    await expect(connection.listNamespaces()).rejects.toThrow('legacy message');
+    const standard = await connection.listNamespaces().catch((caught: unknown) => caught);
+    expect(standard).toBeInstanceOf(AgentAPIError);
+    expect(standard).toBeInstanceOf(PostGripAPIError);
+    expect(standard).toMatchObject({
+      name: 'AgentAPIError', status: 403, code: 'FORBIDDEN', requestId: 'req-1',
+      method: 'GET', route: '/api/v1/namespaces',
+      message: 'postgrip-agent: "GET" "/api/v1/namespaces" -> 403 Forbidden',
+    });
+    expect((standard as AgentAPIError).responseBody).toContain('standard message');
+
+    const legacy = await connection.listNamespaces().catch((caught: unknown) => caught);
+    expect(legacy).toMatchObject({ status: 400, code: 'HTTP_ERROR', message: 'postgrip-agent: "GET" "/api/v1/namespaces" -> 400 Bad Request' });
+    expect((legacy as Error).message).not.toContain('legacy message');
   });
 
   it('uses canonical agentId auth and poll options', async () => {

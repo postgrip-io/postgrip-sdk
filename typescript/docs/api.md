@@ -49,10 +49,11 @@ Public surface re-exported from `@postgrip/sdk/agent`. Customer code should impo
 | `TimeoutFailure`                                                           | Operation exceeded its deadline.                         |
 | `TaskFailedError`                                                          | Terminal task failure carrying a task ID and message. |
 | `PostGripAgentError`                                                       | Base class for the structured workflow/activity failure types. |
+| `AgentAPIError`                                                            | Failed Agent HTTP exchange: `status`, `code`, `requestId`, `details`, untrusted `responseBody`; text excludes server content. |
 
 Constructors: `new ApplicationFailure(message, { type, nonRetryable, details })`. Check with `instanceof ApplicationFailure`.
 
-Agent HTTP failures do not all use this hierarchy. See the
+Agent HTTP failures raise `AgentAPIError` rather than this hierarchy. See the
 [authentication and failure owner](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/authentication.md#failure-behavior)
 for current transport-error behavior and diagnostic-content handling.
 

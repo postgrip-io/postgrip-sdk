@@ -137,7 +137,7 @@ export class WorkerClient {
         retryAfterMaxDelayMs: RETRY_AFTER_MAX_DELAY_MS,
       },
       timeoutMs: configuredTimeoutMs('Worker', config.timeoutMs),
-      createError: (status, code, message, requestId, details, retryAfterMs) =>
+      createError: ({ status, code, message, requestId, details, retryAfterMs }) =>
         new WorkerAPIError(status, code, message, requestId, details, retryAfterMs),
     });
     this.followIntervalMs = Math.max(1, config.followIntervalMs ?? 2_000);

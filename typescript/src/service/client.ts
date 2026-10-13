@@ -404,7 +404,7 @@ export class ServiceClient {
       retry: configuredRetry(config.enableRetries ?? false, config.retry),
       timeoutMs: configuredTimeoutMs('Service', config.timeoutMs),
       successResponseBytes: { getServiceDeploymentScreenshot: MAX_SCREENSHOT_RESPONSE_BYTES },
-      createError: (status, code, message, requestId, details, retryAfterMs) =>
+      createError: ({ status, code, message, requestId, details, retryAfterMs }) =>
         new ServiceAPIError(status, code, message, requestId, details, retryAfterMs),
     });
     this.followIntervalMs = Math.max(1, config.followIntervalMs ?? 2_000);

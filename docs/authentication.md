@@ -77,12 +77,19 @@ the original body for explicit inspection in both cases. These fields are server
 credentials or other secrets. Review and redact them before logging; arbitrary
 server error content is not safe log data.
 
-TypeScript and Python Agent HTTP failures currently use ordinary `Error` and
-`RuntimeError` paths and can include server-provided text. Their exported
-`PostGripAgentError` bases cover workflow/activity failure types, not every
-transport failure. Do not infer Go's default error-text protection or a common
-typed HTTP error hierarchy across languages; review and redact diagnostic
-content before logging it.
+TypeScript Agent HTTP failures, including workspace uploads, raise
+`AgentAPIError`, a `PostGripAPIError` like `WorkerAPIError` and
+`ServiceAPIError`. Its text names only the method, route, status and standard
+status text. `code`, `requestId` and `details` come from the decoded envelope,
+and `responseBody` retains the original body; like Go's fields they are
+server-provided, so review and redact them before logging. A response body that
+is not valid JSON fails with a message naming the request, without the body.
+
+Python Agent HTTP failures currently use ordinary `RuntimeError` paths and can
+include server-provided text. The exported `PostGripAgentError` bases in
+TypeScript and Python cover workflow/activity failure types, not transport
+failures. Do not infer Go's and TypeScript's default error-text protection for
+Python; review and redact diagnostic content before logging it.
 
 ## Untrusted clients
 

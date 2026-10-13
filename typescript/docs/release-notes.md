@@ -20,6 +20,22 @@
   `If-Match` only on operations whose contract declares it.
 - Service `Retry-After` parsing accepts only non-negative delta-seconds or an
   HTTP date; other values, such as `+5` or `1e1`, back off with jitter.
+- Agent HTTP failures, including workspace uploads, raise the new exported
+  `AgentAPIError` (a `PostGripAPIError`) instead of `Error`. Its text names only
+  the method, route and status, without server content; `code`, `requestId`,
+  `details` and the untrusted `responseBody` remain available. A response that
+  is not valid JSON fails without quoting its body.
+- Agent requests run through the shared executor: each exchange is bounded at
+  30 seconds by default (`ConnectionOptions.timeoutMs`), a long poll at its wait
+  plus 30 seconds, and `ConnectionOptions.enableRetries` opts into bounded
+  retry of the 18 contract-annotated reads, refreshing the delegated session
+  before each attempt.
+- `PostGripConfig` gains `timeoutMs`, passed to every plane, and passes
+  `enableRetries` to Agent as well as Worker and Service.
+- Agent requests send `Accept: application/json`, a `Content-Type` configured in
+  `ConnectionOptions.headers` now replaces the default, and public-lane requests
+  (`health` and the session refresh) no longer send a configured
+  `Authorization` header.
 
 ## 0.13.0
 

@@ -13,6 +13,8 @@ export interface PostGripConfig {
   readonly fetch?: typeof globalThis.fetch;
   readonly insecureDevelopment?: boolean;
   readonly enableRetries?: boolean;
+  /** Bound on each HTTP exchange in every plane, in milliseconds; defaults to 30000. */
+  readonly timeoutMs?: number;
   readonly environment?: PostGripEnvironment;
 }
 
@@ -29,6 +31,8 @@ export class PostGrip {
       authToken: resolved.token,
       fetch: config.fetch,
       insecureDevelopment: config.insecureDevelopment,
+      enableRetries: config.enableRetries,
+      timeoutMs: config.timeoutMs,
     });
     this.agent = new AgentClient({ connection });
     this.workers = new WorkerClient({
@@ -37,6 +41,7 @@ export class PostGrip {
       fetch: config.fetch,
       insecureDevelopment: config.insecureDevelopment,
       enableRetries: config.enableRetries,
+      timeoutMs: config.timeoutMs,
     });
     this.services = new ServiceClient({
       baseUrl: resolved.serviceUrl,
@@ -44,6 +49,7 @@ export class PostGrip {
       fetch: config.fetch,
       insecureDevelopment: config.insecureDevelopment,
       enableRetries: config.enableRetries,
+      timeoutMs: config.timeoutMs,
     });
   }
 

@@ -91,11 +91,11 @@ generated operation tables emit `transport.Operation` values, and each Go
 plane's generated client depends on an operation-executor interface that its
 `Connection` implements. Go Worker, Go Service and Go Agent run their JSON
 operations through the shared executor in `go/internal/transport`; Agent keeps
-its archive-upload and WebSocket adapters. TypeScript Worker and Service run
-their operations through the shared executor in
-`typescript/src/internal/transport.ts`. Other planes are not yet moved:
-TypeScript Agent and all Python planes still duplicate transport policy in
-plane clients.
+its archive-upload and WebSocket adapters. TypeScript Worker, Service and
+Agent run their JSON operations through the shared executor in
+`typescript/src/internal/transport.ts`; Agent keeps its archive-upload and
+WebSocket adapters. The Python planes are not yet moved and still duplicate
+transport policy in plane clients.
 The design's remaining timeout, retry and error changes stay proposed until
 delivered and reflected in current behavior guides; an architectural extraction
 must preserve existing plane behavior unless its design explicitly includes a

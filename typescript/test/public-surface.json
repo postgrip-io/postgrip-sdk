@@ -10,6 +10,7 @@
   "./agent": {
     "values": [
       "Agent",
+      "AgentAPIError",
       "ApplicationFailure",
       "CONNECT_SANDBOX_SESSION_PATH_SESSION_ID",
       "CONNECT_SANDBOX_SESSION_QUERY_TICKET",
