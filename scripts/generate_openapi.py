@@ -360,7 +360,9 @@ def merged_all_of_object_schema(spec: dict[str, Any], schema: dict[str, Any]) ->
     return merged
 
 
-def go_schema_type(schema: dict[str, Any], optional: bool = False) -> str:
+def go_schema_type(
+    schema: dict[str, Any], optional: bool = False, schemas: dict[str, Any] | None = None
+) -> str:
     reference_name = schema_ref_name(schema)
     if reference_name:
         if reference_name == "JsonValue":
@@ -373,21 +375,21 @@ def go_schema_type(schema: dict[str, Any], optional: bool = False) -> str:
     if variants:
         non_null = [variant for variant in variants if variant.get("type") != "null"]
         if len(non_null) == 1 and len(non_null) != len(variants):
-            value = go_schema_type(non_null[0])
+            value = go_schema_type(non_null[0], schemas=schemas)
             if value == "any" or value.startswith(("*", "[]", "map[")):
                 return value
             return f"*{value}"
         return "any"
     schema_type = schema.get("type")
     if schema_type == "array":
-        value = f"[]{go_schema_type(schema.get('items', {}))}"
+        value = f"[]{go_schema_type(schema.get('items', {}), schemas=schemas)}"
         return f"*{value}" if optional and schema.get("x-postgrip-presence-aware") else value
     if schema_type == "object" or "properties" in schema or "additionalProperties" in schema:
         additional = schema.get("additionalProperties")
         if isinstance(additional, dict):
-            return f"map[string]{go_schema_type(additional)}"
+            return f"map[string]{go_schema_type(additional, schemas=schemas)}"
         if schema.get("properties"):
-            fields = go_struct_fields(schema)
+            fields = go_struct_fields(schema, schemas)
             return f"struct {{\n{fields}\n}}"
         return "map[string]any" if additional is not False else "struct{}"
     if schema_type == "boolean":
@@ -405,12 +407,43 @@ def go_schema_type(schema: dict[str, Any], optional: bool = False) -> str:
     return f"*{value}" if optional and value != "any" else value
 
 
-def go_struct_fields(schema: dict[str, Any]) -> str:
+def schema_is_nullable(
+    schema: dict[str, Any], schemas: dict[str, Any] | None, seen: frozenset[str] = frozenset()
+) -> bool:
+    """Whether a property schema admits null: explicitly, through a referenced or
+    variant schema, or as an unconstrained value such as JsonValue."""
+    reference = schema.get("$ref")
+    if reference is not None:
+        reference_name = schema_ref_name(schema)
+        if schemas is None or reference_name not in schemas:
+            raise SystemExit(f"Go struct generation cannot resolve schema reference {reference!r}")
+        if reference_name in seen:
+            return False
+        return schema_is_nullable(schemas[reference_name], schemas, seen | {reference_name})
+    if schema.get("nullable") is True or schema.get("type") == "null":
+        return True
+    if isinstance(schema.get("type"), list) and "null" in schema["type"]:
+        return True
+    variants = schema.get("oneOf") or schema.get("anyOf") or []
+    if any(isinstance(variant, dict) and schema_is_nullable(variant, schemas, seen) for variant in variants):
+        return True
+    return not schema
+
+
+def go_struct_fields(schema: dict[str, Any], schemas: dict[str, Any] | None) -> str:
     required = set(schema.get("required", []))
     fields: list[str] = []
     for name, property_schema in schema.get("properties", {}).items():
         optional = name not in required
-        field_type = go_schema_type(property_schema, optional=optional)
+        if optional and schema_is_nullable(property_schema, schemas):
+            # A pointer or interface with omitempty collapses an explicit null
+            # into omission; such a property needs presence support designed
+            # first (docs/design/go-wire-model-fidelity.md).
+            raise SystemExit(
+                f"Go struct generation cannot represent optional nullable property {name!r} "
+                "without presence handling"
+            )
+        field_type = go_schema_type(property_schema, optional=optional, schemas=schemas)
         tag = name + (",omitempty" if optional else "")
         fields.append(f"\t{pascal_name(name)} {field_type} `json:{json.dumps(tag)}`")
     return "\n".join(fields)
@@ -428,8 +461,8 @@ def schema_required_alternatives(schema: dict[str, Any]) -> list[list[str]]:
     return alternatives if len(alternatives) > 1 else []
 
 
-def go_object_schema_source(type_name: str, schema: dict[str, Any]) -> str:
-    source = f"type {type_name} struct {{\n{go_struct_fields(schema)}\n}}"
+def go_object_schema_source(type_name: str, schema: dict[str, Any], schemas: dict[str, Any] | None) -> str:
+    source = f"type {type_name} struct {{\n{go_struct_fields(schema, schemas)}\n}}"
     alternatives = schema_required_alternatives(schema)
     base_required = set(schema.get("required", []))
     if not alternatives or any(name in base_required for branch in alternatives for name in branch):
@@ -524,7 +557,8 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
     declarations: list[str] = []
     compatibility_aliases: list[str] = []
     enum_constants: list[str] = []
-    for name, schema in spec.get("components", {}).get("schemas", {}).items():
+    component_schemas = spec.get("components", {}).get("schemas", {})
+    for name, schema in component_schemas.items():
         schema = merged_all_of_object_schema(spec, schema)
         type_name = f"OpenAPI{pascal_name(name)}"
         if name in GO_PROTOCOL_SCHEMAS:
@@ -535,13 +569,13 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
             declarations.append(go_worker_selector_source(type_name))
             compatibility_alias = f"type {pascal_name(name)} = {type_name}"
         elif schema.get("type") == "object" or "properties" in schema:
-            declarations.append(go_object_schema_source(type_name, schema))
+            declarations.append(go_object_schema_source(type_name, schema, component_schemas))
             compatibility_alias = f"type {pascal_name(name)} = {type_name}"
         elif not schema:
             declarations.append(f"type {type_name} = any")
             compatibility_alias = f"type {pascal_name(name)} = {type_name}"
         else:
-            declarations.append(f"type {type_name} {go_schema_type(schema)}")
+            declarations.append(f"type {type_name} {go_schema_type(schema, schemas=component_schemas)}")
             compatibility_alias = f"type {pascal_name(name)} = {type_name}"
         if name not in GO_COMPATIBILITY_EXCLUDED_SCHEMAS:
             compatibility_aliases.append(compatibility_alias)
@@ -552,8 +586,16 @@ def go_types_source(spec: dict[str, Any], rows: list[dict[str, Any]], digest: st
             )
     for row in rows:
         operation_name = pascal_name(row["id"])
-        request_type = go_schema_type(row["request_schema"] or {}) if row["request_schema"] else "OpenAPINoBody"
-        response_type = go_schema_type(row["response_schema"] or {}) if row["response_schema"] else "OpenAPINoBody"
+        request_type = (
+            go_schema_type(row["request_schema"] or {}, schemas=component_schemas)
+            if row["request_schema"]
+            else "OpenAPINoBody"
+        )
+        response_type = (
+            go_schema_type(row["response_schema"] or {}, schemas=component_schemas)
+            if row["response_schema"]
+            else "OpenAPINoBody"
+        )
         declarations.append(f"type OpenAPI{operation_name}RequestBody = {request_type}")
         declarations.append(f"type OpenAPI{operation_name}ResponseBody = {response_type}")
     declarations_source = chr(10).join(declarations)

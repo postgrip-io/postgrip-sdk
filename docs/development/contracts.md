@@ -47,8 +47,26 @@ URLs. A checked-in contract describes that revision, not deployment evidence.
 
 `go/protocol/` owns runtime-only wire types and `agent-task-v1` signing.
 TypeScript `src/agent/types.ts` and Python `src/postgrip/agent/types.py` mirror
-those types atomically; Go Agent client declarations alias protocol types.
-HTTP-owned models come from OpenAPI. Do not add competing local structs.
+those types atomically.
+
+HTTP-owned models come from OpenAPI. Do not add competing local structs. One
+exception is declared: `go/protocol` also holds the public Go declarations of
+the Agent schemas listed in `scripts/generate_openapi.py:GO_PROTOCOL_SCHEMAS`.
+They predate generation and stay because callers use them. The generator
+aliases them instead of generating those schemas, and they are compatibility
+declarations of the contract, not an independent model: a fidelity check
+verifies them against it (see the
+[Go wire model fidelity design](../design/go-wire-model-fidelity.md)). No other
+HTTP model may be declared by hand.
+
+Go represents an optional nullable property only with presence handling or
+`json.RawMessage`, so an explicit `null` survives decoding and re-encoding, and
+the generator refuses to emit any other mapping. `PollTaskResponse`, `Sandbox`,
+`TaskResult` and `SandboxCreateRequest` record presence for values decoded
+from JSON; a value built in code encodes as it always has. Two losses remain
+open: an optional non-nullable property mapped to a value with `omitempty`
+encodes a present zero value or empty collection as absent, and a required
+array built in code as a nil slice encodes as `null`.
 
 Preserve JSON names, optionality, timestamp formats and signing bytes. Run both
 `check_drift.py --self-test` and `--monorepo` from the validation guide. The

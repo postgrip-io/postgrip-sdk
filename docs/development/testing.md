@@ -11,7 +11,7 @@ Use Go's native tests, Vitest (`*.test.ts`), and Python unittest (`test_*.py`).
 python3 go/protocol/tools/check_drift.py --self-test
 python3 go/protocol/tools/check_drift.py --monorepo
 python3 scripts/generate_openapi.py --plane all --check
-python3 -m unittest discover -s scripts -p test_generate_openapi_python_types.py
+python3 -m unittest discover -s scripts -p 'test_generate_openapi_*_types.py'
 python3 scripts/check_operation_inventory.py
 python3 scripts/check_package_layout.py --self-test
 python3 scripts/check_package_layout.py

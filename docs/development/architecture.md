@@ -64,7 +64,10 @@ operation IDs, schema requiredness/nullability, enums, headers, status handling
 and `x-postgrip-*` policy annotations must survive each language's mapping.
 Idiomatic naming and sync/async APIs may differ; wire meaning must not. Model
 open-ended data only where the schema permits it. Runtime-only types retain
-their separate protocol owner; do not redefine HTTP-owned models there.
+their separate protocol owner; do not redefine HTTP-owned models there. The
+one exception is the checked Go compatibility declarations for the
+`GO_PROTOCOL_SCHEMAS` list that [contracts](contracts.md) describes; no other
+HTTP model may be declared by hand.
 
 | Language | Apply the roles idiomatically |
 | --- | --- |
