@@ -15,8 +15,9 @@ nav_order: 7
   `started_at`/`finished_at` as year-one timestamps. Values built in code
   encode exactly as before.
 - A `SandboxCreateRequest` decoded from JSON that omits `resourceLimits` or
-  `networkPolicy` now sends them omitted instead of as zero-valued objects;
-  both properties are optional in the contract.
+  `networkPolicy` now sends them omitted instead of as zero-valued objects
+  while they remain zero; values assigned after decoding are sent. Both
+  properties are optional in the contract.
 - Source compatibility: the four types gained an unexported field, so unkeyed
   composite literals of them, such as `protocol.PollTaskResponse{task, nil}`,
   no longer compile; keyed literals are unaffected. Their new `MarshalJSON`

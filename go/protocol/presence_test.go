@@ -185,6 +185,30 @@ func TestDecodedSandboxCreateRequestOmitsAbsentStructs(t *testing.T) {
 	}
 }
 
+// A struct property assigned after decoding is sent even though the decoded
+// JSON lacked it; only a still-zero absent property is omitted.
+func TestDecodedValuesSendStructsAssignedAfterDecoding(t *testing.T) {
+	var request SandboxCreateRequest
+	if err := json.Unmarshal([]byte(`{"name":"s"}`), &request); err != nil {
+		t.Fatal(err)
+	}
+	request.ResourceLimits.CPUs = 0.5
+	request.NetworkPolicy.AllowCIDRs = []string{"10.0.0.0/8"}
+	want := `{"name":"s","resourceLimits":{"cpus":0.5},"networkPolicy":{"internetEgress":false,"allowCidrs":["10.0.0.0/8"],"denyHostAccess":false}}`
+	if got := mustJSON(t, request); got != want {
+		t.Fatalf("decoded request with assigned structs sends %s, want %s", got, want)
+	}
+
+	var result TaskResult
+	if err := json.Unmarshal([]byte(`{"exit_code":1}`), &result); err != nil {
+		t.Fatal(err)
+	}
+	result.StartedAt = time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	if got := mustJSON(t, result); got != `{"exit_code":1,"started_at":"2026-01-02T03:04:05Z"}` {
+		t.Fatalf("decoded result with an assigned timestamp sends %s", got)
+	}
+}
+
 // The JSON methods are promoted to a struct that anonymously embeds one of
 // these types, in both directions: the wrapper's own fields are neither
 // encoded nor decoded. This documents the behavior so it only changes

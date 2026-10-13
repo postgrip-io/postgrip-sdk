@@ -199,8 +199,8 @@ func (s *Sandbox) UnmarshalJSON(data []byte) error {
 }
 
 // MarshalJSON writes an explicit "value": null when the value was decoded with
-// one, and omits started_at and finished_at when a decoded value lacked them.
-// A value built in code encodes as before.
+// one, and omits started_at and finished_at when a decoded value lacked them
+// and they are still zero. A value built in code encodes as before.
 func (r TaskResult) MarshalJSON() ([]byte, error) {
 	type wire TaskResult
 	encoded, err := json.Marshal(wire(r))
@@ -209,8 +209,8 @@ func (r TaskResult) MarshalJSON() ([]byte, error) {
 	}
 	nulls := map[string]bool{"value": r.Value == nil && r.presence&taskResultValueNull != 0}
 	omit := map[string]bool{
-		"started_at":  r.presence&taskResultStartedAtPresent == 0,
-		"finished_at": r.presence&taskResultFinishedAtPresent == 0,
+		"started_at":  r.presence&taskResultStartedAtPresent == 0 && r.StartedAt.IsZero(),
+		"finished_at": r.presence&taskResultFinishedAtPresent == 0 && r.FinishedAt.IsZero(),
 	}
 	return rewriteMembers(encoded, taskResultFieldNames, nulls, omit)
 }
@@ -239,7 +239,8 @@ func (r *TaskResult) UnmarshalJSON(data []byte) error {
 }
 
 // MarshalJSON omits resourceLimits and networkPolicy when a decoded value
-// lacked them. A value built in code encodes as before.
+// lacked them and they are still zero, so values assigned after decoding are
+// sent. A value built in code encodes as before.
 func (r SandboxCreateRequest) MarshalJSON() ([]byte, error) {
 	type wire SandboxCreateRequest
 	encoded, err := json.Marshal(wire(r))
@@ -247,8 +248,8 @@ func (r SandboxCreateRequest) MarshalJSON() ([]byte, error) {
 		return encoded, err
 	}
 	omit := map[string]bool{
-		"resourceLimits": r.presence&sandboxCreateResourceLimitsPresent == 0,
-		"networkPolicy":  r.presence&sandboxCreateNetworkPolicyPresent == 0,
+		"resourceLimits": r.presence&sandboxCreateResourceLimitsPresent == 0 && r.ResourceLimits == SandboxResourceLimits{},
+		"networkPolicy":  r.presence&sandboxCreateNetworkPolicyPresent == 0 && reflect.ValueOf(r.NetworkPolicy).IsZero(),
 	}
 	return rewriteMembers(encoded, sandboxCreateRequestFieldNames, nil, omit)
 }

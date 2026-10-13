@@ -167,7 +167,8 @@ struct property.
   and a "present" bit for each struct property present at all.
 - `MarshalJSON` writes `null` for a nullable property whose field is `nil` and
   whose "null" bit is set. On a decoded value, it omits a struct property whose
-  "present" bit is clear. Everything else encodes as today. None of the four
+  "present" bit is clear and whose field is still the zero value, so a value
+  the caller assigns after decoding is sent. Everything else encodes as today. None of the four
   types has custom JSON methods today.
 
 Presence changes encoding only for decoded values. A value decoded from
@@ -178,8 +179,8 @@ struct properties, so a caller can still send an intentionally zero
 `ResourceLimits` or all-false `NetworkPolicy`. A `SandboxCreateRequest` that a
 caller builds by decoding JSON (for example from a configuration file) and then
 sends is the one request path that changes. If that JSON omits `resourceLimits`
-or `networkPolicy`, the request now omits them as well, instead of sending
-zero-valued objects. That matches the contract, where they are optional, and
+or `networkPolicy`, and the caller leaves them zero, the request now omits
+them as well, instead of sending zero-valued objects. That matches the contract, where they are optional, and
 the release notes record it. A
 constructed value cannot express an absent struct property; that stays part of
 the open present-value gap. Equality of two values can now differ only in the
@@ -202,7 +203,9 @@ for such embedding callers. The release notes name both directions, and
 regression tests document them so they change only deliberately.
 
 The generator rejects an optional nullable property in any schema it generates
-as a Go struct, rather than mapping it lossily. None exists today, and one that
+as a Go struct, rather than mapping it lossily. It resolves component
+references and `oneOf`/`anyOf` variants to decide nullability, so a reference to
+a nullable component counts, and an unresolvable reference fails generation. None exists today, and one that
 appears needs its presence support designed first.
 
 ### Optional inline objects
@@ -261,10 +264,12 @@ Each slice is its own PR under the [review process](../development/contributing.
   (`null` then absent, a value then absent, and a present struct then absent),
   and constructed values encoding exactly as before, including a minimal
   `SandboxCreateRequest`, and a `SandboxCreateRequest` decoded from JSON
-  without `resourceLimits` and `networkPolicy` that sends neither. A
+  without `resourceLimits` and `networkPolicy` that sends neither, but sends
+  them, and an absent `started_at`, once assigned after decoding. A
   compile-time check keeps `PollTaskResponse` and `TaskResult` comparable. Tests document the promoted `MarshalJSON` and
   `UnmarshalJSON` on an embedding struct. A generator fixture with an optional
-  nullable property fails generation.
+  nullable property, including one that references a nullable component,
+  fails generation.
 - Slice 2: self-test fixtures prove each fidelity rule fails on a synthetic
   mismatch, including an undeclared extra tagged Go field, an untagged
   exported field, a field promoted from an untagged anonymous struct, a
