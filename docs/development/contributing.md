@@ -13,15 +13,25 @@ here; do not maintain a second copy of those rules.
 - Replace web-specific build/test commands with [SDK validation](testing.md).
   Start with affected suites, check runtime drift, and cover every language
   whose behavior changes. Web-only UI/Go-service checks do not run in this repo.
-- Review responsibilities against [SDK architecture](architecture.md), public
+- Review responsibilities against the
+  [SDK responsibility checklist](architecture.md#responsibility-review), public
   exports and [contract coordination](contracts.md). Web remains authoritative
   for server contract changes and its pinned SDK source; SDK owns its mirrors,
   generated clients and artifact validation.
 - The PR's affected areas are SDK packages and transport/runtime/generator
   boundaries. Report compatibility, observable impact, coordinated PRs, exact
   commands/results and evidence limits using the shared PR requirements.
+- Apply the shared self-review and Codex review steps against that same SDK
+  checklist and the cited design. MVC-ish responsibility violations, OpenAPI
+  drift and cross-language incompatibilities count as findings, including when
+  generation and CI pass. Explain rejected findings with code/design evidence.
+- For a mechanically detectable layering finding, extend the owning SDK checker
+  with a generic fixture test. Use SDK generators, drift and package-layout
+  checks where applicable; web's checker paths are not SDK commands. Document
+  detection gaps and do not weaken a check or invent a passing enforcement claim.
 - [SDK CI](testing.md#executable-ci-owners) documents actual workflows and open
-  gaps. Web runner routing and Markdown selection are not SDK guarantees.
+  gaps. Web runner routing and its broader path-selection policy are not SDK
+  guarantees.
 
 When the shared process changes, review this SDK application and its referenced
 checks alongside the web owner. Update local differences, not a copied lifecycle.

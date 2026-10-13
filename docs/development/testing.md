@@ -40,6 +40,12 @@ mkdocs build --strict --site-dir /tmp/postgrip-docs
 ```
 
 Check changed relative links, examples and current topic-owner agreement.
+Use the [responsibility checklist](architecture.md#responsibility-review) for
+semantic review. Compare AGENTS, affected guides and their linked current
+references with source and workflow behavior; correct conflicts together.
+Distinguish mandatory architecture from existing implementation gaps and
+proposed designs. Passing documentation builds or link checks does not prove
+those claims agree.
 Go's Agent documentation uses Jekyll; the documentation publishing workflow
 builds it separately. MkDocs does not validate that site's Liquid links.
 

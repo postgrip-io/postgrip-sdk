@@ -1,12 +1,19 @@
 # Releasing the unified SDKs
 
-PostGrip publishes exactly three SDK artifacts at the same version:
+PostGrip currently publishes three SDK artifacts at the same version, one per
+supported language:
 
 | Tag | Artifact | Protected environment |
 | --- | --- | --- |
 | `go/vX.Y.Z` | `github.com/postgrip-io/postgrip-agent-sdks/go` | `sdk-release` |
 | `typescript/vX.Y.Z` | `@postgrip/sdk` | `npm` |
 | `python/vX.Y.Z` | `postgrip` | `pypi` |
+
+Adding another language requires the
+[architecture admission requirements](development/architecture.md#openapi-and-language-mapping)
+and a coordinated update to this release matrix, package-layout checks,
+artifact inspection and publishing workflows. The current release process
+covers only the three artifacts above.
 
 The protected environments are release gates, not credential storage in the
 repository. Their reviewers must confirm both registry ownership and that the

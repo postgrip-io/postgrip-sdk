@@ -1,6 +1,7 @@
 # API
 
-The full public surface re-exported from `postgrip.agent`.
+Selected public APIs re-exported from `postgrip.agent`; the source export list
+linked below is the complete inventory.
 
 ## Top-level
 
@@ -54,10 +55,14 @@ The full public surface re-exported from `postgrip.agent`.
 | `ApplicationFailure`                                                       | Structured failure with type tag + retryability + details.|
 | `CancelledFailure`                                                         | Runtime cancelled the task.                              |
 | `TimeoutFailure`                                                           | Operation exceeded its deadline.                         |
-| `TaskFailedError`                                                          | Terminal task failure with the underlying `ApplicationFailure`.|
-| `PostGripAgentError`                                                       | Wraps SDK-internal failures (transport, encode/decode).  |
+| `TaskFailedError`                                                          | Terminal task failure carrying a task ID and message. |
+| `PostGripAgentError`                                                       | Base class for the structured workflow/activity failure types. |
 
 Constructors / predicates: `ApplicationFailure(message, type=, non_retryable=, details=)`; check with `isinstance(err, ApplicationFailure)`.
+
+Agent HTTP failures do not all use this hierarchy. See the
+[authentication and failure owner](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/authentication.md#failure-behavior)
+for current transport-error behavior and diagnostic-content handling.
 
 ## Wire types
 

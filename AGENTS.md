@@ -1,28 +1,51 @@
 # Repository guidelines
 
-This repository publishes one SDK per language from `go/`, `typescript/` and
-`python/`, with Agent, Worker and Service namespaces. HTTP contracts mirror
-`postgrip-web`; runtime wire types live in `go/protocol/`. Keep the published
-Go module path even though the repository is named `postgrip-sdk`.
+Read the topic owners below before changing that area. These linked rules are
+part of this guidance. [The documentation index](docs/index.md) assigns one
+current owner per topic; dated designs and archived evidence do not override it.
+Keep historical decisions in separate linked records, outside current guides.
+Resolve contradictions against the code and intended invariant in the same PR.
 
-Read the current owner before changing a topic:
+## Repository map and commands
 
-- [Architecture and style](docs/development/architecture.md)
-- [Contracts and web coordination](docs/development/contracts.md)
-- [Validation and CI](docs/development/testing.md)
-- [Contribution and review process](docs/development/contributing.md)
-- [Authentication](docs/authentication.md) and [configuration](docs/configuration.md)
-- [Live testing](docs/live-testing.md) and [releasing](docs/releasing.md)
+`go/`, `typescript/` and `python/` each publish one SDK with Agent, Worker and
+Service namespaces. `contracts/` mirrors web's canonical OpenAPI specifications;
+`go/protocol/` owns runtime wire types. Keep the published Go module path even
+though the repository is named `postgrip-sdk`.
 
-[The documentation index](docs/index.md) routes to all other current guides.
-Link to these owners rather than duplicating their rules. Historical evidence
-belongs in separate records referenced by current guides, never as current policy.
+Use Go tooling, Bun for TypeScript and Python tooling for Python. Run the
+narrowest affected suite first, then cover every affected language. Exact
+commands, prerequisites and CI coverage live in the validation guide below.
 
-Use small, single-scope PRs from a design in `docs/design/`. Follow the linked
-review loop through `@codex review`, validated fixes and green CI before squash
-merge. Never commit directly to `main` or bypass checks to make CI pass.
+## Required topic guides
+
+| Topic | Current owner |
+| --- | --- |
+| MVC-ish layers, language idioms, dependency boundaries and responsibility review | [Architecture](docs/development/architecture.md) |
+| OpenAPI conformance, generation, runtime wire types and web coordination | [Contracts](docs/development/contracts.md) |
+| Local checks, documentation validation and actual CI coverage | [Validation and CI](docs/development/testing.md) |
+| Design, PR review, findings and merge | [Contribution process](docs/development/contributing.md) |
+| Management credentials and delegated sessions | [Authentication](docs/authentication.md) |
+| Endpoints, precedence and paging | [Configuration](docs/configuration.md) |
+| Deployed evidence, fixtures and cleanup | [Live testing](docs/live-testing.md) |
+| Artifacts, version coordination and release gates | [Releasing](docs/releasing.md) |
+
+## Non-negotiable boundaries
+
+Use the shared MVC-ish principle: separate models, orchestration and external
+adapters, with composition at the public entry point. Follow the SDK-specific
+roles and language mappings in the architecture guide. OpenAPI owns HTTP wire
+contracts; idiomatic clients must preserve them. Change generated files through
+their generators and keep all affected languages and runtime consumers compatible.
+
+Every implementation, including documentation, follows its living design in
+`docs/design/`. Keep PRs small and single-scope, branch from `main`, and never
+commit or push directly to `main`. Follow the linked contribution process through
+`@codex review`, validated fixes and green CI before squash merge. Treat design
+drift and responsibility violations as findings. Never weaken checks or add
+exceptions to hide a boundary violation.
 
 Never commit tokens, signing keys, real fixture credentials or `.env` files.
 Management credentials and host-injected delegated sessions remain separate.
-Generated files change through their generators; all affected languages and
-coordinated runtime consumers must remain compatible.
+Keep customer secrets worker-local, Worker and Agent lifecycles separate, and
+internal global-administration operations out of public SDK contracts.

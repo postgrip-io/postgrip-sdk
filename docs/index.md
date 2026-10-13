@@ -12,7 +12,7 @@ establish behavior; a historical report does not override them.
 | Safe raw HTTP examples | [cURL](curl.md) |
 | Durable Worker registration | [Worker bootstrap](worker-bootstrap.md) |
 | Generated operations and exact bundle | [API reference index](reference/README.md) |
-| SDK boundaries and style | [Architecture](development/architecture.md) |
+| MVC-ish SDK layers, language mapping and responsibility review | [Architecture](development/architecture.md) |
 | Canonical contracts and web synchronization | [Contracts](development/contracts.md) |
 | Local checks and actual CI behavior | [Validation](development/testing.md) |
 | Design, PR review and documentation ownership | [Contributing](development/contributing.md) |

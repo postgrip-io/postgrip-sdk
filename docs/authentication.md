@@ -30,6 +30,26 @@ Signing is required where the operation declares it, not on every Agent read.
 They must not be copied into `POSTGRIP_TOKEN` or sent to Worker and Service
 management routes.
 
+### Credential selection and current limits
+
+On Agent operations whose contract accepts either credential class, an Agent
+connection with runtime access/refresh credentials selects the delegated lane.
+Go and Python Agent connections read those credentials from the process
+environment, including when constructed by a root facade. TypeScript
+connections accept explicit `agentAuth` configuration; a managed Agent runtime
+configures its connection. A root management token therefore does not by itself
+prove that every Agent call uses the management lane. Keep management-only
+applications separate from host-injected runtime environments.
+
+Public operations must receive no bearer credential. The normal Agent token
+option is omitted on public requests, but current Agent adapters in all three
+languages still copy caller-supplied headers before applying the auth lane.
+An explicit `Authorization` header can therefore reach public session refresh.
+Use the token options, not a custom authorization header. This is an open
+implementation gap against the [architecture boundary](development/architecture.md),
+not permission to weaken that boundary; transport remediation is proposed in
+the [layering proposal](https://github.com/postgrip-io/postgrip-sdk/pull/69).
+
 ## Failure behavior
 
 Authentication and authorization failures use the common error envelope:
@@ -51,6 +71,13 @@ Go Agent HTTP failures omit server response content from their default error
 text. The typed `SDKError.ResponseBody` retains the original body for explicit
 inspection and may contain reflected credentials or other secrets. Review and
 redact it before logging; arbitrary server error messages are not safe log data.
+
+TypeScript and Python Agent HTTP failures currently use ordinary `Error` and
+`RuntimeError` paths and can include server-provided text. Their exported
+`PostGripAgentError` bases cover workflow/activity failure types, not every
+transport failure. Do not infer Go's default error-text protection or a common
+typed HTTP error hierarchy across languages; review and redact diagnostic
+content before logging it.
 
 ## Untrusted clients
 

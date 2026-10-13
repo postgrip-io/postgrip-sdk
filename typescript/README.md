@@ -16,7 +16,8 @@ const services = await postgrip.services.list();
 ```
 
 Configure `POSTGRIP_URL` and `POSTGRIP_TOKEN`. Optional plane URLs override the
-common URL, while explicit constructor values override the environment.
+common URL. See [configuration](../docs/configuration.md) for the precedence of
+explicit plane URLs, environment plane URLs and the common constructor URL.
 
 The package exports isolated singular subpaths with runtime and declaration
 entries:

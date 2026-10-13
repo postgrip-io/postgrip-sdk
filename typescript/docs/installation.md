@@ -88,7 +88,9 @@ bun run build
 bun run test
 ```
 
-CI uses Bun. Node + npm work too if you prefer (`npm install`, `npm run build`, `npm test`).
+Repository development and CI use Bun. The build script itself invokes
+`bun run clean`, so invoking `npm run build` still requires Bun. This tooling
+requirement is separate from running the published ESM package on Node.
 
 ## Running against a local agent
 
@@ -105,4 +107,7 @@ const connection = await Connection.connect({
 });
 ```
 
-`Connection.connect` defaults to PostGrip Cloud if `baseUrl` is omitted. For local or self-hosted development, pass `baseUrl` explicitly as shown above or set `POSTGRIP_AGENT_URL`.
+When `baseUrl` is omitted, the connection checks `POSTGRIP_AGENT_URL`, then
+`POSTGRIP_URL`, before using the built-in cloud address. For root-facade and
+direct-client precedence, see the
+[configuration owner](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/configuration.md).

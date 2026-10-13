@@ -25,7 +25,8 @@ impact, err := client.Projects().RemovalImpact(ctx, projectID)
 `POSTGRIP_SERVICE_URL` and `POSTGRIP_TOKEN`. Explicit
 configuration remains authoritative. Retries are disabled by default; enabling
 them permits at most three attempts, with configurable caps that cannot exceed
-the contract's 2-second backoff and 30-second `Retry-After` limits.
+the SDK's 2-second backoff and 30-second `Retry-After` limits. The OpenAPI
+annotations determine retry eligibility; the SDK implements these numeric caps.
 
 Mutations require an explicit idempotency key. Administration mutations also
 take `WriteOptions` with the current `If-Match` ETag. Deletions and worker

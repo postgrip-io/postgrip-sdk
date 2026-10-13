@@ -1,10 +1,20 @@
 # Configuration
 
-Every language implements the same root-client precedence:
+TypeScript and Python root clients resolve each plane URL in this order:
 
 1. An explicit constructor value for that plane.
 2. `POSTGRIP_AGENT_URL`, `POSTGRIP_WORKER_URL`, or `POSTGRIP_SERVICE_URL`.
-3. `POSTGRIP_URL`.
+3. The explicit common `baseUrl` / `base_url` constructor value.
+4. `POSTGRIP_URL`.
+
+An explicit token takes precedence over `POSTGRIP_TOKEN`. Their environment
+factory methods use the same resolver as their constructors.
+
+Go's root `New(Config)` uses explicit plane URLs before `Config.BaseURL` and
+requires `Config.Token`; it does not merge root configuration with environment
+variables. `NewFromEnv()` loads the common token and common/plane URLs from the
+environment, then calls `New`. Keep this constructor difference explicit when
+translating examples between languages.
 
 `POSTGRIP_TOKEN` is the only developer-configured management credential.
 
@@ -28,8 +38,12 @@ constructor option; it is not enabled by an environment variable. Sandbox
 relay overrides follow the same rule: use WSS by default, and permit WS only
 when that same insecure-development option is enabled explicitly.
 
-Direct plane clients use the same plane URL and `POSTGRIP_TOKEN` variables.
-They do not import or initialize the root facade or another plane.
+Direct Worker and Service clients expose environment factory methods using
+the same plane URL and `POSTGRIP_TOKEN` variables; their ordinary constructors
+take explicit configuration. Agent connections also consult the environment
+and fall back to the built-in cloud address when no URL is supplied. Direct
+plane clients do not import or initialize the root facade or another plane.
+See [authentication](authentication.md) for Agent runtime credential selection.
 
 ## Timeouts, retries, and idempotency
 
@@ -42,9 +56,23 @@ when the call's context has none; an explicit context deadline overrides that
 default, including for uploads needing longer. Uploads remain independent of
 the ordinary request timeout.
 
-The root clients expose common timeout and opt-in retry configuration. Plane
-adapters retain operation-specific retry ceilings and only retry operations
-the contract marks safe. Mutations that require idempotency use a fresh
+Python's root `timeout` defaults to 30 seconds and is passed to each plane.
+TypeScript currently has no SDK request-timeout option or default; callers
+bound requests through an `AbortSignal` where exposed or their injected fetch
+implementation. These APIs do not yet offer one common timeout setting across
+languages.
+
+Root retry options currently reach Worker and Service only. Agent ordinary
+HTTP exchanges do not automatically retry. Service eligibility uses generated
+retry/safety metadata plus an idempotency key for mutations; Worker currently
+uses GET-or-idempotency-key eligibility, which matches its current contract
+operations. Retries remain opt-in, with attempt counts bounded by the plane
+implementation; delay limits are not yet uniform across planes and languages.
+The required contract-driven boundary is specified in
+[architecture](development/architecture.md); transport consolidation does not
+make proposed timeout or Agent retry behavior available today.
+
+Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
 request on retries or response loss. Service administration writes may
 additionally require the current `If-Match` value.
