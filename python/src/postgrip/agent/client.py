@@ -642,5 +642,3 @@ def _duration_ms(value: Any) -> int | None:
     if hasattr(value, "total_seconds"):
         return int(value.total_seconds() * 1000)
     return int(value)
-
-
