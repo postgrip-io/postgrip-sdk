@@ -183,6 +183,11 @@ func (w *Worker) runWorkflowUpdate(ctx context.Context, task *client.Task) (*cli
 	// delivery of this task, then schedules new ones.
 	wfctx.replay.EnterOwner(task.ID, true)
 	value, err := handler(args)
+	// A handler that returns or raises an application error must have replayed
+	// every command it recorded on earlier deliveries.
+	if err == nil || !wfctx.isReplayControlError(err) {
+		_ = wfctx.replay.CheckOwnerConsumed(task.ID)
+	}
 	if detErr := wfctx.replay.DeterminismErr(); detErr != nil {
 		return &client.TaskResult{}, translateReplayError(detErr)
 	}
@@ -333,11 +338,19 @@ func (w *Worker) readCommandOwners(ctx context.Context, history []client.Workflo
 			WorkflowTaskID       string `json:"workflowTaskId"`
 			ParentWorkflowTaskID string `json:"parentWorkflowTaskId"`
 		}
-		_ = json.Unmarshal(task.Payload, &payload)
-		owners[taskID] = payload.WorkflowTaskID
-		if owners[taskID] == "" {
-			owners[taskID] = payload.ParentWorkflowTaskID
+		if err := json.Unmarshal(task.Payload, &payload); err != nil {
+			return nil, fmt.Errorf("decode owner of command task %s: %w", taskID, err)
 		}
+		owner := payload.WorkflowTaskID
+		if owner == "" {
+			owner = payload.ParentWorkflowTaskID
+		}
+		// Every SDK records the scheduling task, so a command task without one
+		// is unreadable rather than body-owned.
+		if owner == "" {
+			return nil, fmt.Errorf("command task %s names no scheduling task", taskID)
+		}
+		owners[taskID] = owner
 	}
 	return owners, nil
 }

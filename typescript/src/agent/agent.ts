@@ -666,7 +666,10 @@ export class Agent {
     for (const taskId of ownershipCandidates(history)) {
       const task = await this.connection.getTask<{ workflowTaskId?: string; parentWorkflowTaskId?: string }>(taskId);
       const owner = task.payload?.workflowTaskId ?? task.payload?.parentWorkflowTaskId;
-      if (owner) owners[taskId] = owner;
+      // Every SDK records the scheduling task, so a command task without one is
+      // unreadable rather than body-owned.
+      if (!owner) throw new Error(`postgrip-agent: command task ${taskId} names no scheduling task`);
+      owners[taskId] = owner;
     }
     return owners;
   }

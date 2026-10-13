@@ -578,8 +578,11 @@ class Agent:
             command_task = await asyncio.to_thread(self.connection.get_task, task_id)
             command_payload = command_task.get("payload") or {}
             owner = command_payload.get("workflowTaskId") or command_payload.get("parentWorkflowTaskId")
-            if owner:
-                owners[task_id] = owner
+            # Every SDK records the scheduling task, so a command task without one
+            # is unreadable rather than body-owned.
+            if not owner:
+                raise RuntimeError(f"postgrip-agent: command task {task_id} names no scheduling task")
+            owners[task_id] = owner
         return owners
 
     async def _drain_commands(self, replay: WorkflowReplay) -> None:

@@ -22,10 +22,13 @@ import (
 type ownershipServer struct {
 	history string
 	// tasks maps a command task ID to its owner and state; an empty owner
-	// makes the task read fail.
+	// makes the task read fail, and "none" serves a payload naming no owner.
 	tasks map[string][2]string
-	mu    sync.Mutex
-	paths []string
+	// failAfterFirstRead makes every read of the task after the first fail.
+	failAfterFirstRead map[string]bool
+	mu                 sync.Mutex
+	paths              []string
+	reads              map[string]int
 }
 
 func (s *ownershipServer) start(t *testing.T) *client.Connection {
@@ -44,12 +47,24 @@ func (s *ownershipServer) start(t *testing.T) *client.Connection {
 			_, _ = w.Write([]byte(`{"id":"wf-task","namespace":"default","queue":"default","type":"workflow:Owned","state":"blocked","attempt":1,"lease_timeout_seconds":30,"payload":{"workflowType":"Owned","workflowId":"workflow-1","runId":"run-1","args":[]},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/tasks/"):
 			id := strings.TrimPrefix(r.URL.Path, "/api/v1/tasks/")
+			s.mu.Lock()
+			if s.reads == nil {
+				s.reads = map[string]int{}
+			}
+			s.reads[id]++
+			read := s.reads[id]
+			s.mu.Unlock()
 			task, ok := s.tasks[id]
-			if !ok || task[0] == "" {
-				http.Error(w, `{"code":"UNAVAILABLE","message":"unavailable"}`, http.StatusServiceUnavailable)
+			if !ok || task[0] == "" || (s.failAfterFirstRead[id] && read > 1) {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(`{"code":"UNAVAILABLE","message":"unavailable"}`))
 				return
 			}
-			_, _ = fmt.Fprintf(w, `{"id":%q,"namespace":"default","queue":"default","type":"activity:X","state":%q,"attempt":1,"lease_timeout_seconds":30,"result":{"value":"ok"},"payload":{"workflowTaskId":%q},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`, id, task[1], task[0])
+			payload := fmt.Sprintf(`{"workflowTaskId":%q}`, task[0])
+			if task[0] == "none" {
+				payload = `{}`
+			}
+			_, _ = fmt.Fprintf(w, `{"id":%q,"namespace":"default","queue":"default","type":"activity:X","state":%q,"attempt":1,"lease_timeout_seconds":30,"result":{"value":"ok"},"payload":%s,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`, id, task[1], payload)
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/block"):
 			_, _ = w.Write([]byte(`{"id":"blocked","namespace":"default","queue":"default","type":"workflow:Owned","state":"blocked","attempt":1,"lease_timeout_seconds":30,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}`))
 		default:
@@ -232,4 +247,123 @@ func TestQueryReplayFailsWhenReturningBeforeRecordedCommands(t *testing.T) {
 		ID: "query-task-1", Type: "query:Owned", Namespace: "default", Queue: "default", Payload: payload,
 	})
 	wantDeterminism(t, err, "finished before replaying recorded command")
+}
+
+// A live update handler that returns after replaying only part of the commands
+// it recorded on an earlier delivery is a determinism error.
+func TestLiveUpdateHandlerLeavingRecordedCommandsFails(t *testing.T) {
+	t.Parallel()
+	s := &ownershipServer{
+		history: `[
+			{"id":"e1","workflow_id":"workflow-1","task_id":"update-task-1","type":"WorkflowUpdateAccepted","attributes":{"update_name":"approve","args":[]},"created_at":"2026-01-01T00:00:00Z"},
+			{"id":"e2","workflow_id":"workflow-1","task_id":"act-validate","type":"ActivityTaskScheduled","attributes":{"activity_type":"Validate"},"created_at":"2026-01-01T00:00:01Z"},
+			{"id":"e3","workflow_id":"workflow-1","task_id":"act-notify","type":"ActivityTaskScheduled","attributes":{"activity_type":"Notify"},"created_at":"2026-01-01T00:00:02Z"},
+			{"id":"e4","workflow_id":"workflow-1","task_id":"timer-body","type":"TimerStarted","attributes":{"duration_ms":3600000},"created_at":"2026-01-01T00:00:03Z"}
+		]`,
+		tasks: map[string][2]string{
+			"act-validate": {"update-task-1", "succeeded"}, "act-notify": {"update-task-1", "succeeded"}, "timer-body": {"wf-task", "queued"},
+		},
+	}
+	w := ownedWorker(t, s.start(t), func(ctx workflow.Context, _ []any) (any, error) {
+		if err := ctx.SetUpdateHandler("approve", func(_ []any) (any, error) {
+			return "approved", ctx.ExecuteActivity("Validate", nil, nil, nil)
+		}); err != nil {
+			return nil, err
+		}
+		return nil, ctx.Sleep(time.Hour)
+	})
+	payload, _ := json.Marshal(client.WorkflowUpdatePayload{
+		WorkflowID: "workflow-1", WorkflowRunID: "run-1", WorkflowType: "Owned", UpdateName: "approve", Args: json.RawMessage(`[]`),
+	})
+	_, err := w.runWorkflowUpdate(context.Background(), &client.Task{
+		ID: "update-task-1", Type: "update:Owned", Namespace: "default", Queue: "default", Payload: payload,
+	})
+	wantDeterminism(t, err, "finished before replaying recorded command")
+}
+
+// A transport failure inside a replayed handler propagates unchanged, so the
+// task is redelivered rather than failed as nondeterministic.
+func TestReplayedHandlerTransportErrorIsNotADeterminismError(t *testing.T) {
+	t.Parallel()
+	s := &ownershipServer{
+		history: `[
+			{"id":"e1","workflow_id":"workflow-1","task_id":"update-1","type":"WorkflowUpdateAccepted","attributes":{"update_name":"approve","args":[]},"created_at":"2026-01-01T00:00:00Z"},
+			{"id":"e2","workflow_id":"workflow-1","task_id":"act-validate","type":"ActivityTaskScheduled","attributes":{"activity_type":"Validate"},"created_at":"2026-01-01T00:00:01Z"},
+			{"id":"e3","workflow_id":"workflow-1","task_id":"act-notify","type":"ActivityTaskScheduled","attributes":{"activity_type":"Notify"},"created_at":"2026-01-01T00:00:02Z"},
+			{"id":"e4","workflow_id":"workflow-1","task_id":"update-1","type":"WorkflowUpdateCompleted","attributes":{"update_name":"approve","args":[]},"created_at":"2026-01-01T00:00:03Z"}
+		]`,
+		tasks: map[string][2]string{"act-validate": {"update-1", "succeeded"}, "act-notify": {"update-1", "succeeded"}},
+		// The owner read succeeds; resolving the activity's result then fails.
+		failAfterFirstRead: map[string]bool{"act-validate": true},
+	}
+	w := ownedWorker(t, s.start(t), func(ctx workflow.Context, _ []any) (any, error) {
+		if err := ctx.SetUpdateHandler("approve", func(_ []any) (any, error) {
+			if err := ctx.ExecuteActivity("Validate", nil, nil, nil); err != nil {
+				return nil, err
+			}
+			return nil, ctx.ExecuteActivity("Notify", nil, nil, nil)
+		}); err != nil {
+			return nil, err
+		}
+		return "done", nil
+	})
+	_, err := runOwnedWorkflow(w)
+	var sdkErr *failure.SDKError
+	var app *failure.Application
+	if !errors.As(err, &sdkErr) || (errors.As(err, &app) && app.Type == "WorkflowDeterminismViolation") {
+		t.Fatalf("err = %v, want the transport error, not a determinism violation", err)
+	}
+}
+
+// A replayed handler's own command never applies a later update boundary, so
+// overlapping updates replay in acceptance order.
+func TestReplayedHandlerCommandsDoNotApplyLaterUpdates(t *testing.T) {
+	t.Parallel()
+	s := &ownershipServer{
+		history: `[
+			{"id":"e1","workflow_id":"workflow-1","task_id":"update-1","type":"WorkflowUpdateAccepted","attributes":{"update_name":"approve","args":["first"]},"created_at":"2026-01-01T00:00:00Z"},
+			{"id":"e2","workflow_id":"workflow-1","task_id":"update-2","type":"WorkflowUpdateAccepted","attributes":{"update_name":"approve","args":["second"]},"created_at":"2026-01-01T00:00:01Z"},
+			{"id":"e3","workflow_id":"workflow-1","task_id":"act-1","type":"ActivityTaskScheduled","attributes":{"activity_type":"Validate"},"created_at":"2026-01-01T00:00:02Z"},
+			{"id":"e4","workflow_id":"workflow-1","task_id":"act-2","type":"ActivityTaskScheduled","attributes":{"activity_type":"Validate"},"created_at":"2026-01-01T00:00:03Z"},
+			{"id":"e5","workflow_id":"workflow-1","task_id":"update-1","type":"WorkflowUpdateCompleted","attributes":{"update_name":"approve","args":["first"]},"created_at":"2026-01-01T00:00:04Z"},
+			{"id":"e6","workflow_id":"workflow-1","task_id":"update-2","type":"WorkflowUpdateCompleted","attributes":{"update_name":"approve","args":["second"]},"created_at":"2026-01-01T00:00:05Z"}
+		]`,
+		tasks: map[string][2]string{"act-1": {"update-1", "succeeded"}, "act-2": {"update-2", "succeeded"}},
+	}
+	var order []string
+	w := ownedWorker(t, s.start(t), func(ctx workflow.Context, _ []any) (any, error) {
+		if err := ctx.SetUpdateHandler("approve", func(args []any) (any, error) {
+			if err := ctx.ExecuteActivity("Validate", nil, nil, nil); err != nil {
+				return nil, err
+			}
+			order = append(order, args[0].(string))
+			return nil, nil
+		}); err != nil {
+			return nil, err
+		}
+		return "done", nil
+	})
+	if _, err := runOwnedWorkflow(w); err != nil {
+		t.Fatalf("runWorkflow: %v", err)
+	}
+	if len(order) != 2 || order[0] != "first" || order[1] != "second" {
+		t.Fatalf("handler order = %v, want [first second]", order)
+	}
+}
+
+// A command task whose payload names no scheduling task is unreadable, not
+// body-owned, so the workflow task is blocked for redelivery.
+func TestRunWorkflowBlocksWhenCommandOwnerIsMissing(t *testing.T) {
+	t.Parallel()
+	s := &ownershipServer{
+		history: `[
+			{"id":"e1","workflow_id":"workflow-1","task_id":"update-1","type":"WorkflowUpdateAccepted","attributes":{"update_name":"approve","args":[]},"created_at":"2026-01-01T00:00:00Z"},
+			{"id":"e2","workflow_id":"workflow-1","task_id":"act-ownerless","type":"ActivityTaskScheduled","attributes":{"activity_type":"Validate"},"created_at":"2026-01-01T00:00:01Z"}
+		]`,
+		tasks: map[string][2]string{"act-ownerless": {"none", "succeeded"}},
+	}
+	w := ownedWorker(t, s.start(t), func(workflow.Context, []any) (any, error) { return "done", nil })
+	if _, err := runOwnedWorkflow(w); !errors.Is(err, errWorkflowAlreadyBlocked) {
+		t.Fatalf("err = %v, want errWorkflowAlreadyBlocked", err)
+	}
 }

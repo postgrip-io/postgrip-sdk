@@ -108,7 +108,9 @@ func isWorkflowSuspended(err error) bool {
 // true, an update whose handler is not registered yet (or which is still in
 // flight) is left for the workflow body to reach its registration point.
 func (w *workflowContext) applyDurableUpdates(deferBoundary bool) error {
-	if w.replay == nil {
+	// A handler's own commands never apply later boundaries: that would run a
+	// later update inside an earlier one and reverse their order.
+	if w.replay == nil || w.replay.HandlerActive() {
 		return nil
 	}
 	for {
@@ -152,7 +154,10 @@ func (w *workflowContext) applyDurableUpdates(deferBoundary bool) error {
 		_, err := handler(update.Args)
 		restore()
 		w.taskID = previousTaskID
-		if err != nil && workflow.IsSuspended(err) {
+		// Control-flow and infrastructure errors propagate unchanged; only a
+		// handler that returned or raised an application error is checked for
+		// recorded commands it left unconsumed.
+		if err != nil && w.isReplayControlError(err) {
 			return err
 		}
 		if leftover := w.replay.CheckOwnerConsumed(update.TaskID); leftover != nil {
@@ -162,6 +167,18 @@ func (w *workflowContext) applyDurableUpdates(deferBoundary bool) error {
 			return fmt.Errorf("postgrip-agent: replay update handler %q: %w", update.Name, err)
 		}
 	}
+}
+
+// isReplayControlError reports errors that must fail or redeliver the task
+// unchanged rather than count as a handler's application outcome: suspension,
+// a recorded determinism error, cancellation and the SDK's own transport and
+// adapter errors.
+func (w *workflowContext) isReplayControlError(err error) bool {
+	var sdkErr *failure.SDKError
+	var cancelled *failure.Cancelled
+	return workflow.IsSuspended(err) || w.replay.DeterminismErr() != nil ||
+		errors.As(err, &sdkErr) || errors.As(err, &cancelled) ||
+		errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 func (w *workflowContext) beforeDurableCommand() error {

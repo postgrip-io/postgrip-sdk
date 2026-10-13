@@ -477,6 +477,24 @@ class PythonSdkTests(unittest.TestCase):
         self.assertEqual([request["type"] for request in connection.enqueued], ["activity:B"])
         self.assertEqual(connection.failed, [])
 
+    def test_command_task_without_an_owner_fails_instead_of_being_body_owned(self):
+        @workflow.defn(name="BodyWorkflow")
+        class BodyWorkflow:
+            @workflow.run
+            async def run(self) -> str:
+                return await workflow.execute_activity("B")
+
+        connection = FakeConnection()
+        connection.histories["run-1"] = [
+            {"type": "WorkflowUpdateAccepted", "task_id": "update-1", "attributes": {"update_name": "U"}},
+            {"type": "ActivityTaskScheduled", "task_id": "activity-ownerless", "attributes": {"activity_type": "B"}},
+        ]
+        connection.tasks["activity-ownerless"] = {"id": "activity-ownerless", "state": "succeeded", "payload": {}}
+        self._run_owned(BodyWorkflow, connection)
+
+        self.assertEqual(connection.enqueued, [])
+        self.assertIn("names no scheduling task", connection.failed[0][1])
+
     def test_query_replay_returning_before_recorded_commands_fails(self):
         answer_query = workflow.define_query("answer")
 

@@ -364,6 +364,21 @@ describe('command ownership and the completion check', () => {
     expect(conn.enqueueTask).toHaveBeenCalledWith(expect.objectContaining({ type: 'activity:B' }));
     expect(conn.blockTask).toHaveBeenCalled();
   });
+
+  it('fails rather than treating a command task without an owner as body-owned', async () => {
+    const history = [
+      { id: 'e1', workflow_id: 'workflow-1', task_id: 'update-1', type: 'WorkflowUpdateAccepted', attributes: { update_name: 'U' }, created_at: '2026-10-13T00:00:00Z' },
+      { ...scheduled('B'), task_id: 'activity-ownerless' },
+    ] as WorkflowHistoryEvent[];
+    const conn = connection(history, { 'activity-ownerless': { id: 'activity-ownerless', state: 'succeeded', payload: {} } });
+    const { B } = proxyActivities<{ B(): Promise<string> }>();
+    async function BodyWorkflow(): Promise<string> {
+      return B();
+    }
+    await run(conn, 'BodyWorkflow', BodyWorkflow);
+    expect(conn.enqueueTask).not.toHaveBeenCalled();
+    expect(conn.failTask).toHaveBeenCalledWith('workflow-task-1', expect.any(String), expect.stringContaining('names no scheduling task'), expect.anything());
+  });
 });
 
 describe('workflow command settlement', () => {

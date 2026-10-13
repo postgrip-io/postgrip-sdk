@@ -249,6 +249,12 @@ func (r *Replay) EnterOwner(taskID string, live bool) func() {
 	return func() { r.owner, r.ownerLive = previous, previousLive }
 }
 
+// HandlerActive reports whether an update handler is the executing owner.
+// Update boundaries apply only from the body, never inside a handler.
+func (r *Replay) HandlerActive() bool {
+	return r != nil && r.owner != ""
+}
+
 func (r *Replay) current() *cursor {
 	if r.owner == "" {
 		return &r.body
