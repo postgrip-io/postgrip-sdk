@@ -88,9 +88,14 @@ they own. When the body issues a command of kind K:
 2. If the earliest unconsumed body-owned event is not of kind K, fail with a
    determinism error naming the recorded and requested kinds. This covers both
    reordering and a kind with no events left.
-3. Otherwise consume it and compare recorded identity: `activity_type`,
-   `workflow_type`, or `duration_ms` for timers. A mismatch is a determinism
-   error.
+3. Otherwise compare recorded identity before consuming the event:
+   `activity_type`, `workflow_type`, or `duration_ms` for timers. A mismatch is
+   a determinism error and leaves the event unconsumed. A match consumes it.
+
+Replay state records every determinism error it raises. Once one is recorded,
+the workflow task fails with that error when the workflow returns, raises,
+continues as new or suspends, even if workflow code caught the error and went
+on. Caught nondeterminism therefore cannot complete a workflow.
 
 A replayed update handler follows the same rules over its own events. Its
 completed or failed handler already finished, so when none of its events
@@ -99,12 +104,17 @@ update task's live handler (below) schedules new commands. An activity retry
 consumes the retry attempt's event under the same rule. Query, update and
 workflow replay use the same cursors.
 
-**Cancellation.** A recorded `WorkflowCancellationRequested` is observed at a
-cancellable point (before a command, or in `condition`) only when no unconsumed
-body-owned command event precedes it in history. Commands recorded before the
-request replay normally, and the first cancellable point after them raises the
-cancellation failure. Today every language raises it at the first command,
-wherever the request sits in history.
+**Cancellation.** A recorded `WorkflowCancellationRequested` is observed only
+when no unconsumed command event owned by the executing context precedes it in
+history. The executing context is the body, or the update handler that is
+running. This applies at every cancellable point (before a command, and in
+`condition`) and to the synchronous `cancellationRequested()` accessors of
+TypeScript (`workflow.ts`) and Python (`workflow.py`). Commands recorded before
+the request replay normally, including those of an update handler that issued
+them before the request, and the first cancellable point or accessor read after
+them observes the cancellation. Today every language raises it at the first
+command, and the accessors report it from workflow entry, wherever the request
+sits in history.
 
 **Completion check.** Before a workflow task completes or continues as new, the
 runtime applies any remaining update boundaries in strict mode (below). If a
@@ -130,8 +140,12 @@ replayed. Examples are a `WorkflowUpdateConflict`, a missing handler, or an
 invalid payload. Neither ownership nor history tells that case apart from a
 handler that ran, changed state and raised without issuing a command. Before an
 update task runs its handler live, it appends a task event to its own task with
-stage `update-handler-started`. If that append fails, the task fails without
-running the handler. While building replay state, the Agent reads each failed
+stage `update-handler-started`. Appending a task event is not idempotent, so
+an append can persist and still report failure. When the append fails, the task
+reads its own events: if the marker is present it runs the handler, and
+otherwise it fails without running the handler. If that read also fails, the
+task blocks for redelivery instead of failing, so the outcome stays consistent
+with whatever the server persisted. While building replay state, the Agent reads each failed
 update task's events once and passes the set of marked task IDs to the replay
 engine. A terminal task's events do not change, so every replay sees the same
 set.
@@ -143,16 +157,25 @@ consumes it:
 - **Strict** application runs before each durable command and in the completion
   check. A completed entry runs its registered handler with the recorded `args`,
   and the runtime awaits it to completion. A missing handler is a determinism
-  error. A failed entry with the marker runs its handler the same way and
-  expects it to raise. Replay determinism errors, suspension and cancellation
+  error. A failed entry runs its handler the same way, and expects it to raise,
+  when it has the marker or owns at least one command event. Owned commands
+  prove the handler ran, which covers legacy failures and failures recorded
+  before markers existed. Replay determinism errors, suspension and cancellation
   raised inside the handler propagate unchanged. Only another error counts as
   the recorded failure, which does not fail the workflow, and a handler that
-  returns instead is a determinism error. A failed entry without the marker,
-  including every legacy failure, is consumed without running a handler, as
-  today. A pending entry suspends the workflow task until the update finishes.
+  returns instead is a determinism error. A failed entry with neither the
+  marker nor owned commands is consumed without running a handler, as today. A pending entry suspends the workflow task until the update finishes.
 - **Deferred** application runs after each durable command. It applies
   boundaries the same way, but stops without error at a missing handler or a
   pending entry, so later code can register the handler.
+
+Entries apply in the order of their positions. Before the conflict rule
+(below), runtimes could record overlapping updates, for example
+`Accepted(U1), Accepted(U2), Completed(U2), Completed(U1)`. Each of those
+handlers originally ran without the other's effect, so no replay order
+reproduces both. Replay keeps acceptance order, which is deterministic and is
+what Go uses today. Failing such histories would strand running workflows. The
+conflict rule prevents new overlaps.
 
 Go also applies deferred boundaries inside `SetUpdateHandler`, because Go
 handlers are synchronous. TypeScript and Python registration is synchronous
@@ -199,6 +222,9 @@ Replay state owns the workflow clock:
    `TimerFired` before the clock reaches the fire time. Those handlers observe
    the same time whether or not the timer had fired when the replay ran.
 4. Wall time, live task state and unconsumed events never change it.
+5. Every value is truncated to whole milliseconds, the precision of a
+   TypeScript `Date`. Go and Python therefore expose the same instant as
+   TypeScript for the same history.
 
 Go `Context.Now()`, Python `workflow.now()` and a new TypeScript
 `workflowInfo().now` (a new `Date` per call) read this clock in UTC. Workflow,
@@ -229,16 +255,19 @@ Python `workflow.unsafe.is_replaying()` reports whether a previous run has
 provably executed past the current point, because history records a later
 workflow-produced event:
 
-- It is `True` during query and update replay, until an update handler starts
-  running live.
+- It is `True` during query and update replay. A redelivered update task's
+  live handler keeps reporting `True` while it replays the commands it already
+  owns, and switches to `False` when its cursor is exhausted and it reaches
+  live execution.
+- While a completed or failed update's handler is replayed, it is `True`. Its
+  terminal event proves the handler already ran, even for a legacy entry
+  positioned at that terminal event.
 - During workflow replay, the current position is the history index of the
   latest consumed command event or applied update boundary. While a recorded
   signal is delivered to its handler, the position is that signal's index. The
   helper returns `True` when history has a workflow-produced event at a higher
   index than the current position. Workflow-produced events are command events
-  and update accepted, completed and failed events. A replayed completed or
-  failed update handler therefore always reports `True`, because its own
-  terminal event follows its boundary.
+  and update accepted, completed and failed events.
 
 A signal that is the latest event in history may be seen for the first time, so
 its delivery reports `False`. `is_replaying_history_events()` returns the same
@@ -325,8 +354,13 @@ unit tests run every fixture. They cover:
 - a deleted trailing command, and a trailing completed update whose handler
   was removed, failing the completion check;
 - `Activity(A), CancellationRequested` replaying A before raising the
-  cancellation failure, and a changed workflow that returns without consuming A
+  cancellation failure, with the accessor reporting `False` at workflow entry
+  and `True` after A, and a changed workflow that returns without consuming A
   failing the completion check;
+- `Accepted(U), Activity(A) owned by U, CancellationRequested, Failed(U)`,
+  where U's replayed handler consumes A before observing the cancellation;
+- workflow code that catches a determinism error and returns, which still fails
+  the task with that error;
 - `Accepted(U), Activity(B) owned by the body, Completed(U)`, where U's handler
   now issues `Activity(B)`, failing with a determinism error while the body's B
   replays normally;
@@ -338,6 +372,9 @@ unit tests run every fixture. They cover:
   completion-only updates;
 - an update task's own boundary reached, an earlier pending update ahead of it,
   and a boundary that cannot be reached;
+- a legacy or pre-marker failed update that owns a command, replayed through
+  it; an overlapping `Accepted(U1), Accepted(U2), Completed(U2), Completed(U1)`
+  history replaying in acceptance order;
 - a failed update whose marked handler scheduled a command before raising,
   replayed so the command is consumed by the handler, not the body; an unmarked
   failure consumed without running its handler; a marked failed handler that
@@ -348,7 +385,9 @@ unit tests run every fixture. They cover:
   lacks, failing with a determinism error instead of scheduling it;
 - clock values from start, command, `TimerFired` and update events, including
   the task `created_at` fallback, that equal histories yield equal values, and
-  that signal and activity-completion events leave the clock unchanged;
+  that signal and activity-completion events leave the clock unchanged, and
+  that a `created_at` with sub-millisecond digits yields the same millisecond
+  value in every language;
 - `TimerStarted`, a completed update, then `TimerFired`, where the update
   handler observes the same clock value before and after the fire is recorded.
 
@@ -362,12 +401,15 @@ Language runtime tests add:
 - an update task that appends its `update-handler-started` event, schedules an
   activity under its own task ID and blocks; a second update task that fails
   with `WorkflowUpdateConflict` without appending the event or running its
-  handler; and an update task whose marker append fails, which fails without
-  running its handler;
+  handler; an update task whose marker append fails but persisted, which runs
+  its handler after reading its events; and one whose append failed without
+  persisting, which fails without running its handler;
 - a query replay that stops at a pending update;
 - the determinism failure type for replay and the TypeScript sandbox;
 - Python introspection values for commands, updates, a signal followed by a
-  command, a signal-only history, and a completed update at the end of history.
+  command, a signal-only history, a completed update at the end of history, a
+  legacy completion-only update, and a redelivered update task before and after
+  its recorded prefix.
 
 Existing Agent tests, drift and generation checks, and strict documentation
 builds pass apart from the changes listed under Compatibility.
