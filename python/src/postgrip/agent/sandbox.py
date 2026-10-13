@@ -14,8 +14,7 @@ from typing import IO, TYPE_CHECKING, Any
 from urllib.error import HTTPError
 from urllib.request import Request
 
-from .._internal.http import read_bounded_response, redirect_safe_open as urlopen
-from .client import has_authorization_header
+from .._internal.http import has_authorization_header, read_bounded_response, redirect_safe_open as urlopen
 from .openapi import (
     CONNECT_SANDBOX_SESSION_PATH_SESSION_ID,
     CONNECT_SANDBOX_SESSION_QUERY_TICKET,
@@ -31,8 +30,8 @@ from .types import (
     SandboxWorkspace,
 )
 
-if TYPE_CHECKING:  # pragma: no cover - import cycle only matters for typing
-    from .client import Connection
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from ._connection import Connection
 
 #: Bound on a single frame through the session relay, in either direction. A
 #: peer writing more has its session closed rather than forwarded, so chunk

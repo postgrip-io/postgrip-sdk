@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+import ast
+import unittest
+from pathlib import Path
+
+AGENT = Path(__file__).resolve().parents[2] / "src" / "postgrip" / "agent"
+
+
+def _imported_modules(path: Path) -> set[str]:
+    """Every module a source file imports, including under ``TYPE_CHECKING``."""
+    modules: set[str] = set()
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.ImportFrom):
+            prefix = "." * node.level + (node.module or "")
+            modules.add(prefix)
+            if node.module is None:
+                modules.update("." * node.level + alias.name for alias in node.names)
+        elif isinstance(node, ast.Import):
+            modules.update(alias.name for alias in node.names)
+    return modules
+
+
+class AgentModuleBoundariesTest(unittest.TestCase):
+    """The sandbox adapter must not depend on the client orchestration module.
+
+    Importing a submodule always runs ``postgrip.agent.__init__``, which imports
+    ``client``, so only a static check can prove the source cycle is gone.
+    """
+
+    def test_sandbox_does_not_import_client(self) -> None:
+        imported = _imported_modules(AGENT / "sandbox.py")
+        self.assertFalse(imported & {".client", "postgrip.agent.client"}, imported)
+
+    def test_connection_adapter_does_not_import_client_or_sandbox(self) -> None:
+        imported = _imported_modules(AGENT / "_connection.py")
+        self.assertFalse(
+            imported & {".client", "postgrip.agent.client", ".sandbox", "postgrip.agent.sandbox"}, imported
+        )
+
+    def test_client_imports_sandbox_at_module_top(self) -> None:
+        tree = ast.parse((AGENT / "client.py").read_text(encoding="utf-8"))
+        top_level = {
+            node.module for node in tree.body if isinstance(node, ast.ImportFrom) and node.level == 1
+        }
+        self.assertIn("sandbox", top_level)
+
+
+if __name__ == "__main__":
+    unittest.main()

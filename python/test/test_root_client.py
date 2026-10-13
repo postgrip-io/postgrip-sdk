@@ -34,7 +34,7 @@ class RootClientTests(unittest.TestCase):
         client.workers._opener.open = management_open
         client.services._opener.open = management_open
 
-        with patch("postgrip.agent.client.urlopen", agent_urlopen):
+        with patch("postgrip.agent._connection.urlopen", agent_urlopen):
             client.agent.connection.list_workflows()
         client.workers.list()
         client.services.list()

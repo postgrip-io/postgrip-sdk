@@ -51,6 +51,20 @@ def redirect_safe_open(request: Request, timeout: float | None = None) -> Any:
     return _REDIRECT_SAFE_OPENER.open(request, timeout=timeout)
 
 
+def has_authorization_header(headers: dict[str, str]) -> bool:
+    """Whether *headers* already carries an Authorization header, any casing.
+
+    HTTP header names are case-insensitive and ``urllib.request.Request``
+    normalizes them, so a caller passing ``{"authorization": "Bearer …"}`` — a
+    perfectly valid spelling — did not match an exact-case ``"Authorization"``
+    check. The configured token was then added under the capitalized name, both
+    collapsed to one header, and the *added* one won: the explicit-header
+    precedence this SDK documents was inverted, and a request could go out
+    authenticated as the wrong tenant.
+    """
+    return any(name.lower() == "authorization" for name in headers)
+
+
 def read_bounded_response(
     source: Any,
     plane: str,

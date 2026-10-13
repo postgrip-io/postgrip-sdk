@@ -41,7 +41,7 @@ class OpenAPIOperationTests(unittest.TestCase):
             return Response()
 
         connection = Connection("http://agent.test", insecure_development=True, auth_token="pgt-management")
-        with patch("postgrip.agent.client.urlopen", fake_urlopen):
+        with patch("postgrip.agent._connection.urlopen", fake_urlopen):
             connection.openapi.refresh_agent_session({"refreshToken": "pgr-runtime"})
 
         self.assertIsNone(captured["authorization"])
