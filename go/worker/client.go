@@ -2,24 +2,26 @@
 package worker
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/postgrip-io/postgrip-agent-sdks/go/internal/transport"
 )
 
-const maxResponseBytes = 4 << 20
+// Worker execution policy: a 4 MiB response bound, three attempts for eligible
+// operations when retries are enabled, 2-second backoff and a fixed 30-second
+// Retry-After cap.
+const (
+	maxResponseBytes  = 4 << 20
+	retryMaxAttempts  = 3
+	retryMaxDelay     = 2 * time.Second
+	retryAfterMaxWait = 30 * time.Second
+)
 
 type Config struct {
 	BaseURL             string
@@ -37,11 +39,12 @@ type Client struct {
 type Connection struct {
 	baseURL        *url.URL
 	token          string
-	httpClient     *http.Client
-	retriesEnabled bool
 	followInterval time.Duration
+	executor       *transport.Executor
 }
 
+// APIError is a Worker management failure decoded from the common error
+// envelope. It is distinct from other planes' error types.
 type APIError struct {
 	StatusCode int
 	Code       string
@@ -61,6 +64,12 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("postgrip-worker: %s (HTTP %d): %s", e.Code, e.StatusCode, e.Message)
 }
 
+// newAPIError converts the shared decoded envelope into the Worker error type.
+func newAPIError(err *transport.APIError) error {
+	return &APIError{StatusCode: err.StatusCode, Code: err.Code, Message: err.Message,
+		RequestID: err.RequestID, Details: err.Details, RetryAfter: err.RetryAfter}
+}
+
 func New(config Config) (*Client, error) {
 	baseURL, err := transport.ParseBaseURL("worker", config.BaseURL, config.InsecureDevelopment)
 	if err != nil {
@@ -70,14 +79,22 @@ func New(config Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpClient := transport.HTTPClient(config.HTTPClient)
 	interval := config.FollowInterval
 	if interval <= 0 {
 		interval = 2 * time.Second
 	}
+	executor := &transport.Executor{
+		Plane: "worker", BaseURL: baseURL, HTTPClient: transport.HTTPClient(config.HTTPClient),
+		Credentials: transport.Credentials{ManagementToken: token},
+		Retry: transport.RetryConfig{
+			Enabled: config.EnableRetries, MaxAttempts: retryMaxAttempts,
+			MaxDelay: retryMaxDelay, RetryAfterMax: retryAfterMaxWait,
+		},
+		MaxResponseBytes: maxResponseBytes,
+		PlaneError:       newAPIError,
+	}
 	return &Client{connection: &Connection{
-		baseURL: baseURL, token: token, httpClient: httpClient,
-		retriesEnabled: config.EnableRetries, followInterval: interval,
+		baseURL: baseURL, token: token, followInterval: interval, executor: executor,
 	}}, nil
 }
 
@@ -104,160 +121,21 @@ func withOpenAPIHeaders(ctx context.Context, headers http.Header) context.Contex
 	return context.WithValue(ctx, openAPIHeadersContextKey{}, headers.Clone())
 }
 
-func validateIdempotencyKey(key string) error {
-	if len(key) == 0 || len(key) > 128 {
-		return errors.New("postgrip-worker: idempotency key must contain 1 to 128 visible ASCII characters")
-	}
-	for _, value := range key {
-		if value < 0x21 || value > 0x7e {
-			return errors.New("postgrip-worker: idempotency key must contain visible ASCII only")
-		}
-	}
-	return nil
-}
-
+// doOpenAPI runs a generated operation through the shared executor. Worker
+// forwards only the caller's Idempotency-Key; other caller headers are not sent.
 func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error {
 	operation, err := resolveOpenAPIOperation(id, pathParameters, query)
 	if err != nil {
 		return err
 	}
-	var bodyBytes []byte
-	if body != nil {
-		bodyBytes, err = json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("postgrip-worker: encode request: %w", err)
-		}
-	}
-	idempotencyKey := ""
+	header := http.Header{}
 	if headers, ok := ctx.Value(openAPIHeadersContextKey{}).(http.Header); ok {
-		idempotencyKey = headers.Get("Idempotency-Key")
-	}
-	maxAttempts := 1
-	if c.retriesEnabled && (operation.Method == http.MethodGet || idempotencyKey != "") {
-		maxAttempts = 3
-	}
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		response, requestErr := c.send(ctx, operation, bodyBytes, idempotencyKey)
-		if requestErr != nil {
-			if attempt < maxAttempts && ctx.Err() == nil {
-				if err := waitRetry(ctx, retryDelay(attempt, 0)); err != nil {
-					return err
-				}
-				continue
-			}
-			return requestErr
+		if key := headers.Get("Idempotency-Key"); key != "" {
+			header.Set("Idempotency-Key", key)
 		}
-		responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
-		_ = response.Body.Close()
-		if readErr != nil || len(responseBody) > maxResponseBytes {
-			return errors.New("postgrip-worker: response is invalid or too large")
-		}
-		if response.StatusCode >= 200 && response.StatusCode < 300 {
-			if out == nil || len(bytes.TrimSpace(responseBody)) == 0 {
-				return nil
-			}
-			if err := json.Unmarshal(responseBody, out); err != nil {
-				return fmt.Errorf("postgrip-worker: decode response: %w", err)
-			}
-			return nil
-		}
-		apiErr := decodeAPIError(response, responseBody)
-		if attempt < maxAttempts && retryableStatus(operation.Method, idempotencyKey, response.StatusCode) {
-			if err := waitRetry(ctx, retryDelay(attempt, retryAfterForStatus(response.StatusCode, apiErr.RetryAfter))); err != nil {
-				return err
-			}
-			continue
-		}
-		return apiErr
 	}
-	return errors.New("postgrip-worker: request attempts exhausted")
-}
-
-func (c *Connection) send(ctx context.Context, operation openAPIOperation, body []byte, idempotencyKey string) (*http.Response, error) {
-	endpoint, err := url.Parse(strings.TrimRight(c.baseURL.String(), "/") + operation.Path)
-	if err != nil {
-		return nil, fmt.Errorf("postgrip-worker: resolve operation URL: %w", err)
-	}
-	request, err := http.NewRequestWithContext(ctx, operation.Method, endpoint.String(), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	request.Header.Set("Accept", "application/json")
-	if len(body) > 0 {
-		request.Header.Set("Content-Type", "application/json")
-	}
-	if operation.AuthLane == "worker-management" {
-		request.Header.Set("Authorization", "Bearer "+c.token)
-	}
-	if idempotencyKey != "" {
-		request.Header.Set("Idempotency-Key", idempotencyKey)
-	}
-	return c.httpClient.Do(request)
-}
-
-func decodeAPIError(response *http.Response, body []byte) *APIError {
-	payload := OpenAPIErrorResponse{}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		payload = OpenAPIErrorResponse{}
-	}
-	code := strings.TrimSpace(payload.Code)
-	if code == "" {
-		code = "HTTP_ERROR"
-	}
-	message := strings.TrimSpace(payload.Message)
-	if message == "" {
-		message = http.StatusText(response.StatusCode)
-	}
-	requestID := strings.TrimSpace(payload.RequestId)
-	if requestID == "" {
-		requestID = strings.TrimSpace(response.Header.Get("X-Request-ID"))
-	}
-	return &APIError{StatusCode: response.StatusCode, Code: code, Message: message,
-		RequestID: requestID, Details: payload.Details, RetryAfter: parseRetryAfter(response.Header.Get("Retry-After"))}
-}
-
-func parseRetryAfter(value string) time.Duration {
-	value = strings.TrimSpace(value)
-	if seconds, err := strconv.Atoi(value); err == nil && seconds >= 0 {
-		return min(time.Duration(seconds)*time.Second, 30*time.Second)
-	}
-	if when, err := http.ParseTime(value); err == nil {
-		return min(max(time.Until(when), 0), 30*time.Second)
-	}
-	return 0
-}
-
-func retryableStatus(method, key string, status int) bool {
-	if method != http.MethodGet && key == "" {
-		return false
-	}
-	return status == 408 || status == 429 || status == 502 || status == 503 || status == 504
-}
-
-func retryAfterForStatus(status int, retryAfter time.Duration) time.Duration {
-	if status == http.StatusTooManyRequests || status == http.StatusServiceUnavailable {
-		return retryAfter
-	}
-	return 0
-}
-
-func retryDelay(attempt int, retryAfter time.Duration) time.Duration {
-	if retryAfter > 0 {
-		return min(retryAfter, 30*time.Second)
-	}
-	capDelay := min(200*time.Millisecond*time.Duration(1<<(attempt-1)), 2*time.Second)
-	return time.Duration(rand.Int63n(max(int64(capDelay), 1)))
-}
-
-func waitRetry(ctx context.Context, delay time.Duration) error {
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
+	_, err = c.executor.Do(ctx, transport.Call{Operation: operation, Header: header, Body: body}, out)
+	return err
 }
 
 type ListWorkersOptions struct {
@@ -279,9 +157,6 @@ func (c *Client) Get(ctx context.Context, workerID string) (Worker, error) {
 // calling Create so a lost response can be replayed without creating a second
 // Worker.
 func (c *Client) Create(ctx context.Context, request CreateWorkerRequest, idempotencyKey string) (CreateWorkerResponse, error) {
-	if err := validateIdempotencyKey(idempotencyKey); err != nil {
-		return CreateWorkerResponse{}, err
-	}
 	return c.OpenAPI().CreateWorker(ctx, OpenAPICreateWorkerHeaders{IdempotencyKey: idempotencyKey}, request)
 }
 
@@ -306,29 +181,17 @@ func (c *Client) SecurityLogs(ctx context.Context, workerID string, query OpenAP
 }
 
 func (c *Client) Check(ctx context.Context, workerID, idempotencyKey string) (CheckWorkerResponse, error) {
-	if err := validateIdempotencyKey(idempotencyKey); err != nil {
-		return CheckWorkerResponse{}, err
-	}
 	return c.OpenAPI().CheckWorker(ctx, workerID, OpenAPICheckWorkerHeaders{IdempotencyKey: idempotencyKey})
 }
 
 func (c *Client) Maintenance(ctx context.Context, workerID, idempotencyKey string) (WorkerOperationResponse, error) {
-	if err := validateIdempotencyKey(idempotencyKey); err != nil {
-		return WorkerOperationResponse{}, err
-	}
 	return c.OpenAPI().PlaceWorkerInMaintenance(ctx, workerID, OpenAPIPlaceWorkerInMaintenanceHeaders{IdempotencyKey: idempotencyKey})
 }
 
 func (c *Client) Resume(ctx context.Context, workerID, idempotencyKey string) (WorkerOperationResponse, error) {
-	if err := validateIdempotencyKey(idempotencyKey); err != nil {
-		return WorkerOperationResponse{}, err
-	}
 	return c.OpenAPI().ResumeWorkerFromMaintenance(ctx, workerID, OpenAPIResumeWorkerFromMaintenanceHeaders{IdempotencyKey: idempotencyKey})
 }
 
 func (c *Client) Upgrade(ctx context.Context, workerID, idempotencyKey string) (UpgradeWorkerResponse, error) {
-	if err := validateIdempotencyKey(idempotencyKey); err != nil {
-		return UpgradeWorkerResponse{}, err
-	}
 	return c.OpenAPI().UpgradeWorker(ctx, workerID, OpenAPIUpgradeWorkerHeaders{IdempotencyKey: idempotencyKey})
 }

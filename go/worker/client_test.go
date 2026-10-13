@@ -173,20 +173,6 @@ func TestTypedErrorAndRetriesDisabledByDefault(t *testing.T) {
 	}
 }
 
-func TestRetryAfterOnlyControlsRateLimitAndServiceUnavailableBackoff(t *testing.T) {
-	retryAfter := 30 * time.Second
-	for _, status := range []int{http.StatusTooManyRequests, http.StatusServiceUnavailable} {
-		if got := retryAfterForStatus(status, retryAfter); got != retryAfter {
-			t.Fatalf("retryAfterForStatus(%d) = %s, want %s", status, got, retryAfter)
-		}
-	}
-	for _, status := range []int{http.StatusRequestTimeout, http.StatusBadGateway, http.StatusGatewayTimeout} {
-		if got := retryAfterForStatus(status, retryAfter); got != 0 {
-			t.Fatalf("retryAfterForStatus(%d) = %s, want 0", status, got)
-		}
-	}
-}
-
 func TestMalformedErrorUsesSafeCodeAndRequestHeader(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("X-Request-ID", "req-fallback")

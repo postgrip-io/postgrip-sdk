@@ -1261,9 +1261,10 @@ def go_source(rows: list[dict[str, Any]], digest: str, bundle_digest: str) -> st
     for row in rows:
         parameters = ", ".join(json.dumps(value) for value in row["parameters"])
         table_rows.append(
-            f'\topenAPI{go_name(row["id"])}: {{Method: {json.dumps(row["method"])}, '
+            f'\topenAPI{go_name(row["id"])}: {{ID: {json.dumps(row["id"])}, Method: {json.dumps(row["method"])}, '
             f'Path: {json.dumps(row["path"])}, AuthLane: {json.dumps(row["auth"])}, '
-            f'Safety: {json.dumps(row["safety"])}, Retry: {json.dumps(row["retry"])}, '
+            f'Safety: {json.dumps(row["safety"])}, Idempotency: {json.dumps(row["idempotency"])}, '
+            f'Pagination: {json.dumps(row["pagination"])}, Retry: {json.dumps(row["retry"])}, '
             f'Signing: {json.dumps(row["signing"])}, StreamingRequest: {str(row["streaming"]).lower()}, '
             f'WebSocket: {str(row["websocket"]).lower()}, RequestSchema: {json.dumps(schema_label(row["request_schema"]))}, '
             f'ResponseSchema: {json.dumps(schema_label(row["response_schema"]))}, PathParameters: []string{{{parameters}}}}},'
@@ -1276,6 +1277,8 @@ import (
 \t"fmt"
 \t"net/url"
 \t"strings"
+
+\t"github.com/postgrip-io/postgrip-agent-sdks/go/internal/transport"
 )
 
 const (
@@ -1295,33 +1298,19 @@ const (
 {custom_parameter_constants}
 )
 
-type openAPIOperation struct {{
-\tMethod           string
-\tPath             string
-\tAuthLane         string
-\tSafety           string
-\tRetry            string
-\tSigning          string
-\tStreamingRequest bool
-\tWebSocket        bool
-\tRequestSchema    string
-\tResponseSchema   string
-\tPathParameters   []string
-}}
-
-var openAPIOperationTable = map[openAPIOperationID]openAPIOperation{{
+var openAPIOperationTable = map[openAPIOperationID]transport.Operation{{
 {chr(10).join(table_rows)}
 }}
 
-func resolveOpenAPIOperation(id openAPIOperationID, pathParameters map[string]string, query url.Values) (openAPIOperation, error) {{
+func resolveOpenAPIOperation(id openAPIOperationID, pathParameters map[string]string, query url.Values) (transport.Operation, error) {{
 \toperation, ok := openAPIOperationTable[id]
 \tif !ok {{
-\t\treturn openAPIOperation{{}}, fmt.Errorf("postgrip-agent: unknown OpenAPI operation %q", id)
+\t\treturn transport.Operation{{}}, fmt.Errorf("postgrip-agent: unknown OpenAPI operation %q", id)
 \t}}
 \tfor _, name := range operation.PathParameters {{
 \t\tvalue, exists := pathParameters[name]
 \t\tif !exists {{
-\t\t\treturn openAPIOperation{{}}, fmt.Errorf("postgrip-agent: OpenAPI operation %q requires path parameter %q", id, name)
+\t\t\treturn transport.Operation{{}}, fmt.Errorf("postgrip-agent: OpenAPI operation %q requires path parameter %q", id, name)
 \t\t}}
 \t\toperation.Path = strings.ReplaceAll(operation.Path, "{{"+name+"}}", url.PathEscape(value))
 \t}}

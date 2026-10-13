@@ -63,10 +63,11 @@ implementation. These APIs do not yet offer one common timeout setting across
 languages.
 
 Root retry options currently reach Worker and Service only. Agent ordinary
-HTTP exchanges do not automatically retry. Service eligibility uses generated
-retry/safety metadata plus an idempotency key for mutations; Worker currently
-uses GET-or-idempotency-key eligibility, which matches its current contract
-operations. Retries remain opt-in, with attempt counts bounded by the plane
+HTTP exchanges do not automatically retry. Service and Go Worker eligibility
+use generated retry/safety metadata plus an idempotency key for mutations.
+TypeScript and Python Worker currently use GET-or-idempotency-key eligibility,
+which selects the same requests for Worker's current contract operations.
+Retries remain opt-in, with attempt counts bounded by the plane
 implementation; delay limits are not yet uniform across planes and languages.
 The required contract-driven boundary is specified in
 [architecture](development/architecture.md); transport consolidation does not
@@ -74,8 +75,10 @@ make proposed timeout or Agent retry behavior available today.
 
 Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
-request on retries or response loss. Service administration writes may
-additionally require the current `If-Match` value.
+request on retries or response loss. Go Worker rejects a missing or invalid
+key on these operations before sending, including through its generated
+low-level client. Service administration writes may additionally require the
+current `If-Match` value.
 
 Do not blindly retry protocol operations, signed Agent runtime mutations,
 archive transfers, or WebSocket sessions. Their generated pages name the
