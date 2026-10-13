@@ -519,3 +519,18 @@ describe('sandbox wait and session preconditions', () => {
     expect(receivedHeaders?.authorization).toBe('Bearer mgmt-token');
   });
 });
+
+describe('sandbox module ownership', () => {
+  it('keeps every previously exported runtime name importable from sandbox.js', async () => {
+    const sandbox = await import('../../src/agent/sandbox.js');
+    expect(Object.keys(sandbox).sort()).toEqual([
+      'SANDBOX_EXEC_CLOSE_STATUS_BASE',
+      'SANDBOX_EXEC_CLOSE_STATUS_MAX',
+      'SANDBOX_RELAY_MAX_FRAME_BYTES',
+      'SandboxClient',
+      'SandboxSession',
+      'sandboxExecExitCode',
+      'sandboxRelayUrl',
+    ]);
+  });
+});
