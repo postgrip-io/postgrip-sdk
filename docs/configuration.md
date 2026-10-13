@@ -33,6 +33,15 @@ They do not import or initialize the root facade or another plane.
 
 ## Timeouts, retries, and idempotency
 
+Go's ordinary HTTP exchanges default to 30 seconds, including when a custom
+`http.Client` has a nonpositive timeout. Positive custom client timeouts are
+preserved without mutating that client; earlier context deadlines still win.
+Agent's `RequestTimeout` configures the ordinary timeout only when no custom
+`HTTPClient` is supplied. Workspace uploads use a separate 30-minute deadline
+when the call's context has none; an explicit context deadline overrides that
+default, including for uploads needing longer. Uploads remain independent of
+the ordinary request timeout.
+
 The root clients expose common timeout and opt-in retry configuration. Plane
 adapters retain operation-specific retry ceilings and only retry operations
 the contract marks safe. Mutations that require idempotency use a fresh
