@@ -1,0 +1,1763 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unified Agent, Worker, and Service SDK documentation">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Unified sdk implementation plan - PostGrip SDKs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#unified-postgrip-sdk-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PostGrip SDKs" class="md-header__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostGrip SDKs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Unified sdk implementation plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PostGrip SDKs" class="md-nav__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostGrip SDKs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../curl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secure cURL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../live-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Live testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#workstreams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workstreams
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gated-development-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gated development model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gated development model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-gate-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase gate procedure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#corrective-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Corrective loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase reports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gate-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#final-integration-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final integration gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coordinated-server-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coordinated server repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repository-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository target
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#source-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-0-server-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 0: server prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 0: server prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#common-tenant-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common tenant token
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operation-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operation classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-runtime-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent runtime bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#protocol-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Protocol consumers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1-generation-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: generation and metadata
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1: generation and metadata">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operation-inventory-and-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operation inventory and annotations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2-package-consolidation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: package consolidation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: package consolidation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#root-facade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root facade
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handwritten-client-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handwritten client split
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-3-detailed-api-documentation-and-curl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: detailed API documentation and cURL
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3: detailed API documentation and cURL">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secure-curl-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secure cURL template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#versioned-publication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioned publication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4-exhaustive-endpoint-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: exhaustive endpoint tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 4: exhaustive endpoint tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pull-request-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull-request gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nightly-disposable-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nightly disposable integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre-release-protocol-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-release protocol integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#production-smoke-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production smoke tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coverage-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coverage report
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-5-ci-and-release-cutover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: CI and release cutover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#landing-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Landing sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>Historical record. Original status, findings and validation below describe
+the recorded revision, not current policy or current release clearance. See
+<a href="../../">current owners</a> and <a href="../../releasing/">release gates</a>.</p>
+</blockquote>
+<h1 id="unified-postgrip-sdk-implementation-plan">Unified PostGrip SDK Implementation Plan</h1>
+<p>Status: Active — Phase 0 passed on 2026-08-25</p>
+<p>This plan implements the decisions in
+<a href="../unified-sdk-design/">Unified PostGrip SDK Design</a>. The design is normative
+for public behavior and security boundaries. This document owns sequencing,
+source moves, test infrastructure, documentation generation, and release
+cutover.</p>
+<h2 id="workstreams">Workstreams</h2>
+<p>The cutover has five coordinated workstreams:</p>
+<ol>
+<li>Server authentication and contract standardization.</li>
+<li>Contract generation and detailed API documentation.</li>
+<li>Go, TypeScript, and Python package consolidation.</li>
+<li>Exhaustive endpoint, cURL, and protocol testing.</li>
+<li>CI, documentation hosting, and coordinated release automation.</li>
+</ol>
+<p>The unified SDK must not ship before the server workstream is deployed.
+Packaging one credential into three current clients does not create a common
+authorization model.</p>
+<h2 id="gated-development-model">Gated development model</h2>
+<p>Development occurs on one SDK feature branch, using phase-scoped commits. No
+SDK pull request is opened until all six phase gates and the final integration
+gate pass.</p>
+<p>The next phase may begin only when the current phase report has status <code>PASS</code>.
+If the implementation deviates from the normative design or this plan, work
+stops at the current gate and follows the corrective loop below. There are no
+silent waivers.</p>
+<h3 id="phase-gate-procedure">Phase gate procedure</h3>
+<p>At the end of every phase:</p>
+<ol>
+<li>Freeze the phase scope and record the design revision, server contract
+   commits, and contract-bundle digest used for the work.</li>
+<li>Run the phase-specific checks plus all cumulative regression checks from
+   earlier phases.</li>
+<li>Compare the code, generated output, package contents, documentation, and
+   tests with every applicable normative design requirement.</li>
+<li>Update the design traceability matrix with the implementing files and test
+   evidence for each requirement.</li>
+<li>Record every deviation and classify it as an implementation defect, a
+   missing design decision, or a newly discovered constraint.</li>
+<li>Complete the corrective action, rerun the affected checks, and repeat the
+   conformance review.</li>
+<li>Mark the gate <code>PASS</code> only when all required evidence is present and there
+   are zero unresolved deviations.</li>
+</ol>
+<p>A gate with missing evidence is <code>BLOCKED</code>, not provisionally passed. Later
+work must not be used to conceal or defer a failed earlier gate.</p>
+<h3 id="corrective-loop">Corrective loop</h3>
+<p>An implementation defect is corrected in code and tests without changing the
+design. A missing or infeasible design decision is handled by updating and
+reviewing the design first, then correcting the implementation. An intentional
+change in direction is not an exception: it becomes a documented design
+revision and all affected earlier gates are rerun.</p>
+<p>Corrective work stays in the current phase. If a later phase exposes a prior
+phase defect, reopen the earliest affected gate, correct it, rerun that gate
+and every dependent cumulative check, then resume the later phase.</p>
+<h3 id="phase-reports">Phase reports</h3>
+<p>Commit one report per gate under:</p>
+<div class="highlight"><pre><span></span><code>docs/unified-sdk-phase-reports/
+  phase-0-server.md
+  phase-1-generation.md
+  phase-2-packages.md
+  phase-3-documentation.md
+  phase-4-endpoints.md
+  phase-5-release.md
+  final-integration.md
+</code></pre></div>
+<p>Each report contains:</p>
+<div class="highlight"><pre><span></span><code>status
+design and plan revision
+server contract commits and contract-bundle digest
+phase scope and delivered files
+requirement -&gt; implementation -&gt; test evidence matrix
+commands run and summarized results
+artifact and coverage reports
+deviations found
+corrective actions completed
+remaining risks (not unresolved deviations)
+reviewer and completion date
+</code></pre></div>
+<p>Reports contain no credentials, customer data, or unredacted live test output.</p>
+<h3 id="gate-criteria">Gate criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Required evidence before continuing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 0</td>
+<td>Registry name availability and ownership are recorded; server contracts implement common auth, operation classes, standardized errors, Agent bootstrap, and global-admin separation; disposable server environment passes auth tests; protocol consumers are inventoried</td>
+</tr>
+<tr>
+<td>Phase 1</td>
+<td>Generation is deterministic; every operation is represented; annotation schemas and drift checks pass; no duplicate generated trees exist</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>Exactly three installable artifacts build; root and direct imports work; import boundaries and full native tests pass; protocol consumers build against the new path</td>
+</tr>
+<tr>
+<td>Phase 3</td>
+<td>Every operation has digest-matched reference documentation; secure cURL examples pass recorded conformance; documentation links and examples are drift-free</td>
+</tr>
+<tr>
+<td>Phase 4</td>
+<td>Every public operation has recorded test ownership; cURL or protocol coverage has zero unexplained gaps; required disposable and isolated live suites pass</td>
+</tr>
+<tr>
+<td>Phase 5</td>
+<td>Three release workflows pass dry runs; version and digest match across artifacts; obsolete release paths are gone; artifact contents and size reports pass</td>
+</tr>
+</tbody>
+</table>
+<h3 id="final-integration-gate">Final integration gate</h3>
+<p>After Phase 5, run the complete validation from a clean checkout and clean
+tool caches. Recheck every design acceptance criterion, every phase report,
+the final source tree, installed artifacts, detailed documentation, recorded
+operation coverage, and required live suites.</p>
+<p>The final gate passes only when:</p>
+<ul>
+<li>every phase report is <code>PASS</code> at the final design revision;</li>
+<li>the traceability matrix covers every acceptance criterion;</li>
+<li>no unresolved deviation, stale compatibility path, or unexplained operation
+  exception remains;</li>
+<li>the coordinated server contract commits are fixed and tested;</li>
+<li>the full CI-equivalent command set passes from a clean checkout;</li>
+<li>the proposed PR diff contains only the reviewed unified-SDK work.</li>
+</ul>
+<p>Only then is the SDK pull request opened. The PR includes links to the design,
+implementation plan, all gate reports, generated coverage report, test results,
+and the coordinated server change.</p>
+<h3 id="coordinated-server-repository">Coordinated server repository</h3>
+<p>The canonical server contracts live in a different repository, so one SDK PR
+cannot contain the Phase 0 server implementation. Server work is developed on
+a coordinated server branch and deployed to an isolated integration
+environment for the SDK phase gates.</p>
+<p>At final integration, either the server change is already merged and deployed,
+or a linked server PR and the SDK PR are opened together. Merge order is server
+first and SDK second; the unified SDK is not released until the server change
+is deployed. The commitment to one end-of-work PR applies to this SDK
+repository and does not hide the required cross-repository change.</p>
+<h2 id="repository-target">Repository target</h2>
+<div class="highlight"><pre><span></span><code>contracts/
+  agent-openapi.json
+  worker-openapi.json
+  service-openapi.json
+
+go/
+  go.mod
+  client.go
+  agent/
+  worker/
+  service/
+  protocol/
+  internal/
+
+typescript/
+  package.json
+  src/
+    client.ts
+    agent/
+    worker/
+    service/
+    internal/
+  test/
+
+python/
+  pyproject.toml
+  src/postgrip/
+    __init__.py
+    client.py
+    agent/
+    worker/
+    service/
+    _internal/
+  test/
+
+docs/
+  api/
+  unified-sdk-design.md
+  unified-sdk-implementation-plan.md
+  unified-sdk-phase-reports/
+
+scripts/
+test/
+  operation-tests.json
+  operation-notes.json
+</code></pre></div>
+<h2 id="source-mapping">Source mapping</h2>
+<p>Use <code>git mv</code> so file history remains inspectable.</p>
+<table>
+<thead>
+<tr>
+<th>Current path</th>
+<th>Target path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>go/client/</code></td>
+<td><code>go/agent/client/</code></td>
+<td>Agent application client</td>
+</tr>
+<tr>
+<td><code>go/activity/</code></td>
+<td><code>go/agent/activity/</code></td>
+<td>Workflow activities</td>
+</tr>
+<tr>
+<td><code>go/workflow/</code></td>
+<td><code>go/agent/workflow/</code></td>
+<td>Workflow runtime</td>
+</tr>
+<tr>
+<td><code>go/worker/</code></td>
+<td><code>go/agent/worker/</code></td>
+<td>Agent runtime worker</td>
+</tr>
+<tr>
+<td><code>go/failure/</code></td>
+<td><code>go/agent/failure/</code></td>
+<td>Agent failures</td>
+</tr>
+<tr>
+<td><code>go/internal/</code></td>
+<td><code>go/agent/internal/</code> or <code>go/internal/</code></td>
+<td>Agent-only or shared internals</td>
+</tr>
+<tr>
+<td><code>go/workerclient/</code></td>
+<td><code>go/worker/</code></td>
+<td>Worker management</td>
+</tr>
+<tr>
+<td><code>go/serviceclient/</code></td>
+<td><code>go/service/</code></td>
+<td>Service management</td>
+</tr>
+<tr>
+<td><code>protocol/</code></td>
+<td><code>go/protocol/</code></td>
+<td>Runtime wire contract in unified Go module</td>
+</tr>
+<tr>
+<td><code>typescript/src/</code></td>
+<td><code>typescript/src/agent/</code></td>
+<td>Existing Agent implementation except root facade</td>
+</tr>
+<tr>
+<td><code>typescript-worker/src/</code></td>
+<td><code>typescript/src/worker/</code></td>
+<td>Worker management</td>
+</tr>
+<tr>
+<td><code>typescript-service/src/</code></td>
+<td><code>typescript/src/service/</code></td>
+<td>Service management</td>
+</tr>
+<tr>
+<td><code>python/src/postgrip_agent/</code></td>
+<td><code>python/src/postgrip/agent/</code></td>
+<td>Agent namespace</td>
+</tr>
+<tr>
+<td><code>python-worker/src/postgrip_worker/</code></td>
+<td><code>python/src/postgrip/worker/</code></td>
+<td>Worker namespace</td>
+</tr>
+<tr>
+<td><code>python-service/src/postgrip_service/</code></td>
+<td><code>python/src/postgrip/service/</code></td>
+<td>Service namespace</td>
+</tr>
+<tr>
+<td><code>openapi.json</code></td>
+<td><code>contracts/agent-openapi.json</code></td>
+<td>Agent contract mirror</td>
+</tr>
+<tr>
+<td><code>worker-openapi.json</code></td>
+<td><code>contracts/worker-openapi.json</code></td>
+<td>Worker contract mirror</td>
+</tr>
+<tr>
+<td><code>service-openapi.json</code></td>
+<td><code>contracts/service-openapi.json</code></td>
+<td>Service contract mirror</td>
+</tr>
+</tbody>
+</table>
+<p>The top-level <code>worker</code> namespace means Worker management. The Agent runtime
+worker remains below <code>agent/worker</code> in every language.</p>
+<h2 id="phase-0-server-prerequisites">Phase 0: server prerequisites</h2>
+<p>The coordinated server change must be implemented, contract-tested, and
+deployed to an isolated integration environment before SDK consolidation
+continues. It must be merged and deployed to production before the unified SDK
+PR merges or any unified artifact is published.</p>
+<p>Before source work begins, verify <code>@postgrip/sdk</code> on npm and <code>postgrip</code> on PyPI
+and record the registry owners responsible for them. Both registry metadata
+endpoints returned <code>404 Not Found</code> on 2026-08-25. Reservation requires an
+authorized registry identity and is therefore a pre-merge release-owner gate,
+not a source-development mutation. The final PR must remain blocked from merge
+and release until the PostGrip organization supplies reservation evidence for
+both names; package publication is never performed merely to make a phase
+report pass.</p>
+<h3 id="common-tenant-token">Common tenant token</h3>
+<ul>
+<li>Define one tenant-bound management security scheme for Agent, Worker, and
+  Service management operations.</li>
+<li>Issue URL-safe printable-ASCII token values without whitespace, quotes,
+  backslashes, or control characters.</li>
+<li>Permit a token to carry concrete grants from multiple planes.</li>
+<li>Add a complete Agent management scope matrix.</li>
+<li>Preserve server-side tenant derivation and reject tenant overrides in request
+  data.</li>
+<li>Use stable authentication and authorization error codes.</li>
+<li>Serve the three deployed public contracts from predictable OpenAPI URLs.</li>
+</ul>
+<h3 id="operation-classification">Operation classification</h3>
+<p>Classify every route as one of:</p>
+<ul>
+<li>public;</li>
+<li>tenant API;</li>
+<li>delegated Agent runtime;</li>
+<li>global administration.</li>
+</ul>
+<p>Record accepted credentials separately from the operation class. Selected
+Agent tenant-API operations continue to accept either the common management
+token or a delegated Agent session; the server applies management scopes to the
+former and Agent namespace, queue, lease, and capability claims to the latter.</p>
+<p>Move global-administration operations out of the public Agent SDK contract and
+into a separately owned internal server-administration contract. The three
+public SDK contracts contain no operation that requires a global-admin token.</p>
+<h3 id="http-behavior">HTTP behavior</h3>
+<p>Standardize the public contracts on an error envelope containing <code>code</code>,
+<code>message</code>, <code>requestId</code>, and optional structured <code>details</code>. Document status
+codes, idempotency, ETags, preview tokens, bounded retries, <code>Retry-After</code>, and
+streaming behavior as operation metadata.</p>
+<p>This does not require renaming every established request or response field.
+Plane-specific pagination and wire naming remain generated from their owning
+contracts.</p>
+<h3 id="agent-runtime-bootstrap">Agent runtime bootstrap</h3>
+<p>The first unified release supports host injection only. A host-managed runtime
+receives:</p>
+<div class="highlight"><pre><span></span><code>POSTGRIP_AGENT_ID
+POSTGRIP_AGENT_ACCESS_TOKEN
+POSTGRIP_AGENT_REFRESH_TOKEN
+POSTGRIP_AGENT_ACCESS_EXPIRES_AT
+POSTGRIP_AGENT_SIGNING_PRIVATE_KEY
+</code></pre></div>
+<p>The SDK loads and refreshes these values internally. There is no management
+token exchange endpoint in this release. Local processes without host-injected
+credentials cannot call delegated runtime routes.</p>
+<h3 id="protocol-consumers">Protocol consumers</h3>
+<p>Before moving <code>protocol/</code>, inventory every repository and service importing
+the current module. Update the orchestrator verifier, host Agent runtime, and
+any other consumers to the unified Go module path. Preserve wire bytes, JSON
+names, and <code>agent-task-v1</code> signing exactly.</p>
+<p>The server import migration and SDK protocol move land as one coordinated
+cutover. Do not stop the old protocol release until every known consumer builds
+against the new location.</p>
+<h2 id="phase-1-generation-and-metadata">Phase 1: generation and metadata</h2>
+<p>Update <code>scripts/generate_openapi.py</code> so plane and language select the target
+output directory. Generated output includes operation IDs, routes, auth class,
+required scopes, safety classification, idempotency, pagination, content
+types, request/response schemas, and contract digest.</p>
+<p>Generated code must not import the root facade. The dependency direction is:</p>
+<div class="highlight"><pre><span></span><code>root facade -&gt; plane client -&gt; shared internal transport
+                         \-&gt; plane generated contract
+</code></pre></div>
+<p>Run generation into the target layout and remove the old generated files in
+the same change. Never retain two writable generated trees.</p>
+<h3 id="operation-inventory-and-annotations">Operation inventory and annotations</h3>
+<p>Generation produces an immutable operation inventory from OpenAPI. It contains
+only derivable facts:</p>
+<div class="highlight"><pre><span></span><code>operation ID, plane, method, path, schemas, auth class, scopes,
+safety class, accepted credentials, protocol class, idempotency, pagination,
+contract digest
+</code></pre></div>
+<p>Checked-in sidecars own human decisions:</p>
+<ul>
+<li><code>test/operation-tests.json</code> records fixtures, cleanup, mock test, live test,
+  cURL eligibility, and approved protocol exception.</li>
+<li><code>test/operation-notes.json</code> records behavioral documentation keyed by stable
+  operation ID.</li>
+</ul>
+<p>Both sidecars have closed JSON schemas. CI fails on unknown operation IDs,
+duplicate keys, missing required ownership, stale entries, or exceptions
+without a reason and owner.</p>
+<h2 id="phase-2-package-consolidation">Phase 2: package consolidation</h2>
+<h3 id="go">Go</h3>
+<ul>
+<li>Retain only <code>go/go.mod</code>.</li>
+<li>Move the protocol, Worker, and Service packages into that module.</li>
+<li>Remove nested <code>go.mod</code> files after imports are updated.</li>
+<li>Simplify or remove <code>go.work</code> when only one module remains.</li>
+<li>Add a root <code>postgrip.Client</code> facade with <code>Agent</code>, <code>Workers</code>, and <code>Services</code>.</li>
+<li>Keep direct plane package imports supported within the same module.</li>
+<li>Run tests both normally and with <code>GOWORK=off</code> during the transition.</li>
+</ul>
+<h3 id="typescript">TypeScript</h3>
+<ul>
+<li>Retain one publishable <code>typescript/package.json</code> and lockfile.</li>
+<li>Export the root facade and singular subpaths <code>./agent</code>, <code>./worker</code>, and
+  <code>./service</code> with <code>types</code> and <code>default</code> conditions.</li>
+<li>Add package-content tests for every exported JavaScript and declaration file.</li>
+<li>Ensure importing one subpath does not evaluate another plane or load optional
+  WebSocket code.</li>
+</ul>
+<h3 id="python">Python</h3>
+<ul>
+<li>Retain one <code>python/pyproject.toml</code> and one <code>postgrip</code> package.</li>
+<li>Expose singular modules <code>postgrip.agent</code>, <code>postgrip.worker</code>, and
+  <code>postgrip.service</code>.</li>
+<li>Add <code>PostGrip</code> and <code>AsyncPostGrip</code> root facades.</li>
+<li>Retain one <code>py.typed</code> marker.</li>
+<li>Build and install the wheel before testing imports and all three facades.</li>
+</ul>
+<h3 id="root-facade">Root facade</h3>
+<p>The root facade resolves URLs and <code>POSTGRIP_TOKEN</code>, constructs each plane
+client, and exposes them through stable properties. It delegates operations and
+does not duplicate generated methods or models.</p>
+<p>Plane clients remain directly testable and must not import the root facade.
+Import-boundary tests enforce this rule.</p>
+<h3 id="shared-transport">Shared transport</h3>
+<p>Extract only mechanics shared by all planes:</p>
+<ul>
+<li>URL normalization and HTTPS enforcement;</li>
+<li>bearer injection and cross-origin redirect protection;</li>
+<li>cancellation and bounded response reads;</li>
+<li>structured error decoding;</li>
+<li>bounded retry and <code>Retry-After</code> parsing;</li>
+<li>idempotency-key validation;</li>
+<li>cursor/page iteration primitives;</li>
+<li>JSON encoding and content-type validation;</li>
+<li>request ID propagation and user-agent construction.</li>
+</ul>
+<p>Contract-specific limits, field names, routes, and domain models remain with
+their plane. Do not unify similar wire types without a canonical contract
+change.</p>
+<h3 id="handwritten-client-split">Handwritten client split</h3>
+<p>Split large handwritten files behind the new namespaces:</p>
+<div class="highlight"><pre><span></span><code>agent:   tasks, workflows, schedules, sandboxes, runtime
+worker:  inventory, jobs, logs, operations
+service: inventory, deployments, runtime, logs, administration
+</code></pre></div>
+<p>Keep generated low-level clients separate from ergonomic facades. Isolate
+archive, streaming, signing, and WebSocket adapters from ordinary JSON
+operations.</p>
+<h2 id="phase-3-detailed-api-documentation-and-curl">Phase 3: detailed API documentation and cURL</h2>
+<p>Add <code>scripts/generate_api_docs.py</code>. It renders:</p>
+<ul>
+<li>a plane and resource index;</li>
+<li>one detailed page per operation;</li>
+<li>parameter and schema tables;</li>
+<li>request, response, and error examples;</li>
+<li>required scopes and credential class;</li>
+<li>safety, idempotency, retry, pagination, and lifecycle notes;</li>
+<li>secure cURL plus Go, TypeScript, and Python examples;</li>
+<li>the exact contract digest.</li>
+</ul>
+<p><code>--check</code> renders into a temporary directory and compares output without
+modifying the worktree.</p>
+<h3 id="secure-curl-template">Secure cURL template</h3>
+<p>Generated examples pass the bearer header through a cURL configuration on
+standard input, not a process argument:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>--config<span class="w"> </span>-<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fail-with-body<span class="w"> </span>--silent<span class="w"> </span>--show-error<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"</span><span class="si">${</span><span class="nv">POSTGRIP_URL</span><span class="si">}</span><span class="s2">/api/v1/workers"</span><span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">header = "Authorization: Bearer ${POSTGRIP_TOKEN}"</span>
+<span class="s">EOF</span>
+</code></pre></div>
+<p>Examples require cURL 7.76 or newer for <code>--fail-with-body</code>. They prohibit shell
+tracing and never contain literal credentials. The test runner passes live
+credentials to cURL over standard input, redacts subprocess output, and never
+adds the expanded bearer value to argv.</p>
+<p>Body examples use inline non-secret JSON or protected temporary files. If
+standard input is needed for the request body, the runner uses a mode-0600
+temporary cURL config and removes it in a <code>finally</code> path.</p>
+<h3 id="versioned-publication">Versioned publication</h3>
+<p>Generation computes one contract-bundle digest over all three public specs.
+The documentation pipeline publishes an immutable reference at:</p>
+<div class="highlight"><pre><span></span><code>/reference/&lt;contract-bundle-digest&gt;/
+</code></pre></div>
+<p><code>/reference/latest/</code> redirects to the newest deployed bundle. Every SDK embeds
+the digest and links to its immutable reference. A release never links to
+documentation generated from an unreleased <code>main</code> contract.</p>
+<h2 id="phase-4-exhaustive-endpoint-tests">Phase 4: exhaustive endpoint tests</h2>
+<p>Add these root scripts:</p>
+<div class="highlight"><pre><span></span><code>python3<span class="w"> </span>scripts/generate_api_docs.py<span class="w"> </span>--check
+python3<span class="w"> </span>scripts/check_operation_coverage.py
+python3<span class="w"> </span>scripts/test_api_endpoints.py<span class="w"> </span>--plane<span class="w"> </span>all
+python3<span class="w"> </span>scripts/test_curl_examples.py<span class="w"> </span>--plane<span class="w"> </span>all
+</code></pre></div>
+<h3 id="pull-request-gate">Pull-request gate</h3>
+<p>Every pull request runs:</p>
+<ul>
+<li>contract and generated-output drift checks;</li>
+<li>operation inventory and annotation validation;</li>
+<li>detailed documentation generation checks;</li>
+<li>all native unit, type, vet, build, and coverage suites;</li>
+<li>recorded HTTP conformance for every operation in every language client;</li>
+<li>a real cURL process for every cURL-eligible management operation;</li>
+<li>dedicated recorded protocol tests for archive, streaming, WebSocket, and
+  signed Agent runtime operations.</li>
+</ul>
+<p>The recording server validates method, path, query, headers, body bytes,
+authentication class, idempotency metadata, and response decoding. It returns
+schema-valid fixtures and performs no real mutation.</p>
+<h3 id="nightly-disposable-integration">Nightly disposable integration</h3>
+<p>Nightly CI runs tenant API operations against an environment marked as
+disposable. The fixture manager creates uniquely prefixed resources, records
+every identifier, and cleans up in reverse dependency order.</p>
+<p>Destructive operations require both the disposable-environment marker and an
+explicit flag. Cleanup uses explicit recorded identifiers, never wildcards. A
+cleanup failure reports remaining identifiers without hiding the original
+failure.</p>
+<h3 id="pre-release-protocol-integration">Pre-release protocol integration</h3>
+<p>Before release, isolated jobs exercise:</p>
+<ul>
+<li>delegated Agent polling, refresh, and signed mutations with a real host
+  runtime fixture;</li>
+<li>archive upload and download;</li>
+<li>continuous logs and cancellation;</li>
+<li>sandbox WebSocket sessions;</li>
+<li>destructive Service lifecycle and administration operations.</li>
+</ul>
+<p>Global administration is tested in the server repository because it is not in
+the public SDK contracts.</p>
+<h3 id="production-smoke-tests">Production smoke tests</h3>
+<p>Production smoke tests use an explicit allowlist of public health and read-only
+operations. They never perform mutation, runtime control, secret writes,
+deletion, or global administration.</p>
+<h3 id="coverage-report">Coverage report</h3>
+<p>CI publishes JSON and Markdown reports with:</p>
+<div class="highlight"><pre><span></span><code>operations | documented | SDK-generated | cURL | protocol exceptions |
+recorded-tested | nightly-owned | pre-release-owned | production-smoke-owned
+</code></pre></div>
+<p>Expected counts are derived from OpenAPI. The gate requires every operation to
+have documentation, generated-client ownership, recorded coverage, and either
+cURL or a justified protocol runner. Approved exceptions are visible and never
+counted as cURL coverage.</p>
+<p>Static reports count live-tier ownership, never execution. Each live workflow
+publishes a cleanup ledger containing the exact contract digest, operation
+results, resource IDs, cleanup status, and remaining IDs. Only a successful
+workflow run plus that ledger is <code>nightly-live</code> or <code>pre-release-live</code> evidence.</p>
+<h2 id="phase-5-ci-and-release-cutover">Phase 5: CI and release cutover</h2>
+<p>Replace plane-specific builds and releases with one validation and publishing
+path per ecosystem:</p>
+<div class="highlight"><pre><span></span><code>publish-go
+publish-typescript
+publish-python
+</code></pre></div>
+<p>All three distributions use one root <code>VERSION</code> and release the same SemVer.
+Release tags remain ecosystem-prefixed:</p>
+<div class="highlight"><pre><span></span><code>go/vX.Y.Z
+typescript/vX.Y.Z
+python/vX.Y.Z
+</code></pre></div>
+<p>Each workflow verifies the tag and shared version, runs all contract and
+recorded gates, builds the artifact, installs or unpacks it, exercises all
+public namespaces, verifies the embedded contract digest, and publishes only
+after every check succeeds.</p>
+<p>Record artifact sizes, dependency changes, build time, and installed smoke
+time. Unexpected material growth requires explicit release approval.</p>
+<h2 id="landing-sequence">Landing sequence</h2>
+<ol>
+<li>Update repository guidance, including <code>AGENTS.md</code>.</li>
+<li>Implement and contract-test the server prerequisites, then deploy them to an
+   isolated integration environment.</li>
+<li>Inventory and migrate protocol consumers.</li>
+<li>Add the generated operation inventory and checked-in annotation schemas.</li>
+<li>Update generation, drift, documentation, and cURL tooling.</li>
+<li>Consolidate the Go module and restore all Go checks.</li>
+<li>Consolidate TypeScript and validate the packed npm artifact.</li>
+<li>Consolidate Python and validate the installed wheel.</li>
+<li>Add root facades and common environment configuration.</li>
+<li>Split oversized handwritten clients behind the new namespaces.</li>
+<li>Add recorded, nightly, pre-release, and production-safe test tiers.</li>
+<li>Consolidate CI, documentation hosting, and release workflows.</li>
+<li>Remove obsolete package roots, manifests, token variables, and workflows.</li>
+<li>Pass the final integration gate and open the linked end-of-work PR or PRs.</li>
+</ol>
+<p>If intermediate commits cannot remain publishable, keep them on one feature
+branch and merge only after the repository passes. Never publish a mixed state
+where one language documents unified authentication while another still
+requires plane-specific credentials.</p>
+<p>No SDK PR is opened during these steps. Phase reports and corrective commits
+remain on the feature branch until the final integration gate passes.</p>
+<h2 id="completion-checklist">Completion checklist</h2>
+<ul>
+<li>Server common-token and standardized-error changes are deployed.</li>
+<li>Global administration is absent from all public SDK contracts.</li>
+<li>Every known protocol consumer uses the unified Go module path.</li>
+<li>Exactly three SDK artifacts are published.</li>
+<li>All three artifacts carry the same version and contract-bundle digest.</li>
+<li>Root and direct plane imports work in every language.</li>
+<li><code>POSTGRIP_TOKEN</code> authenticates all three tenant API planes according
+  to its grants.</li>
+<li>Host-injected Agent runtime credentials refresh and sign correctly.</li>
+<li>Every public operation has generated documentation and recorded coverage.</li>
+<li>Every eligible management operation has a tested secure cURL example.</li>
+<li>Nightly and pre-release live suites pass in disposable environments.</li>
+<li>Package contents, artifact size, dependency inventory, and documentation
+  links are verified before publication.</li>
+<li>All phase reports and the final integration report are <code>PASS</code> against the
+  final design revision with zero unresolved deviations.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

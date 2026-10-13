@@ -1,0 +1,1639 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unified Agent, Worker, and Service SDK documentation">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Simplification report - PostGrip SDKs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#validated-repository-simplification-report" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PostGrip SDKs" class="md-header__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostGrip SDKs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Simplification report
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PostGrip SDKs" class="md-nav__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostGrip SDKs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../curl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secure cURL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../live-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Live testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executive summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-validation-corrections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and validation corrections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scope and validation corrections">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#repository-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-was-validated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What was validated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#material-corrections-to-the-original-report" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Material corrections to the original report
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#go-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Go SDK
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Go SDK">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#g1-worker-and-service-transport-code-shares-structure-but-not-one-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G1. Worker and Service transport code shares structure but not one policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g2-six-protocol-json-method-pairs-are-structurally-redundant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G2. Six protocol JSON method pairs are structurally redundant
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g3-several-public-workflow-options-are-accepted-but-ignored" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G3. Several public workflow options are accepted but ignored
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g4-signalwithstartoptionssignalname-is-redundant-and-ignored" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G4. SignalWithStartOptions.SignalName is redundant and ignored
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g5-pagers-and-log-followers-repeat-the-same-state-machines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G5. Pagers and log followers repeat the same state machines
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g6-worker-idempotency-data-travels-through-two-context-channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G6. Worker idempotency data travels through two context channels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g7-small-private-helpers-can-be-consolidated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G7. Small private helpers can be consolidated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g8-agent-client-forwarding-has-three-layers-in-several-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G8. Agent client forwarding has three layers in several paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g9-service-administration-wrappers-are-generator-shaped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G9. Service administration wrappers are generator-shaped
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g10-protocol-types-lack-production-consumers-in-this-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G10. Protocol types lack production consumers in this repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#g11-example-dotenv-loaders-are-byte-identical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        G11. Example dotenv loaders are byte-identical
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python SDK
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Python SDK">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#p1-worker-and-service-duplicate-transport-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P1. Worker and Service duplicate transport infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p2-test-http-fakes-are-triplicated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P2. Test HTTP fakes are triplicated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p3-query-and-update-execution-duplicate-one-replay-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P3. Query and update execution duplicate one replay flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p4-milestone-formatting-is-duplicated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P4. Milestone formatting is duplicated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p5-pagination-loops-repeat-across-syncasync-and-resource-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P5. Pagination loops repeat across sync/async and resource types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p6-timestamp-parsing-can-use-python-311-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P6. Timestamp parsing can use Python 3.11 behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p7-small-normalization-helpers-repeat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P7. Small normalization helpers repeat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p8-idempotency-key-validation-appears-at-five-call-sites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P8. Idempotency-key validation appears at five call sites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p9-facade-construction-and-environment-factories-contain-smaller-duplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P9. Facade construction and environment factories contain smaller duplication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p10-query-option-conversion-does-avoidable-flattenunflatten-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P10. Query-option conversion does avoidable flatten/unflatten work
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p11-confirmed-private-dead-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P11. Confirmed private dead code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p12-administration-attribute-assignment-is-repetitive-but-type-sensitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P12. Administration attribute assignment is repetitive but type-sensitive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p13-servicereference-validates-at-multiple-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        P13. ServiceReference validates at multiple boundaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typescript-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript SDK
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TypeScript SDK">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#t1-worker-and-service-repeat-transport-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T1. Worker and Service repeat transport code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t2-query-and-update-execution-duplicate-replay-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T2. Query and update execution duplicate replay configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t3-hand-built-query-encoding-overlaps-generated-encoders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T3. Hand-built query encoding overlaps generated encoders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t4-log-following-and-delay-helpers-repeat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T4. Log following and delay helpers repeat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t5-confirmed-package-private-dead-exports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T5. Confirmed package-private dead exports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t6-two-apparently-unused-mirror-types-have-different-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T6. Two apparently unused mirror types have different protection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t7-milestone-construction-and-terminal-error-classification-repeat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T7. Milestone construction and terminal-error classification repeat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t8-service-mutation-helpers-encode-policy-indirectly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T8. Service mutation helpers encode policy indirectly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t9-workflowinfo-has-an-opaque-public-return-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T9. workflowInfo() has an opaque public return type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t10-postgripfromenv-has-unnecessarily-complex-typing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T10. PostGrip.fromEnv has unnecessarily complex typing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#t11-keep-the-signing-module-behind-its-dynamic-import-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T11. Keep the signing module behind its dynamic-import boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scripts-tests-and-repository-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scripts, tests, and repository automation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scripts, tests, and repository automation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s1-stable-contract-helpers-are-duplicated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S1. Stable contract helpers are duplicated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s2-openapi-generation-repeats-plane-dispatch-and-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S2. OpenAPI generation repeats plane dispatch and work
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s3-api-documentation-checks-overlap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3. API documentation checks overlap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s4-checked-in-json-schemas-are-not-the-primary-validators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S4. Checked-in JSON Schemas are not the primary validators
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s5-recording-http-server-harnesses-repeat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S5. Recording HTTP server harnesses repeat
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s6-packageversion-invariants-have-several-owners" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S6. Package/version invariants have several owners
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s7-generator-signature-construction-repeats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S7. Generator signature construction repeats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s8-go-queryheader-emitters-overlap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S8. Go query/header emitters overlap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s9-shell_json-is-dead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S9. shell_json is dead
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s10-recorded-only-mode-flags-removed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S10. Recorded-only --mode flags removed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s11-live-workflows-repeat-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S11. Live workflows repeat setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s12-createworker-documentation-policy-is-distributed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S12. createWorker documentation policy is distributed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#remaining-remediation-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remaining remediation sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-gates-for-implementation-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation gates for implementation work
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>Historical record. Original status, findings and validation below describe
+the recorded revision, not current policy or current release clearance. See
+<a href="../../">current owners</a> and <a href="../../releasing/">release gates</a>.</p>
+</blockquote>
+<h1 id="validated-repository-simplification-report">Validated Repository Simplification Report</h1>
+<p><strong>Validated:</strong> 2026-08-27
+<strong>Branch:</strong> <code>feat/zero-touch-platform-automation</code>
+<strong>Commit reviewed:</strong> <code>981f630</code>
+<strong>Change scope:</strong> tracked repository validation plus the behavior-preserving mechanical refactors listed below. Public API removals, wire changes, retry-policy changes, and generated output changes were deferred.</p>
+<h2 id="executive-summary">Executive summary</h2>
+<p>The original report had a sound central observation: the largest maintainability cost in the tracked repository is repeated transport, pagination, replay, and generator plumbing. It was not valid as written, however, because it counted an untracked local directory as three repository package groups and occasionally treated “no in-repository caller” as proof that a published SDK API was dead.</p>
+<p>This revision uses Git-tracked files as the repository boundary. It excludes generated files from refactor targets, except where the proposed change belongs in the generator. It also separates three materially different kinds of work:</p>
+<ul>
+<li><strong>Mechanical candidate:</strong> private duplication or dead private code; behavior should remain unchanged.</li>
+<li><strong>Behavior decision:</strong> similar implementations already differ, so maintainers must choose and test the intended policy before sharing code.</li>
+<li><strong>API/wire decision:</strong> exported methods, fields, wire types, generated surface, or release automation; local usage searches cannot establish whether removal is compatible.</li>
+</ul>
+<p>The strongest recommendations are:</p>
+<ol>
+<li>Share small, policy-neutral Worker/Service transport primitives in Go, Python, and TypeScript. Consolidate the full retry/request loops only after their intentional behavior differences are documented.</li>
+<li>Remove the structurally redundant Go protocol JSON methods only after adding golden wire tests and correcting the inaccurate timestamp-normalization documentation. Removing the methods changes the exported method set even if <code>encoding/json</code> output remains the same.</li>
+<li>Consolidate query/update execution and milestone construction inside each Agent runtime. These are private duplication, but replay-sensitive paths deserve regression tests.</li>
+<li>Resolve Go fields that are accepted but ignored. Deprecate, reject, or implement them through a coordinated public API change; do not silently delete them.</li>
+<li>Create a small shared contracts/tooling module for stable helpers such as plane metadata, bundle digests, and casing. Preserve the stricter reference-resolution semantics required by the generator.</li>
+</ol>
+<h2 id="execution-status">Execution status</h2>
+<p>This change implements the recommendations that could be made mechanically while preserving the public SDK and wire contracts:</p>
+<ul>
+<li><strong>Go:</strong> shared internal pager and log-follower state machines (G5), removed the duplicate Worker idempotency context channel (G6), and made <code>WaitForTaskCompletion</code> the implementation rather than a wrapper (part of G7).</li>
+<li><strong>Python:</strong> shared HTTP test fakes, replay handler execution, milestone construction, sync/async pagination, idempotency validation, agent-ID/name normalization, and direct Python 3.11 timestamp parsing; simplified workflow search conversion; removed the two confirmed private dead declarations (P2–P8, P10–P11, with P7 limited to the unambiguous helpers).</li>
+<li><strong>TypeScript:</strong> shared replay handler execution, log following, cancellable delay, milestone construction, and terminal-task classification; removed confirmed package-private dead exports; added the named <code>WorkflowInfo</code> return type and simplified <code>PostGrip.fromEnv</code> (T2, T4–T5, T7, T9–T10).</li>
+<li><strong>Tooling:</strong> shared plane/digest/casing helpers, hoisted repeated OpenAPI inventory and row computation, shared the recording-server lifecycle, removed <code>shell_json</code>, and removed the recorded-only <code>--mode</code> option and its documented invocations (S1–S2, S5, S9–S10, limited to the behavior-preserving portions).</li>
+</ul>
+<p>The report's behavior, API/wire, release-automation, and optional style decisions remain recommendations rather than changes. In particular, the plane-specific request/retry loops, protocol JSON method sets, ignored public fields, mirror-type ownership, schema policy, and workflow consolidation were not changed. Generated OpenAPI bindings and reference pages remain byte-for-byte current according to their check modes.</p>
+<h2 id="scope-and-validation-corrections">Scope and validation corrections</h2>
+<h3 id="repository-boundary">Repository boundary</h3>
+<p>At the start of the review, <code>postgrip-agent-sdks/</code> contained <strong>zero tracked files</strong> in this checkout. It was an untracked local tree, as were coverage output and extra generated-reference directories. The original sections 4–6 contained 44 findings against that local tree, and original finding 7.1 counted the same tree again. Those 45 findings are removed from this repository audit.</p>
+<p>Untracked workspace cleanup is an index/worktree hygiene decision, not a source-code simplification finding. It should be performed only after separating intended new source files from disposable local artifacts.</p>
+<h3 id="what-was-validated">What was validated</h3>
+<p>The retained observations were checked against tracked source, tests, public export files, package manifests, the OpenAPI generator, and CI workflow references. The following contract checks passed during validation:</p>
+<div class="highlight"><pre><span></span><code>python3 go/protocol/tools/check_drift.py --self-test
+python3 go/protocol/tools/check_drift.py --monorepo
+
+check_drift self-test OK.
+Drift check OK (59 protocol-backed OpenAPI and 8 runtime-only types verified).
+</code></pre></div>
+<p>That drift check proves the currently configured mirrors agree. It does not prove that a proposed refactor is behavior-preserving.</p>
+<p>After implementation, Go tests (both workspace and <code>GOWORK=off</code>) and <code>go vet</code> passed; TypeScript type checking, build, and 129 tests passed; and Python's 132 discovered unit tests passed with one skip. The all-plane OpenAPI generation check, API documentation generation, operation coverage, 432 recorded SDK endpoint ownership checks, 135 recorded cURL conformance checks, and all three release-artifact inspections also passed. The standalone documented <code>python -m pip wheel</code> command could not be invoked because this environment has no <code>python</code> executable, but <code>check_release_artifacts.py --ecosystem all</code> successfully built and inspected the Python artifact.</p>
+<h3 id="material-corrections-to-the-original-report">Material corrections to the original report</h3>
+<ul>
+<li>The Go protocol contains about 336 lines of custom JSON methods across six types, not approximately 700 lines across two repository protocol packages. The second package was in the untracked local tree.</li>
+<li><code>AgentEnrollmentKey</code> and <code>AgentAuthSession</code> have no production consumers in this repository, but they do have JSON-shape tests in <code>go/protocol/types_test.go</code>. “Zero references including tests” was incorrect.</li>
+<li><code>ActivityTaskPayload</code> is explicitly protected by <code>TRACKED_TYPES</code> in <code>check_drift.py</code>. <code>AgentUpgradeRequest</code> is mirrored in all three languages but is <strong>not</strong> in that list and was not found in the Agent OpenAPI contract. The two types must not be described as having identical drift protection.</li>
+<li>TypeScript’s <code>ActivityTaskPayload</code> and <code>AgentUpgradeRequest</code> declarations are exported from <code>types.ts</code>; they are omitted from the public <code>agent/index.ts</code> barrel. Calling them simply “unexported” was imprecise.</li>
+<li>Service retry options whose defaults equal their maximums are still meaningful because callers can lower the limits. The issue is constrained and asymmetric configuration, not “vacuous” configuration.</li>
+<li>The guarded <code>AbortSignal.any</code>/<code>AbortSignal.timeout</code> fallback is compatibility behavior, not dead code. Removing it saves little and narrows runtime support, so it is not recommended here.</li>
+<li>Public APIs such as <code>ScopedClient</code>, <code>Connection.request</code>, and <code>fromEnv</code> are not dead merely because this repository has no callers. They should be retained unless deprecation is justified using published compatibility requirements and consumer evidence.</li>
+</ul>
+<h2 id="go-sdk">Go SDK</h2>
+<h3 id="g1-worker-and-service-transport-code-shares-structure-but-not-one-policy">G1. Worker and Service transport code shares structure but not one policy</h3>
+<p><strong>Disposition: behavior decision.</strong></p>
+<p><code>go/worker/client.go:120-262</code> and <code>go/service/client.go:165-322</code> repeat request construction, bounded response reads, error decoding, retry-status checks, jitter, waiting, and idempotency handling. The differences are observable:</p>
+<ul>
+<li>Service carries arbitrary generated headers; Worker forwards only the idempotency key.</li>
+<li>Service has configurable retry limits and distinguishes a present zero <code>Retry-After</code>; Worker uses fixed limits and does not preserve that distinction.</li>
+<li>Service handles an overflowing numeric <code>Retry-After</code>; Worker’s <code>strconv.Atoi</code> path does not.</li>
+</ul>
+<p>Treat these as policy differences until proven otherwise. A safe first step is to share pure primitives—visible-ASCII idempotency validation, bounded body reading, retryable-status classification, and cancellable waiting—while leaving plane-specific request policy in each client. Extract a whole shared loop only after table-driven tests define parity and intended differences.</p>
+<h3 id="g2-six-protocol-json-method-pairs-are-structurally-redundant">G2. Six protocol JSON method pairs are structurally redundant</h3>
+<p><strong>Disposition: API/wire decision.</strong></p>
+<p><code>go/protocol/types.go</code> defines custom <code>MarshalJSON</code> and <code>UnmarshalJSON</code> methods for <code>Task</code>, <code>AgentEvent</code>, <code>EnrollAgentRequest</code>, <code>AgentSessionResponse</code>, <code>AgentEnrollmentKey</code>, and <code>AgentAuthSession</code>. Each method copies fields to or from a shadow struct with the same order, types, and JSON tags. No normalization is performed.</p>
+<p><code>go/protocol/CLAUDE.md</code> nevertheless says <code>Task.UnmarshalJSON</code> tolerates legacy epoch-second timestamps. The implementation uses <code>time.Time</code> directly and does not do that. Before removing the methods:</p>
+<ol>
+<li>confirm whether legacy timestamp support is required by the runtime;</li>
+<li>add golden tests for field names, omission behavior, timestamp forms, and representative output bytes;</li>
+<li>update the documentation to match the chosen behavior; and</li>
+<li>account for the fact that direct calls to these exported methods would no longer compile.</li>
+</ol>
+<h3 id="g3-several-public-workflow-options-are-accepted-but-ignored">G3. Several public workflow options are accepted but ignored</h3>
+<p><strong>Disposition: API/wire decision.</strong></p>
+<p><code>go/agent/workflow/workflow.go:65-84</code> exposes <code>ActivityOptions.StartToCloseMs</code>, <code>HeartbeatTimeoutMs</code>, and <code>CancellationType</code>, plus <code>ChildWorkflowOptions.CancellationType</code> and <code>CancellationScope</code>. The execution path at <code>go/agent/worker/workflow_context.go:235-259</code> reads only task queue, lease timeout, and retry fields for activities; repository-wide searches found no reader for the listed fields.</p>
+<p>Choose one outcome per field: implement it in the protocol, reject non-zero values with a clear error, or deprecate it for a later breaking release. Documentation alone should not imply that an ignored option works.</p>
+<h3 id="g4-signalwithstartoptionssignalname-is-redundant-and-ignored">G4. <code>SignalWithStartOptions.SignalName</code> is redundant and ignored</h3>
+<p><strong>Disposition: API decision.</strong></p>
+<p><code>go/agent/client/inputs.go:103-107</code> exposes <code>SignalName</code>, while <code>WorkflowClient.SignalWithStart</code> takes the authoritative signal name as a positional argument and uses only that argument at <code>workflow_client.go:92-105</code>. Setting the option field does not override the positional value. Deprecate the field or redesign the signature in a breaking release; do not describe the current behavior as always sending an empty name.</p>
+<h3 id="g5-pagers-and-log-followers-repeat-the-same-state-machines">G5. Pagers and log followers repeat the same state machines</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p>The five exported pager implementations in <code>go/service/pager.go</code> and <code>go/worker/pager.go</code>, and the three log iterators in <code>go/service/logs.go</code> and <code>go/worker/logs.go</code>, have small repeated cores. Generic internal state machines can sit behind the existing exported wrapper types. Preserve the Service-specific <code>PollAfterMs</code> behavior and all current method signatures.</p>
+<h3 id="g6-worker-idempotency-data-travels-through-two-context-channels">G6. Worker idempotency data travels through two context channels</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p>Every mutating Worker call first stores the key through <code>withIdempotencyKey</code> and then supplies the same key through generated headers. <code>doOpenAPI</code> reads the first value and overwrites it when generated headers are present. Keep one header path and retain validation as a plain helper. Add a retry test proving the key still enables retries for mutations.</p>
+<h3 id="g7-small-private-helpers-can-be-consolidated">G7. Small private helpers can be consolidated</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<ul>
+<li><code>transport.FirstNonEmpty</code>, <code>orDefault</code>, and <code>firstNonEmpty</code> overlap, but trimming behavior differs. Name the semantics explicitly rather than replacing calls mechanically.</li>
+<li><code>WaitForTaskCompletion</code> is a one-line exported wrapper over <code>waitForTaskCompletion</code>; make the exported function the implementation and update the two internal callers.</li>
+<li><code>go/agent/client/json.go</code> and <code>go/agent/worker/helpers.go</code> contain thin renames of <code>jsonenv</code> helpers. Direct calls would reduce indirection, though the line-count benefit is small.</li>
+</ul>
+<h3 id="g8-agent-client-forwarding-has-three-layers-in-several-paths">G8. Agent client forwarding has three layers in several paths</h3>
+<p><strong>Disposition: API decision.</strong></p>
+<p>Sandbox and schedule operations commonly flow through subclient → exported <code>Connection</code> method → generated OpenAPI client. Some middle methods add only pointer conversion, while other connection methods contain authentication or transport behavior. Inventory the methods by behavior before removing a layer. Because <code>Connection</code> methods are public and mirror other SDKs, this is release-level API work rather than a routine internal cleanup.</p>
+<h3 id="g9-service-administration-wrappers-are-generator-shaped">G9. Service administration wrappers are generator-shaped</h3>
+<p><strong>Disposition: generator/API decision.</strong></p>
+<p><code>go/service/administration.go</code> repeats validate-and-delegate wrappers for many operations. Generation could reduce maintenance, but the output would remain public API and must retain comments, signatures, and error behavior. If pursued, change <code>scripts/generate_openapi.py</code>, never the generated files, and require byte-for-byte or intentionally reviewed output diffs.</p>
+<h3 id="g10-protocol-types-lack-production-consumers-in-this-repository">G10. Protocol types lack production consumers in this repository</h3>
+<p><strong>Disposition: API/wire decision.</strong></p>
+<p><code>CompactRequest</code>, <code>CompactResponse</code>, <code>StoreStats</code>, <code>AgentEnrollmentKey</code>, and <code>AgentAuthSession</code> were not found in tracked production code outside their declarations. The latter two are exercised by JSON-shape tests. This is evidence for an ownership review, not proof of dead public API: <code>go/protocol</code> is imported by the external runtime according to its package documentation. Confirm out-of-repository consumers before removal.</p>
+<h3 id="g11-example-dotenv-loaders-are-byte-identical">G11. Example dotenv loaders are byte-identical</h3>
+<p><strong>Disposition: optional mechanical candidate.</strong></p>
+<p><code>go/agent/example/greeting/env.go</code> and <code>go/agent/example/longrun/env.go</code> are byte-identical 50-line files. A shared <code>example/internal</code> package removes duplication, but keeping examples independently copyable may be more valuable. Treat this as an explicit style choice, not urgent debt.</p>
+<h2 id="python-sdk">Python SDK</h2>
+<h3 id="p1-worker-and-service-duplicate-transport-infrastructure">P1. Worker and Service duplicate transport infrastructure</h3>
+<p><strong>Disposition: behavior decision.</strong></p>
+<p><code>python/src/postgrip/worker/client.py</code> and <code>python/src/postgrip/service/client.py</code> repeat cancellation-aware connection classes, redirect control, request/retry loops, response decoding, <code>Retry-After</code> parsing, jitter, and async thread bridging. Their behavior is not identical: Service has configurable limits and finite-value handling that Worker lacks, and cancellation plumbing differs in some followers.</p>
+<p>As in Go, first extract policy-neutral helpers into <code>_internal</code>. Define the plane-specific policy through explicit parameters and tests before moving the complete request loop.</p>
+<h3 id="p2-test-http-fakes-are-triplicated">P2. Test HTTP fakes are triplicated</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p><code>python/test/test_root_client.py</code>, <code>python/test/service/test_client.py</code>, and <code>python/test/worker/test_client.py</code> each define <code>FakeResponse</code>/<code>FakeOpener</code>-style support with small behavioral differences. Move a deliberately feature-complete version under <code>python/test/</code> and keep test-specific behavior explicit.</p>
+<h3 id="p3-query-and-update-execution-duplicate-one-replay-flow">P3. Query and update execution duplicate one replay flow</h3>
+<p><strong>Disposition: mechanical candidate with replay-sensitive tests.</strong></p>
+<p><code>python/src/postgrip/agent/agent.py:165-229</code> repeats validation, history fetch, replay, handler invocation, and completion. A private helper parameterized by task kind can preserve public behavior. Tests should cover missing handlers, replay blocking, handler failures, and completion payloads for both kinds.</p>
+<h3 id="p4-milestone-formatting-is-duplicated">P4. Milestone formatting is duplicated</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p><code>agent/workflow.py</code> and <code>agent/activity.py</code> repeat event-detail and message construction. Keep their public runtime-specific functions separate, as required by package guidance, and share only the pure builder.</p>
+<h3 id="p5-pagination-loops-repeat-across-syncasync-and-resource-types">P5. Pagination loops repeat across sync/async and resource types</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p>There are eight analogous cursor loops in the Service and Worker clients. Shared sync and async iterator helpers can preserve the current public methods. Parameterize the response cursor key (<code>nextCursor</code> versus <code>nextPageToken</code>) rather than hiding it in conditionals.</p>
+<h3 id="p6-timestamp-parsing-can-use-python-311-behavior">P6. Timestamp parsing can use Python 3.11 behavior</h3>
+<p><strong>Disposition: mechanical candidate after focused tests.</strong></p>
+<p><code>agent/client.py:1053-1080</code> manually rewrites <code>Z</code> and truncates fractional seconds. The package requires Python 3.11+, whose <code>datetime.fromisoformat</code> accepts <code>Z</code> and longer fractional components and normalizes to microseconds. Replace the preprocessing only after tests cover <code>Z</code>, explicit offsets, naive values, invalid input, and fractions longer than six digits.</p>
+<h3 id="p7-small-normalization-helpers-repeat">P7. Small normalization helpers repeat</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<ul>
+<li>Six connection methods repeat <code>agent_id or worker_id</code>; centralize the resolution and preserve the current <code>TypeError</code> text.</li>
+<li>Several methods repeat enum-or-string name normalization.</li>
+<li><code>_duration_ms</code> in <code>agent/client.py</code> and <code>_duration_ms_nullable</code> in <code>agent/agent.py</code> are equivalent. The separate <code>_duration_ms</code> in <code>workflow.py</code> converts seconds to milliseconds and should be renamed, not merged blindly.</li>
+</ul>
+<h3 id="p8-idempotency-key-validation-appears-at-five-call-sites">P8. Idempotency-key validation appears at five call sites</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p>Move the repeated visible-ASCII regular expression and error construction to <code>_internal/config.py</code>. Tests should prove identical acceptance and error messages for both planes.</p>
+<h3 id="p9-facade-construction-and-environment-factories-contain-smaller-duplication">P9. Facade construction and environment factories contain smaller duplication</h3>
+<p><strong>Disposition: mechanical candidate; keep public factories.</strong></p>
+<p><code>PostGrip</code> and <code>AsyncPostGrip</code> repeat configuration resolution and Agent construction, differing mainly in the Worker/Service client classes. Their own <code>from_env</code> methods are direct constructor aliases. The plane-specific <code>from_env</code> methods are different: they explicitly read the supplied environment mapping. Share their bodies where useful, but retain public factory names for cross-language consistency unless separately deprecated.</p>
+<h3 id="p10-query-option-conversion-does-avoidable-flattenunflatten-work">P10. Query-option conversion does avoidable flatten/unflatten work</h3>
+<p><strong>Disposition: mechanical candidate with query golden tests.</strong></p>
+<p><code>_generated_workflow_query</code> reconstructs <code>search_attributes</code> immediately after <code>_query_options</code> flattened them. Build the generated query directly for this path. Verify exact query keys and omission behavior before changing wire-adjacent code.</p>
+<h3 id="p11-confirmed-private-dead-code">P11. Confirmed private dead code</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<ul>
+<li><code>T = TypeVar("T")</code> in <code>worker/client.py</code> has no use.</li>
+<li><code>encode_public_key</code> in <code>agent/_signing.py</code> has no tracked caller and is not part of the public Agent export list.</li>
+</ul>
+<p>Delete these with the normal package checks. Do not infer the same status for public <code>Connection.request</code>; it may intentionally be a raw-request escape hatch.</p>
+<h3 id="p12-administration-attribute-assignment-is-repetitive-but-type-sensitive">P12. Administration attribute assignment is repetitive but type-sensitive</h3>
+<p><strong>Disposition: optional mechanical candidate.</strong></p>
+<p>The sync and async <code>ServiceAdministration</code> constructors assign many annotated groups individually. A data-driven <code>setattr</code> loop is shorter, but explicit assignments are friendly to static analysis and navigation. Make this change only if type checking and generated documentation stay equally clear.</p>
+<h3 id="p13-servicereference-validates-at-multiple-boundaries">P13. <code>ServiceReference</code> validates at multiple boundaries</h3>
+<p><strong>Disposition: API behavior decision.</strong></p>
+<p>Moving validation to <code>__post_init__</code> would centralize the invariant, but it changes when hand-built invalid references fail. That is observable behavior. Prefer removing only the provably redundant <code>for_service</code> validation call, or treat constructor validation as an intentional compatibility change with tests.</p>
+<h2 id="typescript-sdk">TypeScript SDK</h2>
+<h3 id="t1-worker-and-service-repeat-transport-code">T1. Worker and Service repeat transport code</h3>
+<p><strong>Disposition: behavior decision.</strong></p>
+<p><code>typescript/src/worker/client.ts</code> and <code>typescript/src/service/client.ts</code> repeat request/retry loops, error decoding, query encoding, idempotency checks, <code>Retry-After</code>, jitter, and abortable delay. Public error classes must remain distinct, and Service retry configuration differs from Worker policy. Start with pure internal helpers; consolidate full control flow only after behavior tables and tests exist.</p>
+<h3 id="t2-query-and-update-execution-duplicate-replay-configuration">T2. Query and update execution duplicate replay configuration</h3>
+<p><strong>Disposition: mechanical candidate with replay-sensitive tests.</strong></p>
+<p><code>agent/agent.ts:270-400</code> contains near-parallel query and update paths, including repeated runtime configuration. A private discriminated helper can reduce drift. Preserve task-specific payload keys, handler maps, event labels, and error codes in tests.</p>
+<h3 id="t3-hand-built-query-encoding-overlaps-generated-encoders">T3. Hand-built query encoding overlaps generated encoders</h3>
+<p><strong>Disposition: wire-adjacent mechanical candidate.</strong></p>
+<p>All three generated plane modules export <code>encodeOpenAPIQuery</code>, while hand-written Agent, Worker, and Service paths still construct query strings locally. Reuse each plane’s generated helper where its typed operation model fits. First add golden tests for arrays, nullish values, <code>search.*</code> maps, and the Worker <code>signal</code> omission; equivalence should not be assumed from similar names.</p>
+<h3 id="t4-log-following-and-delay-helpers-repeat">T4. Log following and delay helpers repeat</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p>Three polling generators have the same loop shape, and multiple delay implementations differ mainly in abort semantics. Share a follower core and explicitly named delay variants such as resolve-on-abort, reject-on-abort, and uninterruptible delay. Do not merge semantically different cancellation behavior into one ambiguous helper.</p>
+<h3 id="t5-confirmed-package-private-dead-exports">T5. Confirmed package-private dead exports</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p><code>nextRetryDelayMs</code> and <code>generateSigningKey</code> are exported from their source modules but have no tracked caller and are not re-exported through the public Agent barrel. Remove them unless direct source-module imports are intentionally supported (the package export map does not expose those modules).</p>
+<h3 id="t6-two-apparently-unused-mirror-types-have-different-protection">T6. Two apparently unused mirror types have different protection</h3>
+<p><strong>Disposition: API/wire decision.</strong></p>
+<p><code>ActivityTaskPayload</code> and <code>AgentUpgradeRequest</code> have no tracked production consumer and are omitted from <code>agent/index.ts</code>. Both are mirrored in Go, TypeScript, and Python, but only <code>ActivityTaskPayload</code> is explicitly in <code>check_drift.py:TRACKED_TYPES</code>. For <code>AgentUpgradeRequest</code>, either remove all three declarations after confirming external protocol consumers, or add it to the drift contract if it remains required.</p>
+<h3 id="t7-milestone-construction-and-terminal-error-classification-repeat">T7. Milestone construction and terminal-error classification repeat</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p>Workflow and activity milestone entry points must remain distinct, but their pure message/details builder can be shared. Likewise, the repeated terminal-task error-message predicate should have one auditable definition. Preserve exact emitted objects and matching rules in tests.</p>
+<h3 id="t8-service-mutation-helpers-encode-policy-indirectly">T8. Service mutation helpers encode policy indirectly</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p><code>ServiceClient.mutate</code> uses a hand-maintained <code>Exclude</code> union, and <code>administrationMutation</code> uses a Boolean to select conditional validation. Replace the Boolean with named helpers or an explicit options object. Ensure the type system still prevents read operations from entering mutation paths.</p>
+<h3 id="t9-workflowinfo-has-an-opaque-public-return-type">T9. <code>workflowInfo()</code> has an opaque public return type</h3>
+<p><strong>Disposition: API-compatible type cleanup.</strong></p>
+<p>The 11-key <code>Omit</code> resolves to four returned fields. A named <code>WorkflowInfo</code> interface improves declarations and prevents accidental widening. Keep it structurally identical and verify the emitted <code>.d.ts</code>.</p>
+<h3 id="t10-postgripfromenv-has-unnecessarily-complex-typing">T10. <code>PostGrip.fromEnv</code> has unnecessarily complex typing</h3>
+<p><strong>Disposition: API-compatible type cleanup.</strong></p>
+<p>Its parameter type is structurally <code>PostGripConfig</code>, and the constructor already resolves the environment. Simplify the type and body while keeping the public factory for consistency. Unlike this root factory, Worker and Service factories explicitly read <code>process.env</code> or a supplied mapping.</p>
+<h3 id="t11-keep-the-signing-module-behind-its-dynamic-import-boundary">T11. Keep the signing module behind its dynamic-import boundary</h3>
+<p><strong>Disposition: retain current design.</strong></p>
+<p><code>connection.ts</code> reconstructs <code>AgentSigningKey</code> through <code>Awaited&lt;ReturnType&lt;...&gt;&gt;</code> because the package-boundary test rejects even a type-only static dependency on <code>_signing.ts</code>. Keep that indirection unless the boundary test and emitted dependency graph are deliberately redesigned. The original suggestion to replace browser-safe byte codecs wholesale with global <code>Buffer</code> is not retained; it offers little value and changes portability assumptions.</p>
+<p>The <code>AbortSignal.any</code>/<code>timeout</code> compatibility guards are also retained. The package documents Node 20+ but contains browser-aware sandbox paths, and removing a working fallback is not a meaningful simplification.</p>
+<h2 id="scripts-tests-and-repository-automation">Scripts, tests, and repository automation</h2>
+<p>All 12 tracked Python entry points under <code>scripts/</code> have repository references in CI, other scripts, or documented workflows. There is no dead-script finding.</p>
+<h3 id="s1-stable-contract-helpers-are-duplicated">S1. Stable contract helpers are duplicated</h3>
+<p><strong>Disposition: mechanical candidate with digest tests.</strong></p>
+<p>Plane constants, bundle digest framing, and casing helpers appear in multiple scripts. Move the stable common subset to <code>scripts/_contracts.py</code>. <code>generate_openapi.resolve_ref</code> and <code>generate_api_docs.resolve</code> are not drop-in equivalents: the former follows chained local references and rejects unsupported references, while the latter resolves one level and tolerates values it cannot resolve. Align their contracts deliberately before sharing a resolver.</p>
+<h3 id="s2-openapi-generation-repeats-plane-dispatch-and-work">S2. OpenAPI generation repeats plane dispatch and work</h3>
+<p><strong>Disposition: generator refactor.</strong></p>
+<p><code>generated_files()</code> has three plane branches that vary mostly by paths, package names, prefixes, and extra Service outputs. A plane descriptor can drive one emitter. In addition, <code>operation_inventory_source()</code> reloads and validates all contracts once per selected plane, and <code>main()</code> recomputes operation rows for counts. Hoist those computations. Require <code>python3 scripts/generate_openapi.py --plane all --check</code> and review output diffs.</p>
+<h3 id="s3-api-documentation-checks-overlap">S3. API documentation checks overlap</h3>
+<p><strong>Disposition: owner decision.</strong></p>
+<p><code>check_api_docs.py</code>, <code>check_operation_coverage.py</code>, and <code>check_operation_inventory.py</code> repeat some page-existence, marker, and inventory-key checks. Some duplication may be intentional defense in depth. Document which checker owns each invariant before consolidating; do not remove independent security checks merely for line count.</p>
+<h3 id="s4-checked-in-json-schemas-are-not-the-primary-validators">S4. Checked-in JSON Schemas are not the primary validators</h3>
+<p><strong>Disposition: behavior decision.</strong></p>
+<p><code>operation-fixture.schema.json</code> and <code>live-scenario.schema.json</code> are not applied directly by the corresponding runners, and the operation inventory/test/note schemas are meta-checked while Python code performs the instance validation. Since CI already installs <code>jsonschema</code>, apply schemas where they cover the same constraints and retain Python checks for cross-file or operation-specific invariants that JSON Schema cannot express.</p>
+<h3 id="s5-recording-http-server-harnesses-repeat">S5. Recording HTTP server harnesses repeat</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p><code>test_api_endpoints.py</code> and <code>test_curl_examples.py</code> implement similar <code>ThreadingHTTPServer</code> lifecycle, method routing, URL, and shutdown support. Extract a small shared test-server helper while keeping their different recording models explicit.</p>
+<h3 id="s6-packageversion-invariants-have-several-owners">S6. Package/version invariants have several owners</h3>
+<p><strong>Disposition: release-automation decision.</strong></p>
+<p><code>check_package_layout.py</code>, <code>check_release_artifacts.py</code>, and CI shell commands overlap on package names, versions, and module layout. Centralizing the cheap static assertions in <code>check_package_layout.py</code> would make the policy easier to review; artifact inspection should remain in <code>check_release_artifacts.py</code>.</p>
+<h3 id="s7-generator-signature-construction-repeats">S7. Generator signature construction repeats</h3>
+<p><strong>Disposition: mechanical generator candidate.</strong></p>
+<p>Python implementation signatures and Protocol stub signatures are assembled separately in <code>generate_openapi.py</code>. A shared structured signature description can prevent drift. Keep rendering separate where syntax differs, and use <code>--check</code> to prove unchanged generated output.</p>
+<h3 id="s8-go-queryheader-emitters-overlap">S8. Go query/header emitters overlap</h3>
+<p><strong>Disposition: mechanical generator candidate.</strong></p>
+<p><code>go_query_struct</code> and <code>go_header_struct</code> share field and encoding construction, and two array branches currently emit the same code. Extract only the common representation; retain separate renderers if that keeps generated code clearer.</p>
+<h3 id="s9-shell_json-is-dead">S9. <code>shell_json</code> is dead</h3>
+<p><strong>Disposition: mechanical candidate.</strong></p>
+<p><code>scripts/generate_api_docs.py:219-220</code> has no tracked caller. Delete it.</p>
+<h3 id="s10-recorded-only-mode-flags-removed">S10. Recorded-only <code>--mode</code> flags removed</h3>
+<p><strong>Disposition: coordinated CLI cleanup.</strong></p>
+<p><code>test_api_endpoints.py</code> and <code>test_curl_examples.py</code> previously accepted <code>--mode</code> with only <code>recorded</code> as a valid value. The redundant flag and its CI/docs uses were removed. The separate <code>--validate-only</code> flags remain useful manual/CI interfaces and are not classified as dead solely from sparse references.</p>
+<h3 id="s11-live-workflows-repeat-setup">S11. Live workflows repeat setup</h3>
+<p><strong>Disposition: release-automation decision.</strong></p>
+<p>The three live workflows repeat environment plumbing, package installation, drift self-tests, and ledger upload. A reusable workflow or composite action could centralize this, but secret flow, permissions, environments, and failure behavior must remain visible and separately reviewable.</p>
+<h3 id="s12-createworker-documentation-policy-is-distributed">S12. <code>createWorker</code> documentation policy is distributed</h3>
+<p><strong>Disposition: security-sensitive design decision.</strong></p>
+<p>The crash-safe bootstrap example is special-cased in the docs generator, checker, and cURL runner. A typed per-operation override descriptor could centralize those exceptions. Preserve the current safety markers and add self-tests for the descriptor; this is not a blind string-deduplication task.</p>
+<h2 id="remaining-remediation-sequence">Remaining remediation sequence</h2>
+<ol>
+<li><strong>Focused residual mechanical work:</strong> the trimming-sensitive helper portion of G7, T8, and the unimplemented generator portions of S2 and S7–S8. Require focused equivalence tests.</li>
+<li><strong>Transport extraction:</strong> G1, P1, and T1. Begin with policy-neutral primitives; consolidate control flow only after documenting plane differences.</li>
+<li><strong>Wire-adjacent equivalence work:</strong> T3 and S4. Add golden tests first.</li>
+<li><strong>Public API and protocol decisions:</strong> G2–G4 and G8–G10, P13, T6, and S6 and S12. Batch breaking changes into a deliberate release.</li>
+<li><strong>Optional/style decisions:</strong> G11, P9 and P12, and S3 and S11. Pursue only where the navigation or maintenance benefit is clear.</li>
+</ol>
+<h2 id="validation-gates-for-implementation-work">Validation gates for implementation work</h2>
+<p>Run the checks relevant to each change and the complete set before merging a cross-language simplification:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>go<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>./...<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">GOWORK</span><span class="o">=</span>off<span class="w"> </span>go<span class="w"> </span><span class="nb">test</span><span class="w"> </span>./...<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>go<span class="w"> </span>vet<span class="w"> </span>./...
+<span class="nb">cd</span><span class="w"> </span>typescript<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>bun<span class="w"> </span>run<span class="w"> </span>typecheck<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>bun<span class="w"> </span>run<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>bun<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span>
+<span class="nb">cd</span><span class="w"> </span>python<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>wheel<span class="w"> </span>--no-deps<span class="w"> </span>.<span class="w"> </span>-w<span class="w"> </span>/tmp/wheel<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span>src<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>discover<span class="w"> </span>-s<span class="w"> </span><span class="nb">test</span>
+python3<span class="w"> </span>go/protocol/tools/check_drift.py<span class="w"> </span>--self-test
+python3<span class="w"> </span>go/protocol/tools/check_drift.py<span class="w"> </span>--monorepo
+python3<span class="w"> </span>scripts/generate_openapi.py<span class="w"> </span>--plane<span class="w"> </span>all<span class="w"> </span>--check
+python3<span class="w"> </span>scripts/generate_api_docs.py<span class="w"> </span>--check
+python3<span class="w"> </span>scripts/check_operation_coverage.py
+python3<span class="w"> </span>scripts/test_api_endpoints.py<span class="w"> </span>--plane<span class="w"> </span>all
+python3<span class="w"> </span>scripts/test_curl_examples.py<span class="w"> </span>--plane<span class="w"> </span>all
+python3<span class="w"> </span>scripts/check_release_artifacts.py<span class="w"> </span>--ecosystem<span class="w"> </span>all
+</code></pre></div>
+<p>For a mechanical refactor, “tests pass” is necessary but not sufficient. Generated output, wire bytes, request query strings, retry/cancellation behavior, and published declarations should either remain identical or have an explicitly reviewed compatibility change.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

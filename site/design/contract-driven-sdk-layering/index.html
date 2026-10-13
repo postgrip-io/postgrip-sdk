@@ -1,0 +1,1058 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unified Agent, Worker, and Service SDK documentation">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Contract-driven SDK layering - PostGrip SDKs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#contract-driven-sdk-layering" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PostGrip SDKs" class="md-header__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostGrip SDKs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Contract-driven SDK layering
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PostGrip SDKs" class="md-nav__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostGrip SDKs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../curl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secure cURL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../live-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Live testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#problem-and-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem and boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#target-layering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target layering
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#executor-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executor contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-language-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-language shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-slices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delivery slices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="contract-driven-sdk-layering">Contract-driven SDK layering</h1>
+<p>Date: 2026-10-13. Status: proposed.</p>
+<h2 id="problem-and-boundaries">Problem and boundaries</h2>
+<p>Every contract operation declares its execution policy in <code>x-postgrip-*</code>
+annotations: auth lane, safety, retry, idempotency, pagination and signing.
+The generators emit an operation table per plane, but hand-written code reads
+it inconsistently:</p>
+<ul>
+<li>Go Service retries when <code>Retry == "bounded"</code> and the operation is read-only
+  or carries an <code>Idempotency-Key</code>. Worker adapters in all three languages decide
+  from the HTTP method instead. Agent adapters never retry, and no language
+  passes the root retry opt-in to the Agent plane.</li>
+<li>Retry/backoff, <code>Retry-After</code> parsing, error-envelope decoding and
+  idempotency-key validation are copied into both Worker and Service in every
+  language (<code>go/{worker,service}/client.go</code>, <code>typescript/src/{worker,service}/client.ts</code>,
+  <code>python/src/postgrip/{worker,service}/client.py</code>; Python also copies its
+  cancellation-aware connection classes). The copies have diverged: both cap
+  <code>Retry-After</code> at 30 seconds, but only Service lets callers lower its retry
+  ceilings.</li>
+<li>Worker and Service failures are typed errors carrying code, message,
+  request ID and details. Agent failures are not: Go <code>SDKError</code> holds a status
+  and raw body, TypeScript throws a bare <code>Error</code>, Python a bare <code>RuntimeError</code>.</li>
+<li>Caller-supplied headers are copied before the auth lane is applied, so an
+  <code>Authorization</code> header configured on an Agent connection reaches the
+  public session-refresh route in all three languages. This conflicts with
+  <a href="../../development/architecture/">architecture</a>: never route a management
+  token to a public refresh endpoint.</li>
+<li>Go and Python bound ordinary requests at 30 seconds; TypeScript has no
+  request timeout, contrary to the common timeout in <a href="../../configuration/">configuration</a>.</li>
+</ul>
+<p>Baseline: SDK <code>0ea34791</code>, contract bundle
+<code>a7d0c48055260f5fbf599cc94ea78f07d5f35866ce1aa8718338bb6696b69010</code>, Agent 45,
+Worker 13 and Service 123 operations. The mirrors match web <code>origin/main</code>
+byte-for-byte, and generator, drift, coverage, recorded endpoint and cURL
+checks pass. Annotation census: Agent marks 18 read-only GETs <code>bounded</code> and
+27 operations <code>none</code>; every Worker and Service operation is <code>bounded</code>, and
+every Worker and Service mutation or destructive operation requires
+idempotency.</p>
+<p>This design covers how generated HTTP operations execute in all three
+languages. Contracts, wire types, <code>agent-task-v1</code> signing bytes, WebSocket and
+archive framing, and workflow runtime semantics do not change. Follow
+<a href="../../development/contracts/">contracts</a> and <a href="../../development/testing/">validation</a>.</p>
+<h2 id="target-layering">Target layering</h2>
+<p>Each language uses the same five layers. Dependencies point downward only:</p>
+<ol>
+<li><strong>Generated plane modules</strong>: schema types, the operation table and thin
+   typed operation functions over an executor interface. They import only
+   standard libraries and the shared transport's operation types.</li>
+<li><strong>Shared transport</strong> in <code>go/internal/transport</code>, <code>typescript/src/internal</code>
+   and <code>python/src/postgrip/_internal</code>: one executor, retry policy, error type
+   and cursor paging. It imports no plane.</li>
+<li><strong>Runtime adapters</strong>: Agent signing, session refresh, long polling,
+   WebSocket relay, archive streams and log followers. They wrap the executor
+   through hooks and never re-implement request execution.</li>
+<li><strong>Plane clients</strong>: idiomatic list/get/page/iterate methods built from
+   generated operations and generated or protocol types, never from ad-hoc
+   payload maps.</li>
+<li><strong>Root facade</strong>: composes planes and passes common configuration
+   (timeout, retries, insecure development, HTTP client) to every plane,
+   Agent included.</li>
+</ol>
+<p>Planes never import the root or another plane. Protocol mirrors sit beside
+layer 1 and continue to follow <a href="../../development/contracts/">contracts</a>.</p>
+<h2 id="executor-contract">Executor contract</h2>
+<p>The executor takes one operation's table entry, path parameters, query, body
+and per-call options, then applies the contract in this order:</p>
+<ol>
+<li><strong>Route.</strong> Join the validated plane base URL and the percent-encoded path.</li>
+<li><strong>Credentials by auth lane.</strong> <code>public</code> sends no <code>Authorization</code> and
+   removes any caller-supplied one, case-insensitively. <code>management</code>,
+   <code>worker-management</code> and <code>service-management</code> send the management bearer;
+   an explicit caller header keeps its current precedence on these lanes.
+   <code>agent</code> sends only the delegated session from the Agent adapter's credential
+   hook. <code>either</code> prefers the delegated session, else the management bearer.
+   The lane chosen for the first attempt stays fixed, but the executor calls the
+   credential hook again immediately before every network attempt, including
+   retries. The hook keeps the current refresh margin, so a delegated token
+   that nears expiry during a <code>Retry-After</code> backoff is refreshed before the next
+   attempt.</li>
+<li><strong>Idempotency, preconditions and body.</strong> When idempotency is <code>required</code>,
+   reject a missing or invalid key before sending, and reuse the same key and
+   body on every attempt. Forward <code>If-Match</code> only where the operation declares
+   it. Encode the body once, after the plane's body normalization: Python
+   Service drops top-level keys whose value is <code>None</code>, as <code>ServiceClient._request</code>
+   does today, so default <code>check</code>, <code>deploy</code> and <code>redeploy</code> arguments are
+   omitted rather than sent as JSON <code>null</code>. The other planes encode bodies as
+   given.</li>
+<li><strong>Signing.</strong> When the operation requires signing, call the adapter's
+   signer hook on the final request, after the body bytes are encoded.
+   <code>agent-task-v1</code> signs a digest of the exact transmitted body, so the signer
+   receives those bytes and nothing changes them afterwards. The executor never
+   holds the key.</li>
+<li><strong>Lifetime.</strong> Bound each ordinary exchange at 30 seconds by default in every
+   language; an earlier caller deadline, context or <code>AbortSignal</code> wins. A
+   positive timeout the caller already configured keeps its current precedence,
+   even above 30 seconds. In Go, a custom <code>http.Client</code> with a positive
+   <code>Timeout</code> is used as given, and Agent's <code>RequestTimeout</code> applies only when no
+   custom client is supplied, as <code>transport.HTTPClient</code> and the Agent connection
+   do today. The executor adds no shorter bound on top of either.
+   Streaming requests keep their adapter-owned lifetime. A long poll is an
+   ordinary exchange whose server hold counts against it, so the long-poll
+   adapter sets its lifetime to <code>wait_seconds</code> plus 30 seconds of headroom.
+   A valid 30-second <code>pollAgentTask</code> wait therefore never times out before the
+   server answers.</li>
+<li><strong>Redirects.</strong> Apply the plane's configured redirect policy. Each plane
+   keeps its current policy in each language: Go follows same-origin
+   redirects; TypeScript uses <code>redirect: 'manual'</code>; Python Agent follows
+   same-origin redirects, while Python Worker and Service follow none and
+   return every 3xx as an error. Unifying these needs its own design.</li>
+<li><strong>Retry.</strong> Only when retries are enabled, <code>Retry == "bounded"</code>, and the
+   operation is read-only or carries an idempotency key. Use the status set
+   Service retries today, honor <code>Retry-After</code> up to the plane ceiling, and use
+   jittered backoff. Worker keeps its fixed 30-second <code>Retry-After</code> cap, and
+   Service keeps its configurable cap, which defaults to and never exceeds 30
+   seconds. Never retry <code>protocol</code> operations, signed requests,
+   streaming uploads or WebSocket operations, even if mis-annotated.</li>
+<li><strong>Response.</strong> Read the body within the operation's size bound: the plane
+   default, unless the plane configuration names a per-operation override for
+   successful responses. Choose the bound after reading the status, so an
+   override never applies to an error body. Service keeps its 4 MiB default and
+   the 24 MiB <code>getServiceDeploymentScreenshot</code> exception for 2xx responses in
+   all three languages; a screenshot error body stays within 4 MiB.</li>
+<li><strong>Accepted statuses.</strong> An operation may declare non-2xx statuses that its
+   adapter handles. For those, the executor returns the bounded raw response
+   to the adapter and skips envelope decoding. <code>pollAgentTask</code> declares 410:
+   the long-poll adapter keeps parsing that body as a <code>PollTaskResponse</code>
+   shutdown directive, as all three transports do today.</li>
+<li><strong>Errors.</strong> Decode the common envelope into one base error carrying status,
+    code, message, request ID (falling back to <code>X-Request-ID</code>), details and
+    retry-after. Default error text comes from a per-plane formatter. Worker
+    and Service keep their current text, including the decoded envelope
+    message. Agent text contains the method, the quoted route, the numeric
+    status and the standard status text only, as in the
+    <a href="../go-agent-http-error-bodies/">Go error-body design</a>. It never includes
+    server-provided content, including the decoded <code>code</code>, which stays
+    available as a field.</li>
+</ol>
+<p>Plane differences are configuration, not copies: error-type naming and text
+formatter, retry ceilings, the <code>Retry-After</code> cap, redirect policy, response
+size bounds with per-operation overrides, accepted statuses, default headers,
+body normalization and credential hooks. Default headers apply only when the caller has not set
+the same header, case-insensitively. Python Agent keeps its default
+<code>User-Agent: postgrip-agent-python</code>, which some CDN front ends require instead
+of urllib's default. Python Worker and Service send no default <code>User-Agent</code>.</p>
+<h2 id="per-language-shape">Per-language shape</h2>
+<p><strong>Go.</strong> <code>go/internal/transport</code> gains <code>Operation</code>, <code>Executor</code>, <code>RetryConfig</code>
+and <code>APIError</code>. The generator emits <code>transport.Operation</code> values, adding the
+idempotency and pagination annotations the current table omits. <code>worker.APIError</code>
+and <code>service.APIError</code> remain distinct named types, never type aliases. An alias
+would make both planes one type, so <code>errors.As</code> with a <code>*worker.APIError</code> target
+would match Service errors too. Each keeps its current direct exported fields
+(<code>StatusCode</code>, <code>Code</code>, <code>Message</code>, <code>RequestID</code>, <code>Details</code>, <code>RetryAfter</code>), so keyed
+literals such as <code>worker.APIError{StatusCode: 429}</code> still compile. They do not
+embed the shared type, whose promoted fields could not be named in such
+literals. The executor decodes into <code>transport.APIError</code>, and each plane
+converts that value into its own type through a constructor. Shared behavior,
+such as retry classification, lives in functions over those fields. Agent <code>SDKError</code> keeps
+<code>StatusCode</code> and <code>ResponseBody</code> and gains <code>Code</code>, <code>RequestID</code> and <code>Details</code>.
+<code>ConnectionOptions</code> gains the opt-in retry setting, which <code>postgrip.New</code>
+passes through.</p>
+<p><strong>TypeScript.</strong> <code>src/internal/transport.ts</code> exports the executor and
+<code>PostGripAPIError</code>. <code>WorkerAPIError</code> and <code>ServiceAPIError</code> extend it, and a
+new <code>AgentAPIError</code> replaces bare <code>Error</code>. Root and plane configs gain
+<code>timeoutMs</code>, defaulting to 30000, combined with the caller's <code>AbortSignal</code>.
+Entry points keep explicit named exports.</p>
+<p><strong>Python.</strong> <code>_internal/transport.py</code> holds the executor over the existing
+<code>_internal/http.py</code>. The executor reuses the single copy of the
+cancellation-aware connection classes and <code>run_cancellable</code>, which the Agent
+request cancellation design (PR #73) moves into <code>_internal/http.py</code>. Its opener takes the redirect policy as configuration: no-redirect
+for Worker and Service, and the existing same-origin handler for Agent. <code>PostGripAPIError</code> carries <code>status</code>, <code>code</code>, <code>message</code>, <code>request_id</code>
+and <code>details</code>; <code>WorkerAPIError</code> and <code>ServiceAPIError</code> subclass it. Agent
+raises <code>AgentAPIError(PostGripAPIError, RuntimeError)</code> so existing
+<code>except RuntimeError</code> handlers still match. Async clients keep wrapping the
+synchronous executor.</p>
+<h2 id="compatibility">Compatibility</h2>
+<p>No published API is removed. Retries stay opt-in. With default
+configuration, requests are unchanged except for three observable changes:</p>
+<ul>
+<li>TypeScript requests gain a 30-second default timeout.</li>
+<li>Public-lane requests drop caller-supplied <code>Authorization</code>.</li>
+<li>TypeScript and Python Agent failures become typed errors whose default text
+  omits server-provided content, matching Go.</li>
+</ul>
+<p>Worker and Service error text, redirect handling, response size bounds and
+410 poll handling stay as they are.</p>
+<p>Worker retry eligibility does not change: for its annotations, the contract
+rule selects the same operations as the method rule. Moving a Worker onto the
+executor does change two edge cases, which each language's Worker slice
+records in its owner guide:</p>
+<ul>
+<li>The generated low-level operations (<code>OpenAPI()</code> and <code>Do</code> in Go) reject a
+  missing or invalid required <code>Idempotency-Key</code> before sending. Before, they
+  sent the request and let the server reject it. The high-level client methods
+  already validated the key.</li>
+<li><code>Retry-After</code> uses the Service parser. <code>0</code> or a past date retries without the
+  jittered backoff, an overflowing value caps at 30 seconds, and a signed value
+  such as <code>+5</code> is not valid delta-seconds. The 30-second cap, the retried status
+  set and honoring <code>Retry-After</code> only for 429 and 503 are unchanged.</li>
+</ul>
+<p>Service already uses the contract rule, the <code>Retry-After</code> parser and the
+configurable ceilings, and the management bearer keeps replacing a
+caller-supplied <code>Authorization</code>. Moving Go Service changes only its generated
+low-level operations: they reject a missing or invalid required
+<code>Idempotency-Key</code> before sending, as Worker's do, and <code>Do</code> drops a
+caller-supplied <code>If-Match</code> on an operation whose contract does not declare it.
+The high-level methods already validated keys and sent <code>If-Match</code> only where
+declared.</p>
+<p><code>RetryConfig</code> is named so that it does not collide with the runtime protocol's
+<code>RetryPolicy</code> wire type, which the drift checker reserves. With retries enabled, the 18
+<code>bounded</code> Agent reads become retryable. Generated output changes only through
+<code>scripts/generate_openapi.py</code>.</p>
+<h2 id="delivery-slices">Delivery slices</h2>
+<ol>
+<li>Go shared executor and error type, generator table change and the Worker
+   move, with the executor conformance test. State the layering rule in
+   <a href="../../development/architecture/">architecture</a>.</li>
+<li>Go Service onto the executor, removing its private copies.</li>
+<li>Go Agent onto the executor: lane enforcement, envelope errors and opt-in
+   retry wired from the root.</li>
+<li>TypeScript executor, timeout, error hierarchy and the three plane moves.</li>
+<li>Python executor, error hierarchy and the three plane moves.</li>
+<li>Extend <code>scripts/check_package_layout.py</code> from root-import checks to an
+   allowed-edge matrix: no plane-to-plane, generated-to-adapter or
+   transport-to-plane imports. Prove each rule with generic self-test fixtures,
+   and point the architecture guide at the checker.</li>
+</ol>
+<p>Each slice is its own PR under the <a href="../../development/contributing/">review process</a>.
+A slice that changes current behavior updates its owner in the same PR, so
+owners never describe obsolete behavior between merges. For example, slice 3
+updates <a href="../../configuration/">configuration</a> for Agent retry and
+<a href="../../authentication/">authentication</a> for Agent error fields, and slice 4
+updates configuration for the TypeScript timeout. The design never stands in
+for an owner.
+Separate designs cover generating the TypeScript and Python protocol mirrors
+with a shared <code>agent-task-v1</code> signing vector, workflow suspension and replay
+defects, delegated runtime credentials picked up by root facades, and recorded
+coverage of <code>connectSandboxSession</code>.</p>
+<h2 id="acceptance">Acceptance</h2>
+<p>For each language, a table-driven test runs all of that language's generated
+operations against a local recording server. It asserts:</p>
+<ul>
+<li>per-lane headers, including no <code>Authorization</code> on public routes when the
+  caller configured one;</li>
+<li>signed Agent task actions whose <code>agent-task-v1</code> signature verifies against
+  the recorded wire bytes of the request body;</li>
+<li>the Agent credential hook called before every attempt, so a token that
+  expires during a <code>Retry-After</code> backoff is refreshed on the same lane;</li>
+<li>Python Service omitting <code>None</code> body keys for default <code>check</code>, <code>deploy</code> and
+  <code>redeploy</code> arguments, while the other planes send bodies as given;</li>
+<li>per-plane default headers, including Python Agent's <code>User-Agent</code> default,
+  a caller-supplied <code>User-Agent</code> overriding it, and no default <code>User-Agent</code>
+  on Python Worker and Service;</li>
+<li>retry eligibility with retries enabled and disabled, and a <code>Retry-After</code>
+  above 30 seconds capped at 30 seconds for Worker and at the configured
+  ceiling for Service;</li>
+<li>a required key is rejected when missing and reused across attempts;</li>
+<li><code>If-Match</code> is forwarded only where declared;</li>
+<li>envelope fields decode, and each plane's default text matches its formatter,
+  including an Agent envelope whose <code>code</code> contains a newline and a synthetic
+  secret, which stays out of the text but remains on the error;</li>
+<li>per-plane redirect policy is unchanged, including Python Worker and Service
+  returning a 3xx without following it;</li>
+<li>Service response bounds, including a successful screenshot over 4 MiB that
+  is accepted, a screenshot error body over 4 MiB that is rejected, and an
+  ordinary response over 4 MiB that is rejected;</li>
+<li><code>pollAgentTask</code> 410 responses with empty, malformed and populated bodies
+  still reach the long-poll adapter as shutdown directives;</li>
+<li>Go <code>errors.As</code> with a Worker target does not match a Service error, and
+  keyed literals of <code>worker.APIError</code> and <code>service.APIError</code> with every current
+  field compile;</li>
+<li>the default timeout and caller deadline precedence, a Go custom client with a
+  60-second timeout whose exchange outlives 30 seconds, and a <code>pollAgentTask</code>
+  call with <code>wait_seconds</code> 30 whose server answers after 30 seconds without
+  timing out.</li>
+</ul>
+<p>Existing plane tests, the recorded endpoint and cURL runners, generator and
+drift checks, the package-layout checker and strict documentation builds pass
+unchanged apart from the intended changes listed under Compatibility.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

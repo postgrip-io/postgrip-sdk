@@ -30,8 +30,9 @@ Commands must be issued in the order history recorded them, across all kinds:
 a timer issued where history recorded an activity is a determinism violation,
 and so is a command whose kind has no recorded events left while another kind
 still does. A mismatched command leaves the recorded event unconsumed. A
-determinism violation is sticky: the workflow task fails with it even if your
-code catches the error and then returns, suspends or continues as new.
+determinism violation is sticky: the workflow task, or the query or update
+task replaying it, fails with it even if your code catches the error and then
+returns, suspends, continues as new or returns another error.
 
 When the body returns `Suspended`, the worker calls `BlockTask` on the runtime service. The workflow task moves to the **blocked** state — *not* failed. The runtime service redelivers the task whenever a dependency resolves (an activity completes, a timer fires, a signal arrives), at which point the worker re-runs your body from the top with fuller history.
 

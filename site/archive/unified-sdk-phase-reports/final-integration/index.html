@@ -1,0 +1,1043 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unified Agent, Worker, and Service SDK documentation">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Final integration - PostGrip SDKs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#final-integration-gate" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="PostGrip SDKs" class="md-header__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostGrip SDKs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Final integration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="PostGrip SDKs" class="md-nav__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostGrip SDKs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../curl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secure cURL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../live-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Live testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#coordinated-revisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coordinated revisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-traceability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance traceability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-gate-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase gate results
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corrective-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Corrective review
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#final-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#external-release-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        External release controls
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>Historical record. Original status, findings and validation below describe
+the recorded revision, not current policy or current release clearance. See
+<a href="../../../">current owners</a> and <a href="../../../releasing/">release gates</a>.</p>
+</blockquote>
+<h1 id="final-integration-gate">Final integration gate</h1>
+<p>Status: <strong>BLOCKED — external live execution evidence required</strong></p>
+<p>Updated: 2026-08-26</p>
+<p>Reviewer: Codex implementation conformance review</p>
+<p>Design SHA-256: <code>4a35c1e1c89fea5a729d5d19fd00cc27824a8ae3e4cf1945d6741a382c9e0ad7</code></p>
+<p>Implementation-plan SHA-256: <code>15d1d37ef4372b57477f1cecee4eb796bdc8652d7680bf36501b9b47edee266e</code></p>
+<p>Contract-bundle SHA-256: <code>5b44c873737a135f75486b56f84cd534c0ac398dc87cdbc0150fd64c8cfcfcbd</code></p>
+<h2 id="coordinated-revisions">Coordinated revisions</h2>
+<ul>
+<li>SDK repository/branch: <code>postgrip-io/postgrip-sdks</code>, <code>feat/unified-sdk</code></li>
+<li>Server repository/branch: <code>sungkim11/postgrip-web</code>,
+  <code>feat/unified-sdk-auth</code></li>
+<li>Server common-auth baseline: <code>be2b080161b58d9a294b6c5b144a8a188c162779</code></li>
+<li>Server history-pagination correction:
+  <code>061e3ebc413108d9cec024cf14196ac4979ab2eb</code></li>
+<li>Server authentication and consumer correction:
+  <code>ecf0cd151fd6c380c612d091a5b2a1370ce6df15</code></li>
+<li>Server administration-boundary correction:
+  <code>0bdcb756a31a70cce7596c783beff2282f5d752a</code></li>
+<li>Server SDK-boundary and Agent-recovery correction:
+  <code>c0fbb3b7951cd010fc33e16bf294862ee20544ec</code></li>
+<li>SDK transport and live-target correction:
+  <code>db1c7827643fb40c008573343635f093dbc7b69f</code></li>
+<li>SDK final fixture and raw-HTTP correction:
+  <code>9e35ddf2a4fbe68ec8cb3f73f6f01bb96576da14</code></li>
+</ul>
+<p>The Agent contract is byte-identical between those branches. All nine
+language/plane generated surfaces embed the current bundle digest.</p>
+<h2 id="acceptance-traceability">Acceptance traceability</h2>
+<table>
+<thead>
+<tr>
+<th>Design acceptance criterion</th>
+<th>Current implementation and evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One artifact per language</td>
+<td>Exactly <code>go/go.mod</code>, <code>typescript/package.json</code>, and <code>python/pyproject.toml</code>; layout and artifact checks pass</td>
+</tr>
+<tr>
+<td>Same coordinated version</td>
+<td>Root, Go, npm, and PyPI metadata are 0.13.0</td>
+</tr>
+<tr>
+<td>Same contract bundle</td>
+<td>All nine bindings embed <code>5b44c873…</code></td>
+</tr>
+<tr>
+<td>Singular namespaces</td>
+<td>Go <code>/agent</code>, <code>/worker</code>, <code>/service</code>; npm subpaths; Python submodules; installed-package smokes pass</td>
+</tr>
+<tr>
+<td>One developer management token</td>
+<td>Root clients load <code>POSTGRIP_TOKEN</code>; recorded auth-lane checks use one token across all management planes</td>
+</tr>
+<tr>
+<td>Runtime auth remains delegated</td>
+<td>Refresh/access/signing remain host-injected; signed recordings preserve <code>agent-task-v1</code> bytes</td>
+</tr>
+<tr>
+<td>Global administration is server-only</td>
+<td>Public inventory contains 130 tenant/public operations and no global-admin operation</td>
+</tr>
+<tr>
+<td>Standard public errors and scopes</td>
+<td>Coordinated server route, authorization, and PostgreSQL integration tests pass</td>
+</tr>
+<tr>
+<td>Detailed immutable docs</td>
+<td>130 digest-bound pages and 121 secure cURL examples pass generation/static checks</td>
+</tr>
+<tr>
+<td>Exhaustive endpoint tests</td>
+<td>130 operations × three languages = 390 strict recorded requests</td>
+</tr>
+<tr>
+<td>Bounded Agent histories</td>
+<td>Stable task/workflow cursor pages, serialized server limit, finite SDK reads, and incremental APIs pass regressions</td>
+</tr>
+<tr>
+<td>Executable live policy</td>
+<td>Fixture manager, safety guards, cleanup ledger, nightly/pre-release/production workflows, and release dependency exist</td>
+</tr>
+<tr>
+<td>Passing live policy</td>
+<td><strong>BLOCKED</strong> — protected environments/scenarios and successful nightly/pre-release runs do not yet exist</td>
+</tr>
+<tr>
+<td>Three release paths</td>
+<td>Only Go, npm, and PyPI publishers; each depends on reusable validation and isolated pre-release live execution</td>
+</tr>
+</tbody>
+</table>
+<h2 id="phase-gate-results">Phase gate results</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Report</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Server common authentication and contracts</td>
+<td>PASS, including pagination and authentication corrections</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Deterministic generation and inventory</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Language package consolidation</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Detailed API documentation and secure cURL</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Exhaustive endpoint and live tests</td>
+<td><strong>BLOCKED on external live execution evidence</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Unified CI and publishing cutover</td>
+<td>PASS; publication depends on pre-release live workflow</td>
+</tr>
+</tbody>
+</table>
+<h2 id="corrective-review">Corrective review</h2>
+<p>The PR review raised two genuine blockers. Both source-code deviations are now
+corrected:</p>
+<ol>
+<li>Agent task and workflow histories no longer require unbounded HTTP
+   responses. The server captures a stable snapshot boundary in an opaque,
+   resource-bound cursor and constrains pages by event count and serialized
+   bytes. SDK full-history methods follow cursors, while walkers/async
+   generators/iterators permit bounded incremental consumption.</li>
+<li>Live tiers are executable rather than labels. The fixture manager enforces
+   exact contract ownership, run-prefixed resources, explicit IDs,
+   triple-consent destructive calls, reverse cleanup, secret redaction, and a
+   durable ledger. Workflows schedule nightly and production runs and gate all
+   releases on isolated pre-release coverage.</li>
+</ol>
+<p>A later Codex pass found six additional source-level regressions. All were
+valid under the approved design and are corrected without weakening its auth
+boundaries:</p>
+<ol>
+<li>Legacy Agent runtime session families are revoked rather than refreshed
+   without their original namespace, queue, and signing-key bindings.</li>
+<li>The dashboard unwraps and follows paginated Agent event pages.</li>
+<li>The Agent CLI reads the standard <code>message</code> error field with legacy fallback.</li>
+<li><code>postgrip agent up</code> consumes an administrator-issued one-time enrollment
+   key; the tenant management token remains management-only.</li>
+<li>Previously applied migration 0136 is restored byte-for-byte so deployment
+   checksum validation remains stable.</li>
+<li>TypeScript managed-runtime signing loads Node crypto only when signing is
+   configured. A browser-target root-facade bundle and eager-graph regression
+   prove Worker-style runtimes do not need Node compatibility.</li>
+</ol>
+<p>While rebuilding the evidence, ignored output from the pre-consolidation npm
+layout was also found in the local <code>dist</code> tree. TypeScript builds now clean that
+tree before compiling, preventing stale files from entering an artifact.</p>
+<p>A fresh Codex pass found four more valid, design-compatible deviations. They
+are corrected in the coordinated PRs:</p>
+<ol>
+<li>Go sandbox WebSocket handshakes now reuse the shared redirect-safe HTTP
+   client, so same-host redirects to a different port or subdomain cannot
+   receive management or gateway credentials. Explicit separately configured
+   relay origins remain supported.</li>
+<li>All terminal/runtime Agent API consumers prefer the standard <code>message</code>
+   error field while retaining <code>error</code> as a legacy fallback.</li>
+<li>The internal global-administration contract now includes fleet rollout
+   GET/POST/DELETE operations, and its checker enforces reverse server-route
+   coverage.</li>
+<li>Common <code>agent:operate</code> tokens can no longer reach undocumented Agent host
+   update, lifecycle, targeted-placement, or security-settings mutations.
+   High-impact host actions require an owner/admin session; ordinary member
+   check and poll probes remain compatible.</li>
+<li>Every remaining undocumented Agent GET route that exposes host,
+   credential, configuration, or browser-only history state now requires an
+   organization member session. The Agent contract checker enforces reverse
+   coverage so a future non-contract management route cannot silently inherit
+   common-token access.</li>
+<li>Migration-0140 recovery now has an explicit owner/admin rotation grant: a
+   fresh key is bound atomically to the same tenant and Agent ID only when the
+   caller supplies the current key hash. The old key and sessions are revoked,
+   stale/cross-tenant/replayed grants fail closed, and normal enrollment still
+   rejects a mismatched key.</li>
+<li>Image-backed managed runtimes accept the host-injected delegated refresh
+   credential and omit the variable when none is issued. The credential is
+   still unavailable to shell payload allowlists and is never replaced by the
+   common management token.</li>
+</ol>
+<p>The next SDK review found four further deviations. Each was independently
+checked against the immutable design and corrected in
+<code>db1c7827643fb40c008573343635f093dbc7b69f</code>:</p>
+<ol>
+<li>Python sandbox WebSocket redirects now compare the destination origin
+   before constructing the redirected handshake, so arbitrary gateway headers
+   cannot cross origins on any supported <code>websockets&gt;=13</code> release.</li>
+<li>Live targeted operations must contain the exact identifier recorded for
+   their declared fixture resource; merely naming an existing ledger key is no
+   longer sufficient.</li>
+<li>TypeScript runtime signatures cover the final request pathname and query,
+   including a configured reverse-proxy prefix.</li>
+<li>TypeScript relay scheme matching is case-insensitive as required by URL
+   semantics.</li>
+</ol>
+<p>The same design audit corrected one adjacent error-envelope mismatch:
+TypeScript Agent errors prefer the standard <code>message</code> field and use <code>error</code>
+only as a legacy fallback.</p>
+<p>The final SDK review found four valid design deviations, all corrected in
+<code>9e35ddf2a4fbe68ec8cb3f73f6f01bb96576da14</code>:</p>
+<ol>
+<li>Fixture ownership is checked against target path parameters only, so an
+   identifier elsewhere in a request cannot authorize mutation of another
+   object.</li>
+<li>Cleanup requests are fully resolved and frozen when their resource is
+   registered, preventing later captures from redirecting cleanup.</li>
+<li>Creation intent is persisted before execution and finalized immediately
+   from resource captures, before any unrelated response capture can fail.</li>
+<li>Generated raw Python examples refuse redirects instead of forwarding the
+   management bearer. The same final design audit applies explicit redirect
+   refusal to the Go and TypeScript examples, and static documentation checks
+   enforce all three guards across 121 generated examples.</li>
+</ol>
+<p>The live gate cannot honestly be marked PASS in this change. GitHub currently
+has only <code>github-pages</code>, <code>npm</code>, and <code>pypi</code> environments; no disposable URLs,
+scenario secrets, host-runtime credentials, or live run evidence are
+available. Recorded tests and fixture-manager self-tests are not substituted
+for that evidence.</p>
+<h2 id="final-evidence">Final evidence</h2>
+<ul>
+<li>Go unified module: all packages pass <code>go test ./...</code> and <code>go vet ./...</code>.</li>
+<li>TypeScript: frozen install, typecheck, clean build, browser-target root
+  bundle, and 126 tests pass; the npm artifact contains 95 files.</li>
+<li>Python: wheel builds; 128 tests pass with one opt-in external live skip;
+  sandbox tests also pass against <code>websockets</code> 13.1 and 17.1, and a real
+  cross-origin redirect reaches no credential-bearing target handshake.</li>
+<li>Contracts/docs: 130 generated operations, fixtures, and immutable pages;
+  121 real cURL examples; runtime drift check passes.</li>
+<li>Recorded transport: 390 SDK requests validate routes, queries, headers,
+  bodies, auth lanes, signing bytes, protocol ownership, and decoding.</li>
+<li>Agent server: full orchestrator test/vet and 45-operation OpenAPI route check
+  pass, including snapshot, cross-resource, limit, byte-bound, internal-admin
+  contract, standardized-error, reverse non-contract route coverage, targeted
+  enrollment recovery, and host-authorization regressions. A disposable
+  PostgreSQL 16 run passes the complete Agent store integration suite. The
+  full dashboard suite passes 87 files / 766 tests.</li>
+<li>Live infrastructure: fixture-manager self-test, production allowlist
+  validation, and <code>actionlint</code> 1.7.7 pass.</li>
+<li>Documentation: root strict MkDocs build passes.</li>
+</ul>
+<h2 id="external-release-controls">External release controls</h2>
+<p>The source PR is review-ready, but release remains blocked until organization
+administrators configure the <code>sdk-live-nightly</code>, <code>sdk-live-pre-release</code>, and
+<code>sdk-live-production-smoke</code> environments and record successful nightly and
+pre-release runs for the coordinated server revision. The server must also be
+merged/deployed and authenticated npm/PyPI owners must record control of the
+designed registry names before any release tag is approved.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

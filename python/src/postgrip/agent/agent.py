@@ -62,7 +62,7 @@ class Agent:
         self._shutdown_timeout: float | None = None
         self._in_flight: set[asyncio.Task[None]] = set()
         # Per-invocation locks that schedule new commands one at a time, in call order.
-        self._command_locks: weakref.WeakKeyDictionary[WorkflowReplay, asyncio.Lock] = weakref.WeakKeyDictionary()
+        self._command_locks: weakref.WeakKeyDictionary[WorkflowReplay, _CommandScheduler] = weakref.WeakKeyDictionary()
 
     @classmethod
     async def create(cls, **options: Any) -> "Agent":
@@ -211,6 +211,10 @@ class Agent:
                 await self._run_workflow(target, source_task, source_task.get("payload") or {}, replay, handlers, query_mode=True)
             except WorkflowQueryReady:
                 pass
+            except Exception:
+                # Nondeterminism is sticky on every exit from interaction replay.
+                _raise_if_nondeterministic(replay)
+                raise
             _raise_if_nondeterministic(replay)
             handler = handlers.query_handler(name) if kind == "query" else handlers.update_handler(name)
             if handler is None:
@@ -264,7 +268,7 @@ class Agent:
             execute_activity=lambda name, args, options: self._replay_activity_for_query(replay, name) if query_mode else self._execute_activity_command(task, replay, name, args, options),
             execute_child=lambda name, args, options: self._replay_child_for_query(replay, name) if query_mode else self._execute_child_command(task, replay, name, args, options),
             continue_as_new=lambda name, args, options: (_raise_query_ready("workflow continued as new") if query_mode else (_raise_continue_as_new(name, args, options))),
-            sleep=lambda ms, scope: self._replay_timer_for_query(replay) if query_mode else self._execute_timer_command(task, replay, ms, scope),
+            sleep=lambda ms, scope: self._replay_timer_for_query(replay, ms) if query_mode else self._execute_timer_command(task, replay, ms, scope),
             condition=lambda predicate, timeout_ms, scope: self._replay_condition_for_query(predicate) if query_mode else self._execute_condition_command(task, replay, predicate, timeout_ms, scope),
             cancellation_requested=replay.is_cancellation_requested,
             set_handler=lambda kind, name, handler: handlers.set_handler(kind, name, handler),
@@ -394,10 +398,10 @@ class Agent:
             raise ApplicationFailure(str(task.get("error") or "activity failed"), type="ActivityFailure")
         raise WorkflowQueryReady(f"waiting for activity {name}")
 
-    async def _replay_timer_for_query(self, replay: WorkflowReplay) -> None:
+    async def _replay_timer_for_query(self, replay: WorkflowReplay, duration_ms: int) -> None:
         if replay.is_cancellation_requested():
             raise WorkflowQueryReady("workflow cancelled")
-        started = _replay_command(lambda: replay.next_timer())
+        started = _replay_command(lambda: replay.next_timer(duration_ms))
         if not started or not started.get("task_id") or not replay.is_timer_fired(started):
             raise WorkflowQueryReady("waiting for timer")
 
@@ -538,9 +542,17 @@ class Agent:
         Commands issued concurrently (for example with ``asyncio.gather``) are
         then recorded in call order, which is the order replay consumes them.
         """
-        lock = self._command_locks.setdefault(replay, asyncio.Lock())
-        async with lock:
-            return await asyncio.to_thread(enqueue, *args)
+        state = self._command_locks.setdefault(replay, _CommandScheduler())
+        async with state.lock:
+            # A failed earlier enqueue fails every later one, so history never
+            # records a later command without the earlier one.
+            if state.error is not None:
+                raise state.error
+            try:
+                return await asyncio.to_thread(enqueue, *args)
+            except Exception as exc:
+                state.error = exc
+                raise
 
     def _throw_if_cancelled(self, replay: WorkflowReplay, cancellation_scope: str | None = "cancellable") -> None:
         if cancellation_scope == "non_cancellable" or not replay.is_cancellation_requested():
@@ -588,6 +600,14 @@ class WorkflowBlocked(Exception):
 
 class WorkflowQueryReady(Exception):
     pass
+
+
+class _CommandScheduler:
+    """Per-invocation state that schedules new commands one at a time, in call order."""
+
+    def __init__(self) -> None:
+        self.lock = asyncio.Lock()
+        self.error: Exception | None = None
 
 
 class WorkflowHandlers:

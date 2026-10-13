@@ -1,0 +1,1341 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unified Agent, Worker, and Service SDK documentation">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Deterministic workflow replay across languages - PostGrip SDKs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#deterministic-workflow-replay-across-languages" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PostGrip SDKs" class="md-header__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostGrip SDKs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Deterministic workflow replay across languages
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PostGrip SDKs" class="md-nav__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostGrip SDKs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../curl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secure cURL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../live-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Live testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#problem-and-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem and boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replay-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replay semantics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Replay semantics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#command-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command ownership
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ordered-command-cursors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ordered command cursors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update boundaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logical-clock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logical clock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#replay-introspection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replay introspection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module ownership
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-slices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delivery slices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="deterministic-workflow-replay-across-languages">Deterministic workflow replay across languages</h1>
+<p>Date: 2026-10-13. Status: proposed.</p>
+<h2 id="problem-and-boundaries">Problem and boundaries</h2>
+<p>The SDK architecture audit of <code>main</code> at <code>3675b2f2</code> found that the three Agent
+runtimes do not replay durable history the same way. Go's
+<code>go/agent/internal/replay</code> is closest to the intended behavior, but it has gaps
+of its own. The TypeScript and Python runtimes diverge further, and every
+language reads wall time somewhere it promises logical time:</p>
+<ul>
+<li><strong>Logical time.</strong> Go <code>workflow.Context.Now()</code> promises time that is durable
+  across replays, but <code>newWorkflowContext</code> reads <code>time.Now()</code>. Python
+  <code>workflow.now()</code> reads <code>datetime.now(timezone.utc)</code>. The TypeScript guide tells
+  users to call <code>workflowInfo().now</code>, which does not exist. The same history can
+  take a different time-dependent branch after redelivery.</li>
+<li><strong>Command order.</strong> TypeScript and Python keep one cursor per command kind and
+  never compare positions across kinds. A workflow that now runs <code>Timer(1000)</code>
+  before <code>Activity(A)</code> against history <code>Activity(A), Timer(1000)</code> reuses both
+  results instead of failing. Go rejects that order in <code>checkCommandOrder</code>.
+  However, no language rejects a command whose kind is exhausted while a command
+  of another kind remains, so <code>Timer</code> against history <code>Activity(A)</code> is
+  scheduled as new. No language checks for recorded commands left over when the
+  workflow completes. Every language raises a recorded cancellation at the
+  first command, wherever the request sits in history.</li>
+<li><strong>Update position.</strong> TypeScript and Python run every completed update as soon
+  as its handler is registered, before earlier commands are replayed, and ignore
+  <code>WorkflowUpdateAccepted</code>. Their registration is synchronous, so an <code>async</code>
+  handler is never awaited. Their update tasks replay the whole workflow in query
+  mode and only then call the handler, so a handler cannot issue commands. Go
+  applies each update at its accepted position (<code>NextUpdateBeforeCommand</code> and
+  <code>ConsumeUpdate</code>). However, <code>runWorkflowUpdate</code> ignores whether
+  <code>ConsumeUpdate(task.ID)</code> succeeded and runs the handler even when an earlier
+  update is still pending. In every language, a body and an update handler that
+  issue commands concurrently share one cursor, so either can consume the
+  other's recorded command.</li>
+<li><strong>Replay introspection.</strong> Python <code>workflow.unsafe.is_replaying()</code> and
+  <code>is_replaying_history_events()</code> always return <code>False</code>.</li>
+<li><strong>Ownership.</strong> <code>WorkflowReplay</code> lives in <code>typescript/src/agent/agent.ts</code> and
+  <code>python/src/postgrip/agent/agent.py</code> beside polling and dispatch, and builds
+  <code>ApplicationFailure</code> itself. Its failure type, and that of TypeScript's
+  <code>validateWorkflowSandbox</code>, is <code>DeterminismViolation</code>. Go and all three
+  language guides use <code>WorkflowDeterminismViolation</code>.</li>
+</ul>
+<p>This design changes only how the Agent runtimes replay history they already
+fetch. Contracts, wire types, the runtime service, history event shapes, signal
+delivery, activity and child resolution through live task state, and Agent
+transport do not change. Follow <a href="../../development/architecture/">architecture</a>,
+<a href="../../development/contracts/">contracts</a> and <a href="../../development/testing/">validation</a>.</p>
+<h2 id="replay-semantics">Replay semantics</h2>
+<p>Every language implements the following over the history returned by
+<code>getWorkflowHistory</code>, in history order. Where Go differs, Go changes too.</p>
+<h3 id="command-ownership">Command ownership</h3>
+<p>Command events are <code>ActivityTaskScheduled</code>, <code>TimerStarted</code> and
+<code>ChildWorkflowExecutionStarted</code>. History does not say which execution issued a
+command, and a workflow body and an update handler can issue commands
+concurrently. The command's own task records it, though. Each command event's
+<code>task_id</code> names the task the command created, and that task's payload names the
+task that scheduled it: <code>workflowTaskId</code> for activities and timers, and
+<code>parentWorkflowTaskId</code> for child workflows. Body commands carry the workflow
+task's ID, and update handler commands carry their update task's ID. The runtime
+copies the payload into activity retry attempts, and task payloads never change.</p>
+<p>Before running replay, the Agent reads the owner of every command event that
+could belong to an update, once per replay:</p>
+<ul>
+<li>for an accepted entry, events between its accepted event and its terminal
+  event, or the end of history while it is pending;</li>
+<li>for a legacy entry (see <strong>Update boundaries</strong>), events before its terminal
+  event.</li>
+</ul>
+<p>It passes the resulting owner map to the replay engine, which itself performs
+no I/O. Every other command event belongs to the body. If a command's task
+cannot be read, the Agent treats it like a failed history fetch.</p>
+<h3 id="ordered-command-cursors">Ordered command cursors</h3>
+<p>The body and each update entry have their own cursor over the command events
+they own. When the body issues a command of kind K:</p>
+<ol>
+<li>If no unconsumed body-owned command event remains, the command is new: the
+   runtime schedules it, or stops replay in query and update replay.</li>
+<li>If the earliest unconsumed body-owned event is not of kind K, fail with a
+   determinism error naming the recorded and requested kinds. This covers both
+   reordering and a kind with no events left.</li>
+<li>Otherwise compare recorded identity before consuming the event:
+   <code>activity_type</code>, <code>workflow_type</code>, or <code>duration_ms</code> for timers. A mismatch is
+   a determinism error and leaves the event unconsumed. A match consumes it.</li>
+</ol>
+<p>TypeScript and Python workflows can issue commands concurrently (for example
+<code>Promise.all</code> or <code>asyncio.gather</code>), and each new command is enqueued by its own
+request, so the runtime could record them in a different order than the calls.
+The runtime therefore schedules new commands one at a time, in call order, for
+each workflow invocation, so history records them in the order replay consumes
+them.</p>
+<p>Replay state records every determinism error it raises. Once one is recorded,
+the workflow task fails with that error when the workflow returns, raises,
+continues as new or suspends, even if workflow code caught the error and went
+on. Caught nondeterminism therefore cannot complete a workflow.</p>
+<p>A replayed update handler follows the same rules over its own events. Its
+completed or failed handler already finished, so when none of its events
+remain, a further command is a determinism error, never a new command. Only an
+update task's live handler (below) schedules new commands. An activity retry
+consumes the retry attempt's event under the same rule. Query, update and
+workflow replay use the same cursors.</p>
+<p><strong>Cancellation.</strong> A recorded <code>WorkflowCancellationRequested</code> is observed only
+when no unconsumed command event owned by the executing context, and no
+unapplied update boundary, precedes it in history. The executing context is the body, or the update handler that is
+running. A replayed completed or failed handler never observes a request
+recorded after its own terminal event, because its original execution finished
+before that request existed. This applies at every cancellable point (before a command, and in
+<code>condition</code>) and to the synchronous <code>cancellationRequested()</code> accessors of
+TypeScript (<code>workflow.ts</code>) and Python (<code>workflow.py</code>). Commands recorded before
+the request replay normally, including those of an update handler that issued
+them before the request, and the first cancellable point or accessor read after
+them observes the cancellation. Today every language raises it at the first
+command, and the accessors report it from workflow entry, wherever the request
+sits in history.</p>
+<p><strong>Completion check.</strong> Before a workflow task completes or continues as new, the
+runtime applies any remaining update boundaries in strict mode (below). If
+history records a cancellation request that the body has not yet observed, and
+the body is in a cancellable scope, the runtime raises the cancellation failure
+at this point instead of completing. A workflow that finishes its last command
+after a request therefore still observes it, as every language does today. If a
+body-owned command event is still unconsumed, the task fails with a determinism
+error instead of completing. When a replayed handler returns or raises, any of
+its own events left unconsumed are a determinism error too. The check does not
+run when the workflow fails. Because cancellation is positional, a workflow that
+handles cancellation and returns has consumed every command recorded before the
+request, so no exemption is needed.</p>
+<h3 id="update-boundaries">Update boundaries</h3>
+<p>Build an ordered update list from <code>WorkflowUpdateAccepted</code> events. Matching
+<code>WorkflowUpdateCompleted</code> and <code>WorkflowUpdateFailed</code> events, by <code>task_id</code>, mark
+an entry completed or failed and record that terminal event's index. A
+completion or failure event without an accepted event is a legacy entry from an
+older runtime. It is positioned at its earliest owned command event, or at its
+terminal event when it owns none, so its handler can replay through the commands
+it issued.</p>
+<p><strong>Handler-started marker.</strong> A failed update whose handler never ran must not be
+replayed. Examples are a <code>WorkflowUpdateConflict</code>, a missing handler, or an
+invalid payload. Neither ownership nor history tells that case apart from a
+handler that ran, changed state and raised without issuing a command. Before an
+update task runs its handler live, it appends a task event to its own task with
+stage <code>update-handler-started</code>. Appending a task event is not idempotent, so
+an append can persist and still report failure. When the append fails, the task
+reads its own events: if the marker is present it runs the handler, and
+otherwise it fails without running the handler. If that read also fails, the
+task neither completes, fails nor blocks. It stops renewing its lease and
+leaves the task leased, so the runtime redelivers it on lease expiry, as it
+does after a crash. The redelivered task repeats the reconciliation. Blocking
+would strand it, because nothing wakes a blocked update task that has issued
+no command. While building replay state, the Agent reads each completed or
+failed update task's events once, and passes the set of marked task IDs to the
+replay engine. A terminal task's events do not change, so every replay sees the
+same set.</p>
+<p>The marker also versions completed updates. An unmarked completed entry was
+recorded by an SDK release before this design, and replays with that
+language's previous registration behavior so existing workflows are not
+stranded. A Python unmarked entry closes an <code>async</code> handler's coroutine without
+running it, because the previous release never ran it. A TypeScript unmarked
+entry invokes the handler without awaiting it, as before. Go is unaffected. The
+awaited in-flight rules below apply to marked entries only.</p>
+<p>The next update boundary applies only when its index precedes the earliest
+unconsumed body-owned command event, or when none remain. Applying a boundary
+consumes it:</p>
+<ul>
+<li><strong>Strict</strong> application runs before each durable command and in the completion
+  check. A completed entry runs its registered handler with the recorded <code>args</code>,
+  and the runtime awaits it to completion. A missing handler is a determinism
+  error. A failed entry runs its handler the same way, and expects it to raise,
+  when it has the marker or owns at least one command event. Owned commands
+  prove the handler ran, which covers legacy failures and failures recorded
+  before markers existed. Control-flow and infrastructure errors raised inside
+  either kind of handler propagate unchanged. These are replay determinism
+  errors, suspension, cancellation, and the SDK's own transport and adapter
+  errors, such as a failed read of an owned command's task. They fail or
+  redeliver the workflow task without consuming the boundary. Any other error is
+  an application outcome. For a failed entry it is the recorded failure, which
+  does not fail the workflow, and a handler that returns instead is a
+  determinism error. For a completed entry it contradicts the recorded success,
+  so it becomes a recorded (sticky) determinism error even if workflow code
+  catches it. A failed entry with neither the
+  marker nor owned commands is consumed without running a handler, as today. A pending entry suspends the workflow task until the update finishes.</li>
+<li><strong>Deferred</strong> application runs after each durable command and on handler
+  registration. It applies
+  boundaries the same way, but stops without error at a missing handler or a
+  pending entry, so later code can register the handler.</li>
+</ul>
+<p>Entries apply in the order of their positions. Before the conflict rule
+(below), runtimes could record overlapping updates, for example
+<code>Accepted(U1), Accepted(U2), Completed(U2), Completed(U1)</code>. Each of those
+handlers originally ran without the other's effect, so no replay order
+reproduces both. Replay keeps acceptance order, which is deterministic and is
+what Go uses today. Failing such histories would strand running workflows. The
+conflict rule prevents new overlaps.</p>
+<p>Registering a handler also applies deferred boundaries in every language, as
+Go does today. The workflow code that follows registration therefore observes
+the update, which is also how TypeScript and Python histories were recorded
+before this design. TypeScript and Python registration is synchronous while
+their handlers may be <code>async</code>. Registration invokes each replayed handler
+synchronously, so a synchronous handler's effects are fully visible when
+registration returns. An <code>async</code> handler is tracked as in flight:</p>
+<ul>
+<li>A TypeScript <code>async</code> handler runs up to its first <code>await</code> during
+  registration.</li>
+<li>Calling a Python <code>async def</code> handler only creates its coroutine, so none of
+  its body runs during registration.</li>
+</ul>
+<p>Before the body's next command is consumed, before the body re-evaluates a
+<code>condition</code> predicate, and before completion, the runtime awaits every
+in-flight replayed handler in boundary order. Later boundaries apply only after
+it settles. A handler's own operations, its commands and <code>condition</code> waits, do
+not wait at that barrier. They run in the handler's execution context and
+consume the handler's owned events, so a handler never awaits itself or a later
+handler.</p>
+<p>Each execution context (the body and each running handler) has its own
+cancellation-scope stack. Today TypeScript keeps one mutable
+<code>cancellationScopes</code> array per invocation, and Python one scope <code>ContextVar</code>
+that concurrent tasks may share. A handler that enters
+<code>CancellationScope.nonCancellable()</code> and suspends must not change the scope the
+body sees. TypeScript keys the stack by execution context, for example through
+<code>AsyncLocalStorage</code>. Python gives each handler task its own context copy with
+an independent stack. TypeScript and Python runtimes also apply deferred boundaries before
+evaluating a <code>condition</code> predicate.</p>
+<p>Workflow code that runs between registration and its next durable call,
+including the arguments of that call, therefore sees an <code>async</code> handler's
+effects only up to the point the language ran synchronously. Code after that
+call sees all of them. This is deterministic: the run that first recorded the
+command after the boundary applied the same synchronous prefix at the same
+point, so every replay chooses the same command. A workflow whose next command
+depends on an <code>async</code> handler's later effects awaits a <code>condition</code> on that
+state before issuing it.</p>
+<p>Signals keep their delivery rule: every recorded signal is delivered when its
+handler is registered. Signal handlers must be synchronous, and a signal handler
+must not issue workflow commands or wait on a <code>condition</code>. Today TypeScript
+discards an <code>async</code> signal handler's promise, so its workflow calls would race
+the body for body-owned events. Python discards an <code>async def</code> signal handler's
+coroutine, so it never runs. Ordering them would need positional signal delivery
+(see the gap below), and running Python's would change existing histories.
+TypeScript therefore rejects a workflow command or <code>condition</code> issued from a
+signal handler's execution context with a non-retryable
+<code>SignalHandlerCommandUnsupported</code> failure. Python logs a warning when an
+<code>async def</code> signal handler is registered and keeps not running it. The
+TypeScript and Python guides state the rule.</p>
+<p><strong>Body and update overlap.</strong> The runtime unblocks the workflow task when an
+update is accepted, so a body run that fetched history before the acceptance
+can record a command after <code>Accepted(U)</code> that was chosen without U's effect.
+History records no workflow-task boundary, so replay cannot tell that command
+from one chosen after U applied, and replay applies U at its accepted position.
+A body whose command choice depends on U's state can then fail with a
+determinism error on replay. The SDK cannot order this race alone. The runtime
+must either serialize update tasks with their source workflow task, or record
+workflow-task boundaries in history. That is an open gap for web coordination,
+shared with Go today.</p>
+<p>Cancellation has the same race. A run that fetched history before a
+cancellation request can schedule a command recorded after
+<code>WorkflowCancellationRequested</code>. Positional replay then observes the
+cancellation before that command, so code that handles cancellation finds the
+command left over. Signals have the same race: a run that fetched history
+before <code>WorkflowSignaled(S)</code> can record a command after S that was chosen
+without S, while replay delivers S at handler registration. The same runtime
+remedies apply to both, and both are recorded in the same open gap. Signal
+delivery stays deterministic for runs that do not race.</p>
+<p><strong>Update tasks.</strong> An update task replays its source workflow in replay-only
+mode until replay stops. It then inspects the next unconsumed update boundary:</p>
+<ul>
+<li>If it is this task's own boundary, the task consumes it and runs the handler
+  live with the update task's ID. The handler's cursor first replays the
+  commands it already owns from an earlier delivery of this task. Its new
+  commands are scheduled with that ID as <code>workflowTaskId</code>, so their completion
+  wakes the update task, and a suspension blocks the update task.</li>
+<li>If an earlier update is still pending ahead of it, the task fails with a
+  non-retryable <code>WorkflowUpdateConflict</code> failure and never runs the handler.
+  Blocking is not safe here. The runtime wakes a blocked task only through the
+  <code>workflowTaskId</code> of a command it issued, so nothing would wake an update task
+  blocked behind another update. Queueing such updates needs that runtime wake
+  path, which is an open gap for web coordination.</li>
+<li>Any other position is a determinism error.</li>
+</ul>
+<p>Query tasks replay the same way and stop at the first new command or pending
+boundary. A query replay that instead returns normally runs the completion
+check's leftover-command test, and a recorded determinism error fails the query
+task. A query is served only from state consistent with durable history.</p>
+<h3 id="logical-clock">Logical clock</h3>
+<p>Replay state owns the workflow clock:</p>
+<ol>
+<li>It starts at <code>created_at</code> of the first <code>WorkflowExecutionStarted</code> event. If
+   history has none, it starts at the source workflow task's <code>created_at</code>.</li>
+<li>It moves forward to the <code>created_at</code> of each command event the replay
+   consumes, of each <code>TimerFired</code> event when a timer resolves, of each update
+   boundary it applies, and of the cancellation request when it is first
+   observed. It never moves backwards.</li>
+<li>Before it moves to an event's time, the replay applies, in deferred mode,
+   every update boundary with a lower history index. A timer that resolves as
+   fired therefore applies the boundaries recorded between <code>TimerStarted</code> and
+   <code>TimerFired</code> before the clock reaches the fire time. Those handlers observe
+   the same time whether or not the timer had fired when the replay ran.</li>
+<li>Wall time, live task state and unconsumed events never change it.</li>
+<li>Every value is truncated to whole milliseconds, the precision of a
+   TypeScript <code>Date</code>. Go and Python therefore expose the same instant as
+   TypeScript for the same history.</li>
+</ol>
+<p>Go <code>Context.Now()</code>, Python <code>workflow.now()</code> and a new TypeScript
+<code>workflowInfo().now</code> (a new <code>Date</code> per call) read this clock in UTC. Workflow,
+query and update replay therefore observe the same value at the same point.</p>
+<p>Scheduling a new timer is a side effect that runs once, so its <code>fireAt</code> stays
+wall time plus the duration. Using the logical clock would schedule the timer in
+the past.</p>
+<p>The clock deliberately ignores two kinds of timestamped events, because either
+would make the time at a code point depend on history recorded after it:</p>
+<ul>
+<li>Activity and child outcomes come from live task state, not fetched history.
+  A completion recorded between the history fetch and the task read would
+  change the observed time on the next replay.</li>
+<li>Every recorded signal is delivered when its handler is registered, whatever
+  its position, so a later signal would move the clock at an earlier point.</li>
+</ul>
+<p>After an activity, child or signal, the clock therefore still shows the latest
+consumed history event. Precise time for these would need positional signal
+delivery and runtime-recorded task-resolution boundaries in history. That is an
+open gap for web coordination, not part of this design. Workflows that need
+wall time call an activity.</p>
+<h3 id="replay-introspection">Replay introspection</h3>
+<p>Python <code>workflow.unsafe.is_replaying()</code> reports whether a previous run has
+provably executed past the current point, because history records a later
+workflow-produced event:</p>
+<ul>
+<li>It is <code>True</code> during query and update replay. A redelivered update task's
+  live handler keeps reporting <code>True</code> while it replays the commands it already
+  owns, and switches to <code>False</code> when its cursor is exhausted and it reaches
+  live execution.</li>
+<li>While a completed or failed update's handler is replayed, it is <code>True</code>. Its
+  terminal event proves the handler already ran, even for a legacy entry
+  positioned at that terminal event.</li>
+<li>During workflow replay, the current position is the history index of the
+  latest consumed command event or applied update boundary. While a recorded
+  signal is delivered to its handler, the position is that signal's index. The
+  helper returns <code>True</code> when history has a workflow-produced event at a higher
+  index than the current position. Workflow-produced events are command events
+  and update accepted, completed and failed events.</li>
+</ul>
+<p>A signal that is the latest event in history may be seen for the first time, so
+its delivery reports <code>False</code>. <code>is_replaying_history_events()</code> returns the same
+value. Outside a workflow runtime both keep returning <code>False</code>, which is
+truthful. The exported names do not change.</p>
+<h2 id="module-ownership">Module ownership</h2>
+<p>Replay moves out of the Agent runtime modules:</p>
+<ul>
+<li>TypeScript: <code>typescript/src/agent/_replay.ts</code>.</li>
+<li>Python: <code>python/src/postgrip/agent/_replay.py</code>.</li>
+</ul>
+<p>Each module owns history cursors, update boundaries, the completion check, the
+logical clock and a replay-owned <code>DeterminismError</code>. It imports only history
+types: no SDK failure types, connection, workflow runtime or task dispatch.
+Query and update handler registries are per-invocation runtime state and stay
+with the Agent. The Agent translates <code>DeterminismError</code> into a non-retryable
+<code>ApplicationFailure</code> at its dispatch boundary, as Go's <code>translateReplayError</code>
+does. Neither module is exported from a package entry point.</p>
+<h2 id="compatibility">Compatibility</h2>
+<p>No public name is removed, and no contract, wire format or runtime-service
+behavior changes. These changes are observable:</p>
+<ul>
+<li>Workflows whose command order or kinds differ from history, or that complete
+  with recorded commands left over, fail with a determinism error instead of
+  reusing recorded results or scheduling duplicates. This applies to all three
+  languages.</li>
+<li>The body and each update handler replay only the commands they issued. To
+  learn ownership, the Agent reads the task of each command recorded while an
+  update was open, once per replay.</li>
+<li>A recorded cancellation is observed after the commands recorded before it
+  have replayed, instead of at the first command. The cancellation failure the
+  workflow first observes is unchanged.</li>
+<li>The TypeScript and Python replay determinism failure type, and the TypeScript
+  sandbox failure type, change from <code>DeterminismViolation</code> to
+  <code>WorkflowDeterminismViolation</code>, matching Go and the language guides.</li>
+<li>TypeScript and Python updates apply at their recorded positions instead of
+  all at once, still starting at registration, and their <code>async</code> handlers are
+  awaited before the next command, condition or completion.
+  As in Go, a pending update before a command suspends the workflow task, and an
+  update whose handler is missing at a strict point fails with a determinism
+  error. Update handlers can issue commands in update tasks.</li>
+<li>In every language, an update task that finds an earlier update still pending
+  fails with <code>WorkflowUpdateConflict</code>. Update tasks append an
+  <code>update-handler-started</code> task event before running their handler, and a
+  failed update whose handler ran replays that handler.</li>
+<li>Go <code>Now()</code> and Python <code>workflow.now()</code> return logical time, which on a first
+  run is the workflow start time. TypeScript gains <code>workflowInfo().now</code>.</li>
+<li>Python <code>is_replaying()</code> reports replay state.</li>
+</ul>
+<h2 id="delivery-slices">Delivery slices</h2>
+<p>Each slice is its own PR under the <a href="../../development/contributing/">review process</a>
+and updates the affected language guides (<code>go/agent/docs</code>, <code>typescript/docs</code>
+and <code>python/docs</code> <code>workflow-runtime.md</code>) in the same PR.</p>
+<ol>
+<li><strong>Extraction.</strong> Move TypeScript and Python replay into <code>_replay</code> modules with
+   the replay-owned <code>DeterminismError</code>, translated at Agent dispatch. Keep
+   behavior unchanged, including the <code>DeterminismViolation</code> type.</li>
+<li><strong>Command order</strong>, in three PRs, each in all three languages with shared
+   fixtures:</li>
+<li><strong>Ordered cursor.</strong> One ordered cursor per invocation, with the identity
+      check before consumption, sticky determinism errors on every exit from
+      workflow and interaction replay, new commands scheduled in call order
+      that stop after an earlier enqueue fails, and the aligned TypeScript and
+      Python failure types. Until slice 2.2, commands issued by update handlers
+      share the invocation's cursor, as they shared the per-kind cursors before.</li>
+<li><strong>Ownership and completion.</strong> Command ownership, the per-owner ordered
+      cursors and the completion check.</li>
+<li><strong>Positional cancellation.</strong></li>
+<li><strong>Updates.</strong> Apply TypeScript and Python updates at their boundaries from the
+   runtime and run update tasks live after their own boundary. In all three
+   languages, fail conflicting update tasks, add the handler-started marker,
+   replay marked failed handlers and bound replayed handlers to their recorded
+   segment, with shared fixtures.</li>
+<li><strong>Logical clock.</strong> Add the replay clock to Go, Python and TypeScript.</li>
+<li><strong>Introspection.</strong> Report Python replay state.</li>
+</ol>
+<h2 id="acceptance">Acceptance</h2>
+<p>Shared conformance fixtures live in <code>test/fixtures/replay/</code> as JSON: a history,
+a list of replay operations (activity, timer, child, update boundary,
+completion, clock read) and the expected result of each. Each language's replay
+unit tests run every fixture. They cover:</p>
+<ul>
+<li>reordered activity/timer, timer/child and activity/child histories, and a
+  command whose kind is exhausted while another kind remains, failing with a
+  determinism error, while matching orders replay;</li>
+<li>a deleted trailing command, and a trailing completed update whose handler
+  was removed, failing the completion check;</li>
+<li><code>Activity(A), CancellationRequested</code> replaying A before raising the
+  cancellation failure, with the accessor reporting <code>False</code> at workflow entry
+  and <code>True</code> after A, and a changed workflow that returns without consuming A
+  failing the completion check;</li>
+<li><code>Accepted(U), Activity(A) owned by U, CancellationRequested, Failed(U)</code>,
+  where U's replayed handler consumes A before observing the cancellation;</li>
+<li><code>Accepted(U), Completed(U), CancellationRequested</code>, where the accessor reports
+  <code>False</code> until U has applied, and U's replayed handler itself reads <code>False</code>;</li>
+<li>an <code>async</code> replayed handler that awaits its own owned command and a
+  <code>condition</code> without deadlocking, and a body command after it that waits for
+  it;</li>
+<li>an <code>async</code> handler inside <code>nonCancellable()</code> that suspends while the body's
+  next cancellation check still uses the body's own scope;</li>
+<li><code>Activity(A)</code>, then a workflow that returns after A against
+  <code>Activity(A), CancellationRequested</code>, which raises the cancellation failure at
+  completion, while a workflow that observed and handled it completes;</li>
+<li><code>Activity(A at t0), CancellationRequested(at t1)</code>, where the clock reads <code>t1</code>
+  once the cancellation is observed;</li>
+<li>workflow code that catches a determinism error and returns, which still fails
+  the task with that error;</li>
+<li>a completed update whose replayed handler now raises, which fails the task
+  with a determinism error even when workflow code catches the exception, and a
+  marked failed handler whose owned command's task read fails, which propagates
+  the transport error and leaves the boundary unconsumed;</li>
+<li><code>Accepted(U), Activity(B) owned by the body, Completed(U)</code>, where U's handler
+  now issues <code>Activity(B)</code>, failing with a determinism error while the body's B
+  replays normally;</li>
+<li>a legacy completion-only update whose owned command precedes its completion,
+  replayed through that command;</li>
+<li>identity mismatches and retry attempts;</li>
+<li><code>Activity(A), UpdateAccepted(set), UpdateCompleted(set)</code> not applying <code>set</code>
+  before <code>Activity(A)</code> is consumed, plus pending, failed and legacy
+  completion-only updates;</li>
+<li>an update task's own boundary reached, an earlier pending update ahead of it,
+  and a boundary that cannot be reached;</li>
+<li>a legacy or pre-marker failed update that owns a command, replayed through
+  it; an overlapping <code>Accepted(U1), Accepted(U2), Completed(U2), Completed(U1)</code>
+  history replaying in acceptance order;</li>
+<li>a failed update whose marked handler scheduled a command before raising,
+  replayed so the command is consumed by the handler, not the body; an unmarked
+  failure consumed without running its handler; a marked failed handler that
+  returns instead of raising failing with a determinism error; and a marked
+  failed handler whose replayed command mismatches, which propagates the
+  determinism error instead of counting it as the recorded failure;</li>
+<li>a completed update whose handler now issues a command its recorded segment
+  lacks, failing with a determinism error instead of scheduling it;</li>
+<li>clock values from start, command, <code>TimerFired</code> and update events, including
+  the task <code>created_at</code> fallback, that equal histories yield equal values, and
+  that signal and activity-completion events leave the clock unchanged, and
+  that a <code>created_at</code> with sub-millisecond digits yields the same millisecond
+  value in every language;</li>
+<li><code>TimerStarted</code>, a completed update, then <code>TimerFired</code>, where the update
+  handler observes the same clock value before and after the fire is recorded.</li>
+</ul>
+<p>Language runtime tests add:</p>
+<ul>
+<li>a workflow whose branch depends on the clock taking the same branch on
+  redelivery;</li>
+<li>in TypeScript and Python, a synchronous update handler whose state the code
+  right after registration observes, as in
+  <code>setHandler(U); await activity(flag ? 'A' : 'B')</code>; an <code>async</code> handler that
+  awaits a command and then changes state, where code after the workflow's next
+  durable call observes the change, and that call's arguments see the same
+  state on every replay; and a body that waits on a <code>condition</code> for the async
+  state before choosing its command;</li>
+<li>an update task that appends its <code>update-handler-started</code> event, schedules an
+  activity under its own task ID and blocks; a second update task that fails
+  with <code>WorkflowUpdateConflict</code> without appending the event or running its
+  handler; an update task whose marker append fails but persisted, which runs
+  its handler after reading its events; one whose append failed without
+  persisting, which fails without running its handler; and one whose
+  reconciliation read also fails, which stops renewing its lease and is
+  redelivered;</li>
+<li>a query replay that stops at a pending update, and a query whose changed
+  workflow returns before a recorded trailing command, which fails instead of
+  serving the query;</li>
+<li>an unmarked completed update with a Python <code>async def</code> handler that replays
+  without running the coroutine, and a marked one that runs it;</li>
+<li>a TypeScript signal handler that issues an activity, which fails with
+  <code>SignalHandlerCommandUnsupported</code>, and a Python <code>async def</code> signal handler
+  registration that logs a warning;</li>
+<li>the determinism failure type for replay and the TypeScript sandbox;</li>
+<li>Python introspection values for commands, updates, a signal followed by a
+  command, a signal-only history, a completed update at the end of history, a
+  legacy completion-only update, and a redelivered update task before and after
+  its recorded prefix.</li>
+</ul>
+<p>Existing Agent tests, drift and generation checks, and strict documentation
+builds pass apart from the changes listed under Compatibility.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

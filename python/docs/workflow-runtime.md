@@ -24,10 +24,12 @@ Commands must be issued in the order history recorded them, across all kinds:
 a timer issued where history recorded an activity is a determinism violation,
 and so is a command whose kind has no recorded events left while another kind
 still does. A mismatched command leaves the recorded event unconsumed. A
-determinism violation is sticky: the workflow task fails with it even if your
-code catches the error and then returns, suspends or continues as new. Commands issued concurrently, for example with `asyncio.gather`, are
-scheduled one at a time in call order, so history records them in the order
-replay consumes them.
+determinism violation is sticky: the workflow task, or the query or update
+task replaying it, fails with it even if your code catches the error and then
+returns, suspends, continues as new or raises something else. Commands issued
+concurrently, for example with `asyncio.gather`, are scheduled one at a time in
+call order, so history records them in the order replay consumes them. If one
+fails to enqueue, the commands issued after it are not enqueued either.
 
 When the body suspends, the agent calls `BlockTask` on the runtime service. The workflow task moves to the **blocked** state — *not* failed. The runtime service redelivers the task whenever a dependency resolves (an activity completes, a timer fires, a signal arrives), at which point the agent re-runs your coroutine from the top with fuller history.
 

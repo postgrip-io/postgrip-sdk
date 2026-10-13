@@ -324,7 +324,7 @@ export class Agent {
           },
           executeActivity: (name) => this.replayActivityForQuery(replay, name),
           executeChild: (name) => this.replayChildForQuery(replay, name),
-          sleep: () => this.replayTimerForQuery(replay),
+          sleep: (ms) => this.replayTimerForQuery(replay, ms),
           condition: (predicate) => this.replayConditionForQuery(predicate),
           cancellationRequested: () => replay.isCancellationRequested(),
           setSignalHandler: (name, handler) => handlers.setSignalHandler(name, handler),
@@ -333,6 +333,8 @@ export class Agent {
           emit: async () => undefined,
         }, () => workflow(...(sourceTask.payload?.args ?? [])));
       } catch (err) {
+        // Nondeterminism is sticky on every exit from interaction replay.
+        throwIfNondeterministic(replay);
         if (!(err instanceof WorkflowQueryReady)) {
           throw err;
         }
@@ -354,6 +356,7 @@ export class Agent {
       const message = err instanceof Error ? err.message : String(err);
       await this.emit(task.id, 'failed', kind, message).catch(() => undefined);
       await this.connection.failTask(task.id, this.identity, message, {
+        failure: failureInfoFromError(err),
         started_at: startedAt,
         finished_at: new Date().toISOString(),
       }).catch(ignoreTerminalTaskMutation);
@@ -595,9 +598,9 @@ export class Agent {
     throw new WorkflowQueryReady(`waiting for activity ${name}`);
   }
 
-  private async replayTimerForQuery(replay: WorkflowReplay): Promise<void> {
+  private async replayTimerForQuery(replay: WorkflowReplay, durationMs: number): Promise<void> {
     if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
-    const started = replayCommand(() => replay.nextTimer());
+    const started = replayCommand(() => replay.nextTimer(durationMs));
     if (!started?.task_id || !replay.isTimerFired(started)) {
       throw new WorkflowQueryReady('waiting for timer');
     }
@@ -634,8 +637,11 @@ export class Agent {
    */
   private scheduleInOrder<T>(replay: WorkflowReplay, schedule: () => Promise<T>): Promise<T> {
     const previous = this.commandQueues.get(replay) ?? Promise.resolve();
+    // A failed earlier enqueue rejects every later one, so history never
+    // records a later command without the earlier one.
     const next = previous.then(schedule);
-    this.commandQueues.set(replay, next.catch(() => undefined));
+    this.commandQueues.set(replay, next);
+    next.catch(() => undefined);
     return next;
   }
 

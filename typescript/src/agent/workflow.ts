@@ -205,13 +205,18 @@ export class ContinueAsNewCommand extends Error {
 
 async function executeActivity(name: string, args: unknown[], options: ActivityOptions): Promise<unknown> {
   const runtime = currentRuntime();
-  await runtime.emit({
+  throwIfScopedCancellationRequested(runtime);
+  // Dispatch before awaiting the progress event: the runtime takes this
+  // command's replay and scheduling position synchronously, so concurrent
+  // calls keep call order regardless of how fast each event request returns.
+  const emitted = runtime.emit({
     stage: 'activity',
     message: `scheduling activity ${name}`,
     details: { activity: name },
   });
-  throwIfScopedCancellationRequested(runtime);
-  return runtime.executeActivity(name, args, { ...options, cancellationScope: currentCancellationScope() });
+  const result = runtime.executeActivity(name, args, { ...options, cancellationScope: currentCancellationScope() });
+  const [, value] = await Promise.all([emitted, result]);
+  return value;
 }
 
 async function runInCancellationScope<R>(scope: CancellationScopeType, fn: () => Promise<R> | R): Promise<R> {

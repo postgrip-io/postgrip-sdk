@@ -427,10 +427,17 @@ and `python/docs` `workflow-runtime.md`) in the same PR.
 1. **Extraction.** Move TypeScript and Python replay into `_replay` modules with
    the replay-owned `DeterminismError`, translated at Agent dispatch. Keep
    behavior unchanged, including the `DeterminismViolation` type.
-2. **Command order.** Add command ownership, the per-owner ordered cursors,
-   positional cancellation and the completion check in all three languages,
-   align the TypeScript and Python failure types, and add the shared ordering
-   fixtures.
+2. **Command order**, in three PRs, each in all three languages with shared
+   fixtures:
+   1. **Ordered cursor.** One ordered cursor per invocation, with the identity
+      check before consumption, sticky determinism errors on every exit from
+      workflow and interaction replay, new commands scheduled in call order
+      that stop after an earlier enqueue fails, and the aligned TypeScript and
+      Python failure types. Until slice 2.2, commands issued by update handlers
+      share the invocation's cursor, as they shared the per-kind cursors before.
+   2. **Ownership and completion.** Command ownership, the per-owner ordered
+      cursors and the completion check.
+   3. **Positional cancellation.**
 3. **Updates.** Apply TypeScript and Python updates at their boundaries from the
    runtime and run update tasks live after their own boundary. In all three
    languages, fail conflicting update tasks, add the handler-started marker,

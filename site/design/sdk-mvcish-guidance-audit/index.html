@@ -1,0 +1,1186 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Unified Agent, Worker, and Service SDK documentation">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>SDK guidance recursive reference audit - PostGrip SDKs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sdk-guidance-recursive-reference-audit" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PostGrip SDKs" class="md-header__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PostGrip SDKs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              SDK guidance recursive reference audit
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PostGrip SDKs" class="md-nav__button md-logo" aria-label="PostGrip SDKs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PostGrip SDKs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/postgrip-io/postgrip-sdk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../curl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secure cURL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../live-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Live testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts and web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-traversal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and traversal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shared-web-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared web policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corrections-and-source-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Corrections and source evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-dispositions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File dispositions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sdk-guidance-recursive-reference-audit">SDK guidance recursive reference audit</h1>
+<p>Date: 2026-10-12 (America/Los_Angeles). Reproducible SDK baseline:
+<a href="https://github.com/postgrip-io/postgrip-sdk/commit/0ea347918a2e87bbcc7df7103f414da241766893"><code>0ea347918a2e87bbcc7df7103f414da241766893</code></a>.
+The initial checkout also included <a href="https://github.com/postgrip-io/postgrip-sdk/pull/69/commits/eb63e55c8153666fda0104ce57eefb5367866898">PR #69's proposal at <code>eb63e55c</code></a>.
+That revision differs from the baseline only in
+<code>docs/design/contract-driven-sdk-layering.md</code>; the SDK source and baseline
+inventory below are identical. The proposal was reviewed as an unmerged design,
+and this guidance PR was branched independently from the baseline on <code>main</code>.
+This is maintenance evidence for <a href="../sdk-mvcish-guidance/">the guidance design</a>,
+not another policy owner or a claim of runtime/release readiness.</p>
+<h2 id="scope-and-traversal">Scope and traversal</h2>
+<p>The baseline inventory contains 66 tracked Markdown files outside
+<code>docs/reference/</code>, <code>docs/archive/</code> and <code>docs/design/</code>: 52 current guides/entry
+points, 10 historical routing stubs, three release-note histories and one
+generated operation-coverage report. Every file has a disposition below.
+The archive index was also read to verify its non-normative boundary.</p>
+<p>The recursive link walk starts at AGENTS and resolves relative links,
+same-repository GitHub URLs, published language-site URLs and Go Jekyll
+<code>relative_url</code> links. It reaches 36 inventory files; the remaining 30 are
+included explicitly, covering site-navigation pages, example guides and
+contributor/test entry points. The inventory therefore does not depend on a
+page being reachable by an inline Markdown link. After corrections, the 66
+files contain 203 resolved local reference edges with no missing destinations.
+The unmerged transport design is linked through PR #69 so this guidance can
+be reviewed independently from <code>main</code>.</p>
+<p>Current guides were compared for agreement on ownership, MVC-ish roles,
+contracts, language/package support, authentication, configuration, validation
+and the PR/release process. This is a documentation-consistency audit with
+focused source verification, not an exhaustive correctness audit of every
+runtime method mentioned by the guides.</p>
+<p>Historical archive contents, release history and past acceptance records are
+terminal evidence, not current instructions to rewrite. Active designs are
+proposals checked for status and consistency with current owners; they do not
+establish delivered behavior. Generated current API pages are checked by the
+generator and reference validators, not claimed as 181 independent manual
+runtime reviews. Old immutable bundles retain their historical URLs.</p>
+<p>External registry, language/tool documentation, release pages and unrelated
+web product/deployment guides are external references, not SDK policy owners.
+This audit does not claim to review all documentation in other repositories or
+verify registry publication and live service behavior.</p>
+<h2 id="shared-web-policy">Shared web policy</h2>
+<p>The SDK-relevant architecture, PR lifecycle, contract coordination and CI
+comparison were checked against web's current owners, not the older sibling
+working tree. GitHub content blob SHAs at review:</p>
+<table>
+<thead>
+<tr>
+<th>Web owner</th>
+<th>Blob SHA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AGENTS.md</code></td>
+<td><code>df0b9ddea83e4fb6b8e533f0f41fefa66fc801f4</code></td>
+</tr>
+<tr>
+<td><code>code-review/architecture.md</code></td>
+<td><code>ccf5cf95f36b1ec144d583b2af7810caca4476e5</code></td>
+</tr>
+<tr>
+<td><code>docs/development/contributing.md</code></td>
+<td><code>5d9bcbddd6cfcee53befe757333479e97db565b8</code></td>
+</tr>
+<tr>
+<td><code>docs/development/api-contracts.md</code></td>
+<td><code>ed0a7d35890f7fec85e2770357adbc6d724e8870</code></td>
+</tr>
+<tr>
+<td><code>docs/development/ci.md</code></td>
+<td><code>bba3700f5b4b76c7dc087e3547d5c657e8ad678c</code></td>
+</tr>
+</tbody>
+</table>
+<p>Web's reference index, conventions and applicable invariant sections informed
+scope and interpretation. Its UI, database, deployment and runner rules are not
+silently imported into SDK requirements. Shared review rounds remain owned by
+web; SDK-specific commands and responsibility checks remain owned here.</p>
+<h2 id="corrections-and-source-evidence">Corrections and source evidence</h2>
+<table>
+<thead>
+<tr>
+<th>Conflicting or incomplete claim</th>
+<th>Correction and evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MVC-ish had no explicit SDK mapping or review checklist</td>
+<td>Architecture now defines models, orchestration, bindings, adapters and composition with Go/TypeScript/Python mappings. Generated schema/binding colocation is distinguished from handwritten mixed responsibilities.</td>
+</tr>
+<tr>
+<td>All root constructors share precedence</td>
+<td>Configuration, root README and Go/TypeScript introductions now agree with Go <code>New</code>/<code>NewFromEnv</code>, TypeScript <code>resolvePostGripConfig</code> and Python <code>resolve_config</code>.</td>
+</tr>
+<tr>
+<td>Omitting an Agent URL always selects the cloud default</td>
+<td>All three installation guides now account for plane and common environment fallbacks in Go <code>NewConnection</code>, TypeScript <code>Connection.create</code> and Python <code>Connection.__init__</code>.</td>
+</tr>
+<tr>
+<td>A root token implies management-only Agent credentials</td>
+<td>Authentication and root README describe Go/Python environment credential selection and TypeScript runtime configuration, following the Agent constructors and request auth-lane selection.</td>
+</tr>
+<tr>
+<td>Common timeout/retry behavior is already implemented</td>
+<td>Configuration describes current root forwarding and plane eligibility; the proposed transport design remains separate.</td>
+</tr>
+<tr>
+<td>All Agent HTTP failures use the structured error base</td>
+<td>TypeScript/Python API guides and authentication now match their <code>Connection</code> error paths and <code>PostGripAgentError</code> subclasses. <code>TaskFailedError</code> carries task ID/message, not an underlying <code>ApplicationFailure</code> field.</td>
+</tr>
+<tr>
+<td>Go package arrows and shared transport ownership were unclear</td>
+<td>Package guide arrows now mean consumer-to-dependency and include <code>go/internal/transport</code>, checked against production imports.</td>
+</tr>
+<tr>
+<td>Node/npm alone runs the repository build</td>
+<td>TypeScript installation identifies <code>bun run clean</code> inside <code>package.json</code>'s build script.</td>
+</tr>
+<tr>
+<td>Numeric Service retry caps belong to OpenAPI</td>
+<td>Go Service guide attributes numeric caps to <code>client.go</code>; the contract annotations govern eligibility.</td>
+</tr>
+<tr>
+<td>Adding a fourth language conflicts with a fixed three-artifact rule</td>
+<td>Architecture and releasing distinguish current support from required future generator, validation and release integration.</td>
+</tr>
+<tr>
+<td>Closed schemas exclude explicitly declared maps</td>
+<td>Contract guidance preserves canonical open-ended fields, matching <code>additionalProperties</code> in the mirrors.</td>
+</tr>
+</tbody>
+</table>
+<p>Other retained guides agree with these topic owners at the reviewed policy
+boundaries. Runtime guides keep language-specific workflow mechanics; fixture
+and release guides keep their explicit consent and evidence requirements.</p>
+<h2 id="file-dispositions">File dispositions</h2>
+<p>“Reviewed” means checked for the policy agreement described above, not that
+all runtime examples were executed against a deployed service.</p>
+<table>
+<thead>
+<tr>
+<th>Baseline file</th>
+<th>Disposition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AGENTS.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>MIGRATION.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>README.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/authentication.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/configuration.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/curl.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>docs/development/architecture.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/development/contracts.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/development/contributing.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/development/testing.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/index.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/live-testing.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>docs/releasing.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-design.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-implementation-plan.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-phase-reports/final-integration.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-phase-reports/phase-0-server.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-phase-reports/phase-1-generation.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-phase-reports/phase-2-packages.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-phase-reports/phase-3-documentation.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-phase-reports/phase-4-endpoint-tests.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/unified-sdk-phase-reports/phase-5-ci-release.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>docs/worker-bootstrap.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/CLAUDE.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/README.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>go/agent/doc/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/agent/docs/api.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/agent/docs/index.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/agent/docs/installation.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>go/agent/docs/packages.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>go/agent/docs/quickstart.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/agent/docs/release-notes.md</code></td>
+<td>Historical release record; retained as history.</td>
+</tr>
+<tr>
+<td><code>go/agent/docs/workflow-runtime.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/agent/example/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/protocol/AGENTS.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/protocol/CLAUDE.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/protocol/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/protocol/doc/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/protocol/test/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/service/README.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>go/test/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>go/worker/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>python/CLAUDE.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>python/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>python/doc/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>python/docs/api.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>python/docs/index.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>python/docs/installation.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>python/docs/quickstart.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>python/docs/release-notes.md</code></td>
+<td>Historical release record; retained as history.</td>
+</tr>
+<tr>
+<td><code>python/docs/workflow-runtime.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>python/example/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>simplification-report.md</code></td>
+<td>Historical routing stub; archive boundary verified.</td>
+</tr>
+<tr>
+<td><code>test/live/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>test/reports/operation-coverage.md</code></td>
+<td>Generated inventory; checked by coverage/reference validators.</td>
+</tr>
+<tr>
+<td><code>typescript/CLAUDE.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>typescript/README.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>typescript/doc/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>typescript/docs/api.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>typescript/docs/index.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>typescript/docs/installation.md</code></td>
+<td>Reviewed and corrected/aligned in this change.</td>
+</tr>
+<tr>
+<td><code>typescript/docs/quickstart.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>typescript/docs/release-notes.md</code></td>
+<td>Historical release record; retained as history.</td>
+</tr>
+<tr>
+<td><code>typescript/docs/workflow-runtime.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>typescript/example/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+<tr>
+<td><code>typescript/test/README.md</code></td>
+<td>Reviewed; retained.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="validation">Validation</h2>
+<p>Passed during this audit:</p>
+<ul>
+<li><code>python3 scripts/generate_api_docs.py --check</code>: 181 operations, current bundle <code>a7d0c4805526…</code>.</li>
+<li><code>python3 scripts/check_api_docs.py</code>: 181 operation pages and 172 cURL examples.</li>
+<li><code>python3 scripts/check_operation_coverage.py</code>: 181 owned operations, including nine protocol exceptions; this does not execute live tests.</li>
+<li><code>python3 scripts/check_package_layout.py</code>: current Go/npm/PyPI layout.</li>
+<li>Recursive local reference mapping: no missing destinations among the 203 edges above.</li>
+<li>Strict MkDocs builds for the root, TypeScript and Python sites.</li>
+<li>Initial local reference/anchor validation: 198 references across 69 inventory, boundary and audit files.</li>
+<li><code>git diff --check</code>.</li>
+</ul>
+<p>Go's Jekyll-specific navigation is resolved to source pages
+by the link walk; MkDocs does not build the Go site. No live calls, registry
+publishing, runtime refactor or web source-pin update is part of this audit.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
