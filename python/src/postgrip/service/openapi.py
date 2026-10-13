@@ -1094,14 +1094,60 @@ class _SchemaServicePromotionPreview(_SchemaServicePromotionPreviewOptional):
     previewToken: str
     expiresAt: str
 
+class _SchemaServiceBuildLogStatusStatusSettingsOptional(TypedDict, total=False):
+    lastTrimmedAt: str
+    lastFlushedAt: str
+
+class _SchemaServiceBuildLogStatusStatusSettings(_SchemaServiceBuildLogStatusStatusSettingsOptional):
+    projectId: str
+    retentionDays: int
+    updatedAt: str
+
+class _SchemaServiceBuildLogStatusStatusStorageOptional(TypedDict, total=False):
+    oldestEntry: str
+    newestEntry: str
+
+class _SchemaServiceBuildLogStatusStatusStorage(_SchemaServiceBuildLogStatusStatusStorageOptional):
+    totalBytes: int
+    deploymentsWithLogs: int
+
+class _SchemaServiceBuildLogStatusStatusSummary(TypedDict):
+    deploymentsLast24Hours: int
+    activeBuilds: int
+    failedDeployments: int
+
+class _SchemaServiceBuildLogStatusStatus(TypedDict):
+    settings: _SchemaServiceBuildLogStatusStatusSettings
+    storage: _SchemaServiceBuildLogStatusStatusStorage
+    summary: _SchemaServiceBuildLogStatusStatusSummary
+
 class _SchemaServiceBuildLogStatus(TypedDict):
-    status: dict[str, Any]
+    status: _SchemaServiceBuildLogStatusStatus
     version: int
     etag: str
 
+class _SchemaServiceRuntimeLogWorkerStatusSettingsOptional(TypedDict, total=False):
+    lastTrimmedAt: str
+    lastFlushedAt: str
+
+class _SchemaServiceRuntimeLogWorkerStatusSettings(_SchemaServiceRuntimeLogWorkerStatusSettingsOptional):
+    enabled: bool
+    retentionDays: int
+    updatedAt: str
+
+class _SchemaServiceRuntimeLogWorkerStatusStorageOptional(TypedDict, total=False):
+    oldestEntry: str
+    newestEntry: str
+
+class _SchemaServiceRuntimeLogWorkerStatusStorage(_SchemaServiceRuntimeLogWorkerStatusStorageOptional):
+    databaseBytes: int
+    containers: int
+    logLines: int
+    runningContainers: int
+
 class _SchemaServiceRuntimeLogWorkerStatusOptional(TypedDict, total=False):
-    settings: dict[str, Any]
-    storage: dict[str, Any]
+    settings: _SchemaServiceRuntimeLogWorkerStatusSettings
+    storage: _SchemaServiceRuntimeLogWorkerStatusStorage
     errorCode: str
 
 class _SchemaServiceRuntimeLogWorkerStatus(_SchemaServiceRuntimeLogWorkerStatusOptional):
@@ -1240,15 +1286,51 @@ class _SchemaServiceRuntimeLogMutationResponse(TypedDict):
     configurationOperationId: str
     receipt: _SchemaOperationReceipt
 
+class _SchemaServiceBuildLogSettingsMutationResponseSettingsOptional(TypedDict, total=False):
+    lastTrimmedAt: str
+    lastFlushedAt: str
+
+class _SchemaServiceBuildLogSettingsMutationResponseSettings(_SchemaServiceBuildLogSettingsMutationResponseSettingsOptional):
+    projectId: str
+    retentionDays: int
+    updatedAt: str
+
 class _SchemaServiceBuildLogSettingsMutationResponse(TypedDict):
-    settings: dict[str, Any]
+    settings: _SchemaServiceBuildLogSettingsMutationResponseSettings
     effect: Literal['immediate']
     configurationRevision: int
     etag: str
     receipt: _SchemaOperationReceipt
 
+class _SchemaServiceBuildLogMaintenanceResponseResultSettingsOptional(TypedDict, total=False):
+    lastTrimmedAt: str
+    lastFlushedAt: str
+
+class _SchemaServiceBuildLogMaintenanceResponseResultSettings(_SchemaServiceBuildLogMaintenanceResponseResultSettingsOptional):
+    projectId: str
+    retentionDays: int
+    updatedAt: str
+
+class _SchemaServiceBuildLogMaintenanceResponseResultStorageOptional(TypedDict, total=False):
+    oldestEntry: str
+    newestEntry: str
+
+class _SchemaServiceBuildLogMaintenanceResponseResultStorage(_SchemaServiceBuildLogMaintenanceResponseResultStorageOptional):
+    totalBytes: int
+    deploymentsWithLogs: int
+
+class _SchemaServiceBuildLogMaintenanceResponseResultOptional(TypedDict, total=False):
+    retentionCutoff: str
+
+class _SchemaServiceBuildLogMaintenanceResponseResult(_SchemaServiceBuildLogMaintenanceResponseResultOptional):
+    deletedRows: int
+    settings: _SchemaServiceBuildLogMaintenanceResponseResultSettings
+    storage: _SchemaServiceBuildLogMaintenanceResponseResultStorage
+    operation: Literal['trim', 'flush']
+    completedAt: str
+
 class _SchemaServiceBuildLogMaintenanceResponse(TypedDict):
-    result: dict[str, Any]
+    result: _SchemaServiceBuildLogMaintenanceResponseResult
     receipt: _SchemaOperationReceipt
 
 class _SchemaServiceVariableApplyResult(TypedDict):
@@ -1264,7 +1346,13 @@ class _SchemaServiceVariablesApplyResponse(TypedDict):
 class _SchemaPostGripConfigurationMetadata(TypedDict):
     name: str
 
-_SchemaPostGripConfigurationWorkerSelector: TypeAlias = dict[str, Any] | dict[str, Any]
+class _SchemaPostGripConfigurationWorkerSelectorAlternative1(TypedDict):
+    id: str
+
+class _SchemaPostGripConfigurationWorkerSelectorAlternative2(TypedDict):
+    name: str
+
+_SchemaPostGripConfigurationWorkerSelector: TypeAlias = _SchemaPostGripConfigurationWorkerSelectorAlternative1 | _SchemaPostGripConfigurationWorkerSelectorAlternative2
 
 class _SchemaPostGripConfigurationRepositoryOptional(TypedDict, total=False):
     projectPath: str
