@@ -54,13 +54,15 @@ consumed, never on a concrete adapter class:
 | Workflow operations | get, list, count, history (page and walk), signal, signal-with-start, cancel, terminate |
 | Schedule operations | create, get, list, update, delete, pause, unpause, trigger, backfill |
 | Sandbox operations | sandbox and workspace lifecycle, session creation, archive upload |
-| Runtime operations | poll, heartbeat, complete, fail, block, append event, agent auth configuration |
+| Runtime operations | health, poll, heartbeat, complete, fail, block, append event, agent auth configuration, workflow history and task pages |
 
 - **Go.** Unexported interfaces in `agent/client` (for example `taskOps`) are
   satisfied by `*Connection`. The client structs hold those interfaces.
   `worker.Options.Connection` stays `*client.Connection` for compatibility, and
   `worker` declares its own runtime interface that the worker and
-  `workflowContext` use internally.
+  `workflowContext` use internally. The exported
+  `WaitForTaskCompletion(ctx, *Connection, …)` keeps its signature and wraps an
+  unexported helper that takes the task interface; clients call the helper.
 - **TypeScript.** Internal `interface` types in `agent/_ports.ts`. Exported
   option properties such as `ClientOptions.connection` and
   `AgentOptions.connection`, and public fields, keep the `Connection` type, so
@@ -98,9 +100,11 @@ working:
   and updates the tests that patched the old name in the same PR. That is the
   only test change the split allows.
 - **Python neutral header helper.** `has_authorization_header` moves to
-  `_internal/http.py`. `sandbox.py` imports it from there, which removes its
-  dependency on `client.py`. `client.py` then imports `SandboxClient` at module
-  top, with no cycle.
+  `_internal/http.py`. `sandbox.py` imports it from there, and imports the
+  `Connection` type from `_connection.py`, which removes its dependency on
+  `client.py`. `client.py` then imports `SandboxClient` at module top, with no
+  cycle. This needs `_connection.py` to exist, so the cycle fix ships together
+  with the `Connection` extraction.
 - **Python sandbox.** `agent/_sandbox_transport.py` takes the external
   adapters: the WebSocket session and its factory, and the workspace upload
   HTTP request that `SandboxClient.upload_workspace` builds and opens today.
@@ -122,7 +126,17 @@ working:
   connection.
 - **Go Agent.** Task-kind selection and multi-page walking move from
   `Connection` methods into the clients that orchestrate them. The `Connection`
-  methods stay as thin compatibility wrappers.
+  methods stay as thin compatibility wrappers. The sandbox relay dial
+  (`dialSandboxRelay`, which reads the connection's private transport settings
+  and calls `websocket.Dial`) becomes a `Connection` adapter operation exposed
+  through the sandbox interface, so `SandboxClient` needs no concrete
+  connection state.
+- **Runtime history walking.** The Agent runtimes (Go `worker/dispatch.go`,
+  TypeScript `agent.ts`, Python `agent.py`) fetch whole workflow histories
+  today through the adapter's full-history methods. They instead walk pages
+  through the runtime port's page operation with each language's shared history
+  walker. The adapter's full-history methods remain only for external
+  compatibility.
 
 Underscore-prefixed modules are internal and not exported from package entries.
 
@@ -136,14 +150,16 @@ the adapter module with the requests that use it.
 
 ## Delivery slices
 
-1. **Python header and cycle.** Move `has_authorization_header`, remove the
+1. **Python connection and cycle.** Extract `Connection` to `_connection.py`
+   with the opener and patch point, move `has_authorization_header`, remove the
    sandbox back-dependency, and import `SandboxClient` eagerly.
 2. **Python sandbox split.**
 3. **TypeScript sandbox split.**
-4. **Python Agent client split.**
+4. **Python Agent client split:** history walking and pure workflow models.
 5. **TypeScript Agent client split.**
 6. **Capability interfaces**, one PR per language (Go, TypeScript, Python),
-   including the Go task-kind and paging move.
+   including the Go task-kind, paging and relay-dial moves and runtime history
+   walking.
 
 Each slice is its own PR under the [review process](../development/contributing.md).
 A slice that changes an owner's description of module ownership updates the
@@ -160,7 +176,13 @@ architecture guide in the same PR.
   static test parses `sandbox.py` and the moved sandbox modules and fails if any
   of them imports `postgrip.agent.client`, even under `TYPE_CHECKING`. A second
   test asserts that `client.py` imports the sandbox module at top level.
-- Each capability-interface slice adds a test that drives a client or the
-  runtime through a minimal fake implementing only the port. In TypeScript, the
+- Each capability-interface slice converts every consumer the design names. For
+  Go these are `TaskClient`, `WorkflowClient`, `WorkflowHandle`,
+  `ScheduleClient`, `SandboxClient`, the worker and `workflowContext`; TypeScript
+  and Python have the corresponding clients, handles, `SandboxClient` and
+  `Agent`. For each consumer, the slice adds a minimal-fake test driving it
+  through only its port. Each consumer's stored dependency is also asserted to
+  be the port type: a Go compile-time field type assertion, the TypeScript
+  private field type, or a Python test over the annotations. In TypeScript, the
   fake is cast at the unchanged public parameter type; the class's private port
   field proves the narrower dependency at compile time.
