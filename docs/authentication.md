@@ -70,9 +70,10 @@ log authorization headers. Rotate or revoke a token that may have entered a
 log, trace, crash report, shell history, URL, or process argument list.
 
 Go Agent HTTP failures omit server response content from their default error
-text. The typed `SDKError` carries the decoded envelope's `Code`, `RequestID`
-and `Details`, and `ResponseBody` retains the original body for explicit
-inspection. These fields are server-provided and may contain reflected
+text. For ordinary JSON operations, the typed `SDKError` carries the decoded
+envelope's `Code`, `RequestID` and `Details`. Workspace-upload failures do not
+decode the envelope, so those fields stay empty there. `ResponseBody` retains
+the original body for explicit inspection in both cases. These fields are server-provided and may contain reflected
 credentials or other secrets. Review and redact them before logging; arbitrary
 server error content is not safe log data.
 

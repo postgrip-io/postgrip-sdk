@@ -78,8 +78,9 @@ implementation; delay limits are not yet uniform across planes and languages.
 Go Worker parses `Retry-After` with the Service rules: `0` or a past date
 retries without backoff and larger values cap at 30 seconds.
 The required contract-driven boundary is specified in
-[architecture](development/architecture.md); transport consolidation does not
-make proposed timeout or Agent retry behavior available today.
+[architecture](development/architecture.md). Until the TypeScript and Python
+planes move onto their shared executors, the TypeScript request timeout and
+TypeScript and Python Agent retries remain proposed, not available.
 
 Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and

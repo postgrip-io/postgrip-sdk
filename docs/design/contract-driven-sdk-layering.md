@@ -225,7 +225,8 @@ Moving Go Agent onto the executor also adds an `Accept: application/json`
 header to its requests, which Worker and Service already send, and lets a
 configured connection header replace the executor's own value for that name, as
 Agent's configured headers did before. Executor-local encode, decode and
-response-bound failures surface as `SDKError` with the same operation text.
+response-bound failures keep Agent's previous `SDKError` messages, including the
+method and route of a decode failure.
 
 `RetryConfig` is named so that it does not collide with the runtime protocol's
 `RetryPolicy` wire type, which the drift checker reserves. With retries enabled, the 18

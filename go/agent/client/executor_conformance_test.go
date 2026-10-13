@@ -2,15 +2,21 @@ package client
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/postgrip-io/postgrip-agent-sdks/go/agent/failure"
+	"github.com/postgrip-io/postgrip-agent-sdks/go/protocol"
 )
 
 type recordedAgentRequest struct {
@@ -183,5 +189,163 @@ func TestAgentNeverRetriesSignedTaskActions(t *testing.T) {
 	}
 	if got := requests()[0].header.Get("Authorization"); got != "Bearer access" {
 		t.Fatalf("agent lane Authorization = %q, want the delegated session", got)
+	}
+}
+
+type capturedAgentRequest struct {
+	method   string
+	path     string
+	rawQuery string
+	header   http.Header
+	body     []byte
+}
+
+// Every generated JSON operation follows its contract annotations: auth lane,
+// agent-task-v1 signing over the sent bytes, and retry eligibility. The
+// expectations come from the annotations, not from the executor.
+func TestEveryAgentOperationFollowsItsContractPolicy(t *testing.T) {
+	publicKey, privateKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for id, operation := range openAPIOperationTable {
+		if operation.StreamingRequest || operation.WebSocket {
+			continue
+		}
+		t.Run(string(id), func(t *testing.T) {
+			var mu sync.Mutex
+			var captured []capturedAgentRequest
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, _ := io.ReadAll(r.Body)
+				mu.Lock()
+				captured = append(captured, capturedAgentRequest{r.Method, r.URL.Path, r.URL.RawQuery, r.Header.Clone(), body})
+				attempt := len(captured)
+				mu.Unlock()
+				if attempt == 1 {
+					w.Header().Set("Retry-After", "0")
+					writeJSON(w, http.StatusServiceUnavailable, `{"code":"BUSY","message":"busy"}`)
+					return
+				}
+				writeJSON(w, http.StatusOK, `{}`)
+			}))
+			defer server.Close()
+			conn, err := NewConnection(ConnectionOptions{
+				Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt-management",
+				AgentSigningPrivateKey: base64.StdEncoding.EncodeToString(privateKey), EnableRetries: true,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			conn.SeedAgentSession("agent-1", "access", time.Now().Add(time.Hour))
+			pathParameters := map[string]string{}
+			for _, name := range operation.PathParameters {
+				pathParameters[name] = "p-" + name
+			}
+			var body any
+			if operation.RequestSchema != "" {
+				body = map[string]any{}
+			}
+			var out any
+			callErr := conn.doOpenAPI(context.Background(), id, pathParameters, url.Values{}, body, &out)
+
+			eligible := operation.Retry == "bounded" && operation.Safety == "read-only" && operation.Signing == ""
+			if eligible && (callErr != nil || len(captured) != 2) {
+				t.Fatalf("retry-eligible: err=%v attempts=%d, want success after 2", callErr, len(captured))
+			}
+			if !eligible && (callErr == nil || len(captured) != 1) {
+				t.Fatalf("not retry-eligible: err=%v attempts=%d, want one failed attempt", callErr, len(captured))
+			}
+
+			request := captured[0]
+			authorization := request.header.Values("Authorization")
+			switch operation.AuthLane {
+			case "public":
+				if len(authorization) != 0 {
+					t.Fatalf("public Authorization = %q, want none", authorization)
+				}
+			case "management":
+				if len(authorization) != 1 || authorization[0] != "Bearer pgt-management" {
+					t.Fatalf("management Authorization = %q", authorization)
+				}
+			case "agent", "either":
+				if len(authorization) != 1 || authorization[0] != "Bearer access" {
+					t.Fatalf("%s Authorization = %q, want the delegated session", operation.AuthLane, authorization)
+				}
+			default:
+				t.Fatalf("unexpected auth lane %q", operation.AuthLane)
+			}
+
+			signature := request.header.Get(protocol.HeaderAgentSignature)
+			if operation.Signing != "agent-task-v1" {
+				if signature != "" {
+					t.Fatalf("unsigned operation carries signature %q", signature)
+				}
+				return
+			}
+			seconds, err := strconv.ParseInt(request.header.Get(protocol.HeaderAgentSignatureTimestamp), 10, 64)
+			if err != nil {
+				t.Fatalf("signature timestamp: %v", err)
+			}
+			payload := protocol.AgentRequestSignaturePayload{
+				Method: request.method, Path: request.path, Query: request.rawQuery,
+				Timestamp: time.Unix(seconds, 0), Body: request.body,
+			}
+			if !protocol.VerifyAgentRequest(publicKey, payload, signature) {
+				t.Fatal("signature does not verify against the sent bytes")
+			}
+		})
+	}
+}
+
+// A failed delegated-session refresh is returned at once, not retried: the
+// operation itself was never sent.
+func TestAgentDoesNotRetryAFailedSessionRefresh(t *testing.T) {
+	server, requests := agentRecordingServer(t, func(_ int, w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusUnauthorized, `{"code":"INVALID_REFRESH","message":"revoked"}`)
+	})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, EnableRetries: true, AgentRefreshToken: "pgr-revoked"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.OpenAPI().GetTask(context.Background(), "task-1"); err == nil {
+		t.Fatal("expected the refresh failure")
+	}
+	if got := requests(); len(got) != 1 || got[0].path != "/api/v1/agent/session/refresh" {
+		t.Fatalf("requests = %+v, want one refresh and no retried operation", got)
+	}
+}
+
+// An explicitly empty configured Authorization header still withholds the
+// management bearer, as header presence did before.
+func TestEmptyConfiguredAuthorizationWithholdsTheManagementToken(t *testing.T) {
+	server, requests := agentRecordingServer(t, func(_ int, w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, `[]`)
+	})
+	conn, err := NewConnection(ConnectionOptions{
+		Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt-management",
+		Headers: map[string]string{"Authorization": ""},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.OpenAPI().ListNamespaces(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := requests()[0].header.Get("Authorization"); got != "" {
+		t.Fatalf("Authorization = %q, want the empty override, not the management token", got)
+	}
+}
+
+func TestAgentDecodeFailureKeepsTheRequestContext(t *testing.T) {
+	server, _ := agentRecordingServer(t, func(_ int, w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, `{not json`)
+	})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = conn.OpenAPI().ListNamespaces(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "postgrip-agent: decode response from GET /api/v1/namespaces") {
+		t.Fatalf("err = %v, want the prior decode message with request context", err)
 	}
 }

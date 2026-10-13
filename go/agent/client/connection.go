@@ -210,7 +210,7 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 		}
 		var local *transport.Error
 		if errors.As(err, &local) {
-			return &failure.SDKError{Message: local.Op, Cause: local.Err}
+			return agentLocalError(operation, local)
 		}
 		return &failure.SDKError{Message: "http request", Cause: err}
 	}
@@ -273,6 +273,21 @@ func (c *Connection) signAgentRequest(req *http.Request, body []byte) error {
 	req.Header.Set(protocol.HeaderAgentSignatureKeyID, protocol.AgentSigningKeyID(pub))
 	req.Header.Set(protocol.HeaderAgentSignature, protocol.SignAgentRequest(priv, payload))
 	return nil
+}
+
+// agentLocalError keeps the Agent's existing messages for executor-local
+// failures, including the request context of a decode failure.
+func agentLocalError(operation transport.Operation, local *transport.Error) error {
+	switch local.Op {
+	case "encode request":
+		return &failure.SDKError{Message: "encode request body", Cause: local.Err}
+	case "response is invalid or too large":
+		return &failure.SDKError{Message: "read response body", Cause: errors.New("postgrip-agent: response is invalid or too large")}
+	case "decode response":
+		return &failure.SDKError{Message: fmt.Sprintf("decode response from %s %s", operation.Method, operation.Path), Cause: local.Err}
+	default:
+		return &failure.SDKError{Message: local.Op, Cause: local.Err}
+	}
 }
 
 // agentHTTPError converts the decoded envelope into the Agent's SDKError. The

@@ -136,6 +136,12 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 	maxAttempts := e.Retry.attempts(operation, idempotencyKey)
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		response, requestErr := e.send(ctx, operation, call.Header, body, delegated, call.Lifetime)
+		var credential *credentialError
+		if errors.As(requestErr, &credential) {
+			// The request was never sent, so retrying would only repeat the
+			// credential work (such as a session refresh) that just failed.
+			return nil, credential.err
+		}
 		if requestErr != nil {
 			if attempt < maxAttempts && ctx.Err() == nil {
 				if err := waitRetry(ctx, e.Retry.delay(attempt, 0, 0, false)); err != nil {
@@ -238,7 +244,7 @@ func (e *Executor) send(ctx context.Context, operation Operation, header http.He
 		request.Header.Del("If-Match")
 	}
 	if err := e.authorize(ctx, request, operation.AuthLane, delegated); err != nil {
-		return nil, err
+		return nil, &credentialError{err: err}
 	}
 	if operation.Signing != "" {
 		if err := e.Sign(request, body); err != nil {
@@ -275,9 +281,18 @@ func (e *Executor) authorize(ctx context.Context, request *http.Request, lane st
 	}
 	// A caller-supplied header keeps its precedence on management lanes unless
 	// the plane overrides it; the delegated session always replaces it.
-	if !delegated && !e.OverrideCallerAuthorization && request.Header.Get("Authorization") != "" {
+	// Presence, not value, decides precedence: an explicitly empty caller
+	// header still withholds the management bearer.
+	if _, set := request.Header["Authorization"]; set && !delegated && !e.OverrideCallerAuthorization {
 		return nil
 	}
 	request.Header.Set("Authorization", "Bearer "+token)
 	return nil
 }
+
+// credentialError marks a failure of the credential hook before a request was
+// sent, so the retry loop returns it instead of retrying.
+type credentialError struct{ err error }
+
+func (e *credentialError) Error() string { return e.err.Error() }
+func (e *credentialError) Unwrap() error { return e.err }
