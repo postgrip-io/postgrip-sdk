@@ -80,13 +80,28 @@ and per-call options, then applies the contract in this order:
    an explicit caller header keeps its current precedence on these lanes.
    `agent` sends only the delegated session from the Agent adapter's credential
    hook. `either` prefers the delegated session, else the management bearer.
+   The lane chosen for the first attempt stays fixed, but the executor calls the
+   credential hook again immediately before every network attempt, including
+   retries. The hook keeps the current refresh margin, so a delegated token
+   that nears expiry during a `Retry-After` backoff is refreshed before the next
+   attempt.
 3. **Signing.** When the operation requires signing, call the adapter's
    signer hook on the final request. The executor never holds the key.
-4. **Idempotency and preconditions.** When idempotency is `required`, reject
-   a missing or invalid key before sending, and reuse the same key and body on
-   every attempt. Forward `If-Match` only where the operation declares it.
+4. **Idempotency, preconditions and body.** When idempotency is `required`,
+   reject a missing or invalid key before sending, and reuse the same key and
+   body on every attempt. Forward `If-Match` only where the operation declares
+   it. Encode the body once, after the plane's body normalization: Python
+   Service drops top-level keys whose value is `None`, as `ServiceClient._request`
+   does today, so default `check`, `deploy` and `redeploy` arguments are
+   omitted rather than sent as JSON `null`. The other planes encode bodies as
+   given.
 5. **Lifetime.** Bound each ordinary exchange at 30 seconds by default in every
-   language; an earlier caller deadline, context or `AbortSignal` wins.
+   language; an earlier caller deadline, context or `AbortSignal` wins. A
+   positive timeout the caller already configured keeps its current precedence,
+   even above 30 seconds. In Go, a custom `http.Client` with a positive
+   `Timeout` is used as given, and Agent's `RequestTimeout` applies only when no
+   custom client is supplied, as `transport.HTTPClient` and the Agent connection
+   do today. The executor adds no shorter bound on top of either.
    Streaming requests keep their adapter-owned lifetime. A long poll is an
    ordinary exchange whose server hold counts against it, so the long-poll
    adapter sets its lifetime to `wait_seconds` plus 30 seconds of headroom.
@@ -119,13 +134,16 @@ and per-call options, then applies the contract in this order:
     code, message, request ID (falling back to `X-Request-ID`), details and
     retry-after. Default error text comes from a per-plane formatter. Worker
     and Service keep their current text, including the decoded envelope
-    message. Agent text contains method, route, status and code only, never
-    server-provided content, as in the [Go error-body design](go-agent-http-error-bodies.md).
+    message. Agent text contains the method, the quoted route, the numeric
+    status and the standard status text only, as in the
+    [Go error-body design](go-agent-http-error-bodies.md). It never includes
+    server-provided content, including the decoded `code`, which stays
+    available as a field.
 
 Plane differences are configuration, not copies: error-type naming and text
 formatter, retry ceilings, the `Retry-After` cap, redirect policy, response
-size bounds with per-operation overrides, accepted statuses, default headers
-and credential hooks. Default headers apply only when the caller has not set
+size bounds with per-operation overrides, accepted statuses, default headers,
+body normalization and credential hooks. Default headers apply only when the caller has not set
 the same header, case-insensitively. Python Agent keeps its default
 `User-Agent: postgrip-agent-python`, which some CDN front ends require instead
 of urllib's default. Python Worker and Service send no default `User-Agent`.
@@ -149,8 +167,9 @@ new `AgentAPIError` replaces bare `Error`. Root and plane configs gain
 Entry points keep explicit named exports.
 
 **Python.** `_internal/transport.py` holds the executor over the existing
-`_internal/http.py`, plus the single copy of the cancellation-aware connection
-classes. Its opener takes the redirect policy as configuration: no-redirect
+`_internal/http.py`. The executor reuses the single copy of the
+cancellation-aware connection classes and `run_cancellable`, which the Agent
+request cancellation design (PR #73) moves into `_internal/http.py`. Its opener takes the redirect policy as configuration: no-redirect
 for Worker and Service, and the existing same-origin handler for Agent. `PostGripAPIError` carries `status`, `code`, `message`, `request_id`
 and `details`; `WorkerAPIError` and `ServiceAPIError` subclass it. Agent
 raises `AgentAPIError(PostGripAPIError, RuntimeError)` so existing
@@ -209,6 +228,10 @@ operations against a local recording server. It asserts:
 
 - per-lane headers, including no `Authorization` on public routes when the
   caller configured one;
+- the Agent credential hook called before every attempt, so a token that
+  expires during a `Retry-After` backoff is refreshed on the same lane;
+- Python Service omitting `None` body keys for default `check`, `deploy` and
+  `redeploy` arguments, while the other planes send bodies as given;
 - per-plane default headers, including Python Agent's `User-Agent` default,
   a caller-supplied `User-Agent` overriding it, and no default `User-Agent`
   on Python Worker and Service;
@@ -217,7 +240,9 @@ operations against a local recording server. It asserts:
   ceiling for Service;
 - a required key is rejected when missing and reused across attempts;
 - `If-Match` is forwarded only where declared;
-- envelope fields decode, and each plane's default text matches its formatter;
+- envelope fields decode, and each plane's default text matches its formatter,
+  including an Agent envelope whose `code` contains a newline and a synthetic
+  secret, which stays out of the text but remains on the error;
 - per-plane redirect policy is unchanged, including Python Worker and Service
   returning a 3xx without following it;
 - Service response bounds, including a successful screenshot over 4 MiB that
@@ -226,7 +251,8 @@ operations against a local recording server. It asserts:
 - `pollAgentTask` 410 responses with empty, malformed and populated bodies
   still reach the long-poll adapter as shutdown directives;
 - Go `errors.As` with a Worker target does not match a Service error;
-- the default timeout and caller deadline precedence, and a `pollAgentTask`
+- the default timeout and caller deadline precedence, a Go custom client with a
+  60-second timeout whose exchange outlives 30 seconds, and a `pollAgentTask`
   call with `wait_seconds` 30 whose server answers after 30 seconds without
   timing out.
 
