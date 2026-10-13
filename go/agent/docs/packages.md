@@ -25,14 +25,18 @@ github.com/postgrip-io/postgrip-agent-sdks/go/agent/
 ## Dependency graph
 
 ```
-failure ──┐
-workflow ─┼─→ client ──→ worker
-activity ─┘             ↑
-internal/replay ────────┘
-internal/jsonenv ─→ client, worker
+worker → client, workflow, activity, failure, internal/replay, internal/jsonenv
+client → workflow, failure, internal/jsonenv, go/internal/transport
+workflow, activity, failure, internal/replay, internal/jsonenv → go/protocol
 ```
 
-`failure`, `workflow`, `activity`, and the `internal/*` packages are leaves (depend only on `go/protocol`). `client` adds `failure` + `workflow`. `worker` depends on all of them. The graph is acyclic and intentionally so.
+Arrows point from a consumer to its dependency; standard-library and external
+imports are omitted. The packages also import `go/protocol` directly where
+needed. Shared HTTP infrastructure lives outside the Agent subtree in
+`go/internal/transport`. The graph is acyclic. Follow the shared
+[SDK architecture](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/development/architecture.md)
+for MVC-ish roles and responsibility review; these package names do not replace
+those ownership rules.
 
 ---
 

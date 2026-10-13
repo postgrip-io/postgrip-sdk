@@ -21,7 +21,9 @@ For an SDK-facing route, schema, enum or wire change:
 3. Run `python3 scripts/generate_openapi.py --plane all` and
    `python3 scripts/generate_api_docs.py`. Update operation annotations and
    test ownership when the generator/checkers require them. Do not hand-edit
-   generated bindings or reference pages. Keep schemas closed and complete.
+   generated bindings or reference pages. Keep object schemas closed and
+   complete unless the canonical contract explicitly permits open-ended data;
+   preserve those declared maps instead of inventing arbitrary payloads.
 4. Run the [SDK validation](testing.md) appropriate to every affected language,
    including recorded endpoint/cURL coverage and observable behavior tests.
    A generated method or tier assignment alone is not proof of live success.

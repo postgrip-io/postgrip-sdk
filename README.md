@@ -34,15 +34,18 @@ export POSTGRIP_TOKEN="pgt_..."
 ```
 
 `POSTGRIP_AGENT_URL`, `POSTGRIP_WORKER_URL`, and `POSTGRIP_SERVICE_URL`
-optionally override the common URL. Precedence is explicit constructor value,
-plane-specific environment value, then `POSTGRIP_URL`. There are no
-plane-specific management token variables.
+optionally override the common URL in the environment-based setup above.
+Constructor and environment precedence differ by language; use the
+[configuration owner](docs/configuration.md) for the exact rules. There are no
+separate plane-specific management credentials in the supported SDK configuration.
 
 The token must carry the concrete scopes required by the operations you call.
 One token can contain Agent, Worker, and Service scopes; a token does not gain
 authority merely because one root client sends it to all three planes. Host-
 injected Agent runtime access, refresh, and signing credentials are a separate
-trust class and are never root-client configuration.
+trust class. See [Agent credential selection](docs/authentication.md#credential-selection-and-current-limits)
+for how runtime credentials can affect an Agent connection constructed by a root
+facade; a root token alone does not force every Agent call onto the management lane.
 
 ## Use all three planes
 

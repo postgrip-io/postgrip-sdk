@@ -55,4 +55,7 @@ conn, err := client.NewConnection(client.ConnectionOptions{
 if err != nil { return err }
 ```
 
-`Address` defaults to PostGrip Cloud if empty. For local or self-hosted development, pass `Address` explicitly or set `POSTGRIP_AGENT_URL`.
+When `Address` is empty, the connection checks `POSTGRIP_AGENT_URL`, then
+`POSTGRIP_URL`, before using the built-in cloud address. The root facade has
+different constructor behavior; see the
+[configuration owner](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/configuration.md).

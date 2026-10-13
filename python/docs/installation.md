@@ -61,4 +61,7 @@ client = await Client.connect(
 )
 ```
 
-`Client.connect` defaults to PostGrip Cloud if the address is omitted. For local or self-hosted development, pass the address explicitly as shown above or set `POSTGRIP_AGENT_URL`.
+When the address is omitted, the connection checks `POSTGRIP_AGENT_URL`, then
+`POSTGRIP_URL`, before using the built-in cloud address. For root-facade and
+direct-client precedence, see the
+[configuration owner](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/configuration.md).

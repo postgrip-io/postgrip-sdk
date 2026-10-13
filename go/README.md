@@ -23,7 +23,9 @@ services, err := client.Services.List(ctx, service.OpenAPIListServicesQuery{})
 
 Configure `POSTGRIP_URL` and one `POSTGRIP_TOKEN`. Optional
 `POSTGRIP_AGENT_URL`, `POSTGRIP_WORKER_URL`, and `POSTGRIP_SERVICE_URL`
-override the common URL. Explicit `Config` values take precedence.
+override the common URL when using `NewFromEnv()`. `New(Config)` uses explicit
+root configuration. See [configuration](../docs/configuration.md) for constructor
+and environment behavior.
 
 Direct packages remain available without constructing the root facade:
 
