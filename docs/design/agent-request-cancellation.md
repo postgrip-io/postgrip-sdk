@@ -69,6 +69,11 @@ or `TimeoutFailure`. Each `get_task` and `get_workflow` call goes through
 keeps its current blocking behavior. `watch_events` likewise awaits each request
 through `run_cancellable`.
 
+`events()` and `watch_events()` resolve a missing task ID by calling
+`describe_sync()` directly, which blocks the event loop and cannot be
+cancelled. Both instead resolve it through `run_cancellable`, as `describe()`
+does with `asyncio.to_thread` today.
+
 The Agent workflow runtime (`agent.py`) keeps its own lifecycle and is outside
 this slice.
 
@@ -85,10 +90,19 @@ Thread the caller's `AbortSignal` through every request `watchEvents` makes:
   passing the signal to each page fetch.
 
 `watchTaskEvents` passes `options.signal` to both calls and waits with
-`abortableDelay` from `src/internal/polling.ts`. When the caller's signal is
-aborted, the generator returns without yielding further events and without
-throwing, which is how it ends at the loop check today. Errors that are not
-caused by that signal still propagate. The new parameters are optional, so
+`abortableDelay` from `src/internal/polling.ts`. It also checks the signal
+before yielding each event, so a consumer that aborts between two `next()`
+calls receives no further buffered event. When the caller's signal is aborted,
+the generator returns without yielding further events and without throwing,
+which is how it ends at the loop check today. Errors that are not caused by
+that signal still propagate.
+
+These reads can first wait on a delegated-session refresh. `ensureAgentSession`
+shares one in-flight `refreshAgentSession` among all concurrent callers. A
+signaled request races its wait on that shared refresh against its own signal.
+On abort the caller stops waiting and the request is abandoned, but the shared
+refresh is not cancelled, because other requests depend on it. Its result is
+stored for later callers as it is today. The new parameters are optional, so
 existing callers compile and behave as before.
 
 ## Compatibility
@@ -98,7 +112,8 @@ observable:
 
 - Cancelling a Python Agent `async` call closes its active request instead of
   letting it finish in a background thread. Cancelling `result()` stops
-  polling.
+  polling. `events()` and `watch_events()` no longer block the event loop while
+  resolving a task ID.
 - Aborting a TypeScript `watchEvents` signal ends the iterator promptly during
   a pending request or delay.
 - TypeScript `getTask`, `getWorkflow`, `getTaskEvents`, `iterateTaskEvents`
@@ -123,11 +138,15 @@ Each slice is its own PR under the [review process](../development/contributing.
   slice 1.
 - Python: against a local server that holds a `get_task` response, cancelling
   `result()` closes the held connection, and no further request arrives. The
-  same holds for `result()` with no timeout and for another Agent `async`
-  method. Same-origin redirects are still followed, and cross-origin ones still
+  same holds for `result()` with no timeout, for another Agent `async` method,
+  and for the task-ID lookup in `events()` and `watch_events()` on a handle
+  from `get_workflow_handle()`. Same-origin redirects are still followed, and cross-origin ones still
   refused.
-- TypeScript: aborting while the task-ID lookup, `getTaskEvents` or `getTask`
-  is pending, and while the poll delay is pending, settles `next()` with `done: true` without waiting
-  for the request or delay. The aborted request receives the signal. An error
-  not caused by the abort still rejects.
+- TypeScript: aborting while the task-ID lookup, a shared session refresh,
+  `getTaskEvents` or `getTask` is pending, and while the poll delay is pending, settles `next()` with `done: true` without waiting
+  for the request or delay. The aborted request receives the signal, and an
+  aborted refresh wait leaves the shared refresh to complete for another
+  caller. Aborting between two `next()` calls while a page still holds
+  unyielded events yields none of them. An error not caused by the abort still
+  rejects.
 - Existing Agent tests in both languages pass.
