@@ -9,9 +9,10 @@ import inspect
 import unittest
 from collections.abc import AsyncIterator, Iterator, Mapping
 from datetime import timedelta
-from typing import Any, Unpack, get_type_hints
+from typing import Any, Literal, Unpack, get_type_hints
 
 from postgrip import agent
+from postgrip.agent import client as client_module
 from postgrip.agent import types
 from postgrip.agent.client import (
     Client,
@@ -53,11 +54,11 @@ EXPECTED_HINTS: list[tuple[Any, dict[str, Any]]] = [
     (Connection.get_task_events_page, {"return": types.TaskEventPage}),
     (Connection.iter_task_events, {"return": Iterator[types.TaskEvent]}),
     (Connection.get_task_events, {"return": list[types.TaskEvent]}),
-    (Connection.complete_task, {"result": types.TaskResult | object, "return": types.Task}),
+    (Connection.complete_task, {"result": types.TaskResult | Literal[client_module._Missing.MISSING], "return": types.Task}),
     (Connection.block_task, {"return": types.Task}),
-    (Connection.fail_task, {"result": types.TaskResult | None, "return": types.Task}),
+    (Connection.fail_task, {"error": str | Literal[client_module._Missing.MISSING], "result": types.TaskResult | None, "return": types.Task}),
     (Connection.heartbeat_task, {"event": types.TaskEventInput | None, "return": types.Task}),
-    (Connection.append_task_event, {"event": types.TaskEventInput | object, "return": types.TaskEvent}),
+    (Connection.append_task_event, {"event": types.TaskEventInput | Literal[client_module._Missing.MISSING], "return": types.TaskEvent}),
     (Connection.poll_task_response, {"return": types.PollTaskResponse}),
     (Connection.poll_task, {"return": types.Task | None}),
     (Connection.get_workflow, {"return": types.WorkflowExecution}),

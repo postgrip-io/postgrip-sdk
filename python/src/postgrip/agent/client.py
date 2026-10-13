@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import enum
 import json
 import os
 import threading
@@ -9,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping
-from typing import Any, Unpack
+from typing import Any, Literal, Unpack
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import OpenerDirector, Request, build_opener
@@ -80,7 +81,13 @@ from .types import (
 )
 from .workflow import workflow_name
 
-_MISSING = object()
+class _Missing(enum.Enum):
+    """Marks a required argument omitted from a signature that keeps it optional for position."""
+
+    MISSING = enum.auto()
+
+
+_MISSING = _Missing.MISSING
 _POSTGRIP_UI_MEMO_KEY = "postgrip.ui"
 DEFAULT_ADDRESS = "https://agentorchestrator1.postgrip.io"
 _AGENT_MAX_RESPONSE_BYTES = 40 << 20
@@ -413,7 +420,7 @@ class Connection:
     def get_task_events(self, task_id: str) -> list[TaskEvent]:
         return list(self.iter_task_events(task_id))
 
-    def complete_task(self, task_id: str, agent_id: str | None = None, result: TaskResult | object = _MISSING, *, worker_id: str | None = None) -> Task:
+    def complete_task(self, task_id: str, agent_id: str | None = None, result: TaskResult | Literal[_Missing.MISSING] = _MISSING, *, worker_id: str | None = None) -> Task:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if result is _MISSING:
             raise TypeError("result is required")
@@ -425,7 +432,7 @@ class Connection:
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.block_agent_task(task_id, {"reason": reason}, agent_id=resolved_agent_id)
 
-    def fail_task(self, task_id: str, agent_id: str | None = None, error: str | object = _MISSING, result: TaskResult | None = None, *, worker_id: str | None = None) -> Task:
+    def fail_task(self, task_id: str, agent_id: str | None = None, error: str | Literal[_Missing.MISSING] = _MISSING, result: TaskResult | None = None, *, worker_id: str | None = None) -> Task:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if error is _MISSING:
             raise TypeError("error is required")
@@ -437,7 +444,7 @@ class Connection:
         self.ensure_agent_session(agent_id=resolved_agent_id)
         return self.openapi.heartbeat_agent_task(task_id, {"event": event}, agent_id=resolved_agent_id)
 
-    def append_task_event(self, task_id: str, agent_id: str | None = None, event: TaskEventInput | object = _MISSING, *, worker_id: str | None = None) -> TaskEvent:
+    def append_task_event(self, task_id: str, agent_id: str | None = None, event: TaskEventInput | Literal[_Missing.MISSING] = _MISSING, *, worker_id: str | None = None) -> TaskEvent:
         resolved_agent_id = _resolve_agent_id(agent_id, worker_id)
         if event is _MISSING:
             raise TypeError("event is required")
