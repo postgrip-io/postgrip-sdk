@@ -42,8 +42,11 @@ Every implementation, including documentation, follows its living design in
 `docs/design/`. Keep PRs small and single-scope, branch from `main`, and never
 commit or push directly to `main`. Follow the linked contribution process through
 `@codex review`, validated fixes and green CI before squash merge. Treat design
-drift and responsibility violations as findings. Never weaken checks or add
-exceptions to hide a boundary violation.
+drift and responsibility violations as findings. Validate each finding as the
+contribution process describes, rejecting with evidence those that only matter
+for deliberately evasive code or for files and syntax the repository does not
+use. Never weaken
+checks or add exceptions to hide a boundary violation.
 
 Never commit tokens, signing keys, real fixture credentials or `.env` files.
 Management credentials and host-injected delegated sessions remain separate.
