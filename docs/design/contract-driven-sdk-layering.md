@@ -85,9 +85,7 @@ and per-call options, then applies the contract in this order:
    retries. The hook keeps the current refresh margin, so a delegated token
    that nears expiry during a `Retry-After` backoff is refreshed before the next
    attempt.
-3. **Signing.** When the operation requires signing, call the adapter's
-   signer hook on the final request. The executor never holds the key.
-4. **Idempotency, preconditions and body.** When idempotency is `required`,
+3. **Idempotency, preconditions and body.** When idempotency is `required`,
    reject a missing or invalid key before sending, and reuse the same key and
    body on every attempt. Forward `If-Match` only where the operation declares
    it. Encode the body once, after the plane's body normalization: Python
@@ -95,6 +93,11 @@ and per-call options, then applies the contract in this order:
    does today, so default `check`, `deploy` and `redeploy` arguments are
    omitted rather than sent as JSON `null`. The other planes encode bodies as
    given.
+4. **Signing.** When the operation requires signing, call the adapter's
+   signer hook on the final request, after the body bytes are encoded.
+   `agent-task-v1` signs a digest of the exact transmitted body, so the signer
+   receives those bytes and nothing changes them afterwards. The executor never
+   holds the key.
 5. **Lifetime.** Bound each ordinary exchange at 30 seconds by default in every
    language; an earlier caller deadline, context or `AbortSignal` wins. A
    positive timeout the caller already configured keeps its current precedence,
@@ -153,9 +156,15 @@ of urllib's default. Python Worker and Service send no default `User-Agent`.
 **Go.** `go/internal/transport` gains `Operation`, `Executor`, `RetryPolicy`
 and `APIError`. The generator emits `transport.Operation` values, adding the
 idempotency and pagination annotations the current table omits. `worker.APIError`
-and `service.APIError` remain distinct named types that embed or wrap the
-shared type, never type aliases. An alias would make both planes one type, so
-`errors.As` with a `*worker.APIError` target would match Service errors too. Agent `SDKError` keeps
+and `service.APIError` remain distinct named types, never type aliases. An alias
+would make both planes one type, so `errors.As` with a `*worker.APIError` target
+would match Service errors too. Each keeps its current direct exported fields
+(`StatusCode`, `Code`, `Message`, `RequestID`, `Details`, `RetryAfter`), so keyed
+literals such as `worker.APIError{StatusCode: 429}` still compile. They do not
+embed the shared type, whose promoted fields could not be named in such
+literals. The executor decodes into `transport.APIError`, and each plane
+converts that value into its own type through a constructor. Shared behavior,
+such as retry classification, lives in functions over those fields. Agent `SDKError` keeps
 `StatusCode` and `ResponseBody` and gains `Code`, `RequestID` and `Details`.
 `ConnectionOptions` gains the opt-in retry setting, which `postgrip.New`
 passes through.
@@ -228,6 +237,8 @@ operations against a local recording server. It asserts:
 
 - per-lane headers, including no `Authorization` on public routes when the
   caller configured one;
+- signed Agent task actions whose `agent-task-v1` signature verifies against
+  the recorded wire bytes of the request body;
 - the Agent credential hook called before every attempt, so a token that
   expires during a `Retry-After` backoff is refreshed on the same lane;
 - Python Service omitting `None` body keys for default `check`, `deploy` and
@@ -250,7 +261,9 @@ operations against a local recording server. It asserts:
   ordinary response over 4 MiB that is rejected;
 - `pollAgentTask` 410 responses with empty, malformed and populated bodies
   still reach the long-poll adapter as shutdown directives;
-- Go `errors.As` with a Worker target does not match a Service error;
+- Go `errors.As` with a Worker target does not match a Service error, and
+  keyed literals of `worker.APIError` and `service.APIError` with every current
+  field compile;
 - the default timeout and caller deadline precedence, a Go custom client with a
   60-second timeout whose exchange outlives 30 seconds, and a `pollAgentTask`
   call with `wait_seconds` 30 whose server answers after 30 seconds without
