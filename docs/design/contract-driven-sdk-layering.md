@@ -17,8 +17,9 @@ it inconsistently:
   idempotency-key validation are copied into both Worker and Service in every
   language (`go/{worker,service}/client.go`, `typescript/src/{worker,service}/client.ts`,
   `python/src/postgrip/{worker,service}/client.py`; Python also copies its
-  cancellation-aware connection classes). The copies have diverged: only
-  Service bounds `Retry-After` and exposes retry ceilings.
+  cancellation-aware connection classes). The copies have diverged: both cap
+  `Retry-After` at 30 seconds, but only Service lets callers lower its retry
+  ceilings.
 - Worker and Service failures are typed errors carrying code, message,
   request ID and details. Agent failures are not: Go `SDKError` holds a status
   and raw body, TypeScript throws a bare `Error`, Python a bare `RuntimeError`.
@@ -86,7 +87,11 @@ and per-call options, then applies the contract in this order:
    every attempt. Forward `If-Match` only where the operation declares it.
 5. **Lifetime.** Bound each ordinary exchange at 30 seconds by default in every
    language; an earlier caller deadline, context or `AbortSignal` wins.
-   Streaming requests keep their adapter-owned lifetime.
+   Streaming requests keep their adapter-owned lifetime. A long poll is an
+   ordinary exchange whose server hold counts against it, so the long-poll
+   adapter sets its lifetime to `wait_seconds` plus 30 seconds of headroom.
+   A valid 30-second `pollAgentTask` wait therefore never times out before the
+   server answers.
 6. **Redirects.** Apply the plane's configured redirect policy. Each plane
    keeps its current policy in each language: Go follows same-origin
    redirects; TypeScript uses `redirect: 'manual'`; Python Agent follows
@@ -95,12 +100,16 @@ and per-call options, then applies the contract in this order:
 7. **Retry.** Only when retries are enabled, `Retry == "bounded"`, and the
    operation is read-only or carries an idempotency key. Use the status set
    Service retries today, honor `Retry-After` up to the plane ceiling, and use
-   jittered backoff. Never retry `protocol` operations, signed requests,
+   jittered backoff. Worker keeps its fixed 30-second `Retry-After` cap, and
+   Service keeps its configurable cap, which defaults to and never exceeds 30
+   seconds. Never retry `protocol` operations, signed requests,
    streaming uploads or WebSocket operations, even if mis-annotated.
 8. **Response.** Read the body within the operation's size bound: the plane
-   default, unless the plane configuration names a per-operation override.
-   Service keeps its 4 MiB default and the 24 MiB `getServiceDeploymentScreenshot`
-   exception in all three languages.
+   default, unless the plane configuration names a per-operation override for
+   successful responses. Choose the bound after reading the status, so an
+   override never applies to an error body. Service keeps its 4 MiB default and
+   the 24 MiB `getServiceDeploymentScreenshot` exception for 2xx responses in
+   all three languages; a screenshot error body stays within 4 MiB.
 9. **Accepted statuses.** An operation may declare non-2xx statuses that its
    adapter handles. For those, the executor returns the bounded raw response
    to the adapter and skips envelope decoding. `pollAgentTask` declares 410:
@@ -115,8 +124,11 @@ and per-call options, then applies the contract in this order:
 
 Plane differences are configuration, not copies: error-type naming and text
 formatter, retry ceilings, the `Retry-After` cap, redirect policy, response
-size bounds with per-operation overrides, accepted statuses and credential
-hooks.
+size bounds with per-operation overrides, accepted statuses, default headers
+and credential hooks. Default headers apply only when the caller has not set
+the same header, case-insensitively. Python Agent keeps its default
+`User-Agent: postgrip-agent-python`, which some CDN front ends require instead
+of urllib's default. Python Worker and Service send no default `User-Agent`.
 
 ## Per-language shape
 
@@ -197,18 +209,26 @@ operations against a local recording server. It asserts:
 
 - per-lane headers, including no `Authorization` on public routes when the
   caller configured one;
-- retry eligibility with retries enabled and disabled;
+- per-plane default headers, including Python Agent's `User-Agent` default,
+  a caller-supplied `User-Agent` overriding it, and no default `User-Agent`
+  on Python Worker and Service;
+- retry eligibility with retries enabled and disabled, and a `Retry-After`
+  above 30 seconds capped at 30 seconds for Worker and at the configured
+  ceiling for Service;
 - a required key is rejected when missing and reused across attempts;
 - `If-Match` is forwarded only where declared;
 - envelope fields decode, and each plane's default text matches its formatter;
 - per-plane redirect policy is unchanged, including Python Worker and Service
   returning a 3xx without following it;
-- Service response bounds, including a screenshot over 4 MiB that is accepted
-  and an ordinary response over 4 MiB that is rejected;
+- Service response bounds, including a successful screenshot over 4 MiB that
+  is accepted, a screenshot error body over 4 MiB that is rejected, and an
+  ordinary response over 4 MiB that is rejected;
 - `pollAgentTask` 410 responses with empty, malformed and populated bodies
   still reach the long-poll adapter as shutdown directives;
 - Go `errors.As` with a Worker target does not match a Service error;
-- the default timeout and caller deadline precedence.
+- the default timeout and caller deadline precedence, and a `pollAgentTask`
+  call with `wait_seconds` 30 whose server answers after 30 seconds without
+  timing out.
 
 Existing plane tests, the recorded endpoint and cURL runners, generator and
 drift checks, the package-layout checker and strict documentation builds pass
