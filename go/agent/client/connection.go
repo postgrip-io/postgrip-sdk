@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"encoding/json"
@@ -62,6 +63,7 @@ type ConnectionOptions struct {
 type Connection struct {
 	address             string
 	httpClient          *http.Client
+	ownsHTTPClient      bool
 	authHeader          string
 	headers             map[string]string
 	insecureDevelopment bool
@@ -134,6 +136,7 @@ func NewConnection(opts ConnectionOptions) (*Connection, error) {
 	connection := &Connection{
 		address:                address,
 		httpClient:             httpClient,
+		ownsHTTPClient:         opts.HTTPClient == nil,
 		authHeader:             authHeader,
 		headers:                headers,
 		insecureDevelopment:    opts.InsecureDevelopment,
@@ -198,7 +201,9 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 		// Poll Gone is a successful terminal response handled below. A long
 		// poll's server hold counts against the exchange, so give it headroom.
 		call.AcceptedStatuses = []int{http.StatusGone}
-		if wait, err := strconv.Atoi(query.Get("wait_seconds")); err == nil && wait > 0 {
+		// A caller-supplied http.Client keeps its Timeout as given; only the
+		// connection's own client gets the long-poll headroom.
+		if wait, err := strconv.Atoi(query.Get("wait_seconds")); err == nil && wait > 0 && c.ownsHTTPClient {
 			call.Lifetime = time.Duration(wait)*time.Second + 30*time.Second
 		}
 	}
@@ -215,6 +220,11 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 		return &failure.SDKError{Message: "http request", Cause: err}
 	}
 	if response.StatusCode != http.StatusGone {
+		// The executor treats a whitespace-only success body as empty. Agent
+		// decodes every non-empty body, so such a body stays malformed here.
+		if out != nil && len(response.Body) > 0 && len(bytes.TrimSpace(response.Body)) == 0 {
+			return agentLocalError(operation, &transport.Error{Plane: "agent", Op: "decode response", Err: json.Unmarshal(response.Body, out)})
+		}
 		return nil
 	}
 	// Decode any directive fields the server supplied, but retain terminal
@@ -282,6 +292,9 @@ func agentLocalError(operation transport.Operation, local *transport.Error) erro
 	case "encode request":
 		return &failure.SDKError{Message: "encode request body", Cause: local.Err}
 	case "response is invalid or too large":
+		if local.Err != nil {
+			return &failure.SDKError{Message: "read response body", Cause: local.Err}
+		}
 		return &failure.SDKError{Message: "read response body", Cause: errors.New("postgrip-agent: response is invalid or too large")}
 	case "decode response":
 		return &failure.SDKError{Message: fmt.Sprintf("decode response from %s %s", operation.Method, operation.Path), Cause: local.Err}

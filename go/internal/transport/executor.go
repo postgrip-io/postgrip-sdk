@@ -162,7 +162,9 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 		responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, limit+1))
 		_ = response.Body.Close()
 		if readErr != nil || int64(len(responseBody)) > limit {
-			return nil, &Error{Plane: e.Plane, Op: "response is invalid or too large"}
+			// Keep a read failure, such as cancellation or a truncated body, as
+			// the cause so callers can still inspect it with errors.Is.
+			return nil, &Error{Plane: e.Plane, Op: "response is invalid or too large", Err: readErr}
 		}
 		result := &Response{StatusCode: response.StatusCode, Header: response.Header, Body: responseBody}
 		if slices.Contains(call.AcceptedStatuses, response.StatusCode) {

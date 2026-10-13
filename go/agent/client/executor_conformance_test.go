@@ -349,3 +349,105 @@ func TestAgentDecodeFailureKeepsTheRequestContext(t *testing.T) {
 		t.Fatalf("err = %v, want the prior decode message with request context", err)
 	}
 }
+
+// A failure while reading the body keeps its cause, so callers can still
+// detect cancellation with errors.Is.
+func TestAgentResponseReadFailureKeepsItsCause(t *testing.T) {
+	server, _ := agentRecordingServer(t, func(_ int, w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Length", "100")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id":`))
+		w.(http.Flusher).Flush()
+		select {
+		case <-r.Context().Done():
+		case <-time.After(5 * time.Second):
+		}
+	})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	_, err = conn.OpenAPI().ListNamespaces(ctx)
+	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "read response body") {
+		t.Fatalf("err = %v, want the read failure wrapping context.DeadlineExceeded", err)
+	}
+}
+
+// A caller-supplied http.Client keeps its Timeout as given, even for a long
+// poll; only the connection's own client gets long-poll headroom.
+func TestCustomHTTPClientTimeoutBoundsTheLongPoll(t *testing.T) {
+	server, _ := agentRecordingServer(t, func(_ int, w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(1500 * time.Millisecond)
+		writeJSON(w, http.StatusOK, `{}`)
+	})
+	conn, err := NewConnection(ConnectionOptions{
+		Address: server.URL, InsecureDevelopment: true, HTTPClient: &http.Client{Timeout: time.Second},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SeedAgentSession("agent-1", "access", time.Now().Add(time.Hour))
+	wait := int64(2)
+	if _, err := conn.OpenAPI().PollAgentTask(context.Background(), OpenAPIPollAgentTaskQuery{Queue: "default", WaitSeconds: &wait}); err == nil {
+		t.Fatal("long poll outlived the caller's 1s client timeout")
+	}
+}
+
+// A delegated token that enters the refresh margin during a Retry-After
+// backoff is refreshed before the next attempt, which stays on the delegated
+// lane.
+func TestDelegatedTokenRefreshesDuringRetryBackoff(t *testing.T) {
+	refreshed := time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
+	operationAttempts := 0
+	server, requests := agentRecordingServer(t, func(_ int, w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/agent/session/refresh" {
+			writeJSON(w, http.StatusOK, `{"agentId":"agent-1","accessToken":"access-2","refreshToken":"pgr-2","accessExpiresAt":"`+refreshed+`"}`)
+			return
+		}
+		operationAttempts++
+		if operationAttempts == 1 {
+			w.Header().Set("Retry-After", "3")
+			writeJSON(w, http.StatusServiceUnavailable, `{"code":"BUSY","message":"busy"}`)
+			return
+		}
+		writeJSON(w, http.StatusOK, `{"id":"task-1"}`)
+	})
+	// The token is outside the 30-second refresh margin for the first attempt
+	// and inside it after the 3-second backoff.
+	conn, err := NewConnection(ConnectionOptions{
+		Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt-management", EnableRetries: true,
+		AgentAccessToken: "access-1", AgentRefreshToken: "pgr-1", AgentAccessExpiresAt: time.Now().Add(32 * time.Second),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.OpenAPI().GetTask(context.Background(), "task-1"); err != nil {
+		t.Fatal(err)
+	}
+	got := requests()
+	if len(got) != 3 || got[1].path != "/api/v1/agent/session/refresh" {
+		t.Fatalf("requests = %+v, want operation, refresh, operation", got)
+	}
+	if first, second := got[0].header.Get("Authorization"), got[2].header.Get("Authorization"); first != "Bearer access-1" || second != "Bearer access-2" {
+		t.Fatalf("Authorization = %q then %q, want the delegated token refreshed between attempts", first, second)
+	}
+}
+
+// Agent decodes every non-empty success body, so a whitespace-only body is
+// malformed rather than an empty result.
+func TestAgentRejectsWhitespaceOnlySuccessBodies(t *testing.T) {
+	server, _ := agentRecordingServer(t, func(_ int, w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, " \n ")
+	})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = conn.OpenAPI().ListNamespaces(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "postgrip-agent: decode response from GET /api/v1/namespaces") {
+		t.Fatalf("err = %v, want the decode failure", err)
+	}
+}

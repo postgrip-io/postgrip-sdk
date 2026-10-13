@@ -415,3 +415,26 @@ func TestParseRetryAfter(t *testing.T) {
 		t.Fatalf("future date = %s, %v", got, ok)
 	}
 }
+
+func TestExecutorKeepsResponseReadFailureCause(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "100")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"a":`))
+		w.(http.Flusher).Flush()
+		select {
+		case <-r.Context().Done():
+		case <-time.After(5 * time.Second):
+		}
+	}))
+	t.Cleanup(server.Close)
+	executor := testExecutor(t, server)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	var out map[string]any
+	_, err := executor.Do(ctx, Call{Operation: operation(LaneManagement, "read-only", "none")}, &out)
+	var local *Error
+	if !errors.As(err, &local) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("err = %v, want a transport Error wrapping the read failure", err)
+	}
+}
