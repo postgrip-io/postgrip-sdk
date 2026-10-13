@@ -70,6 +70,7 @@ export interface ConnectionOptions {
 export interface HistoryPageOptions {
   cursor?: string;
   limit?: number;
+  signal?: AbortSignal;
 }
 
 export interface AgentAuthOptions {
@@ -218,24 +219,26 @@ export class Connection {
     return this.openapi.listTasks({ query }) as Promise<Array<Task<P, R>>>;
   }
 
-  async getTask<P = unknown, R = unknown>(taskId: string): Promise<Task<P, R>> {
-    return this.openapi.getTask({ pathParameters: { taskId } }) as Promise<Task<P, R>>;
+  async getTask<P = unknown, R = unknown>(taskId: string, options: { signal?: AbortSignal } = {}): Promise<Task<P, R>> {
+    return this.openapi.getTask({ pathParameters: { taskId }, signal: options.signal }) as Promise<Task<P, R>>;
   }
 
   async getTaskEventsPage(taskId: string, options: HistoryPageOptions = {}): Promise<TaskEventPage> {
     return this.openapi.listTaskEvents({
       pathParameters: { taskId },
       query: historyPageQuery(options),
+      signal: options.signal,
     });
   }
 
-  async *iterateTaskEvents(taskId: string): AsyncGenerator<TaskEvent, void, void> {
-    yield* iterateHistoryPages((options) => this.getTaskEventsPage(taskId, options));
+  /** Follows every task-event page; aborting `signal` throws its reason before the next page or event. */
+  async *iterateTaskEvents(taskId: string, options: { signal?: AbortSignal } = {}): AsyncGenerator<TaskEvent, void, void> {
+    yield* iterateHistoryPages((page) => this.getTaskEventsPage(taskId, page), options.signal);
   }
 
-  async getTaskEvents(taskId: string): Promise<TaskEvent[]> {
+  async getTaskEvents(taskId: string, options: { signal?: AbortSignal } = {}): Promise<TaskEvent[]> {
     const events: TaskEvent[] = [];
-    for await (const event of this.iterateTaskEvents(taskId)) events.push(event);
+    for await (const event of this.iterateTaskEvents(taskId, options)) events.push(event);
     return events;
   }
 
@@ -353,14 +356,15 @@ export class Connection {
     return this.openapi.countWorkflows({ query });
   }
 
-  async getWorkflow<R = unknown>(workflowId: string): Promise<WorkflowExecution<R>> {
-    return this.openapi.getWorkflow({ pathParameters: { workflowId } }) as Promise<WorkflowExecution<R>>;
+  async getWorkflow<R = unknown>(workflowId: string, options: { signal?: AbortSignal } = {}): Promise<WorkflowExecution<R>> {
+    return this.openapi.getWorkflow({ pathParameters: { workflowId }, signal: options.signal }) as Promise<WorkflowExecution<R>>;
   }
 
   async getWorkflowHistoryPage(workflowId: string, options: HistoryPageOptions = {}): Promise<WorkflowHistoryPage> {
     return this.openapi.listWorkflowHistory({
       pathParameters: { workflowId },
       query: historyPageQuery(options),
+      signal: options.signal,
     });
   }
 
@@ -625,7 +629,9 @@ export class Connection {
   ): Promise<T> {
     const useAgentAuth = options.agentAuth === true;
     if (useAgentAuth) {
-      await this.ensureAgentSession();
+      // The refresh is shared with concurrent callers, so an abort ends only this wait.
+      signal?.throwIfAborted();
+      await waitUnlessAborted(this.ensureAgentSession(), signal);
     }
     const headers = new Headers(this.headers);
     if (useAgentAuth && this.agentAuth.accessToken) {
@@ -731,12 +737,17 @@ function historyPageQuery(options: HistoryPageOptions): URLSearchParams {
 
 async function* iterateHistoryPages<T>(
   fetchPage: (options: HistoryPageOptions) => Promise<{ items: T[]; nextCursor?: string }>,
+  signal?: AbortSignal,
 ): AsyncGenerator<T, void, void> {
   let cursor: string | undefined;
   const seen = new Set<string>();
   while (true) {
-    const page = await fetchPage({ cursor, limit: HISTORY_PAGE_MAXIMUM_LIMIT });
-    for (const item of page.items) yield item;
+    signal?.throwIfAborted();
+    const page = await fetchPage({ cursor, limit: HISTORY_PAGE_MAXIMUM_LIMIT, signal });
+    for (const item of page.items) {
+      signal?.throwIfAborted();
+      yield item;
+    }
     if (page.nextCursor == null) return;
     const next = page.nextCursor.trim();
     if (next === '') throw new Error('postgrip-agent: history page returned an empty next cursor');
@@ -744,6 +755,25 @@ async function* iterateHistoryPages<T>(
     seen.add(next);
     cursor = next;
   }
+}
+
+/** Stops waiting when `signal` aborts without cancelling the shared `work`. */
+function waitUnlessAborted<T>(work: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return work;
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason);
+    signal.addEventListener('abort', abort, { once: true });
+    work.then(
+      (value) => {
+        signal.removeEventListener('abort', abort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', abort);
+        reject(error);
+      },
+    );
+  });
 }
 
 function accessTokenIsFresh(expiresAt: string | undefined): boolean {
