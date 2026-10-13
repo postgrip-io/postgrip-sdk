@@ -187,6 +187,20 @@ func (c *Connection) Health(ctx context.Context) (map[string]any, error) {
 	return map[string]any{"status": out.Status}, nil
 }
 
+// defaultPollWaitSeconds is the contract default for pollAgentTask
+// wait_seconds, which the server holds for when the parameter is omitted.
+const defaultPollWaitSeconds = 20
+
+// unfollowedRedirectStatuses are the 3xx statuses the redirect policy can
+// return without following them.
+var unfollowedRedirectStatuses = func() []int {
+	statuses := make([]int, 0, 100)
+	for status := 300; status < 400; status++ {
+		statuses = append(statuses, status)
+	}
+	return statuses
+}()
+
 // doOpenAPI runs one generated JSON operation through the shared executor,
 // which applies the contract's auth lane, signing, retry, response bound and
 // error envelope. The Agent adapter supplies the delegated-session and signing
@@ -196,14 +210,24 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 	if err != nil {
 		return &failure.SDKError{Message: "resolve OpenAPI operation", Cause: err}
 	}
-	call := transport.Call{Operation: operation, Header: c.callerHeaders(), Body: body}
+	// The same-origin redirect policy returns a cross-origin 3xx unfollowed;
+	// Agent has always treated that response as a non-error, so the adapter,
+	// not the executor's envelope decoding, handles it below.
+	call := transport.Call{Operation: operation, Header: c.callerHeaders(), Body: body, AcceptedStatuses: unfollowedRedirectStatuses}
 	if id == openAPIPollAgentTask {
 		// Poll Gone is a successful terminal response handled below. A long
 		// poll's server hold counts against the exchange, so give it headroom.
-		call.AcceptedStatuses = []int{http.StatusGone}
+		call.AcceptedStatuses = append([]int{http.StatusGone}, unfollowedRedirectStatuses...)
 		// A caller-supplied http.Client keeps its Timeout as given; only the
-		// connection's own client gets the long-poll headroom.
-		if wait, err := strconv.Atoi(query.Get("wait_seconds")); err == nil && wait > 0 && c.ownsHTTPClient {
+		// connection's own client gets the long-poll headroom. An omitted
+		// wait_seconds holds for the contract default.
+		wait := defaultPollWaitSeconds
+		if raw := query.Get("wait_seconds"); raw != "" {
+			if parsed, err := strconv.Atoi(raw); err == nil && parsed >= 0 {
+				wait = parsed
+			}
+		}
+		if c.ownsHTTPClient {
 			call.Lifetime = time.Duration(wait)*time.Second + 30*time.Second
 		}
 	}
@@ -220,10 +244,14 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 		return &failure.SDKError{Message: "http request", Cause: err}
 	}
 	if response.StatusCode != http.StatusGone {
-		// The executor treats a whitespace-only success body as empty. Agent
-		// decodes every non-empty body, so such a body stays malformed here.
-		if out != nil && len(response.Body) > 0 && len(bytes.TrimSpace(response.Body)) == 0 {
-			return agentLocalError(operation, &transport.Error{Plane: "agent", Op: "decode response", Err: json.Unmarshal(response.Body, out)})
+		// Agent decodes every non-empty body that is not an error: the
+		// executor leaves an accepted 3xx body undecoded and treats a
+		// whitespace-only success body as empty, so decode both strictly here.
+		redirect := response.StatusCode >= 300 && response.StatusCode < 400
+		if out != nil && len(response.Body) > 0 && (redirect || len(bytes.TrimSpace(response.Body)) == 0) {
+			if err := json.Unmarshal(response.Body, out); err != nil {
+				return agentLocalError(operation, &transport.Error{Plane: "agent", Op: "decode response", Err: err})
+			}
 		}
 		return nil
 	}

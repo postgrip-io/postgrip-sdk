@@ -451,3 +451,45 @@ func TestAgentRejectsWhitespaceOnlySuccessBodies(t *testing.T) {
 		t.Fatalf("err = %v, want the decode failure", err)
 	}
 }
+
+// An omitted wait_seconds holds for the contract default, so the poll still
+// gets long-poll headroom over a shorter request timeout.
+func TestLongPollWithoutWaitSecondsUsesTheContractDefault(t *testing.T) {
+	server, _ := agentRecordingServer(t, func(_ int, w http.ResponseWriter, _ *http.Request) {
+		time.Sleep(1500 * time.Millisecond)
+		writeJSON(w, http.StatusOK, `{}`)
+	})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, RequestTimeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SeedAgentSession("agent-1", "access", time.Now().Add(time.Hour))
+	if _, err := conn.OpenAPI().PollAgentTask(context.Background(), OpenAPIPollAgentTaskQuery{Queue: "default"}); err != nil {
+		t.Fatalf("long poll without wait_seconds: %v", err)
+	}
+}
+
+// The same-origin policy returns a cross-origin redirect unfollowed, and
+// Agent treats that response as a non-error, as it did before the executor.
+func TestAgentUnfollowedRedirectIsNotAnError(t *testing.T) {
+	var followed bool
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		followed = true
+		writeJSON(w, http.StatusOK, `[]`)
+	}))
+	defer target.Close()
+	server, _ := agentRecordingServer(t, func(_ int, w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Location", target.URL+"/api/v1/namespaces")
+		w.WriteHeader(http.StatusFound)
+	})
+	conn, err := NewConnection(ConnectionOptions{Address: server.URL, InsecureDevelopment: true, AuthToken: "pgt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.OpenAPI().ListNamespaces(context.Background()); err != nil {
+		t.Fatalf("unfollowed redirect: %v", err)
+	}
+	if followed {
+		t.Fatal("cross-origin redirect was followed")
+	}
+}

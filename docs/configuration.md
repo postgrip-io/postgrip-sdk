@@ -68,9 +68,9 @@ through `ConnectionOptions.EnableRetries`, which `postgrip.New` sets from
 not automatically retry. Go Agent retries only contract-eligible operations:
 annotated bounded reads, never signed runtime actions, protocol operations or
 streaming uploads. When the Go Agent connection creates its own
-HTTP client, a long poll's lifetime is its `wait_seconds` plus 30 seconds when
-that exceeds the request timeout; a supplied `HTTPClient` keeps its `Timeout`
-as given. Service, Go Worker and Go Agent
+HTTP client, a long poll's lifetime is its `wait_seconds` (the contract default
+of 20 when omitted) plus 30 seconds when that exceeds the request timeout; a
+supplied `HTTPClient` keeps its `Timeout` as given. Service, Go Worker and Go Agent
 eligibility use generated retry/safety metadata plus an idempotency key for
 mutations.
 TypeScript and Python Worker currently use GET-or-idempotency-key eligibility,
