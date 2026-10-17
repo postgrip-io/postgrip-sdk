@@ -44,9 +44,11 @@ succeeded.
   `github-adoption` job: it waits 65 minutes for the original installation
   token to expire, then up to about 23 more minutes of bounded waits, within a
   120-minute timeout. Web raises the active window from 90 to 150 minutes, and
-  every `acquire-stage` bound from 480 to 540 minutes, so a waiting run still
-  outlasts one predecessor's whole hold: its 6-hour claim, 150-minute active
-  window and reset. The lease steps call web's
+  caps a run's whole active hold at 5 hours from its first `start`, because
+  each job renews the window (postgrip-io/postgrip-web#2201). Every
+  `acquire-stage` bound is 690 minutes, so a waiting run outlasts one
+  predecessor's whole hold: its 6-hour claim, its capped active hold and its
+  reset. The lease steps call web's
   `.github/actions/stage-lease`, pinned by commit, so the lease protocol has
   one owner. That needs `postgrip-web`'s Actions access set to
   allow repositories in the organization.

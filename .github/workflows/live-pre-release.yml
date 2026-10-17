@@ -24,7 +24,7 @@ jobs:
     runs-on:
       group: mediumworx
       labels: [self-hosted, linux, x64]
-    timeout-minutes: 540
+    timeout-minutes: 690
     environment: sdk-live-pre-release
     steps:
       - name: Acquire the stage lease
