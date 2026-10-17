@@ -25,10 +25,10 @@ succeeded.
 
 ### D1. Runners, lease and shell
 
-- Every live job runs on the self-hosted `mediumworx` group
-  (`[self-hosted, linux, x64]`), like web's live suites. GitHub-hosted runners
-  can't reach the lease on the stage host's LAN. The group must include this
-  repository, which is an organization setting.
+- Every live and lease job sets `runs-on: {group: mediumworx, labels:
+  [self-hosted, linux, x64]}`, like web's live suites. Labels alone don't pin
+  a job to the group, and only the group's runners reach the stage host's LAN.
+  The group must include this repository, which is an organization setting.
 - Each workflow takes the stage lease in an `acquire-stage` job before its
   live jobs, starts it in each live job, and releases it in an `always()`
   `release-stage` job after them, so the jobs share one reset. The lease steps
@@ -37,6 +37,12 @@ succeeded.
   allow repositories in the organization.
 - Jobs default to `shell: bash` (`-eo pipefail`), so a failing script before
   `| tee` fails its step.
+- No human approval may wait while the lease is held. The live environments
+  have no required reviewers, only deployment branch and tag policies, like
+  web's live environments. GitHub would ask again for each job that names an
+  environment with reviewers, while the lease is held. A release's reviewers
+  approve the publishing environments, whose jobs run after the pre-release
+  suite has released the lease.
 
 ### D2. Environments and credentials
 
@@ -55,9 +61,14 @@ logs or chat:
   stage's reset validation checks it on its planes.
 - The pre-release Agent session (`POSTGRIP_AGENT_ID`, access and refresh
   tokens, signing key) belongs to an Agent enrolled on stage and captured in
-  the baseline. A run's refresh rotates that session, but the next run's
-  reset restores the baseline, so the stored session is valid again at the
-  start of every run.
+  the baseline. A run's refresh rotates that session, and the next run's
+  reset restores the baseline, so the stored tokens are valid again at the
+  start of every run until the session's absolute `refreshExpiresAt`. A
+  restore can't extend that. So the session is renewed with the management
+  tokens, by web D6's baseline rotation, before `refreshExpiresAt` is within
+  14 days: under a maintenance lease, restore, issue a new session for the
+  Agent, update the environment secrets, capture, and release. The renewal
+  date is recorded next to the tokens' expiry in the stage runbook.
 - The live fixtures (`POSTGRIP_LIVE_WORKER_ID`, repository and sandbox image)
   name stage objects that the baseline keeps: the long-lived stage Worker, a
   repository in the stage GitHub organization, and a public image.
@@ -70,9 +81,13 @@ logs or chat:
 ### D3. Scenarios
 
 Each tier's scenario follows `test/live-scenario.schema.json` and the existing
-fixture-manager rules. The nightly scenario holds the 132 nightly operations
-and the pre-release scenario the 47 pre-release operations from
-`test/operation-tests.json`. Both are kept on the stage host
+fixture-manager rules, including that a scenario holds exactly its tier's
+operations. `connectSandboxSession` (pre-release) needs a ticket from
+`createSandboxSession` (nightly today). The ticket is short-lived and
+single-use, and the server keeps only its hash, so no stored ticket survives a
+reset. `createSandboxSession` therefore moves to the pre-release tier in
+`test/operation-tests.json`, so one run creates and uses its ticket. The
+nightly scenario then holds 131 operations and the pre-release scenario 48. Both are kept on the stage host
 (`~/.config/postgrip-stage/sdk-live-<tier>.json`, mode 600) and loaded into
 `POSTGRIP_LIVE_SCENARIO_GZIP_BASE64`. They are checked with
 `--validate-only` before each upload.
@@ -80,7 +95,8 @@ and the pre-release scenario the 47 pre-release operations from
 ### D4. Delivery
 
 1. This design.
-2. Workflows: runners, lease jobs and shell (D1). Until the environments are
+2. Workflows: runners, lease jobs, shell and environment policy (D1), and the
+   `createSandboxSession` tier move (D3). Until the environments are
    filled, the live jobs fail at configuration, as they do today, but the
    adoption job no longer reports success.
 3. Stage configuration and environments (D2), under a maintenance lease.
