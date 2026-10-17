@@ -89,7 +89,9 @@ runner pool is not the runner configuration of these SDK workflows, except the
 live suites. `live-nightly.yml` and `live-pre-release.yml` run on web's
 `mediumworx` group under web's stage lease, with their jobs in sequence and
 `bash` (`pipefail`) as the default shell
-([design](../design/live-suites-on-stage-20261017.md)).
+([design](../design/live-suites-on-stage-20261017.md)). To retry one, use
+**Re-run all jobs**. "Re-run failed jobs" skips `acquire-stage`, so the new
+attempt doesn't hold the lease, and its `start` refuses to touch stage.
 
 ## Historical decisions
 
