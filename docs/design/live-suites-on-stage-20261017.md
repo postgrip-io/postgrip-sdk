@@ -159,9 +159,17 @@ capabilities and some stage objects:
   declared captured value matches, within a bounded total time, and then
   fails with the last value. Like a fixture step, it doesn't count toward
   coverage.
-- **Transient resources and fixture steps** (D3) also cover `createNamespace`
-  and `enqueueTask`, which have no delete route, and the target-service
-  operations, which need fresh catalog ETags from repeated reads.
+- **Reset-owned resources.** `createNamespace` creates a namespace that
+  has no delete route and never expires. `enqueueTask` creates a task that
+  only `pollAgentTask`, with an Agent session, can consume, and the nightly
+  tier has no session. Neither is transient, and neither can be cleaned up.
+  A resource may be declared reset-owned: it records its identifier, needs
+  no cleanup, and the ledger reports it as left for the stage reset, not as
+  remaining. The manager accepts reset-owned resources only when the run
+  holds a stage lease, whose release restores the baseline and removes them,
+  so they can't be left behind anywhere else.
+- **Fixture steps** (D3) also cover the target-service operations, which
+  need fresh catalog ETags from repeated catalog reads.
 
 The stage baseline also needs objects that a nightly run can't create:
 
@@ -170,7 +178,10 @@ The stage baseline also needs objects that a nightly run can't create:
 - DNS plan, failover and verification objects, for their reads.
 - A sandbox-capable Agent, if `createSandbox` needs one.
 
-A staging environment, for promotion, can come from fixture steps.
+Promotion needs a source deployment in another environment. Fixture steps
+create a staging environment, `deployService` (nightly) deploys to it, and a
+wait step waits until that deployment is ready. Then `previewServicePromotion`
+and `promoteServiceDeployment` promote it.
 
 ### D4. Delivery
 
@@ -180,11 +191,11 @@ A staging environment, for promotion, can come from fixture steps.
    filled, the live jobs fail at configuration, as they do today, but the
    adoption job no longer reports success.
 3. Stage configuration and environments (D2), under a maintenance lease.
-4. Nightly scenario, until `live-nightly.yml` passes end to end. This slice
-   follows slice 5, because a live nightly run needs its capabilities.
-5. Fixture-manager fixture steps, transient resources, credential steps,
-   precondition refresh for cleanups and wait steps (D3, D3a). Then the stage
-   baseline objects (D3a), under a maintenance lease and captured.
+4. Fixture-manager fixture steps, transient and reset-owned resources,
+   credential steps, precondition refresh for cleanups and wait steps (D3,
+   D3a). Then the stage baseline objects (D3a), under a maintenance lease and
+   captured.
+5. Nightly scenario, until `live-nightly.yml` passes end to end.
 6. Pre-release scenario, until `live-pre-release.yml` passes end to end.
 
 Each run counts as web release evidence only when the whole workflow succeeds,
