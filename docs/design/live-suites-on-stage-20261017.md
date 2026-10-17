@@ -137,6 +137,52 @@ to the ledger or the report. The self-test covers it. Both are kept on the stage
 `POSTGRIP_LIVE_SCENARIO_GZIP_BASE64`. They are checked with
 `--validate-only` before each upload.
 
+### D3a. What a draft nightly scenario showed
+
+A full nightly scenario was drafted from the recorded fixtures and checked
+offline. It passes `--validate-only`, and a dry run through the fixture
+manager's own execution rules, against a fake adapter, gets through 124 of its
+132 steps. A live run still can't pass without three more fixture-manager
+capabilities and some stage objects:
+
+- **Precondition refresh for cleanups.** Cleanup requests are frozen at
+  registration, which the self-test pins, so a later capture can't redirect a
+  delete. But fenced deletes need values that only exist just before
+  deletion: the current `If-Match` ETag, and the `impactHash` of a removal
+  preview. So a cleanup may declare a read operation that the manager runs
+  just before it. Captures from that read fill only the cleanup's declared
+  precondition fields, which are headers and body fields. Path parameters,
+  and so the target, stay frozen.
+- **Wait steps.** Some steps depend on asynchronous work finishing: a sandbox
+  reaching `running`, a volume becoming available, a deployment going live. A
+  wait step repeats one read-only operation at a bounded interval until a
+  declared captured value matches, within a bounded total time, and then
+  fails with the last value. Like a fixture step, it doesn't count toward
+  coverage.
+- **Reset-owned resources.** `createNamespace` creates a namespace that
+  has no delete route and never expires. `enqueueTask` creates a task that
+  only `pollAgentTask`, with an Agent session, can consume, and the nightly
+  tier has no session. Neither is transient, and neither can be cleaned up.
+  A resource may be declared reset-owned: it records its identifier, needs
+  no cleanup, and the ledger reports it as left for the stage reset, not as
+  remaining. The manager accepts reset-owned resources only when the run
+  holds a stage lease, whose release restores the baseline and removes them,
+  so they can't be left behind anywhere else.
+- **Fixture steps** (D3) also cover the target-service operations, which
+  need fresh catalog ETags from repeated catalog reads.
+
+The stage baseline also needs objects that a nightly run can't create:
+
+- A second trusted Worker, for the environment-reassignment operations.
+- A workspace, a configuration stack and release groups, for their reads.
+- DNS plan, failover and verification objects, for their reads.
+- A sandbox-capable Agent, if `createSandbox` needs one.
+
+Promotion needs a source deployment in another environment. Fixture steps
+create a staging environment, `deployService` (nightly) deploys to it, and a
+wait step waits until that deployment is ready. Then `previewServicePromotion`
+and `promoteServiceDeployment` promote it.
+
 ### D4. Delivery
 
 1. This design.
@@ -145,8 +191,11 @@ to the ledger or the report. The self-test covers it. Both are kept on the stage
    filled, the live jobs fail at configuration, as they do today, but the
    adoption job no longer reports success.
 3. Stage configuration and environments (D2), under a maintenance lease.
-4. Nightly scenario, until `live-nightly.yml` passes end to end.
-5. Fixture-manager fixture steps and credential steps (D3).
+4. Fixture-manager fixture steps, transient and reset-owned resources,
+   credential steps, precondition refresh for cleanups and wait steps (D3,
+   D3a). Then the stage baseline objects (D3a), under a maintenance lease and
+   captured.
+5. Nightly scenario, until `live-nightly.yml` passes end to end.
 6. Pre-release scenario, until `live-pre-release.yml` passes end to end.
 
 Each run counts as web release evidence only when the whole workflow succeeds,
