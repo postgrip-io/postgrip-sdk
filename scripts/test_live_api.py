@@ -1143,7 +1143,17 @@ class FixtureManager:
         self._validate_explicit_paths(request, operation["operationId"])
         deadline = self.clock() + wait["timeoutSeconds"]
         attempts = 0
+        last = "<not polled>"
         while True:
+            # No poll starts after the deadline. The poll in flight when it
+            # passes is still bounded by the adapter's own request timeout.
+            if attempts and deadline - self.clock() <= 0:
+                raise LiveSuiteError(
+                    f"{operation['operationId']} wait for {wait['capture']} = "
+                    f"{self._redact(json.dumps(expected, sort_keys=True))} timed out after "
+                    f"{wait['timeoutSeconds']}s and {attempts} attempts; last observed "
+                    f"{self._redact(last[:200])}"
+                )
             attempts += 1
             response = self._call(operation, request)
             try:
@@ -1155,14 +1165,8 @@ class FixtureManager:
                 if json_equal(observed, expected):
                     break
             remaining = deadline - self.clock()
-            if remaining <= 0:
-                raise LiveSuiteError(
-                    f"{operation['operationId']} wait for {wait['capture']} = "
-                    f"{self._redact(json.dumps(expected, sort_keys=True))} timed out after "
-                    f"{wait['timeoutSeconds']}s and {attempts} attempts; last observed "
-                    f"{self._redact(last[:200])}"
-                )
-            self.sleep(min(wait["intervalSeconds"], remaining))
+            if remaining > 0:
+                self.sleep(min(wait["intervalSeconds"], remaining))
         for name, capture_pointer in step["capture"].items():
             self.variables[name] = json_pointer(response, capture_pointer)
 
@@ -2060,11 +2064,37 @@ def capability_self_test(
             clock=lambda: now[0],
             sleep=fake_sleep,
         ).run(),
-        'timed out after 12s and 4 attempts; last observed "pending"',
+        'timed out after 12s and 3 attempts; last observed "pending"',
         "wait timeout",
     )
     if sum(sleeps) != 12 or stalled_adapter.calls[-2:] != ["deleteB", "deleteA"]:
         raise AssertionError(f"wait exceeded its bound or skipped cleanup: {sleeps}")
+    if stalled_adapter.calls.count("getA") != 3:
+        raise AssertionError("a wait polled again once its deadline had passed")
+
+    class SlowAdapter(FakeAdapter):
+        """Each poll takes longer than the whole wait."""
+
+        def execute(self, operation: Mapping[str, Any], request: Mapping[str, Any]) -> Any:
+            if operation["operationId"] == "getA":
+                now[0] += 10
+            return super().execute(operation, request)
+
+    now[0], sleeps[:] = 0.0, []
+    slow_adapter = SlowAdapter(responses, sequences={"getA": [{"status": "pending"}]})
+    expect_rejection(
+        lambda: manager(
+            with_steps(wait_step(timeout=5)),
+            "wait-slow",
+            slow_adapter,
+            clock=lambda: now[0],
+            sleep=fake_sleep,
+        ).run(),
+        "timed out after 5s and 1 attempts",
+        "slow wait",
+    )
+    if slow_adapter.calls.count("getA") != 1 or sleeps:
+        raise AssertionError("a wait started a poll after a slow poll passed its deadline")
     now[0] = 0.0
     expect_rejection(
         lambda: manager(

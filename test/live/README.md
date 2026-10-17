@@ -54,8 +54,10 @@ D3 and D3a. The production smoke tier accepts none of them.
 - **Wait steps** (`"wait": {"capture", "equals", "intervalSeconds",
   "timeoutSeconds"}`) repeat one read-only operation until the named capture
   equals `equals` (JSON equality, after placeholder resolution). The interval
-  is 1 to 60 seconds and the total time 1 to 1800. A timeout fails the step
-  with the last observed value. A wait step can't create or clean resources,
+  is 1 to 60 seconds and the total time 1 to 1800. No poll starts after the
+  total time has passed, so a wait ends within it plus the poll already in
+  flight, which the SDK's 30-second request timeout bounds. A timeout fails
+  the step with the attempt count and the last observed value. A wait step can't create or clean resources,
   and its captures come from the matching response.
 - **Credential steps** (`"rotatesCredentials": true`) name an operation that
   accepts an Agent refresh token, such as `refreshAgentSession`, with an empty
