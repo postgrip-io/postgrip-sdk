@@ -51,6 +51,10 @@ jobs:
       POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
       POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
       POSTGRIP_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_LIVE_DISPOSABLE }}
+      # This run's stage-lease ID. The scenario runs only after this job's lease
+      # `start` step succeeds, so the fixture manager may leave reset-owned
+      # resources for the stage reset that follows the lease's release.
+      POSTGRIP_LIVE_STAGE_LEASE: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
       POSTGRIP_LIVE_SCENARIO_GZIP_BASE64: ${{ secrets.POSTGRIP_LIVE_SCENARIO_GZIP_BASE64 }}
       POSTGRIP_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_WORKER_ID }}
       POSTGRIP_LIVE_REPOSITORY_OWNER: ${{ vars.POSTGRIP_LIVE_REPOSITORY_OWNER }}

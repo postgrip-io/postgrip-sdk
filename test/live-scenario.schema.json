@@ -38,13 +38,36 @@
         "streamBodyBase64": { "type": ["string", "null"] }
       }
     },
+    "pointerMap": {
+      "type": "object",
+      "propertyNames": { "minLength": 1 },
+      "additionalProperties": { "type": "string", "pattern": "^(/.*)?$" }
+    },
+    "cleanupRefresh": {
+      "description": "A read-only operation run just before the cleanup. Its response fills only the named cleanup headers and body members (JSON pointers); path parameters and query stay frozen.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operationId", "request", "headers", "body"],
+      "properties": {
+        "operationId": { "type": "string", "minLength": 1 },
+        "request": { "$ref": "#/$defs/request" },
+        "headers": { "$ref": "#/$defs/pointerMap" },
+        "body": {
+          "allOf": [
+            { "$ref": "#/$defs/pointerMap" },
+            { "propertyNames": { "pattern": "^/" } }
+          ]
+        }
+      }
+    },
     "cleanup": {
       "type": "object",
       "additionalProperties": false,
       "required": ["operationId", "request"],
       "properties": {
         "operationId": { "type": "string", "minLength": 1 },
-        "request": { "$ref": "#/$defs/request" }
+        "request": { "$ref": "#/$defs/request" },
+        "refresh": { "$ref": "#/$defs/cleanupRefresh" }
       }
     },
     "resource": {
@@ -56,7 +79,33 @@
         "kind": { "type": "string", "minLength": 1 },
         "identifier": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
-        "cleanup": { "$ref": "#/$defs/cleanup" }
+        "lifecycle": {
+          "description": "cleanup (default): removed by its cleanup. transient: consumed by at most one later protocol step, or expires. reset-owned: left for the stage reset; requires a held stage lease.",
+          "enum": ["cleanup", "transient", "reset-owned"]
+        },
+        "cleanup": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/cleanup" }
+          ]
+        }
+      },
+      "if": {
+        "required": ["lifecycle"],
+        "properties": { "lifecycle": { "enum": ["transient", "reset-owned"] } }
+      },
+      "then": { "properties": { "cleanup": { "type": "null" } } },
+      "else": { "properties": { "cleanup": { "$ref": "#/$defs/cleanup" } } }
+    },
+    "wait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capture", "equals", "intervalSeconds", "timeoutSeconds"],
+      "properties": {
+        "capture": { "type": "string", "minLength": 1 },
+        "equals": true,
+        "intervalSeconds": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 1800 }
       }
     },
     "step": {
@@ -88,6 +137,18 @@
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
           "uniqueItems": true
+        },
+        "fixture": {
+          "description": "Sets up a prerequisite. Any operation, repeatable, not counted toward tier coverage.",
+          "type": "boolean"
+        },
+        "rotatesCredentials": {
+          "description": "Rotates the Agent session through an operation that accepts an Agent refresh token. The request is empty and nothing is captured; tokens stay in the fixture manager's connection.",
+          "type": "boolean"
+        },
+        "wait": {
+          "description": "Repeats this read-only step until the named capture equals the value. Not counted toward tier coverage.",
+          "$ref": "#/$defs/wait"
         }
       }
     }
