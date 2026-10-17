@@ -35,8 +35,13 @@ succeeded.
   starts the lease before touching stage, so a job whose run lost the lease
   never runs. The parallel jobs rely on web's `start` succeeding again for the
   run that already holds the active lease, without extending it
-  (postgrip-io/postgrip-web#2200). The 90-minute active window covers them
-  because they run in parallel. The lease steps call web's
+  (postgrip-io/postgrip-web#2200). Since `start` doesn't extend the lease, its
+  active window must outlast the longest live job. That's the pre-release
+  `github-adoption` job: it waits 65 minutes for the original installation
+  token to expire, then up to about 23 more minutes of bounded waits, within a
+  120-minute timeout. Web raises the active window from 90 to 150 minutes, and
+  its `acquire-stage` bound by the same 60 minutes, so a waiting run still
+  outlasts one predecessor's whole hold. The lease steps call web's
   `.github/actions/stage-lease`, pinned by commit, so the lease protocol has
   one owner. That needs `postgrip-web`'s Actions access set to
   allow repositories in the organization.
@@ -60,8 +65,11 @@ logs or chat:
   `POSTGRIP_SERVICE_URL` name the stage hostnames. `POSTGRIP_LIVE_DISPOSABLE`
   and `POSTGRIP_GITHUB_LIVE_DISPOSABLE` are `true`.
 - `POSTGRIP_TOKEN` is a stage management token per environment covering the
-  three planes (web D5). Its exact scopes are the minimum the scenario's
-  operations need, and are recorded with the scenario. It is minted under a
+  three planes (web D5). Its scopes are the union of what that environment's
+  jobs call: the scenario's operations, the adoption job's (for example
+  `listServiceDeployments`, `services:read`) and the domain job's. They are
+  recorded with the scenario. Authorization is per endpoint, so the other
+  Service scopes don't imply a missing one. It is minted under a
   stage maintenance lease and captured into the stage baseline, and the
   stage's reset validation checks it on its planes.
 - The pre-release Agent session (`POSTGRIP_AGENT_ID`, access and refresh
@@ -88,11 +96,24 @@ logs or chat:
 Each tier's scenario follows `test/live-scenario.schema.json` and the existing
 fixture-manager rules, including that a scenario holds exactly its tier's
 operations. `connectSandboxSession` (pre-release) needs a ticket from
-`createSandboxSession` (nightly today). The ticket is short-lived and
-single-use, and the server keeps only its hash, so no stored ticket survives a
-reset. `createSandboxSession` therefore moves to the pre-release tier in
-`test/operation-tests.json`, so one run creates and uses its ticket. The
-nightly scenario then holds 131 operations and the pre-release scenario 48. Both are kept on the stage host
+`createSandboxSession`, and that needs a running sandbox, but the rest of the
+sandbox lifecycle is nightly. The ticket is short-lived and single-use, and
+the server keeps only its hash. A sandbox seeded in the baseline wouldn't
+survive either: reset removes the Worker's workload containers. So the whole
+sandbox lifecycle moves to the pre-release tier in `test/operation-tests.json`:
+`createSandbox`, `getSandbox`, `listSandboxes`, `startSandbox`,
+`createSandboxSession`, `stopSandbox` and `deleteSandbox`, next to
+`connectSandboxSession`. One run then creates a sandbox, starts it, connects a
+session and removes it. The nightly scenario holds 125 operations and the
+pre-release scenario 54.
+
+`refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
+It neither targets nor creates a recorded resource, which the fixture manager
+requires of every mutation, so the manager supports credential steps. A step
+marked as rotating its connection's credentials needs no resource. The
+manager sends the current refresh token, applies the returned access and
+refresh tokens to its Agent connection for later steps, and never writes them
+to the ledger or the report. The self-test covers it. Both are kept on the stage host
 (`~/.config/postgrip-stage/sdk-live-<tier>.json`, mode 600) and loaded into
 `POSTGRIP_LIVE_SCENARIO_GZIP_BASE64`. They are checked with
 `--validate-only` before each upload.
@@ -101,12 +122,13 @@ nightly scenario then holds 131 operations and the pre-release scenario 48. Both
 
 1. This design.
 2. Workflows: runners, lease jobs, shell and environment policy (D1), and the
-   `createSandboxSession` tier move (D3). Until the environments are
+   sandbox tier move (D3). Web's 150-minute active window lands first. Until the environments are
    filled, the live jobs fail at configuration, as they do today, but the
    adoption job no longer reports success.
 3. Stage configuration and environments (D2), under a maintenance lease.
 4. Nightly scenario, until `live-nightly.yml` passes end to end.
-5. Pre-release scenario, until `live-pre-release.yml` passes end to end.
+5. Fixture-manager credential steps (D3).
+6. Pre-release scenario, until `live-pre-release.yml` passes end to end.
 
 Each run counts as web release evidence only when the whole workflow succeeds,
 including `release-stage`.
