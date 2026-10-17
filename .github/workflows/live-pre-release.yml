@@ -11,9 +11,36 @@ concurrency:
   group: sdk-live-pre-release-${{ github.ref }}
   cancel-in-progress: false
 
+# Web stage design D6 and docs/design/live-suites-on-stage-20261017.md D1:
+# pipefail, so `| tee` can't hide a failing script.
+defaults:
+  run:
+    shell: bash
+
 jobs:
+  # One stage lease per run, reset around it. Waiting here never spends a
+  # suite job's own timeout; the bound outlasts one predecessor's whole hold.
+  acquire-stage:
+    runs-on:
+      group: mediumworx
+      labels: [self-hosted, linux, x64]
+    timeout-minutes: 540
+    environment: sdk-live-pre-release
+    steps:
+      - name: Acquire the stage lease
+        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        with:
+          verb: acquire
+          run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          target: ${{ vars.STAGE_LEASE_TARGET }}
+          ssh-key: ${{ secrets.STAGE_LEASE_SSH_KEY }}
+          known-hosts: ${{ secrets.STAGE_LEASE_KNOWN_HOSTS }}
+
   live:
-    runs-on: ubuntu-latest
+    needs: acquire-stage
+    runs-on:
+      group: mediumworx
+      labels: [self-hosted, linux, x64]
     timeout-minutes: 120
     environment: sdk-live-pre-release
     env:
@@ -35,6 +62,14 @@ jobs:
       POSTGRIP_LIVE_REPOSITORY_CREDENTIAL: ${{ secrets.POSTGRIP_LIVE_REPOSITORY_CREDENTIAL }}
       POSTGRIP_LIVE_SANDBOX_IMAGE: ${{ vars.POSTGRIP_LIVE_SANDBOX_IMAGE }}
     steps:
+      - name: Start the stage lease
+        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        with:
+          verb: start
+          run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          target: ${{ vars.STAGE_LEASE_TARGET }}
+          ssh-key: ${{ secrets.STAGE_LEASE_SSH_KEY }}
+          known-hosts: ${{ secrets.STAGE_LEASE_KNOWN_HOSTS }}
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -62,7 +97,11 @@ jobs:
           retention-days: 90
 
   github-adoption:
-    runs-on: ubuntu-latest
+    needs: [acquire-stage, live]
+    if: ${{ !cancelled() && needs.acquire-stage.result == 'success' }}
+    runs-on:
+      group: mediumworx
+      labels: [self-hosted, linux, x64]
     timeout-minutes: 120
     environment: sdk-live-pre-release
     env:
@@ -76,6 +115,14 @@ jobs:
       POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY: "true"
       POSTGRIP_GITHUB_LIVE_EXPIRY_WAIT_SECONDS: "3900"
     steps:
+      - name: Start the stage lease
+        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        with:
+          verb: start
+          run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          target: ${{ vars.STAGE_LEASE_TARGET }}
+          ssh-key: ${{ secrets.STAGE_LEASE_SSH_KEY }}
+          known-hosts: ${{ secrets.STAGE_LEASE_KNOWN_HOSTS }}
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -97,7 +144,11 @@ jobs:
           retention-days: 90
 
   service-domain:
-    runs-on: ubuntu-latest
+    needs: [acquire-stage, github-adoption]
+    if: ${{ !cancelled() && needs.acquire-stage.result == 'success' }}
+    runs-on:
+      group: mediumworx
+      labels: [self-hosted, linux, x64]
     timeout-minutes: 10
     environment: sdk-live-pre-release
     env:
@@ -109,6 +160,14 @@ jobs:
       POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN: ${{ vars.POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN }}
       POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE }}
     steps:
+      - name: Start the stage lease
+        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        with:
+          verb: start
+          run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          target: ${{ vars.STAGE_LEASE_TARGET }}
+          ssh-key: ${{ secrets.STAGE_LEASE_SSH_KEY }}
+          known-hosts: ${{ secrets.STAGE_LEASE_KNOWN_HOSTS }}
       - name: Detect disposable Service domain fixture
         id: fixture
         shell: bash
@@ -131,3 +190,21 @@ jobs:
       - name: Verify public DNS, TLS, route, and HTTP behavior
         if: ${{ steps.fixture.outputs.enabled == 'true' }}
         run: python3 scripts/test_service_domain_verification_live.py
+
+  release-stage:
+    needs: [acquire-stage, live, github-adoption, service-domain]
+    if: ${{ always() }}
+    runs-on:
+      group: mediumworx
+      labels: [self-hosted, linux, x64]
+    timeout-minutes: 30
+    environment: sdk-live-pre-release
+    steps:
+      - name: Release the stage lease
+        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        with:
+          verb: release
+          run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          target: ${{ vars.STAGE_LEASE_TARGET }}
+          ssh-key: ${{ secrets.STAGE_LEASE_SSH_KEY }}
+          known-hosts: ${{ secrets.STAGE_LEASE_KNOWN_HOSTS }}

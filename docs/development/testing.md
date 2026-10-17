@@ -85,7 +85,13 @@ the SDK still has tag-based action references, some unbounded jobs and CI concur
 that cancels superseded `main` runs. These are explicit CI gaps, not documentation
 claims that web's enforcement already exists here. Changing them requires a
 separate workflow design and validation. Web's six light/eight heavy self-hosted
-runner pool is not the runner configuration of these SDK workflows.
+runner pool is not the runner configuration of these SDK workflows, except the
+live suites. `live-nightly.yml` and `live-pre-release.yml` run on web's
+`mediumworx` group under web's stage lease, with their jobs in sequence and
+`bash` (`pipefail`) as the default shell
+([design](../design/live-suites-on-stage-20261017.md)). To retry one, use
+**Re-run all jobs**. "Re-run failed jobs" skips `acquire-stage`, so the new
+attempt doesn't hold the lease, and its `start` refuses to touch stage.
 
 ## Historical decisions
 
