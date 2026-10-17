@@ -35,8 +35,12 @@ succeeded.
   starts the lease before touching stage, so a job whose run lost the lease
   never runs. The parallel jobs rely on web's `start` succeeding again for the
   run that already holds the active lease, renewing it to a full window from
-  that job's start (postgrip-io/postgrip-web#2200). The window must outlast
-  the longest live job. That's the pre-release
+  that job's start (postgrip-io/postgrip-web#2200). The live jobs run in
+  sequence, `live`, then `github-adoption`, then `service-domain`, not in
+  parallel. The nightly scenario puts its Worker into maintenance and upgrades
+  it, which would disrupt an adoption job on the same stage Worker. Because
+  each job renews the lease when it starts, the window must outlast the
+  longest single job. That's the pre-release
   `github-adoption` job: it waits 65 minutes for the original installation
   token to expire, then up to about 23 more minutes of bounded waits, within a
   120-minute timeout. Web raises the active window from 90 to 150 minutes, and
@@ -110,7 +114,14 @@ removes the Worker's workload containers, so neither can live in the baseline.
 So the fixture manager adds fixture steps. A step marked `fixture: true` may
 name any operation, of any tier and any number of times, to set up a
 prerequisite. It is held to every safety, resource and cleanup rule a counted
-step is. It doesn't count toward coverage: the counted steps must still equal
+step is.
+
+Some resources are created to be consumed. A sandbox session from
+`createSandboxSession` has its own ID, is spent by `connectSandboxSession`,
+and expires on the server, and there is no operation that deletes one. So a
+resource can be declared transient: it records its identifier, needs no
+cleanup, and may be consumed by exactly one later protocol step that targets
+it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
 assignments stay as they are. The nightly scenario covers 132 operations and
 the pre-release scenario 47, plus their fixture steps.
