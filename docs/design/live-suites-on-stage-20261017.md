@@ -34,14 +34,15 @@ succeeded.
   `release-stage` job after them, so the jobs share one reset. Every live job
   starts the lease before touching stage, so a job whose run lost the lease
   never runs. The parallel jobs rely on web's `start` succeeding again for the
-  run that already holds the active lease, without extending it
-  (postgrip-io/postgrip-web#2200). Since `start` doesn't extend the lease, its
-  active window must outlast the longest live job. That's the pre-release
+  run that already holds the active lease, renewing it to a full window from
+  that job's start (postgrip-io/postgrip-web#2200). The window must outlast
+  the longest live job. That's the pre-release
   `github-adoption` job: it waits 65 minutes for the original installation
   token to expire, then up to about 23 more minutes of bounded waits, within a
   120-minute timeout. Web raises the active window from 90 to 150 minutes, and
-  its `acquire-stage` bound by the same 60 minutes, so a waiting run still
-  outlasts one predecessor's whole hold. The lease steps call web's
+  every `acquire-stage` bound from 480 to 540 minutes, so a waiting run still
+  outlasts one predecessor's whole hold: its 6-hour claim, 150-minute active
+  window and reset. The lease steps call web's
   `.github/actions/stage-lease`, pinned by commit, so the lease protocol has
   one owner. That needs `postgrip-web`'s Actions access set to
   allow repositories in the organization.
@@ -77,11 +78,13 @@ logs or chat:
   the baseline. A run's refresh rotates that session, and the next run's
   reset restores the baseline, so the stored tokens are valid again at the
   start of every run until the session's absolute `refreshExpiresAt`. A
-  restore can't extend that. So the session is renewed with the management
-  tokens, by web D6's baseline rotation, before `refreshExpiresAt` is within
-  14 days: under a maintenance lease, restore, issue a new session for the
-  Agent, update the environment secrets, capture, and release. The renewal
-  date is recorded next to the tokens' expiry in the stage runbook.
+  restore can't extend that, and a management token can't issue a delegated
+  session. So before `refreshExpiresAt` is within 14 days, the session is
+  renewed by re-enrollment, alongside web D6's baseline rotation: under a
+  maintenance lease, restore, have the stage owner issue a one-time
+  enrollment key, enroll the Agent with it, write the resulting Agent ID,
+  session and signing key into the environment, capture, and release. The
+  renewal date is recorded next to the tokens' expiry in the stage runbook.
 - The live fixtures (`POSTGRIP_LIVE_WORKER_ID`, repository and sandbox image)
   name stage objects that the baseline keeps: the long-lived stage Worker, a
   repository in the stage GitHub organization, and a public image.
@@ -95,17 +98,22 @@ logs or chat:
 
 Each tier's scenario follows `test/live-scenario.schema.json` and the existing
 fixture-manager rules, including that a scenario holds exactly its tier's
-operations. `connectSandboxSession` (pre-release) needs a ticket from
-`createSandboxSession`, and that needs a running sandbox, but the rest of the
-sandbox lifecycle is nightly. The ticket is short-lived and single-use, and
-the server keeps only its hash. A sandbox seeded in the baseline wouldn't
-survive either: reset removes the Worker's workload containers. So the whole
-sandbox lifecycle moves to the pre-release tier in `test/operation-tests.json`:
-`createSandbox`, `getSandbox`, `listSandboxes`, `startSandbox`,
-`createSandboxSession`, `stopSandbox` and `deleteSandbox`, next to
-`connectSandboxSession`. One run then creates a sandbox, starts it, connects a
-session and removes it. The nightly scenario holds 125 operations and the
-pre-release scenario 54.
+operations, and each exactly once. Some operations need prerequisites that
+other tiers' operations create, sometimes more than once.
+`connectSandboxSession` (pre-release) needs a ticket from
+`createSandboxSession` on a running sandbox, and both are nightly. Each of
+`blockAgentTask`, `completeAgentTask` and `failAgentTask` (pre-release)
+releases a task that `pollAgentTask` leased, which needs tasks from
+`enqueueTask` (nightly). Tickets are single-use, task leases age, and reset
+removes the Worker's workload containers, so neither can live in the baseline.
+
+So the fixture manager adds fixture steps. A step marked `fixture: true` may
+name any operation, of any tier and any number of times, to set up a
+prerequisite. It is held to every safety, resource and cleanup rule a counted
+step is. It doesn't count toward coverage: the counted steps must still equal
+the tier's operations exactly once, so coverage is unchanged. Tier
+assignments stay as they are. The nightly scenario covers 132 operations and
+the pre-release scenario 47, plus their fixture steps.
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager
@@ -121,13 +129,13 @@ to the ledger or the report. The self-test covers it. Both are kept on the stage
 ### D4. Delivery
 
 1. This design.
-2. Workflows: runners, lease jobs, shell and environment policy (D1), and the
-   sandbox tier move (D3). Web's 150-minute active window lands first. Until the environments are
+2. Workflows: runners, lease jobs, shell and environment policy (D1). Web's
+   150-minute active window lands first. Until the environments are
    filled, the live jobs fail at configuration, as they do today, but the
    adoption job no longer reports success.
 3. Stage configuration and environments (D2), under a maintenance lease.
 4. Nightly scenario, until `live-nightly.yml` passes end to end.
-5. Fixture-manager credential steps (D3).
+5. Fixture-manager fixture steps and credential steps (D3).
 6. Pre-release scenario, until `live-pre-release.yml` passes end to end.
 
 Each run counts as web release evidence only when the whole workflow succeeds,
