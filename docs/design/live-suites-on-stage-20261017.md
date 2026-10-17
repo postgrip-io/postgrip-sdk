@@ -31,9 +31,14 @@ succeeded.
   The group must include this repository, which is an organization setting.
 - Each workflow takes the stage lease in an `acquire-stage` job before its
   live jobs, starts it in each live job, and releases it in an `always()`
-  `release-stage` job after them, so the jobs share one reset. The lease steps
-  call web's `.github/actions/stage-lease`, pinned by commit, so the lease
-  protocol has one owner. That needs `postgrip-web`'s Actions access set to
+  `release-stage` job after them, so the jobs share one reset. Every live job
+  starts the lease before touching stage, so a job whose run lost the lease
+  never runs. The parallel jobs rely on web's `start` succeeding again for the
+  run that already holds the active lease, without extending it
+  (postgrip-io/postgrip-web#2200). The 90-minute active window covers them
+  because they run in parallel. The lease steps call web's
+  `.github/actions/stage-lease`, pinned by commit, so the lease protocol has
+  one owner. That needs `postgrip-web`'s Actions access set to
   allow repositories in the organization.
 - Jobs default to `shell: bash` (`-eo pipefail`), so a failing script before
   `| tee` fails its step.
