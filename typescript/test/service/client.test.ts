@@ -58,8 +58,8 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<OpenAPIComponents['PostGripConfigurationWorkerSelector'] | undefined>();
   });
 
-  it('preserves const approval fields in generated request types', () => {
-    expectTypeOf<OpenAPIRequestBody<'requestServiceDNSFailover'>['approved']>()
+  it('preserves const true fields in generated types', () => {
+    expectTypeOf<OpenAPIComponents['PostGripConfigurationSecretVariable']['isSecret']>()
       .toEqualTypeOf<true>();
   });
 
@@ -73,16 +73,13 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<'applied'>();
     expectTypeOf<Extract<ProviderResult, { outcome: 'failed' }>['records'][number]['status']>()
       .toEqualTypeOf<'failed'>();
-    expectTypeOf<OpenAPIRequestBody<'updateServiceDNSFailoverPolicy'>['mode']>()
-      .toEqualTypeOf<'disabled' | 'operator_approved' | 'automatic_external'>();
   });
 
-  it('requires the active deployment fence for failover plan requests', () => {
+  it('accepts only activation plan requests', () => {
     type Request = OpenAPIRequestBody<'createServiceDNSPlan'>;
-    expectTypeOf<Extract<Request, { kind: 'failover' | 'failback' }>['expectedActiveDeploymentId']>()
-      .toEqualTypeOf<string>();
-    expectTypeOf<Extract<Request, { kind: 'activate' }>['expectedActiveDeploymentId']>()
-      .toEqualTypeOf<string | undefined>();
+    expectTypeOf<Request['kind']>().toEqualTypeOf<'activate'>();
+    expectTypeOf<Request['reason']>().toEqualTypeOf<'initial_activation'>();
+    expectTypeOf<Request['expectedActiveDeploymentId']>().toEqualTypeOf<string | undefined>();
   });
 
   it('rejects unsafe configuration', () => {
@@ -364,7 +361,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(105);
+    expect(methodCount).toBe(101);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -482,10 +479,6 @@ describe('ServiceClient', () => {
       () => admin.dns.plan('project-1', 'environment-1', 'domain-1', 'plan-1'),
       () => admin.dns.apply('project-1', 'environment-1', 'domain-1', 'plan-1', body, mutation),
       () => admin.dns.reportProviderResult('project-1', 'environment-1', 'domain-1', 'plan-1', body, mutation),
-      () => admin.dns.rollback('project-1', 'environment-1', 'domain-1', 'plan-1', body, mutation),
-      () => admin.dns.failoverPolicy('project-1', 'environment-1', 'domain-1'),
-      () => admin.dns.updateFailoverPolicy('project-1', 'environment-1', 'domain-1', body, mutation),
-      () => admin.dns.failover('project-1', 'environment-1', 'domain-1', body, mutation),
       () => admin.variables.list('project-1', 'environment-1'),
       () => admin.variables.create('project-1', 'environment-1', body, write),
       () => admin.variables.update('project-1', 'environment-1', 'variable-1', body, write),
@@ -545,7 +538,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(105);
+    expect(requestCount).toBe(101);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {
