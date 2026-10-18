@@ -39,6 +39,10 @@ UUID_PATTERN = re.compile(
 class LiveAdoptionError(RuntimeError):
     """A redacted, operator-actionable live-suite failure."""
 
+    def __init__(self, message: str, *, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -156,7 +160,8 @@ def request_json(
         except (ValueError, AttributeError):
             code = "request failed"
         raise LiveAdoptionError(
-            f"{method} {urllib.parse.urlparse(url).path} returned {exc.code}: {code}"
+            f"{method} {urllib.parse.urlparse(url).path} returned {exc.code}: {code}",
+            status=exc.code,
         ) from exc
     except urllib.error.URLError as exc:
         raise LiveAdoptionError(
@@ -306,20 +311,34 @@ def create_project(
     return project["id"], environment.get("configurationOperationId", "")
 
 
-def refresh_credential(settings: Settings) -> None:
-    repository = postgrip_request(
-        settings,
-        "GET",
-        f"/api/v1/services/project/{settings.project_id}/repository",
-    )
-    result = postgrip_request(
-        settings,
-        "POST",
-        f"/api/v1/services/project/{settings.project_id}/repository/credentials/source-access/refresh",
-        etag=repository["etag"],
-        expected=(202,),
-    )
-    wait_for_operation(settings, result["configurationOperationId"])
+REFRESH_ATTEMPTS = 5
+
+
+def refresh_credential(settings: Settings, *, retry_delay: float = 2.0) -> None:
+    # The refresh is fenced by the repository ETag, which background work
+    # (the push deployment, configuration reconciles) can move between the
+    # read and the write. A 412 applied nothing, so read again and retry.
+    for attempt in range(1, REFRESH_ATTEMPTS + 1):
+        repository = postgrip_request(
+            settings,
+            "GET",
+            f"/api/v1/services/project/{settings.project_id}/repository",
+        )
+        try:
+            result = postgrip_request(
+                settings,
+                "POST",
+                f"/api/v1/services/project/{settings.project_id}/repository/credentials/source-access/refresh",
+                etag=repository["etag"],
+                expected=(202,),
+            )
+        except LiveAdoptionError as exc:
+            if exc.status != 412 or attempt == REFRESH_ATTEMPTS:
+                raise
+            time.sleep(retry_delay)
+            continue
+        wait_for_operation(settings, result["configurationOperationId"])
+        return
 
 
 def wait_for_deployment(
@@ -450,7 +469,57 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
             )
 
 
+def self_test_refresh_retry() -> None:
+    """A stale-ETag refresh reads again and retries; other errors don't."""
+
+    settings = load_settings({
+        "POSTGRIP_URL": "https://postgrip.example.test",
+        "POSTGRIP_TOKEN": "redacted",
+        "POSTGRIP_GITHUB_LIVE_PROJECT_ID": "00000000-0000-4000-8000-000000000001",
+        "POSTGRIP_GITHUB_TEST_TOKEN": "redacted",
+        "POSTGRIP_GITHUB_TEST_ORG": "postgrip-disposable",
+        "POSTGRIP_GITHUB_LIVE_DISPOSABLE": "true",
+    })
+    real_request, real_wait = postgrip_request, wait_for_operation
+
+    def run(failures: list[int]) -> list[str]:
+        global postgrip_request, wait_for_operation
+        calls: list[str] = []
+        etags = iter(f"etag-{n}" for n in range(10))
+
+        def fake_request(_settings: Settings, method: str, path: str, **kwargs: Any) -> Any:
+            calls.append(f"{method} {kwargs.get('etag', '')}".strip())
+            if method == "GET":
+                return {"etag": next(etags)}
+            if failures:
+                raise LiveAdoptionError("refresh failed", status=failures.pop(0))
+            return {"configurationOperationId": "op"}
+
+        postgrip_request = fake_request
+        wait_for_operation = lambda _settings, operation_id: calls.append(f"wait {operation_id}")  # noqa: E731
+        try:
+            refresh_credential(settings, retry_delay=0)
+        finally:
+            postgrip_request, wait_for_operation = real_request, real_wait
+        return calls
+
+    assert run([412]) == ["GET", "POST etag-0", "GET", "POST etag-1", "wait op"]
+    try:
+        run([409])
+    except LiveAdoptionError as exc:
+        assert exc.status == 409
+    else:
+        raise AssertionError("a non-412 refresh failure must not be retried")
+    try:
+        run([412] * REFRESH_ATTEMPTS)
+    except LiveAdoptionError as exc:
+        assert exc.status == 412
+    else:
+        raise AssertionError("refresh retries must be bounded")
+
+
 def self_test() -> None:
+    self_test_refresh_retry()
     base = {
         "POSTGRIP_URL": "https://postgrip.example.test",
         "POSTGRIP_TOKEN": "redacted",
