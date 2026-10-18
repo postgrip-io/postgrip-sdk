@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '579b9db5db30698a034365b17d5accc8af481517a99a9a9add4702ae08af13a1'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '449013ff4353f04b4575140417b29c823749ece0747ffaea04bceb79464a59f8'
+OPENAPI_SPEC_SHA256 = 'b5177fdfd9a35d163f37c79aa8cdf51fada33ec02d6a50db5452064107aaf6cf'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '310550ab0e7959a33bd56dffb0b2542d5ba824a55f1ac1cfa94329d40e796170'
 OPENAPI_OPERATION_COUNT = 119
 OPENAPI_CLIENT_OPERATION_COUNT = 119
 
@@ -1781,14 +1781,14 @@ class _SchemaCreateServiceDNSPlanRequestOptional(TypedDict, total=False):
     expectedActiveDeploymentId: str
 
 class _SchemaCreateServiceDNSPlanRequest(_SchemaCreateServiceDNSPlanRequestOptional):
-    kind: Literal['activate', 'failover', 'failback']
+    kind: Literal['activate']
     targetProjectId: str
     targetEnvironmentId: str
     expectedTargetDeploymentId: str
     expectedDomainConfigurationVersion: int
     expectedCanonicalGeneration: int
     ttlSeconds: int
-    reason: Literal['initial_activation', 'operator_failover', 'operator_failback', 'planned_migration']
+    reason: Literal['initial_activation']
 
 class _SchemaApplyServiceDNSPlanRequest(TypedDict):
     providerBinding: _SchemaServiceDNSProviderBinding

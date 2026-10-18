@@ -14232,9 +14232,7 @@
           "kind": {
             "type": "string",
             "enum": [
-              "activate",
-              "failover",
-              "failback"
+              "activate"
             ]
           },
           "targetProjectId": {
@@ -14271,37 +14269,10 @@
           "reason": {
             "type": "string",
             "enum": [
-              "initial_activation",
-              "operator_failover",
-              "operator_failback",
-              "planned_migration"
+              "initial_activation"
             ]
           }
-        },
-        "allOf": [
-          {
-            "if": {
-              "additionalProperties": {},
-              "required": [
-                "kind"
-              ],
-              "properties": {
-                "kind": {
-                  "enum": [
-                    "failover",
-                    "failback"
-                  ]
-                }
-              }
-            },
-            "then": {
-              "additionalProperties": {},
-              "required": [
-                "expectedActiveDeploymentId"
-              ]
-            }
-          }
-        ]
+        }
       },
       "ApplyServiceDNSPlanRequest": {
         "type": "object",

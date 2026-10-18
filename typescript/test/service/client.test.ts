@@ -75,12 +75,11 @@ describe('ServiceClient', () => {
       .toEqualTypeOf<'failed'>();
   });
 
-  it('requires the active deployment fence for failover plan requests', () => {
+  it('accepts only activation plan requests', () => {
     type Request = OpenAPIRequestBody<'createServiceDNSPlan'>;
-    expectTypeOf<Extract<Request, { kind: 'failover' | 'failback' }>['expectedActiveDeploymentId']>()
-      .toEqualTypeOf<string>();
-    expectTypeOf<Extract<Request, { kind: 'activate' }>['expectedActiveDeploymentId']>()
-      .toEqualTypeOf<string | undefined>();
+    expectTypeOf<Request['kind']>().toEqualTypeOf<'activate'>();
+    expectTypeOf<Request['reason']>().toEqualTypeOf<'initial_activation'>();
+    expectTypeOf<Request['expectedActiveDeploymentId']>().toEqualTypeOf<string | undefined>();
   });
 
   it('rejects unsafe configuration', () => {

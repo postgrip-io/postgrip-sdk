@@ -194,10 +194,12 @@ to the ledger or the report. The self-test covers it. Both are kept on the stage
 
 ### D3a. What a draft nightly scenario showed
 
-A full nightly scenario was drafted from the recorded fixtures and checked
-offline. It passes `--validate-only`, and a dry run through the fixture
-manager's own execution rules, against a fake adapter, gets through 124 of its
-132 steps. A live run still can't pass without three more fixture-manager
+Before the 2026-10-18 failover removal, a full nightly scenario was drafted
+from the recorded fixtures and checked offline. It passed `--validate-only`,
+and a dry run through the fixture manager's own execution rules, against a
+fake adapter, got through 124 of its 132 steps. That is historical evidence:
+the nightly tier is now 131 operations, so the draft must drop
+`getServiceDNSFailoverPolicy` to validate again. A live run still can't pass without three more fixture-manager
 capabilities and some stage objects:
 
 - **Precondition refresh for cleanups.** Cleanup requests are frozen at
