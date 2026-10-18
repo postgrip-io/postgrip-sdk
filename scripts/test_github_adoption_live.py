@@ -420,9 +420,10 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
             settings, commit["commit"]["sha"], previous_ids
         )
 
-        # Two explicit refreshes prove repeated mint/push semantics. In the
-        # pre-release lane, the commit above occurs after the original token's
-        # GitHub lifetime, proving the background rotation also kept deploys usable.
+        # Two explicit refreshes prove repeated mint/push semantics. With
+        # POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY=true, the commit above occurs
+        # after the original token's GitHub lifetime, proving the background
+        # rotation also kept deploys usable.
         refresh_credential(settings)
         refresh_credential(settings)
         return {
