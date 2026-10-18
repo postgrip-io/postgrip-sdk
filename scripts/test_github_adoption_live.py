@@ -7,7 +7,8 @@ prove. It creates exactly one private repository in a dedicated test
 organization, adopts it into a dedicated PostGrip project, optionally waits
 until the originally issued installation token would be expired, creates one
 GitHub commit, observes the resulting deployment, and always deletes the
-repository.
+repository. On stage, given a Worker instead of a project, it creates that
+project on the disposable repository itself and leaves it to the stage reset.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 SAFE_REPOSITORY_PREFIX = "postgrip-live-"
@@ -44,6 +45,7 @@ class Settings:
     service_url: str
     postgrip_token: str
     project_id: str
+    worker_id: str
     github_api_url: str
     github_token: str
     github_org: str
@@ -71,9 +73,21 @@ def load_settings(environ: Mapping[str, str]) -> Settings:
         parsed = urllib.parse.urlparse(value)
         if parsed.scheme != "https" or not parsed.netloc or parsed.username:
             raise LiveAdoptionError(f"{name} URL must be an HTTPS origin without credentials")
-    project_id = required(environ, "POSTGRIP_GITHUB_LIVE_PROJECT_ID")
-    if UUID_PATTERN.fullmatch(project_id) is None:
-        raise LiveAdoptionError("POSTGRIP_GITHUB_LIVE_PROJECT_ID must be a UUID")
+    project_id = environ.get("POSTGRIP_GITHUB_LIVE_PROJECT_ID", "").strip()
+    worker_id = environ.get("POSTGRIP_GITHUB_LIVE_WORKER_ID", "").strip()
+    if bool(project_id) == bool(worker_id):
+        raise LiveAdoptionError(
+            "set exactly one of POSTGRIP_GITHUB_LIVE_PROJECT_ID or POSTGRIP_GITHUB_LIVE_WORKER_ID"
+        )
+    for name, value in (
+        ("POSTGRIP_GITHUB_LIVE_PROJECT_ID", project_id),
+        ("POSTGRIP_GITHUB_LIVE_WORKER_ID", worker_id),
+    ):
+        if value and UUID_PATTERN.fullmatch(value) is None:
+            raise LiveAdoptionError(f"{name} must be a UUID")
+    # A run-owned project is never deleted here; only a stage reset removes it.
+    if worker_id:
+        required(environ, "POSTGRIP_LIVE_STAGE_LEASE")
     org = required(environ, "POSTGRIP_GITHUB_TEST_ORG")
     if org.lower() in {"postgrip", "postgrip-io"}:
         raise LiveAdoptionError("the production PostGrip GitHub organization is forbidden")
@@ -95,6 +109,7 @@ def load_settings(environ: Mapping[str, str]) -> Settings:
         service_url=service_url.rstrip("/"),
         postgrip_token=required(environ, "POSTGRIP_TOKEN"),
         project_id=project_id,
+        worker_id=worker_id,
         github_api_url=github_api_url.rstrip("/"),
         github_token=required(environ, "POSTGRIP_GITHUB_TEST_TOKEN"),
         github_org=org,
@@ -194,7 +209,11 @@ def github_request(
     )
 
 
-def wait_for_operation(settings: Settings, operation_id: str, timeout: int = 300) -> Any:
+def wait_for_operation(
+    settings: Settings, operation_id: str, timeout: int = 300, *, retrying: bool = False
+) -> Any:
+    """Wait for success. With retrying, failed is a backoff retry, not an end."""
+    terminal = {"succeeded", "blocked"} if retrying else TERMINAL_OPERATION_STATES
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         operation = postgrip_request(
@@ -203,7 +222,7 @@ def wait_for_operation(settings: Settings, operation_id: str, timeout: int = 300
             f"/api/v1/services/configuration-operations/{urllib.parse.quote(operation_id)}",
         )
         state = operation.get("state")
-        if state in TERMINAL_OPERATION_STATES:
+        if state in terminal:
             if state != "succeeded":
                 raise LiveAdoptionError(
                     f"configuration operation ended in {state}: "
@@ -236,6 +255,53 @@ def find_repository(settings: Settings, repository_id: int, timeout: int = 180) 
                 break
         time.sleep(3)
     raise LiveAdoptionError("created repository did not appear in PostGrip discovery")
+
+
+def create_project(settings: Settings, repository_name: str, suffix: str) -> tuple[str, str]:
+    """Create the run's project on the repository.
+
+    Returns the project ID and its environment's configuration operation.
+    """
+    catalog = postgrip_request(settings, "GET", "/api/v1/services?limit=1")
+    slug = f"sdk-adoption-{suffix[:8]}"
+    created = postgrip_request(
+        settings,
+        "POST",
+        "/api/v1/services/projects",
+        body={
+            "name": slug,
+            "slug": slug,
+            "deploymentMode": "docker",
+            "projectType": "web",
+            "defaultWorkerId": settings.worker_id,
+            "repository": {
+                "provider": "github",
+                "repoOwner": settings.github_org,
+                "repoName": repository_name,
+                "defaultBranch": "main",
+            },
+        },
+        etag=catalog["catalogEtag"],
+        expected=(201,),
+    )
+    project = created["project"]
+    # The environment comes first: an adoption preview needs an assigned
+    # Worker. Its configuration retries until adoption switches the project
+    # to the App's global webhook.
+    environment = postgrip_request(
+        settings,
+        "POST",
+        f"/api/v1/services/project/{project['id']}/environments",
+        body={
+            "name": f"{slug}-production",
+            "kind": "production",
+            "branchPattern": "main",
+            "assignedWorkerId": settings.worker_id,
+        },
+        etag=project["etag"],
+        expected=(201,),
+    )
+    return project["id"], environment.get("configurationOperationId", "")
 
 
 def refresh_credential(settings: Settings) -> None:
@@ -273,7 +339,9 @@ def wait_for_deployment(
 
 
 def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
-    repository_name = SAFE_REPOSITORY_PREFIX + uuid.uuid4().hex[:16]
+    suffix = uuid.uuid4().hex[:16]
+    repository_name = SAFE_REPOSITORY_PREFIX + suffix
+    environment_operation = ""
     repository_id: int | None = None
     try:
         created = github_request(
@@ -292,6 +360,11 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
         discovered = find_repository(settings, repository_id)
         if discovered.get("missingPermissions"):
             raise LiveAdoptionError("GitHub App installation lacks required permissions")
+        if settings.worker_id:
+            project_id, environment_operation = create_project(
+                settings, repository_name, suffix
+            )
+            settings = replace(settings, project_id=project_id)
 
         preview = postgrip_request(
             settings,
@@ -315,6 +388,9 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
             expected=(202,),
         )
         wait_for_operation(settings, operation["id"])
+        if environment_operation:
+            # Retries back off up to 320 s, so allow a few after adoption.
+            wait_for_operation(settings, environment_operation, 900, retrying=True)
 
         if settings.wait_for_expiry:
             time.sleep(settings.expiry_wait_seconds)
@@ -349,6 +425,7 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
         refresh_credential(settings)
         return {
             "mode": mode,
+            "projectId": settings.project_id,
             "repositoryId": repository_id,
             "operationId": operation["id"],
             "deploymentId": deployment["id"],
@@ -391,6 +468,19 @@ def self_test() -> None:
         pass
     else:
         raise AssertionError("disposable guard did not fail")
+    run_owned = {**base, "POSTGRIP_GITHUB_LIVE_WORKER_ID": base["POSTGRIP_GITHUB_LIVE_PROJECT_ID"]}
+    del run_owned["POSTGRIP_GITHUB_LIVE_PROJECT_ID"]
+    for environ, guard in (
+        ({**base, "POSTGRIP_GITHUB_LIVE_WORKER_ID": base["POSTGRIP_TOKEN"]}, "project-or-worker"),
+        (run_owned, "stage lease"),
+    ):
+        try:
+            load_settings(environ)
+        except LiveAdoptionError:
+            pass
+        else:
+            raise AssertionError(f"{guard} guard did not fail")
+    assert load_settings({**run_owned, "POSTGRIP_LIVE_STAGE_LEASE": "lease"}).worker_id
 
 
 def main() -> int:

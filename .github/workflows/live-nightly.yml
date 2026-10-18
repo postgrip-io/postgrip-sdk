@@ -144,7 +144,10 @@ jobs:
       POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
       POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
       POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
-      POSTGRIP_GITHUB_LIVE_PROJECT_ID: ${{ vars.POSTGRIP_GITHUB_LIVE_PROJECT_ID }}
+      # The suite creates its own project on this Worker; the stage reset
+      # removes it (docs/design/live-suites-on-stage-20261017.md D2).
+      POSTGRIP_GITHUB_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_WORKER_ID }}
+      POSTGRIP_LIVE_STAGE_LEASE: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
       POSTGRIP_GITHUB_TEST_ORG: ${{ vars.POSTGRIP_GITHUB_TEST_ORG }}
       POSTGRIP_GITHUB_TEST_TOKEN: ${{ secrets.POSTGRIP_GITHUB_TEST_TOKEN }}
       POSTGRIP_GITHUB_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_GITHUB_LIVE_DISPOSABLE }}

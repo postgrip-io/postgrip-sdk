@@ -169,8 +169,13 @@ deployment therefore proves background rotation kept Worker access usable.
 The protected `sdk-live-nightly` and `sdk-live-pre-release` environments must
 provide:
 
-- `POSTGRIP_GITHUB_LIVE_PROJECT_ID`: a dedicated, non-production project with
-  a production environment assigned to an online Worker;
+- either `POSTGRIP_GITHUB_LIVE_PROJECT_ID`, a dedicated, non-production
+  project with a production environment assigned to an online Worker, or
+  `POSTGRIP_GITHUB_LIVE_WORKER_ID`, an online Worker. Given the Worker, the
+  suite creates a project on the disposable repository with a production
+  environment on that Worker, before adopting it. It never deletes that
+  project, so it also requires `POSTGRIP_LIVE_STAGE_LEASE`: the stage reset
+  removes it. The stage workflows use this form;
 - `POSTGRIP_GITHUB_TEST_ORG`: a dedicated test organization whose PostGrip
   GitHub App installation is authorized for all repositories, so newly created
   disposable repositories are visible;
