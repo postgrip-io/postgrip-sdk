@@ -41,7 +41,7 @@ jobs:
     runs-on:
       group: mediumworx
       labels: [self-hosted, linux, x64]
-    timeout-minutes: 120
+    timeout-minutes: 135
     environment: sdk-live-pre-release
     env:
       POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
@@ -61,10 +61,22 @@ jobs:
       POSTGRIP_LIVE_AGENT_NAMESPACE: sdk-live-${{ github.run_id }}-${{ github.run_attempt }}
       POSTGRIP_LIVE_AGENT_QUEUE: sdk-live-${{ github.run_id }}-${{ github.run_attempt }}-tasks
       POSTGRIP_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_WORKER_ID }}
+      POSTGRIP_LIVE_REASSIGN_WORKER_ID: ${{ vars.POSTGRIP_LIVE_REASSIGN_WORKER_ID }}
       POSTGRIP_LIVE_REPOSITORY_OWNER: ${{ vars.POSTGRIP_LIVE_REPOSITORY_OWNER }}
       POSTGRIP_LIVE_REPOSITORY_NAME: ${{ vars.POSTGRIP_LIVE_REPOSITORY_NAME }}
+      POSTGRIP_LIVE_REPOSITORY_BRANCH: ${{ vars.POSTGRIP_LIVE_REPOSITORY_BRANCH }}
       POSTGRIP_LIVE_REPOSITORY_CREDENTIAL: ${{ secrets.POSTGRIP_LIVE_REPOSITORY_CREDENTIAL }}
       POSTGRIP_LIVE_SANDBOX_IMAGE: ${{ vars.POSTGRIP_LIVE_SANDBOX_IMAGE }}
+      POSTGRIP_LIVE_DOMAIN_SUFFIX: ${{ vars.POSTGRIP_LIVE_DOMAIN_SUFFIX }}
+      # Stage baseline objects (design D3a): the DNS domain with published
+      # records, and the failed and secret-blocked stack operations.
+      POSTGRIP_LIVE_DNS_PROJECT_ID: ${{ vars.POSTGRIP_LIVE_DNS_PROJECT_ID }}
+      POSTGRIP_LIVE_DNS_ENVIRONMENT_ID: ${{ vars.POSTGRIP_LIVE_DNS_ENVIRONMENT_ID }}
+      POSTGRIP_LIVE_DNS_DOMAIN_ID: ${{ vars.POSTGRIP_LIVE_DNS_DOMAIN_ID }}
+      POSTGRIP_LIVE_FAILED_STACK_KEY: ${{ vars.POSTGRIP_LIVE_FAILED_STACK_KEY }}
+      POSTGRIP_LIVE_FAILED_STACK_OPERATION_ID: ${{ vars.POSTGRIP_LIVE_FAILED_STACK_OPERATION_ID }}
+      POSTGRIP_LIVE_SECRET_STACK_KEY: ${{ vars.POSTGRIP_LIVE_SECRET_STACK_KEY }}
+      POSTGRIP_LIVE_SECRET_STACK_OPERATION_ID: ${{ vars.POSTGRIP_LIVE_SECRET_STACK_OPERATION_ID }}
     steps:
       - name: Start the stage lease
         uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
@@ -100,6 +112,15 @@ jobs:
           owner-password: ${{ secrets.STAGE_OWNER_PASSWORD }}
           namespace: ${{ env.POSTGRIP_LIVE_AGENT_NAMESPACE }}
           queues: ${{ env.POSTGRIP_LIVE_AGENT_QUEUE }}
+      # createWorker's two bootstrap values: 32 random bytes each, unpadded
+      # base64url, new for every run and masked before anything can print them.
+      - name: Generate the Worker bootstrap values
+        run: |
+          for name in POSTGRIP_LIVE_WORKER_BOOTSTRAP_CREDENTIAL POSTGRIP_LIVE_WORKER_ATTESTATION_TOKEN; do
+            value=$(openssl rand 32 | basenc --base64url | tr -d '=\n')
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
       - name: Run isolated runtime and destructive scenario
         # Only pre-release maps the scenario identity's session (design D2);
         # nightly keeps no Agent session.
