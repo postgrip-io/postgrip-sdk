@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from email.message import Message
 from io import BytesIO
 import json
+from typing import Any
 import unittest
 from urllib.error import HTTPError
 from unittest.mock import patch
@@ -31,7 +32,7 @@ def to_error(fields: APIErrorFields) -> PostGripAPIError:
     return PostGripAPIError(status=fields.status, code=fields.code, message=fields.message)
 
 
-def executor(opener: FakeOpener) -> Executor:
+def executor(opener: FakeOpener, **options: Any) -> Executor:
     return Executor(
         plane="Test",
         base_url="https://api.example.com",
@@ -40,6 +41,7 @@ def executor(opener: FakeOpener) -> Executor:
         retry=RetryConfig(enabled=True, max_attempts=3, max_delay=0.001, retry_after_max=0.001),
         timeout=30.0,
         create_error=to_error,
+        **options,
     )
 
 
@@ -56,6 +58,16 @@ class ExecutorTests(unittest.TestCase):
                 opener = FakeOpener([{}])
                 executor(opener).request(replace(Operation(), auth_lane=lane))
                 self.assertEqual(opener.requests[0].get_header("Authorization"), "Bearer pgt_management")
+
+    def test_names_the_plane_in_a_default_user_agent_that_callers_override(self) -> None:
+        opener = FakeOpener([{}, {}, {}])
+        executor(opener).request(Operation())
+        executor(opener).exchange(Operation(), headers={"user-agent": "caller"})
+        executor(opener, default_headers={"USER-AGENT": "configured"}).request(Operation())
+        self.assertEqual([request.get_header("User-agent") for request in opener.requests],
+                         ["postgrip-test-python", "caller", "configured"])
+        for request in opener.requests:
+            self.assertEqual([name for name, _ in request.header_items() if name.lower() == "user-agent"], ["User-agent"])
 
     def test_refuses_delegated_and_unknown_lanes_signing_and_adapters_before_sending(self) -> None:
         for operation, message in (

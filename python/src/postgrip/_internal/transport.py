@@ -147,7 +147,8 @@ class Executor:
         """``headers`` are configured on the plane connection: they replace the
         executor's own value for the same name, and an ``Authorization`` among them
         keeps precedence on management lanes. ``default_headers`` apply only when
-        not already set. ``sign`` adds signature headers to the final request of a
+        not already set; they always include a ``User-Agent`` naming the plane,
+        because CDN front ends refuse urllib's default one. ``sign`` adds signature headers to the final request of a
         signed operation over the exact encoded body; the executor never holds the key."""
         self._plane = plane
         self._base_url = base_url.rstrip("/") + "/"
@@ -161,6 +162,8 @@ class Executor:
         self._delegated_credentials = delegated_credentials
         self._headers = dict(headers or {})
         self._default_headers = dict(default_headers or {})
+        if not _has_header(self._default_headers, "User-Agent"):
+            self._default_headers["User-Agent"] = f"postgrip-{plane.lower()}-python"
         self._sign = sign
 
     @property

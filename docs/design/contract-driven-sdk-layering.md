@@ -147,9 +147,11 @@ Plane differences are configuration, not copies: error-type naming and text
 formatter, retry ceilings, the `Retry-After` cap, redirect policy, response
 size bounds with per-operation overrides, accepted statuses, default headers,
 body normalization and credential hooks. Default headers apply only when the caller has not set
-the same header, case-insensitively. Python Agent keeps its default
-`User-Agent: postgrip-agent-python`, which some CDN front ends require instead
-of urllib's default. Python Worker and Service send no default `User-Agent`.
+the same header, case-insensitively. Every Python plane sends a default
+`User-Agent: postgrip-<plane>-python` (`postgrip-agent-python`,
+`postgrip-worker-python`, `postgrip-service-python`), because CDN front ends
+refuse urllib's default: Cloudflare answers `Python-urllib/3.x` with error
+1010 on the stage zone. Go and TypeScript keep their runtime's default.
 
 ## Per-language shape
 
@@ -304,9 +306,8 @@ operations against a local recording server. It asserts:
   expires during a `Retry-After` backoff is refreshed on the same lane;
 - Python Service omitting `None` body keys for default `check`, `deploy` and
   `redeploy` arguments, while the other planes send bodies as given;
-- per-plane default headers, including Python Agent's `User-Agent` default,
-  a caller-supplied `User-Agent` overriding it, and no default `User-Agent`
-  on Python Worker and Service;
+- per-plane default headers, including each Python plane's `User-Agent`
+  default and a caller-supplied `User-Agent` overriding it;
 - retry eligibility with retries enabled and disabled, and a `Retry-After`
   above 30 seconds capped at 30 seconds for Worker and at the configured
   ceiling for Service;
