@@ -56,9 +56,19 @@ jobs:
       # resources for the stage reset that follows the lease's release.
       POSTGRIP_LIVE_STAGE_LEASE: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
       POSTGRIP_LIVE_SCENARIO_GZIP_BASE64: ${{ secrets.POSTGRIP_LIVE_SCENARIO_GZIP_BASE64 }}
+      # The disposable Agent's run, and the namespace and queue its scenario
+      # identity is limited to; the scenario reads them as ${env.…}.
+      POSTGRIP_LIVE_AGENT_RUN: sdk-${{ github.run_id }}-${{ github.run_attempt }}
+      POSTGRIP_LIVE_AGENT_NAMESPACE: sdk-live-${{ github.run_id }}-${{ github.run_attempt }}
+      POSTGRIP_LIVE_AGENT_QUEUE: sdk-live-${{ github.run_id }}-${{ github.run_attempt }}-tasks
       POSTGRIP_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_WORKER_ID }}
+      POSTGRIP_LIVE_REASSIGN_WORKER_ID: ${{ vars.POSTGRIP_LIVE_REASSIGN_WORKER_ID }}
+      POSTGRIP_LIVE_BLOCKED_CONFIGURATION_OPERATION_ID: ${{ vars.POSTGRIP_LIVE_BLOCKED_CONFIGURATION_OPERATION_ID }}
+      POSTGRIP_LIVE_DOMAIN_SUFFIX: ${{ vars.POSTGRIP_LIVE_DOMAIN_SUFFIX }}
       POSTGRIP_LIVE_REPOSITORY_OWNER: ${{ vars.POSTGRIP_LIVE_REPOSITORY_OWNER }}
       POSTGRIP_LIVE_REPOSITORY_NAME: ${{ vars.POSTGRIP_LIVE_REPOSITORY_NAME }}
+      POSTGRIP_LIVE_REPOSITORY_BRANCH: ${{ vars.POSTGRIP_LIVE_REPOSITORY_BRANCH }}
+      POSTGRIP_LIVE_REPOSITORY_FILE_PATH: ${{ vars.POSTGRIP_LIVE_REPOSITORY_FILE_PATH }}
       POSTGRIP_LIVE_REPOSITORY_CREDENTIAL: ${{ secrets.POSTGRIP_LIVE_REPOSITORY_CREDENTIAL }}
       POSTGRIP_LIVE_SANDBOX_IMAGE: ${{ vars.POSTGRIP_LIVE_SANDBOX_IMAGE }}
     steps:
@@ -81,12 +91,38 @@ jobs:
           python -m pip install "python/dist/postgrip-"*.whl "websockets>=13"
       - name: Verify fixture-manager safety invariants
         run: python3 scripts/test_live_api.py --self-test
+      # Web's disposable-agent action, pinned by commit (design D2): a sandbox
+      # Agent on this runner, plus a headless scenario identity.
+      - name: Provide the disposable Agent
+        id: agent
+        uses: postgrip-io/postgrip-web/.github/actions/disposable-agent@475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+        with:
+          verb: up
+          run-id: ${{ env.POSTGRIP_LIVE_AGENT_RUN }}
+          postgrip-url: ${{ vars.POSTGRIP_URL }}
+          agent-url: ${{ vars.POSTGRIP_AGENT_URL }}
+          organization-id: ${{ vars.STAGE_ORGANIZATION_ID }}
+          owner-email: ${{ secrets.STAGE_OWNER_EMAIL }}
+          owner-password: ${{ secrets.STAGE_OWNER_PASSWORD }}
+          namespace: ${{ env.POSTGRIP_LIVE_AGENT_NAMESPACE }}
+          queues: ${{ env.POSTGRIP_LIVE_AGENT_QUEUE }}
       - name: Run nightly tenant API scenario
         run: >-
           python3 scripts/test_live_api.py
           --tier nightly
           --allow-destructive
           --ledger test/reports/live-nightly-ledger.json
+      - name: Remove the disposable Agent
+        if: always()
+        uses: postgrip-io/postgrip-web/.github/actions/disposable-agent@475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+        with:
+          verb: down
+          run-id: ${{ env.POSTGRIP_LIVE_AGENT_RUN }}
+          postgrip-url: ${{ vars.POSTGRIP_URL }}
+          agent-url: ${{ vars.POSTGRIP_AGENT_URL }}
+          organization-id: ${{ vars.STAGE_ORGANIZATION_ID }}
+          owner-email: ${{ secrets.STAGE_OWNER_EMAIL }}
+          owner-password: ${{ secrets.STAGE_OWNER_PASSWORD }}
       - name: Upload cleanup ledger
         if: always()
         uses: actions/upload-artifact@v4
