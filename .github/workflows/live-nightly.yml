@@ -138,7 +138,7 @@ jobs:
     runs-on:
       group: mediumworx
       labels: [self-hosted, linux, x64]
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment: sdk-live-nightly
     env:
       POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}

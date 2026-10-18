@@ -257,7 +257,9 @@ def find_repository(settings: Settings, repository_id: int, timeout: int = 180) 
     raise LiveAdoptionError("created repository did not appear in PostGrip discovery")
 
 
-def create_project(settings: Settings, repository_name: str, suffix: str) -> tuple[str, str]:
+def create_project(
+    settings: Settings, repository_name: str, branch: str, suffix: str
+) -> tuple[str, str]:
     """Create the run's project on the repository.
 
     Returns the project ID and its environment's configuration operation.
@@ -278,7 +280,7 @@ def create_project(settings: Settings, repository_name: str, suffix: str) -> tup
                 "provider": "github",
                 "repoOwner": settings.github_org,
                 "repoName": repository_name,
-                "defaultBranch": "main",
+                "defaultBranch": branch,
             },
         },
         etag=catalog["catalogEtag"],
@@ -295,7 +297,7 @@ def create_project(settings: Settings, repository_name: str, suffix: str) -> tup
         body={
             "name": f"{slug}-production",
             "kind": "production",
-            "branchPattern": "main",
+            "branchPattern": branch,
             "assignedWorkerId": settings.worker_id,
         },
         etag=project["etag"],
@@ -362,7 +364,7 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
             raise LiveAdoptionError("GitHub App installation lacks required permissions")
         if settings.worker_id:
             project_id, environment_operation = create_project(
-                settings, repository_name, suffix
+                settings, repository_name, discovered["defaultBranch"], suffix
             )
             settings = replace(settings, project_id=project_id)
 
