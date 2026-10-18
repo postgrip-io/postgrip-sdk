@@ -79,18 +79,38 @@ logs or chat:
   Service scopes don't imply a missing one. It is minted under a
   stage maintenance lease and captured into the stage baseline, and the
   stage's reset validation checks it on its planes.
-- The pre-release Agent session (`POSTGRIP_AGENT_ID`, access and refresh
-  tokens, signing key) belongs to an Agent enrolled on stage and captured in
-  the baseline. A run's refresh rotates that session, and the next run's
-  reset restores the baseline, so the stored tokens are valid again at the
-  start of every run until the session's absolute `refreshExpiresAt`. A
-  restore can't extend that, and a management token can't issue a delegated
-  session. So before `refreshExpiresAt` is within 14 days, the session is
-  renewed by re-enrollment, alongside web D6's baseline rotation: under a
-  maintenance lease, restore, have the stage owner issue a one-time
-  enrollment key, enroll the Agent with it, write the resulting Agent ID,
-  session and signing key into the environment, capture, and release. The
-  renewal date is recorded next to the tokens' expiry in the stage runbook.
+- Each run provides its own Agents through web's `disposable-agent` action,
+  pinned by commit
+  ([web design](https://github.com/postgrip-io/postgrip-web/blob/main/docs/design/stage-disposable-agent-action-design-20261018.md)).
+  Stage keeps no long-lived Agent, whose local state a reset would leave
+  behind the restored database.
+  - Its `up` step, in the `live` job before the scenario, runs a
+    sandbox-capable Agent on the runner for the sandbox lifecycle.
+  - It also enrolls a headless scenario identity limited to the scenario's
+    namespace and queues. Only the pre-release job maps its session and
+    signing key into the scenario step, as `POSTGRIP_AGENT_ID`, the access
+    and refresh tokens, the expiry and `POSTGRIP_AGENT_SIGNING_PRIVATE_KEY`.
+    The nightly job maps none of them, so the nightly tier keeps no Agent
+    session (D3a's reset-owned tasks rely on that).
+  - The session reaches the scenario step as masked step outputs. GitHub
+    passes those through the runner's per-step `GITHUB_OUTPUT` file in the
+    job's temporary directory, which the runner empties when the job ends;
+    nothing else writes them to disk. The session expires on its own, and
+    `down` deletes the identity, so no session is stored on stage or renewed.
+  - Its `down` step (`always()`) tears down every sandbox the sandbox Agent
+    was assigned before it removes either Agent. Sandbox deletion is
+    asynchronous (`deleteSandbox` returns 202 and the Agent finishes it), so
+    `down` doesn't wait on the Agent: it stops the Agent, lists that Agent's
+    sandboxes, removes each one's containers by its own sandbox label, and
+    deletes the private directory holding their local state. Then it revokes
+    both enrollment keys and deletes both Agents.
+  - The scenario's queues differ from the ones the sandbox Agent polls.
+  - Enrollment keys can only be issued by an owner or admin session, so both
+    environments hold the stage owner's email and password, used only by
+    that action (web stage design D5).
+  - Using the identity's own session instead of a delegated one is a
+    stage-test decision; customer workloads still get delegated sessions
+    (`docs/authentication.md`).
 - The live fixtures (`POSTGRIP_LIVE_WORKER_ID`, repository and sandbox image)
   name stage objects that the baseline keeps: the long-lived stage Worker, a
   repository in the stage GitHub organization, and a public image.
@@ -178,7 +198,6 @@ The stage baseline also needs objects that a nightly run can't create:
 - A second trusted Worker, for the environment-reassignment operations.
 - A workspace, a configuration stack and release groups, for their reads.
 - DNS plan, failover and verification objects, for their reads.
-- A sandbox-capable Agent, if `createSandbox` needs one.
 
 Promotion needs a source deployment in another environment. Fixture steps
 create a staging environment, `deployService` (nightly) deploys to it, and a
