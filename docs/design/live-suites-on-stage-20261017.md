@@ -119,6 +119,20 @@ logs or chat:
 - The live fixtures (`POSTGRIP_LIVE_WORKER_ID`, repository and sandbox image)
   name stage objects that the baseline keeps: the long-lived stage Worker, a
   repository in the stage GitHub organization, and a public image.
+- The pre-release scenario also reads the second stage Worker, the branch
+  and the domain suffix, and two Worker bootstrap values for `createWorker`.
+  The `live` job generates those two per run (32 random bytes each, unpadded
+  base64url) and masks them before the scenario starts. Its waits need a
+  135-minute job, inside the lease's 150-minute window.
+- Pre-release also needs three more baseline objects, named by environment
+  variables: a DNS domain with published records
+  (`POSTGRIP_LIVE_DNS_{PROJECT,ENVIRONMENT,DOMAIN}_ID`), a failed stack
+  operation (`POSTGRIP_LIVE_FAILED_STACK_{KEY,OPERATION_ID}`) and a
+  secret-blocked one (`POSTGRIP_LIVE_SECRET_STACK_{KEY,OPERATION_ID}`). A
+  run-created domain can't become active, because its ownership proof must
+  be published before the run. The two stack states arise only after
+  repeated delivery failures or an expired secret envelope. The scenario's
+  steps that need them run last.
 - GitHub adoption needs `POSTGRIP_GITHUB_TEST_ORG` and
   `POSTGRIP_GITHUB_TEST_TOKEN`. The adoption test creates repositories, so
   the stage GitHub App installation in that organization must cover all its
