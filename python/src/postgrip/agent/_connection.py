@@ -180,8 +180,6 @@ class Connection:
             create_error=AgentAPIError._from_fields,
             max_response_bytes=_AGENT_MAX_RESPONSE_BYTES,
             delegated_credentials=self,
-            # Some CDN front-ends block urllib's default UA, so send a stable SDK identifier.
-            default_headers={"User-Agent": "postgrip-agent-python"},
             sign=self._sign_agent_request,
         )
         self.openapi = OpenAPIClient(self._request_openapi)
