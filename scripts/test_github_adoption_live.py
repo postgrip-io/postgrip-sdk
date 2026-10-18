@@ -333,7 +333,9 @@ def wait_for_deployment(
             if (
                 deployment.get("id") not in previous_ids
                 and deployment.get("commitSha") == commit_sha
-                and deployment.get("triggerKind") == "github"
+                # The Worker Orchestrator records a GitHub push deployment
+                # as trigger kind "push" (deploy_webhooks.go).
+                and deployment.get("triggerKind") == "push"
             ):
                 return deployment
         time.sleep(3)
