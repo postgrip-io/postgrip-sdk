@@ -119,11 +119,22 @@ logs or chat:
 - The live fixtures (`POSTGRIP_LIVE_WORKER_ID`, repository and sandbox image)
   name stage objects that the baseline keeps: the long-lived stage Worker, a
   repository in the stage GitHub organization, and a public image.
-- GitHub adoption needs `POSTGRIP_GITHUB_LIVE_PROJECT_ID` (a stage project
-  whose production environment is assigned to the stage Worker, captured in
-  the baseline), `POSTGRIP_GITHUB_TEST_ORG` and `POSTGRIP_GITHUB_TEST_TOKEN`.
-  The adoption test creates repositories, so the stage GitHub App
-  installation in that organization must cover all its repositories.
+- GitHub adoption needs `POSTGRIP_GITHUB_TEST_ORG` and
+  `POSTGRIP_GITHUB_TEST_TOKEN`. The adoption test creates repositories, so
+  the stage GitHub App installation in that organization must cover all its
+  repositories.
+  - It needs no baseline project. The job passes the stage Worker as
+    `POSTGRIP_GITHUB_LIVE_WORKER_ID`, and the suite creates a project on its
+    disposable repository, with a production environment on that Worker,
+    before adopting the repository. The stage reset removes the project.
+  - A baseline project can't work. A repository can be adopted into only
+    one project, so a project left adopted on a shared fixture blocks web's
+    zero-touch suite. An unadopted project's environment never configures on
+    stage: it needs a per-repository webhook, which the stage App can't
+    register.
+  - The environment is created before the adoption, because an adoption
+    preview needs an assigned Worker. Its configuration retries until the
+    adoption moves the project to the App's global webhook.
 
 ### D3. Scenarios
 
