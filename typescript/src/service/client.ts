@@ -262,14 +262,6 @@ export class ServiceClient {
         this.administrationMutation('applyServiceDNSPlan', { path: { serviceId, environmentId, domainId, planId }, body, ...mutationRequest(options) }),
       reportProviderResult: (serviceId: string, environmentId: string, domainId: string, planId: string, body: OpenAPIRequestBody<'reportServiceDNSProviderResult'>, options: MutationOptions) =>
         this.administrationMutation('reportServiceDNSProviderResult', { path: { serviceId, environmentId, domainId, planId }, body, ...mutationRequest(options) }),
-      rollback: (serviceId: string, environmentId: string, domainId: string, planId: string, body: OpenAPIRequestBody<'rollbackServiceDNSPlan'>, options: MutationOptions) =>
-        this.administrationMutation('rollbackServiceDNSPlan', { path: { serviceId, environmentId, domainId, planId }, body, ...mutationRequest(options) }),
-      failoverPolicy: (serviceId: string, environmentId: string, domainId: string, options: RequestOptions = {}) =>
-        this.request('getServiceDNSFailoverPolicy', { path: { serviceId, environmentId, domainId }, signal: options.signal }),
-      updateFailoverPolicy: (serviceId: string, environmentId: string, domainId: string, body: OpenAPIRequestBody<'updateServiceDNSFailoverPolicy'>, options: MutationOptions) =>
-        this.administrationMutation('updateServiceDNSFailoverPolicy', { path: { serviceId, environmentId, domainId }, body, ...mutationRequest(options) }),
-      failover: (serviceId: string, environmentId: string, domainId: string, body: OpenAPIRequestBody<'requestServiceDNSFailover'>, options: MutationOptions) =>
-        this.administrationMutation('requestServiceDNSFailover', { path: { serviceId, environmentId, domainId }, body, ...mutationRequest(options) }),
     },
     variables: {
       list: (serviceId: string, environmentId: string, options: RequestOptions = {}) => this.request('listServiceVariables', { path: { serviceId, environmentId }, signal: options.signal }),

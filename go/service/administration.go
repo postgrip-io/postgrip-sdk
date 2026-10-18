@@ -437,31 +437,6 @@ func (c ServiceDNSClient) ReportProviderResult(ctx context.Context, projectID, e
 	return c.client.OpenAPI().ReportServiceDNSProviderResult(ctx, projectID, environmentID, domainID, planID, OpenAPIReportServiceDNSProviderResultHeaders{IdempotencyKey: options.IdempotencyKey}, body)
 }
 
-func (c ServiceDNSClient) Rollback(ctx context.Context, projectID, environmentID, domainID, planID string, body OpenAPIRollbackServiceDNSPlanRequestBody, options MutationOptions) (OpenAPIRollbackServiceDNSPlanResponseBody, error) {
-	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
-		return OpenAPIRollbackServiceDNSPlanResponseBody{}, err
-	}
-	return c.client.OpenAPI().RollbackServiceDNSPlan(ctx, projectID, environmentID, domainID, planID, OpenAPIRollbackServiceDNSPlanHeaders{IdempotencyKey: options.IdempotencyKey}, body)
-}
-
-func (c ServiceDNSClient) FailoverPolicy(ctx context.Context, projectID, environmentID, domainID string) (OpenAPIGetServiceDNSFailoverPolicyResponseBody, error) {
-	return c.client.OpenAPI().GetServiceDNSFailoverPolicy(ctx, projectID, environmentID, domainID)
-}
-
-func (c ServiceDNSClient) UpdateFailoverPolicy(ctx context.Context, projectID, environmentID, domainID string, body OpenAPIUpdateServiceDNSFailoverPolicyRequestBody, options MutationOptions) (OpenAPIUpdateServiceDNSFailoverPolicyResponseBody, error) {
-	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
-		return OpenAPIUpdateServiceDNSFailoverPolicyResponseBody{}, err
-	}
-	return c.client.OpenAPI().UpdateServiceDNSFailoverPolicy(ctx, projectID, environmentID, domainID, OpenAPIUpdateServiceDNSFailoverPolicyHeaders{IdempotencyKey: options.IdempotencyKey}, body)
-}
-
-func (c ServiceDNSClient) Failover(ctx context.Context, projectID, environmentID, domainID string, body OpenAPIRequestServiceDNSFailoverRequestBody, options MutationOptions) (OpenAPIRequestServiceDNSFailoverResponseBody, error) {
-	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
-		return OpenAPIRequestServiceDNSFailoverResponseBody{}, err
-	}
-	return c.client.OpenAPI().RequestServiceDNSFailover(ctx, projectID, environmentID, domainID, OpenAPIRequestServiceDNSFailoverHeaders{IdempotencyKey: options.IdempotencyKey}, body)
-}
-
 func (c ServiceVariablesClient) List(ctx context.Context, projectID, environmentID string) (OpenAPIListServiceVariablesResponseBody, error) {
 	return c.client.OpenAPI().ListServiceVariables(ctx, projectID, environmentID)
 }

@@ -1395,15 +1395,6 @@
       "plane": "service",
       "protocolException": null
     },
-    "getServiceDNSFailoverPolicy": {
-      "cleanup": "none",
-      "curlEligible": true,
-      "fixture": "service/getServiceDNSFailoverPolicy.json",
-      "liveTest": "nightly",
-      "mockTest": "recorded-http",
-      "plane": "service",
-      "protocolException": null
-    },
     "getServiceDNSPlan": {
       "cleanup": "none",
       "curlEligible": true,
@@ -1426,33 +1417,6 @@
       "cleanup": "reverse-dependency",
       "curlEligible": true,
       "fixture": "service/reportServiceDNSProviderResult.json",
-      "liveTest": "pre-release",
-      "mockTest": "recorded-http",
-      "plane": "service",
-      "protocolException": null
-    },
-    "requestServiceDNSFailover": {
-      "cleanup": "reverse-dependency",
-      "curlEligible": true,
-      "fixture": "service/requestServiceDNSFailover.json",
-      "liveTest": "pre-release",
-      "mockTest": "recorded-http",
-      "plane": "service",
-      "protocolException": null
-    },
-    "rollbackServiceDNSPlan": {
-      "cleanup": "reverse-dependency",
-      "curlEligible": true,
-      "fixture": "service/rollbackServiceDNSPlan.json",
-      "liveTest": "pre-release",
-      "mockTest": "recorded-http",
-      "plane": "service",
-      "protocolException": null
-    },
-    "updateServiceDNSFailoverPolicy": {
-      "cleanup": "reverse-dependency",
-      "curlEligible": true,
-      "fixture": "service/updateServiceDNSFailoverPolicy.json",
       "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",

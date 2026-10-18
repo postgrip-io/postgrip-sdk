@@ -22,10 +22,10 @@ from postgrip.service.administration_types import (
 )
 from postgrip._internal.transport import _NoRedirect
 from postgrip.service.openapi import (
-    OpenAPIRequestServiceDNSFailoverRequest,
+    OpenAPIPostGripConfigurationSecretVariable,
     OpenAPIServiceReleaseGroupMemberRequest,
-    OpenAPIServiceDNSFailoverTarget,
-    OpenAPIServiceDNSRollbackPlan,
+    OpenAPIServiceDNSCanonicalTarget,
+    OpenAPIServiceDNSPlan,
     OpenAPIServiceAutomaticDeploymentWiring,
     OpenAPICreateServiceEnvironmentRequest,
     OpenAPIPostGripConfigurationEnvironment,
@@ -82,9 +82,9 @@ class AdministrationTypeTests(unittest.TestCase):
         get_type_hints(ConfigurationOperationsAdministration.list_service_configuration_operations)
         get_type_hints(DeclarativeConfigurationAdministration.create_post_grip_configuration_plan)
 
-    def test_const_approval_field_remains_literal_true(self) -> None:
-        hints = get_type_hints(OpenAPIRequestServiceDNSFailoverRequest)
-        self.assertEqual(hints["approved"], Literal[True])
+    def test_const_true_field_remains_literal_true(self) -> None:
+        hints = get_type_hints(OpenAPIPostGripConfigurationSecretVariable)
+        self.assertEqual(hints["isSecret"], Literal[True])
 
     def test_dns_operation_names_keep_the_acronym_intact(self) -> None:
         client = ServiceClient(base_url="https://services.example.test", token="pgt_test-token", opener=FakeOpener([]))  # type: ignore[arg-type]
@@ -92,9 +92,9 @@ class AdministrationTypeTests(unittest.TestCase):
         self.assertFalse(hasattr(client.administration.dns, "get_service_d_n_s_plan"))
 
     def test_dns_response_types_preserve_server_guarantees(self) -> None:
-        rollback_hints = get_type_hints(OpenAPIServiceDNSRollbackPlan)
-        target_hints = get_type_hints(OpenAPIServiceDNSFailoverTarget)
-        self.assertEqual(rollback_hints["kind"], Literal["rollback"])
+        plan_hints = get_type_hints(OpenAPIServiceDNSPlan)
+        target_hints = get_type_hints(OpenAPIServiceDNSCanonicalTarget)
+        self.assertEqual(plan_hints["providerMode"], Literal["external"])
         self.assertIn("workerId", target_hints)
 
     def test_release_members_preserve_revision_source_alternatives(self) -> None:
@@ -494,7 +494,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 105)
+        self.assertEqual(len(exposed), 101)
 
         client.administration.target_services.attach_target_service(
             {
@@ -555,7 +555,7 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 98)
+        self.assertEqual(len(opener.requests), 94)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
@@ -743,7 +743,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 98)
+            self.assertEqual(len(opener.requests), 94)
 
         asyncio.run(run())
 

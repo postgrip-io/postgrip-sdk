@@ -74,8 +74,6 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "DNS": (
         "getServiceDNSCanonicalState", "listServiceDNSPlans", "createServiceDNSPlan",
         "getServiceDNSPlan", "applyServiceDNSPlan", "reportServiceDNSProviderResult",
-        "rollbackServiceDNSPlan", "getServiceDNSFailoverPolicy",
-        "updateServiceDNSFailoverPolicy", "requestServiceDNSFailover",
     ),
     "Variables": (
         "listServiceVariables", "createServiceVariable", "updateServiceVariable",

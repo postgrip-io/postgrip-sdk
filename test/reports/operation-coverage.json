@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "a7d0c48055260f5fbf599cc94ea78f07d5f35866ce1aa8718338bb6696b69010",
+  "contractBundleDigest": "449013ff4353f04b4575140417b29c823749ece0747ffaea04bceb79464a59f8",
   "operations": [
     {
       "curl": false,
@@ -1523,23 +1523,6 @@
         "python"
       ],
       "liveTest": "nightly",
-      "operationId": "getServiceDNSFailoverPolicy",
-      "plane": "service",
-      "protocolException": false,
-      "protocolRunner": null,
-      "recordedRunner": "recorded-http",
-      "recordedTested": true,
-      "sdkGenerated": true
-    },
-    {
-      "curl": true,
-      "documented": true,
-      "generatedLanguages": [
-        "go",
-        "typescript",
-        "python"
-      ],
-      "liveTest": "nightly",
       "operationId": "getServiceDNSPlan",
       "plane": "service",
       "protocolException": false,
@@ -2372,23 +2355,6 @@
         "typescript",
         "python"
       ],
-      "liveTest": "pre-release",
-      "operationId": "requestServiceDNSFailover",
-      "plane": "service",
-      "protocolException": false,
-      "protocolRunner": null,
-      "recordedRunner": "recorded-http",
-      "recordedTested": true,
-      "sdkGenerated": true
-    },
-    {
-      "curl": true,
-      "documented": true,
-      "generatedLanguages": [
-        "go",
-        "typescript",
-        "python"
-      ],
       "liveTest": "nightly",
       "operationId": "resolveService",
       "plane": "service",
@@ -2493,23 +2459,6 @@
       ],
       "liveTest": "pre-release",
       "operationId": "retryServiceReleaseGroup",
-      "plane": "service",
-      "protocolException": false,
-      "protocolRunner": null,
-      "recordedRunner": "recorded-http",
-      "recordedTested": true,
-      "sdkGenerated": true
-    },
-    {
-      "curl": true,
-      "documented": true,
-      "generatedLanguages": [
-        "go",
-        "typescript",
-        "python"
-      ],
-      "liveTest": "pre-release",
-      "operationId": "rollbackServiceDNSPlan",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -2663,23 +2612,6 @@
       ],
       "liveTest": "nightly",
       "operationId": "updateServiceBuildLogSettings",
-      "plane": "service",
-      "protocolException": false,
-      "protocolRunner": null,
-      "recordedRunner": "recorded-http",
-      "recordedTested": true,
-      "sdkGenerated": true
-    },
-    {
-      "curl": true,
-      "documented": true,
-      "generatedLanguages": [
-        "go",
-        "typescript",
-        "python"
-      ],
-      "liveTest": "pre-release",
-      "operationId": "updateServiceDNSFailoverPolicy",
       "plane": "service",
       "protocolException": false,
       "protocolRunner": null,
@@ -3087,10 +3019,10 @@
       "recordedTested": 45
     },
     "service": {
-      "curl": 123,
-      "operations": 123,
+      "curl": 119,
+      "operations": 119,
       "protocolExceptions": 0,
-      "recordedTested": 123
+      "recordedTested": 119
     },
     "worker": {
       "curl": 13,
@@ -3101,14 +3033,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 172,
-    "documented": 181,
-    "nightlyOwned": 132,
-    "operations": 181,
-    "preReleaseOwned": 47,
+    "curl": 168,
+    "documented": 177,
+    "nightlyOwned": 131,
+    "operations": 177,
+    "preReleaseOwned": 44,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 181,
-    "sdkGenerated": 181
+    "recordedTested": 177,
+    "sdkGenerated": 177
   }
 }

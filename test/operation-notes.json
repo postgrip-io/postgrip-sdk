@@ -1029,13 +1029,6 @@
       ],
       "summary": "Get canonical DNS and failover state"
     },
-    "getServiceDNSFailoverPolicy": {
-      "behavior": "Returns the disabled, operator-approved, or automatic-external policy together with bounded thresholds, TTL, cooldown, attempt limit, and approved distinct-Worker targets.",
-      "lifecycle": [
-        "Automatic-external mode creates fenced plans but still delegates provider mutation to the external agent."
-      ],
-      "summary": "Get the canonical DNS failover policy"
-    },
     "getServiceDNSPlan": {
       "behavior": "Returns one immutable plan with exact desired and rollback records, provider references, current observation, propagation deadline, verification state, and failure details.",
       "lifecycle": [
@@ -1057,30 +1050,6 @@
         "Applied results enter bounded TTL-aware propagation and public verification; partial or failed results require rollback or intervention."
       ],
       "summary": "Report an exact external DNS provider result"
-    },
-    "requestServiceDNSFailover": {
-      "behavior": "Creates an operator-approved failover plan only for a configured, current-ready target on a distinct Worker after bounded target preflight.",
-      "lifecycle": [
-        "Idempotency: required.",
-        "The request must fence the active deployment and canonical generation and explicitly carry operator approval."
-      ],
-      "summary": "Request a bounded canonical DNS failover"
-    },
-    "rollbackServiceDNSPlan": {
-      "behavior": "Creates a new immutable rollback plan from the canonical hostname's last verified record set; it never guesses a target from an unverified observation.",
-      "lifecycle": [
-        "Idempotency: required.",
-        "Rollback uses the same external apply, exact result, propagation, and verification sequence as activation."
-      ],
-      "summary": "Plan rollback to the last verified DNS target"
-    },
-    "updateServiceDNSFailoverPolicy": {
-      "behavior": "Replaces the complete failover policy under hostname-version and canonical-generation fences and validates that enabled targets use distinct Workers.",
-      "lifecycle": [
-        "Idempotency: required.",
-        "Health thresholds require hysteresis, bounded cooldown, and a maximum automatic attempt count."
-      ],
-      "summary": "Configure bounded canonical DNS failover"
     },
     "getServiceDomainVerification": {
       "behavior": "Returns the latest persisted DNS, TLS, route, and HTTP observation for the exact saved domain configuration and deployment without initiating a network request.",

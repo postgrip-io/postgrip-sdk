@@ -986,16 +986,6 @@ func (p OpenAPIReportServiceDNSProviderResultHeaders) values() http.Header {
 	return values
 }
 
-type OpenAPIRequestServiceDNSFailoverHeaders struct {
-	IdempotencyKey string
-}
-
-func (p OpenAPIRequestServiceDNSFailoverHeaders) values() http.Header {
-	values := http.Header{}
-	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
-	return values
-}
-
 type OpenAPIRestartServiceRuntimeHeaders struct {
 	IdempotencyKey string
 }
@@ -1047,16 +1037,6 @@ type OpenAPIRetryServiceReleaseGroupHeaders struct {
 }
 
 func (p OpenAPIRetryServiceReleaseGroupHeaders) values() http.Header {
-	values := http.Header{}
-	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
-	return values
-}
-
-type OpenAPIRollbackServiceDNSPlanHeaders struct {
-	IdempotencyKey string
-}
-
-func (p OpenAPIRollbackServiceDNSPlanHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	return values
@@ -1159,16 +1139,6 @@ func (p OpenAPIUpdateServiceBuildLogSettingsHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	values.Set("If-Match", fmt.Sprint(p.IfMatch))
-	return values
-}
-
-type OpenAPIUpdateServiceDNSFailoverPolicyHeaders struct {
-	IdempotencyKey string
-}
-
-func (p OpenAPIUpdateServiceDNSFailoverPolicyHeaders) values() http.Header {
-	values := http.Header{}
-	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	return values
 }
 
@@ -1498,11 +1468,6 @@ func (c *OpenAPIClient) GetServiceDNSCanonicalState(ctx context.Context, service
 	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDNSCanonicalState, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
 	return response, err
 }
-func (c *OpenAPIClient) GetServiceDNSFailoverPolicy(ctx context.Context, serviceId string, environmentId string, domainId string) (OpenAPIGetServiceDNSFailoverPolicyResponseBody, error) {
-	var response OpenAPIGetServiceDNSFailoverPolicyResponseBody
-	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDNSFailoverPolicy, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, nil, &response)
-	return response, err
-}
 func (c *OpenAPIClient) GetServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, planId string) (OpenAPIGetServiceDNSPlanResponseBody, error) {
 	var response OpenAPIGetServiceDNSPlanResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIGetServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, nil, &response)
@@ -1748,11 +1713,6 @@ func (c *OpenAPIClient) ReportServiceDNSProviderResult(ctx context.Context, serv
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIReportServiceDNSProviderResult, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
 	return response, err
 }
-func (c *OpenAPIClient) RequestServiceDNSFailover(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIRequestServiceDNSFailoverHeaders, body OpenAPIRequestServiceDNSFailoverRequestBody) (OpenAPIRequestServiceDNSFailoverResponseBody, error) {
-	var response OpenAPIRequestServiceDNSFailoverResponseBody
-	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRequestServiceDNSFailover, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
-	return response, err
-}
 func (c *OpenAPIClient) ResolveService(ctx context.Context, query OpenAPIResolveServiceQuery) (OpenAPIResolveServiceResponseBody, error) {
 	var response OpenAPIResolveServiceResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIResolveService, nil, query.values(), nil, &response)
@@ -1786,11 +1746,6 @@ func (c *OpenAPIClient) RetryServiceConfigurationOperation(ctx context.Context, 
 func (c *OpenAPIClient) RetryServiceReleaseGroup(ctx context.Context, releaseGroupId string, headers OpenAPIRetryServiceReleaseGroupHeaders) (OpenAPIRetryServiceReleaseGroupResponseBody, error) {
 	var response OpenAPIRetryServiceReleaseGroupResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
-	return response, err
-}
-func (c *OpenAPIClient) RollbackServiceDNSPlan(ctx context.Context, serviceId string, environmentId string, domainId string, planId string, headers OpenAPIRollbackServiceDNSPlanHeaders, body OpenAPIRollbackServiceDNSPlanRequestBody) (OpenAPIRollbackServiceDNSPlanResponseBody, error) {
-	var response OpenAPIRollbackServiceDNSPlanResponseBody
-	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRollbackServiceDNSPlan, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId, "planId": planId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) RollbackServiceDeployment(ctx context.Context, serviceId string, deploymentId string, headers OpenAPIRollbackServiceDeploymentHeaders) (OpenAPIRollbackServiceDeploymentResponseBody, error) {
@@ -1836,11 +1791,6 @@ func (c *OpenAPIClient) UpdateServiceApp(ctx context.Context, appId string, head
 func (c *OpenAPIClient) UpdateServiceBuildLogSettings(ctx context.Context, serviceId string, headers OpenAPIUpdateServiceBuildLogSettingsHeaders, body OpenAPIUpdateServiceBuildLogSettingsRequestBody) (OpenAPIUpdateServiceBuildLogSettingsResponseBody, error) {
 	var response OpenAPIUpdateServiceBuildLogSettingsResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceBuildLogSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
-	return response, err
-}
-func (c *OpenAPIClient) UpdateServiceDNSFailoverPolicy(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIUpdateServiceDNSFailoverPolicyHeaders, body OpenAPIUpdateServiceDNSFailoverPolicyRequestBody) (OpenAPIUpdateServiceDNSFailoverPolicyResponseBody, error) {
-	var response OpenAPIUpdateServiceDNSFailoverPolicyResponseBody
-	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceDNSFailoverPolicy, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "domainId": domainId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceDomain(ctx context.Context, serviceId string, environmentId string, domainId string, headers OpenAPIUpdateServiceDomainHeaders, body OpenAPIUpdateServiceDomainRequestBody) (OpenAPIUpdateServiceDomainResponseBody, error) {
@@ -1896,6 +1846,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 123
+const OpenAPIClientOperationCount = 119
 
-const openAPIClientSpecSHA256 = "6f232ea94805a973c407e441b0ac334bb1b3916f9ca72c732dbee3a0b764513e"
+const openAPIClientSpecSHA256 = "579b9db5db30698a034365b17d5accc8af481517a99a9a9add4702ae08af13a1"

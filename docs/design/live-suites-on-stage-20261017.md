@@ -175,8 +175,11 @@ resource can be declared transient: it records its identifier, needs no
 cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
-assignments stay as they are. The nightly scenario covers 132 operations and
-the pre-release scenario 47, plus their fixture steps.
+assignments stay as they are. The nightly scenario covers 131 operations and
+the pre-release scenario 44, plus their fixture steps. DNS failover and plan
+rollback left the public API on 2026-10-18 (web
+`docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
+removed one nightly and three pre-release operations.
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager
@@ -227,7 +230,7 @@ The stage baseline also needs objects that a nightly run can't create:
 
 - A second trusted Worker, for the environment-reassignment operations.
 - A workspace, a configuration stack and release groups, for their reads.
-- DNS plan, failover and verification objects, for their reads.
+- DNS plan and verification objects, for their reads.
 
 Promotion needs a source deployment in another environment. Fixture steps
 create a staging environment, `deployService` (nightly) deploys to it, and a

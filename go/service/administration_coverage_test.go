@@ -99,10 +99,6 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(dns.Plan(ctx, "project-1", "environment-1", "domain-1", "plan-1")))
 	mustServiceResult(t, serviceResultError(dns.Apply(ctx, "project-1", "environment-1", "domain-1", "plan-1", OpenAPIApplyServiceDNSPlanRequestBody{}, mutation)))
 	mustServiceResult(t, serviceResultError(dns.ReportProviderResult(ctx, "project-1", "environment-1", "domain-1", "plan-1", OpenAPIReportServiceDNSProviderResultRequestBody{}, mutation)))
-	mustServiceResult(t, serviceResultError(dns.Rollback(ctx, "project-1", "environment-1", "domain-1", "plan-1", OpenAPIRollbackServiceDNSPlanRequestBody{}, mutation)))
-	mustServiceResult(t, serviceResultError(dns.FailoverPolicy(ctx, "project-1", "environment-1", "domain-1")))
-	mustServiceResult(t, serviceResultError(dns.UpdateFailoverPolicy(ctx, "project-1", "environment-1", "domain-1", OpenAPIUpdateServiceDNSFailoverPolicyRequestBody{}, mutation)))
-	mustServiceResult(t, serviceResultError(dns.Failover(ctx, "project-1", "environment-1", "domain-1", OpenAPIRequestServiceDNSFailoverRequestBody{}, mutation)))
 
 	variables := client.ServiceVariables()
 	mustServiceResult(t, serviceResultError(variables.List(ctx, "project-1", "environment-1")))
@@ -178,8 +174,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(traffic.Trim(ctx, "project-1", OpenAPITrimServiceTrafficQuery{}, mutation)))
 	mustServiceResult(t, serviceResultError(traffic.Flush(ctx, "project-1", OpenAPIFlushServiceTrafficQuery{}, mutation)))
 
-	if calls.Load() != 105 {
-		t.Fatalf("transport calls=%d, want 105", calls.Load())
+	if calls.Load() != 101 {
+		t.Fatalf("transport calls=%d, want 101", calls.Load())
 	}
 }
 
