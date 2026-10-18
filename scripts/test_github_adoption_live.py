@@ -24,7 +24,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any
 
@@ -311,34 +311,44 @@ def create_project(
     return project["id"], environment.get("configurationOperationId", "")
 
 
-REFRESH_ATTEMPTS = 5
+STALE_ETAG_ATTEMPTS = 5
+
+
+def retry_stale_etag(read_then_write: Callable[[], Any], *, retry_delay: float = 2.0) -> Any:
+    """Run a read and the write it fences again while the write answers 412.
+
+    Background work on the run's project (the environment's configuration
+    retries before adoption, the push deployment after it) can move the ETag
+    between the read and the write. A 412 applied nothing, so reading again
+    and retrying is safe. Any other failure fails at once."""
+
+    for attempt in range(1, STALE_ETAG_ATTEMPTS + 1):
+        try:
+            return read_then_write()
+        except LiveAdoptionError as exc:
+            if exc.status != 412 or attempt == STALE_ETAG_ATTEMPTS:
+                raise
+            time.sleep(retry_delay)
+    raise AssertionError("unreachable")
 
 
 def refresh_credential(settings: Settings, *, retry_delay: float = 2.0) -> None:
-    # The refresh is fenced by the repository ETag, which background work
-    # (the push deployment, configuration reconciles) can move between the
-    # read and the write. A 412 applied nothing, so read again and retry.
-    for attempt in range(1, REFRESH_ATTEMPTS + 1):
+    def read_then_refresh() -> Any:
         repository = postgrip_request(
             settings,
             "GET",
             f"/api/v1/services/project/{settings.project_id}/repository",
         )
-        try:
-            result = postgrip_request(
-                settings,
-                "POST",
-                f"/api/v1/services/project/{settings.project_id}/repository/credentials/source-access/refresh",
-                etag=repository["etag"],
-                expected=(202,),
-            )
-        except LiveAdoptionError as exc:
-            if exc.status != 412 or attempt == REFRESH_ATTEMPTS:
-                raise
-            time.sleep(retry_delay)
-            continue
-        wait_for_operation(settings, result["configurationOperationId"])
-        return
+        return postgrip_request(
+            settings,
+            "POST",
+            f"/api/v1/services/project/{settings.project_id}/repository/credentials/source-access/refresh",
+            etag=repository["etag"],
+            expected=(202,),
+        )
+
+    result = retry_stale_etag(read_then_refresh, retry_delay=retry_delay)
+    wait_for_operation(settings, result["configurationOperationId"])
 
 
 def wait_for_deployment(
@@ -389,27 +399,30 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
             )
             settings = replace(settings, project_id=project_id)
 
-        preview = postgrip_request(
-            settings,
-            "POST",
-            f"/api/v1/services/project/{settings.project_id}/repository/github/adoption-preview",
-            body={"repositoryId": repository_id, "automaticDeployments": True},
-            expected=(201,),
-        )
-        if preview.get("state") != "ready":
-            raise LiveAdoptionError("GitHub adoption preview was blocked")
-        operation = postgrip_request(
-            settings,
-            "POST",
-            f"/api/v1/services/project/{settings.project_id}/repository/github/adopt",
-            body={
-                "previewId": preview["id"],
-                "previewDigest": preview["digest"],
-                "repositoryEtag": preview["repositoryEtag"],
-            },
-            etag=preview["repositoryEtag"],
-            expected=(202,),
-        )
+        def preview_then_adopt() -> Any:
+            preview = postgrip_request(
+                settings,
+                "POST",
+                f"/api/v1/services/project/{settings.project_id}/repository/github/adoption-preview",
+                body={"repositoryId": repository_id, "automaticDeployments": True},
+                expected=(201,),
+            )
+            if preview.get("state") != "ready":
+                raise LiveAdoptionError("GitHub adoption preview was blocked")
+            return postgrip_request(
+                settings,
+                "POST",
+                f"/api/v1/services/project/{settings.project_id}/repository/github/adopt",
+                body={
+                    "previewId": preview["id"],
+                    "previewDigest": preview["digest"],
+                    "repositoryEtag": preview["repositoryEtag"],
+                },
+                etag=preview["repositoryEtag"],
+                expected=(202,),
+            )
+
+        operation = retry_stale_etag(preview_then_adopt)
         wait_for_operation(settings, operation["id"])
         if environment_operation:
             # Retries back off up to 320 s, so allow a few after adoption.
@@ -511,7 +524,7 @@ def self_test_refresh_retry() -> None:
     else:
         raise AssertionError("a non-412 refresh failure must not be retried")
     try:
-        run([412] * REFRESH_ATTEMPTS)
+        run([412] * STALE_ETAG_ATTEMPTS)
     except LiveAdoptionError as exc:
         assert exc.status == 412
     else:
