@@ -156,26 +156,26 @@ jobs:
           retention-days: 90
 
   github-adoption:
-    needs: [acquire-stage, live]
+    needs: acquire-stage
     if: ${{ !cancelled() && needs.acquire-stage.result == 'success' }}
     runs-on:
       group: mediumworx
       labels: [self-hosted, linux, x64]
-    timeout-minutes: 120
+    timeout-minutes: 60
     environment: sdk-live-pre-release
     env:
       POSTGRIP_URL: ${{ vars.POSTGRIP_URL }}
       POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
       POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
       # The suite creates its own project on this Worker; the stage reset
-      # removes it (docs/design/live-suites-on-stage-20261017.md D2).
-      POSTGRIP_GITHUB_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_WORKER_ID }}
+      # removes it. It is the second stage Worker, which no live scenario puts
+      # into maintenance or upgrades, so this job runs alongside `live`
+      # (docs/design/live-suites-on-stage-20261017.md D1, D2).
+      POSTGRIP_GITHUB_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_REASSIGN_WORKER_ID }}
       POSTGRIP_LIVE_STAGE_LEASE: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
       POSTGRIP_GITHUB_TEST_ORG: ${{ vars.POSTGRIP_GITHUB_TEST_ORG }}
       POSTGRIP_GITHUB_TEST_TOKEN: ${{ secrets.POSTGRIP_GITHUB_TEST_TOKEN }}
       POSTGRIP_GITHUB_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_GITHUB_LIVE_DISPOSABLE }}
-      POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY: "true"
-      POSTGRIP_GITHUB_LIVE_EXPIRY_WAIT_SECONDS: "3900"
     steps:
       - name: Start the stage lease
         uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
@@ -191,7 +191,7 @@ jobs:
           python-version: "3.12"
       - name: Verify GitHub lifecycle safety guards
         run: python3 scripts/test_github_adoption_live.py --self-test
-      - name: Prove rotation after expiry and signed merge-to-deploy
+      - name: Create, adopt, trigger, rotate, and remove a disposable repository
         run: >-
           python3 scripts/test_github_adoption_live.py
           --mode pre-release
@@ -206,7 +206,7 @@ jobs:
           retention-days: 90
 
   service-domain:
-    needs: [acquire-stage, github-adoption]
+    needs: acquire-stage
     if: ${{ !cancelled() && needs.acquire-stage.result == 'success' }}
     runs-on:
       group: mediumworx

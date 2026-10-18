@@ -35,15 +35,16 @@ succeeded.
   starts the lease before touching stage, so a job whose run lost the lease
   never runs. The parallel jobs rely on web's `start` succeeding again for the
   run that already holds the active lease, renewing it to a full window from
-  that job's start (postgrip-io/postgrip-web#2200). The live jobs run in
-  sequence, `live`, then `github-adoption`, then `service-domain`, not in
-  parallel. The nightly scenario puts its Worker into maintenance and upgrades
-  it, which would disrupt an adoption job on the same stage Worker. Because
-  each job renews the lease when it starts, the window must outlast the
-  longest single job. That's the pre-release
-  `github-adoption` job: it waits 65 minutes for the original installation
-  token to expire, then up to about 23 more minutes of bounded waits, within a
-  120-minute timeout. Web raises the active window from 90 to 150 minutes, and
+  that job's start (postgrip-io/postgrip-web#2200). The live jobs, `live`,
+  `github-adoption` and `service-domain`, all start once `acquire-stage`
+  holds the lease, and run in parallel. The nightly scenario puts
+  `stage-worker` into maintenance and upgrades it, so the adoption job deploys
+  to `stage-worker-2`, which no scenario puts into maintenance or upgrades.
+  Neither adoption job waits for the original installation token to expire
+  (decided 2026-10-18, to keep runs short), so neither proves rotation after
+  expiry; the suite still supports that wait. Because each job renews the
+  lease when it starts, the window must outlast the longest single job:
+  `live`, at 120 minutes for nightly and 135 for pre-release. Web raises the active window from 90 to 150 minutes, and
   caps a run's whole active hold at 5 hours from its first `start`, because
   each job renews the window (postgrip-io/postgrip-web#2201). Every
   `acquire-stage` bound is 690 minutes, so a waiting run outlasts one
@@ -137,8 +138,8 @@ logs or chat:
   `POSTGRIP_GITHUB_TEST_TOKEN`. The adoption test creates repositories, so
   the stage GitHub App installation in that organization must cover all its
   repositories.
-  - It needs no baseline project. The job passes the stage Worker as
-    `POSTGRIP_GITHUB_LIVE_WORKER_ID`, and the suite creates a project on its
+  - It needs no baseline project. The job passes the second stage Worker as
+    `POSTGRIP_GITHUB_LIVE_WORKER_ID` (D1), and the suite creates a project on its
     disposable repository, with a production environment on that Worker,
     before adopting the repository. The stage reset removes the project.
   - A baseline project can't work. A repository can be adopted into only

@@ -162,9 +162,11 @@ strict job. It creates one private repository in a dedicated GitHub test
 organization, waits for PostGrip discovery, previews and executes adoption,
 observes a signed push event queue an automatic deployment, performs two
 explicit credential rotations, and deletes the repository in a `finally`
-cleanup path. The pre-release lane waits 65 minutes before its push so the
-original GitHub installation token would be rejected; a successful queued
-deployment therefore proves background rotation kept Worker access usable.
+cleanup path. Neither stage lane waits for the original GitHub installation
+token to expire before its push. `POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY=true`
+(with `POSTGRIP_GITHUB_LIVE_EXPIRY_WAIT_SECONDS`, 3600-4500) still adds that
+wait, so a successful queued deployment proves background rotation kept
+Worker access usable.
 
 The protected `sdk-live-nightly` and `sdk-live-pre-release` environments must
 provide:

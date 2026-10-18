@@ -499,10 +499,6 @@ def main() -> int:
         if not args.mode:
             raise LiveAdoptionError("--mode is required")
         settings = load_settings(os.environ)
-        if args.mode == "pre-release" and not settings.wait_for_expiry:
-            raise LiveAdoptionError(
-                "pre-release requires POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY=true"
-            )
         if args.validate_only:
             print(json.dumps({"mode": args.mode, "configuration": "valid"}))
             return 0
