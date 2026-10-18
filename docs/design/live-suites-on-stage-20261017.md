@@ -106,8 +106,13 @@ logs or chat:
     both enrollment keys and deletes both Agents.
   - The scenario's queues differ from the ones the sandbox Agent polls.
   - Enrollment keys can only be issued by an owner or admin session, so both
-    environments hold the stage owner's email and password, used only by
-    that action (web stage design D5).
+    environments hold the stage owner's email and password
+    (`STAGE_OWNER_EMAIL`, `STAGE_OWNER_PASSWORD` secrets) and the stage
+    organization (`STAGE_ORGANIZATION_ID`), used only by that action (web
+    stage design D5).
+  - Each run names the action's run `sdk-<run_id>-<attempt>`, and the
+    identity's namespace and queue after it. The scenario step reads them as
+    `POSTGRIP_LIVE_AGENT_NAMESPACE` and `POSTGRIP_LIVE_AGENT_QUEUE`.
   - Using the identity's own session instead of a delegated one is a
     stage-test decision; customer workloads still get delegated sessions
     (`docs/authentication.md`).
@@ -216,6 +221,9 @@ and `promoteServiceDeployment` promote it.
    credential steps, precondition refresh for cleanups and wait steps (D3,
    D3a). Then the stage baseline objects (D3a), under a maintenance lease and
    captured.
+   Then both `live` jobs call the disposable-agent action, `up` before the
+   scenario and `down` with `always()`, and nightly maps the variables its
+   scenario reads.
 5. Nightly scenario, until `live-nightly.yml` passes end to end.
 6. Pre-release scenario, until `live-pre-release.yml` passes end to end.
 
