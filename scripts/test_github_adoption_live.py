@@ -420,9 +420,10 @@ def run_lifecycle(settings: Settings, mode: str) -> dict[str, Any]:
             settings, commit["commit"]["sha"], previous_ids
         )
 
-        # Two explicit refreshes prove repeated mint/push semantics. In the
-        # pre-release lane, the commit above occurs after the original token's
-        # GitHub lifetime, proving the background rotation also kept deploys usable.
+        # Two explicit refreshes prove repeated mint/push semantics. With
+        # POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY=true, the commit above occurs
+        # after the original token's GitHub lifetime, proving the background
+        # rotation also kept deploys usable.
         refresh_credential(settings)
         refresh_credential(settings)
         return {
@@ -499,10 +500,6 @@ def main() -> int:
         if not args.mode:
             raise LiveAdoptionError("--mode is required")
         settings = load_settings(os.environ)
-        if args.mode == "pre-release" and not settings.wait_for_expiry:
-            raise LiveAdoptionError(
-                "pre-release requires POSTGRIP_GITHUB_LIVE_WAIT_FOR_EXPIRY=true"
-            )
         if args.validate_only:
             print(json.dumps({"mode": args.mode, "configuration": "valid"}))
             return 0

@@ -133,7 +133,7 @@ jobs:
           retention-days: 30
 
   github-adoption:
-    needs: [acquire-stage, live]
+    needs: acquire-stage
     if: ${{ !cancelled() && needs.acquire-stage.result == 'success' }}
     runs-on:
       group: mediumworx
@@ -145,8 +145,10 @@ jobs:
       POSTGRIP_SERVICE_URL: ${{ vars.POSTGRIP_SERVICE_URL }}
       POSTGRIP_TOKEN: ${{ secrets.POSTGRIP_TOKEN }}
       # The suite creates its own project on this Worker; the stage reset
-      # removes it (docs/design/live-suites-on-stage-20261017.md D2).
-      POSTGRIP_GITHUB_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_WORKER_ID }}
+      # removes it. It is the second stage Worker, which no live scenario puts
+      # into maintenance or upgrades, so this job runs alongside `live`
+      # (docs/design/live-suites-on-stage-20261017.md D1, D2).
+      POSTGRIP_GITHUB_LIVE_WORKER_ID: ${{ vars.POSTGRIP_LIVE_REASSIGN_WORKER_ID }}
       POSTGRIP_LIVE_STAGE_LEASE: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
       POSTGRIP_GITHUB_TEST_ORG: ${{ vars.POSTGRIP_GITHUB_TEST_ORG }}
       POSTGRIP_GITHUB_TEST_TOKEN: ${{ secrets.POSTGRIP_GITHUB_TEST_TOKEN }}
@@ -181,7 +183,7 @@ jobs:
           retention-days: 30
 
   service-domain:
-    needs: [acquire-stage, github-adoption]
+    needs: acquire-stage
     if: ${{ !cancelled() && needs.acquire-stage.result == 'success' }}
     runs-on:
       group: mediumworx
