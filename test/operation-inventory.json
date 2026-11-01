@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "f3dce6dee939b7245252ca30d36a85e4ecbba70dc3d5b05997c92189c5650e5c",
+  "contractBundleDigest": "77c3f0c12e83cb2b2eb31b67b623e9fb3281bbbce39ee61b6b03e303ba83097e",
   "contractDigests": {
     "agent": "0afbde31bd07059bc872324c82711bb8284fba1722c5bf9aa6b7cf76a42f7060",
-    "service": "896e341335e4fccd8b6cf94c535eae2025d65103b8af6b713fa31911cc0be584",
+    "service": "ac469c153f7368128d5730e928553bfbbd4dbf157ea857fd1f880e5eb6ba7ee5",
     "worker": "f7def7a70065868cf99d6a769e724347ebb9af048a5fdb656d4b7498768620b9"
   },
   "operations": [
@@ -1814,6 +1814,39 @@
       "responseSchema": "ServiceTargetMutationResponse",
       "retry": "bounded",
       "safety": "destructive",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "confirmRecoveryMoveVariables",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/recovery-moves/{moveId}/variables/confirm",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "moveId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRecoveryMoveConfirmationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
       "signing": null
     },
     {

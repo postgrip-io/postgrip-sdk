@@ -738,6 +738,14 @@
       ],
       "summary": "Revise Recovery Move Volume"
     },
+    "confirmRecoveryMoveVariables": {
+      "behavior": "Confirms that the variables the environment's Worker now holds are the complete set after a recovery move off a lost Worker, fenced by If-Match on that Worker's variable collection ETag. Until then every deployment of the environment is refused as VARIABLES_UNRECONCILED. It clears the environment's mark, marks the record's variables confirmed and advances the record's version in one transaction; a recorded resubmissionRequired variable that is absent or has no value is refused as VARIABLE_RESUBMISSION_REQUIRED and nothing is written.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Confirm Recovery Move Variables"
+    },
     "redeployService": {
       "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/redeploy behavior.",
       "lifecycle": [

@@ -177,15 +177,16 @@ cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
 assignments stay as they are. The nightly scenario covers 131 operations and
-the pre-release scenario 46, plus their fixture steps. DNS failover and plan
+the pre-release scenario 47, plus their fixture steps. DNS failover and plan
 rollback left the public API on 2026-10-18 (web
 `docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
 removed one nightly and three pre-release operations. Web's recovery move
-(`docs/design/worker-refresh-replay-recovery-design-20261101.md`, D5b) added
-two pre-release operations, `getRecoveryMove` and `reviseRecoveryMoveVolume`.
-They need a recovery move off a lost stage Worker, so the stage pre-release
-scenario must add a lost-Worker fixture and both steps before
-`live-pre-release.yml` can pass again.
+(`docs/design/worker-refresh-replay-recovery-design-20261101.md`, D5b and
+D5c) added three pre-release operations, `getRecoveryMove`,
+`reviseRecoveryMoveVolume` and `confirmRecoveryMoveVariables`. They need a
+recovery move off a lost stage Worker, so the stage pre-release scenario must
+add a lost-Worker fixture and all three steps before `live-pre-release.yml`
+can pass again.
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager

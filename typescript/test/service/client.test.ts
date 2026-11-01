@@ -361,7 +361,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(103);
+    expect(methodCount).toBe(104);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -456,6 +456,7 @@ describe('ServiceClient', () => {
       () => admin.environments.reassign('project-1', 'environment-1', body, write),
       () => admin.environments.recoveryMove('project-1', 'environment-1', 'move-1'),
       () => admin.environments.reviseRecoveryMoveVolume('project-1', 'environment-1', 'move-1', 'volume-1', body, write),
+      () => admin.environments.confirmRecoveryMoveVariables('project-1', 'environment-1', 'move-1', write),
       () => admin.environments.removalImpact('project-1', 'environment-1'),
       () => admin.environments.delete('project-1', 'environment-1', body, write),
       () => admin.environments.getCompose('project-1', 'environment-1'),
@@ -540,7 +541,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(103);
+    expect(requestCount).toBe(104);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

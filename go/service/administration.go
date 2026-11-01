@@ -325,6 +325,18 @@ func (c ServiceEnvironmentsClient) ReviseRecoveryMoveVolume(ctx context.Context,
 	return c.client.OpenAPI().ReviseRecoveryMoveVolume(ctx, projectID, environmentID, moveID, volumeRef, OpenAPIReviseRecoveryMoveVolumeHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
 }
 
+// ConfirmRecoveryMoveVariables confirms that the variables the environment's
+// Worker now holds are the complete set after a recovery move off a lost
+// Worker, which lifts the environment's VARIABLES_UNRECONCILED deploy refusal.
+// IfMatch is the variable collection ETag of the environment's Worker, not the
+// record's.
+func (c ServiceEnvironmentsClient) ConfirmRecoveryMoveVariables(ctx context.Context, projectID, environmentID, moveID string, options WriteOptions) (OpenAPIConfirmRecoveryMoveVariablesResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIConfirmRecoveryMoveVariablesResponseBody{}, err
+	}
+	return c.client.OpenAPI().ConfirmRecoveryMoveVariables(ctx, projectID, environmentID, moveID, OpenAPIConfirmRecoveryMoveVariablesHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+}
+
 func (c ServiceEnvironmentsClient) RemovalImpact(ctx context.Context, projectID, environmentID string) (OpenAPIGetServiceEnvironmentRemovalImpactResponseBody, error) {
 	return c.client.OpenAPI().GetServiceEnvironmentRemovalImpact(ctx, projectID, environmentID)
 }
