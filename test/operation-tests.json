@@ -1027,6 +1027,24 @@
       "plane": "service",
       "protocolException": null
     },
+    "getRecoveryMove": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getRecoveryMove.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "reviseRecoveryMoveVolume": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/reviseRecoveryMoveVolume.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "redeployService": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,

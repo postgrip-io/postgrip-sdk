@@ -861,14 +861,16 @@ type OpenAPIServiceRemovalImpact struct {
 	Etag                    string                              `json:"etag"`
 }
 type OpenAPIServiceReassignmentVolumeImpact struct {
-	VolumeRef      string `json:"volumeRef"`
-	ContainerPath  string `json:"containerPath"`
-	ReadOnly       bool   `json:"readOnly"`
-	VolumeVersion  int64  `json:"volumeVersion"`
-	BindingVersion int64  `json:"bindingVersion"`
+	VolumeRef             string `json:"volumeRef"`
+	ContainerPath         string `json:"containerPath"`
+	ReadOnly              bool   `json:"readOnly"`
+	VolumeVersion         int64  `json:"volumeVersion"`
+	BindingVersion        int64  `json:"bindingVersion"`
+	PendingLegacyAdoption *bool  `json:"pendingLegacyAdoption,omitempty"`
 }
 type OpenAPIServiceEnvironmentReassignmentPreview struct {
 	SourceWorkerId          string                                   `json:"sourceWorkerId"`
+	SourceLost              bool                                     `json:"sourceLost"`
 	DestinationWorkerId     string                                   `json:"destinationWorkerId"`
 	CurrentDeploymentId     *string                                  `json:"currentDeploymentId,omitempty"`
 	DomainCount             int64                                    `json:"domainCount"`
@@ -1000,6 +1002,40 @@ type OpenAPIServiceEnvironmentMutationResponse struct {
 	ConfigurationRevision    int64                                  `json:"configurationRevision"`
 	ConfigurationOperationId *string                                `json:"configurationOperationId,omitempty"`
 	Receipt                  OpenAPIOperationReceipt                `json:"receipt"`
+	RecoveryMoveId           *string                                `json:"recoveryMoveId,omitempty"`
+}
+type OpenAPIServiceRecoveryMoveVolume struct {
+	VolumeRef                string  `json:"volumeRef"`
+	ContainerPath            string  `json:"containerPath"`
+	ReadOnly                 bool    `json:"readOnly"`
+	Disposition              string  `json:"disposition"`
+	ReplacementVolumeRef     *string `json:"replacementVolumeRef,omitempty"`
+	BoundVolumeRef           string  `json:"boundVolumeRef"`
+	StepState                string  `json:"stepState"`
+	LastErrorCode            *string `json:"lastErrorCode,omitempty"`
+	ConfigurationOperationId *string `json:"configurationOperationId,omitempty"`
+}
+type OpenAPIServiceRecoveryMove struct {
+	Id                       string                             `json:"id"`
+	EnvironmentId            string                             `json:"environmentId"`
+	SourceWorkerId           string                             `json:"sourceWorkerId"`
+	DestinationWorkerId      string                             `json:"destinationWorkerId"`
+	ConfigurationOperationId string                             `json:"configurationOperationId"`
+	State                    string                             `json:"state"`
+	Volumes                  []OpenAPIServiceRecoveryMoveVolume `json:"volumes"`
+	Version                  int64                              `json:"version"`
+	Etag                     string                             `json:"etag"`
+	CreatedAt                time.Time                          `json:"createdAt"`
+	UpdatedAt                time.Time                          `json:"updatedAt"`
+}
+type OpenAPIReviseRecoveryMoveVolumeRequest struct {
+	Disposition          string  `json:"disposition"`
+	ReplacementVolumeRef *string `json:"replacementVolumeRef,omitempty"`
+}
+type OpenAPIServiceRecoveryMoveRevisionResponse struct {
+	RecoveryMove             OpenAPIServiceRecoveryMove `json:"recoveryMove"`
+	ConfigurationOperationId *string                    `json:"configurationOperationId,omitempty"`
+	Receipt                  OpenAPIOperationReceipt    `json:"receipt"`
 }
 type OpenAPIServiceVolumeMutationResponse struct {
 	Volume                   OpenAPIServiceVolume    `json:"volume"`
@@ -1969,6 +2005,8 @@ type OpenAPIGetPostGripConfigurationStackRequestBody = OpenAPINoBody
 type OpenAPIGetPostGripConfigurationStackResponseBody = OpenAPIPostGripConfigurationStack
 type OpenAPIGetPostGripConfigurationStackOperationRequestBody = OpenAPINoBody
 type OpenAPIGetPostGripConfigurationStackOperationResponseBody = OpenAPIPostGripConfigurationStackOperation
+type OpenAPIGetRecoveryMoveRequestBody = OpenAPINoBody
+type OpenAPIGetRecoveryMoveResponseBody = OpenAPIServiceRecoveryMove
 type OpenAPIGetServiceRequestBody = OpenAPINoBody
 type OpenAPIGetServiceResponseBody = OpenAPIService
 type OpenAPIGetServiceAppRequestBody = OpenAPINoBody
@@ -2093,6 +2131,8 @@ type OpenAPIRetryServiceConfigurationOperationRequestBody = OpenAPINoBody
 type OpenAPIRetryServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIRetryServiceReleaseGroupRequestBody = OpenAPINoBody
 type OpenAPIRetryServiceReleaseGroupResponseBody = OpenAPIServiceReleaseGroup
+type OpenAPIReviseRecoveryMoveVolumeRequestBody = OpenAPIReviseRecoveryMoveVolumeRequest
+type OpenAPIReviseRecoveryMoveVolumeResponseBody = OpenAPIServiceRecoveryMoveRevisionResponse
 type OpenAPIRollbackServiceDeploymentRequestBody = OpenAPINoBody
 type OpenAPIRollbackServiceDeploymentResponseBody = OpenAPIDeploymentOperationResponse
 type OpenAPIStartServiceRuntimeRequestBody = OpenAPIRuntimeOperationRequest
@@ -2336,6 +2376,10 @@ type ServiceMutationResponse = OpenAPIServiceMutationResponse
 type ServiceTargetMutationResponse = OpenAPIServiceTargetMutationResponse
 type ServiceProjectMutationResponse = OpenAPIServiceProjectMutationResponse
 type ServiceEnvironmentMutationResponse = OpenAPIServiceEnvironmentMutationResponse
+type ServiceRecoveryMoveVolume = OpenAPIServiceRecoveryMoveVolume
+type ServiceRecoveryMove = OpenAPIServiceRecoveryMove
+type ReviseRecoveryMoveVolumeRequest = OpenAPIReviseRecoveryMoveVolumeRequest
+type ServiceRecoveryMoveRevisionResponse = OpenAPIServiceRecoveryMoveRevisionResponse
 type ServiceVolumeMutationResponse = OpenAPIServiceVolumeMutationResponse
 type ServiceVolumeBindingMutationResponse = OpenAPIServiceVolumeBindingMutationResponse
 type ServiceDomainMutationResponse = OpenAPIServiceDomainMutationResponse
@@ -2424,4 +2468,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "b5177fdfd9a35d163f37c79aa8cdf51fada33ec02d6a50db5452064107aaf6cf"
+const openAPITypesSpecSHA256 = "47e54a3aff83f8e34ead22b552547ee48d458f8b3f4447e923d25155b5c7ea1e"

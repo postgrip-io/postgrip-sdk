@@ -93,6 +93,7 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     "environments": (
         "get_service_environment", "create_service_environment", "update_service_environment",
         "preview_service_environment_reassignment", "reassign_service_environment",
+        "get_recovery_move", "revise_recovery_move_volume",
         "get_service_environment_removal_impact", "delete_service_environment",
         "get_service_compose_file", "put_service_compose_file", "delete_service_compose_file",
     ),

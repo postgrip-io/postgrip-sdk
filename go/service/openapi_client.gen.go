@@ -1042,6 +1042,18 @@ func (p OpenAPIRetryServiceReleaseGroupHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIReviseRecoveryMoveVolumeHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPIReviseRecoveryMoveVolumeHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
 type OpenAPIRollbackServiceDeploymentHeaders struct {
 	IdempotencyKey string
 }
@@ -1438,6 +1450,11 @@ func (c *OpenAPIClient) GetPostGripConfigurationStackOperation(ctx context.Conte
 	err := c.executor.doOpenAPI(ctx, openAPIGetPostGripConfigurationStackOperation, map[string]string{"stackKey": stackKey, "operationId": operationId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) GetRecoveryMove(ctx context.Context, serviceId string, environmentId string, moveId string) (OpenAPIGetRecoveryMoveResponseBody, error) {
+	var response OpenAPIGetRecoveryMoveResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIGetRecoveryMove, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "moveId": moveId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) GetService(ctx context.Context, source string, serviceId string) (OpenAPIGetServiceResponseBody, error) {
 	var response OpenAPIGetServiceResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIGetService, map[string]string{"source": source, "serviceId": serviceId}, nil, nil, &response)
@@ -1748,6 +1765,11 @@ func (c *OpenAPIClient) RetryServiceReleaseGroup(ctx context.Context, releaseGro
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRetryServiceReleaseGroup, map[string]string{"releaseGroupId": releaseGroupId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ReviseRecoveryMoveVolume(ctx context.Context, serviceId string, environmentId string, moveId string, volumeRef string, headers OpenAPIReviseRecoveryMoveVolumeHeaders, body OpenAPIReviseRecoveryMoveVolumeRequestBody) (OpenAPIReviseRecoveryMoveVolumeResponseBody, error) {
+	var response OpenAPIReviseRecoveryMoveVolumeResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIReviseRecoveryMoveVolume, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "moveId": moveId, "volumeRef": volumeRef}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) RollbackServiceDeployment(ctx context.Context, serviceId string, deploymentId string, headers OpenAPIRollbackServiceDeploymentHeaders) (OpenAPIRollbackServiceDeploymentResponseBody, error) {
 	var response OpenAPIRollbackServiceDeploymentResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRollbackServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
@@ -1846,6 +1868,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 119
+const OpenAPIClientOperationCount = 121
 
-const openAPIClientSpecSHA256 = "b5177fdfd9a35d163f37c79aa8cdf51fada33ec02d6a50db5452064107aaf6cf"
+const openAPIClientSpecSHA256 = "47e54a3aff83f8e34ead22b552547ee48d458f8b3f4447e923d25155b5c7ea1e"

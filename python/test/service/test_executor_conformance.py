@@ -71,7 +71,7 @@ def client(opener: FakeOpener, *, enable_retries: bool = False) -> ServiceClient
 
 class ServiceExecutorConformanceTests(unittest.TestCase):
     def test_covers_every_generated_service_operation(self) -> None:
-        self.assertEqual(len(contract_operations()), 119)
+        self.assertEqual(len(contract_operations()), 121)
 
     def test_each_operation_follows_its_contract_annotations(self) -> None:
         for operation in contract_operations():

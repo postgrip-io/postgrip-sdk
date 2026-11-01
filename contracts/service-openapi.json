@@ -2986,6 +2986,7 @@
           "Administration"
         ],
         "summary": "Reassign Service Environment",
+        "description": "Moves the environment to `destinationWorkerId` under the signed preview (`impactHash`) and `If-Match`. When the preview reports `sourceLost`, this is a recovery move: the source is never contacted, its step of the `environment-reassign` operation is skipped (`SOURCE_WORKER_LOST`), the volume dispositions are the recovery values, and the answer carries `recoveryMoveId`. A live source keeps the ordinary reassignment, including `409 CONFIGURATION_RECONCILIATION_REQUIRED` while a legacy volume adoption is pending, so that the adoption completes on the Worker that holds the data.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -3043,6 +3044,149 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ServiceEnvironmentReassignmentRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/recovery-moves/{moveId}": {
+      "get": {
+        "operationId": "getRecoveryMove",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get Recovery Move",
+        "description": "Reads the record of a recovery move off a lost Worker: per volume, its disposition, the volume now bound on the destination, and the state and last error of the destination step that adopts or provisions it. The `ETag` header (and `etag`) is the record's, for `reviseRecoveryMoveVolume`.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/RecoveryMoveId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRecoveryMove"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/recovery-moves/{moveId}/volumes/{volumeRef}": {
+      "post": {
+        "operationId": "reviseRecoveryMoveVolume",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Revise Recovery Move Volume",
+        "description": "Repairs one volume of a committed recovery move, fenced by `If-Match` on the record's ETag. Only an `adopt-on-destination` volume whose step is `failed` or `pending`, of an open record whose environment is still on the move's destination, is revised, to `recreate-empty` or `replace-with`. In one transaction it holds the destination as a placement target, ends the destination's adoption operation as `superseded`, abandons the volume's migration and managed-volume records (deleting nothing on any host), binds the new volume (provisioned empty, or the named replacement) and stages its operation. It acts on the record and never re-evaluates whether the original source is lost: a new reassignment cannot repair the move, because its source, the destination, is live and its pending adoption refuses an ordinary reassignment. Refusals write nothing.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/RecoveryMoveId"
+          },
+          {
+            "$ref": "#/components/parameters/VolumeRef"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRecoveryMoveRevisionResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `RECOVERY_STEP_NOT_REVISABLE`: the volume is not an `adopt-on-destination` volume whose step is `failed` or `pending`, or the record is closed (`details.disposition`, `details.stepState`, `details.closed`). `SERVICE_STATE_CHANGED`: the environment is no longer on the move's destination. `WORKER_REVOKED`: the destination was revoked after the move (`details.workerId`); a destination removed or replaced since answers `404` `NOT_FOUND`. `WORKER_UNAVAILABLE`: the destination has lost its session and cannot accept the staged operation (`details.workerId`); recovery-move the environment off it first. This refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. `VOLUME_BINDING_CONFLICT`: the replacement is not available on the destination. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviseRecoveryMoveVolumeRequest"
               }
             }
           }
@@ -7250,6 +7394,15 @@
           "format": "uuid"
         }
       },
+      "RecoveryMoveId": {
+        "name": "moveId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
       "DomainId": {
         "name": "domainId",
         "in": "path",
@@ -9268,12 +9421,16 @@
             "enum": [
               "retain-source",
               "delete-source",
-              "replace-with"
-            ]
+              "replace-with",
+              "adopt-on-destination",
+              "recreate-empty"
+            ],
+            "description": "What becomes of the volume. For a live source (`sourceLost` false in the preview): `retain-source` keeps the source copy, `delete-source` deletes it, `replace-with` binds `replacementVolumeRef` instead and keeps the source copy. For a lost source (a recovery move): `adopt-on-destination` adopts the volume's legacy directory on the destination host under the same `volumeRef`, and is valid only for a volume with `pendingLegacyAdoption`; `recreate-empty` binds a new volume provisioned empty on the destination; `replace-with` binds `replacementVolumeRef`, which must already be available on the destination. Both abandon the source copy: the control plane stops tracking it and deletes nothing on any host. A live-source value for a lost source, or a recovery value for a live source, is `400 VALIDATION`."
           },
           "replacementVolumeRef": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Required with `replace-with`, and only with it."
           }
         }
       },
@@ -11115,6 +11272,10 @@
           "bindingVersion": {
             "type": "integer",
             "format": "int64"
+          },
+          "pendingLegacyAdoption": {
+            "type": "boolean",
+            "description": "True when the volume has a legacy volume migration that has not converged; absent otherwise. When the source is lost such a volume can be adopted on the destination (`adopt-on-destination`)."
           }
         }
       },
@@ -11132,12 +11293,17 @@
           "volumes",
           "impactHash",
           "expiresAt",
-          "environmentEtag"
+          "environmentEtag",
+          "sourceLost"
         ],
         "properties": {
           "sourceWorkerId": {
             "type": "string",
             "format": "uuid"
+          },
+          "sourceLost": {
+            "type": "boolean",
+            "description": "The source Worker is lost: removed, replaced, revoked, or offline with a session it no longer has. The move is then a recovery move: the source is never contacted, its volumes take the recovery dispositions, its pending legacy adoptions do not block the move, and its variables are not relayed. The signed `impactHash` covers it, so a source that changes either way before the reassignment invalidates the preview."
           },
           "destinationWorkerId": {
             "type": "string",
@@ -11555,8 +11721,10 @@
               "applying",
               "succeeded",
               "failed",
-              "blocked"
-            ]
+              "blocked",
+              "superseded"
+            ],
+            "description": "Terminal states are `succeeded`, `blocked` and `superseded`; `failed` is retried with backoff. `superseded`: a recovery move or its repair took over this operation's work (a legacy volume adoption moved to another Worker, or replaced by another disposition); nothing further runs and nothing needs to be retried."
           },
           "targets": {
             "type": "array",
@@ -11731,6 +11899,184 @@
           "configurationOperationId": {
             "type": "string",
             "format": "uuid"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          },
+          "recoveryMoveId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Set only by `reassignServiceEnvironment` when the source was lost: the ID of the recovery move's record (`getRecoveryMove`), which `reviseRecoveryMoveVolume` repairs."
+          }
+        }
+      },
+      "ServiceRecoveryMoveVolume": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "volumeRef",
+          "containerPath",
+          "readOnly",
+          "disposition",
+          "boundVolumeRef",
+          "stepState"
+        ],
+        "properties": {
+          "volumeRef": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The volume the move previewed: the source copy."
+          },
+          "containerPath": {
+            "type": "string"
+          },
+          "readOnly": {
+            "type": "boolean"
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "adopt-on-destination",
+              "recreate-empty",
+              "replace-with"
+            ]
+          },
+          "replacementVolumeRef": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "boundVolumeRef": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The volume now bound on the destination: the same volume for `adopt-on-destination`, a new one for `recreate-empty`, the replacement for `replace-with`."
+          },
+          "stepState": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "failed",
+              "blocked",
+              "converged"
+            ],
+            "description": "The state of the destination operation that adopts or provisions the volume: `pending` while it waits or runs, `failed` while it is retried (for example `MANAGED_VOLUME_ADOPTION_FAILED` when the destination host cannot adopt the legacy directory), `blocked` when it cannot run, `converged` once done (or when nothing runs, as for `replace-with`)."
+          },
+          "lastErrorCode": {
+            "type": "string",
+            "description": "The step operation's last target error code."
+          },
+          "configurationOperationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The step's configuration operation, when it has one."
+          }
+        }
+      },
+      "ServiceRecoveryMove": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "The durable record of a recovery move off a lost Worker. Repair acts on it rather than on the environment's current Worker. It is `closed` once every volume step has converged.",
+        "required": [
+          "id",
+          "environmentId",
+          "sourceWorkerId",
+          "destinationWorkerId",
+          "configurationOperationId",
+          "state",
+          "volumes",
+          "version",
+          "etag",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceWorkerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "destinationWorkerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "configurationOperationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The move's `environment-reassign` operation."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRecoveryMoveVolume"
+            }
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "etag": {
+            "type": "string",
+            "minLength": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReviseRecoveryMoveVolumeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "disposition"
+        ],
+        "properties": {
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "recreate-empty",
+              "replace-with"
+            ]
+          },
+          "replacementVolumeRef": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required with `replace-with`, and only with it: a volume available on the move's destination."
+          }
+        }
+      },
+      "ServiceRecoveryMoveRevisionResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recoveryMove",
+          "receipt"
+        ],
+        "properties": {
+          "recoveryMove": {
+            "$ref": "#/components/schemas/ServiceRecoveryMove"
+          },
+          "configurationOperationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The `volume-provision` operation staged for `recreate-empty`."
           },
           "receipt": {
             "$ref": "#/components/schemas/OperationReceipt"

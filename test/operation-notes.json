@@ -725,6 +725,19 @@
       ],
       "summary": "Reassign Service Environment"
     },
+    "getRecoveryMove": {
+      "behavior": "Reads the record of a recovery move off a lost Worker: per volume, its disposition, the volume bound on the destination, and the state and last error of the destination step that adopts or provisions it. The ETag is the record's, for reviseRecoveryMoveVolume.",
+      "lifecycle": [],
+      "summary": "Get Recovery Move"
+    },
+    "reviseRecoveryMoveVolume": {
+      "behavior": "Repairs one failed or pending adopt-on-destination volume of a committed recovery move to recreate-empty or replace-with, fenced by If-Match on the record. The destination is re-checked under the placement lock; a revoked, removed or session-lost destination is refused and nothing is written. It never re-evaluates the original source.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Revise Recovery Move Volume"
+    },
     "redeployService": {
       "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/redeploy behavior.",
       "lifecycle": [

@@ -90,7 +90,7 @@ describe('Service executor conformance', () => {
   const operations = contractOperations();
 
   it('covers every generated Service operation', () => {
-    expect(operations).toHaveLength(119);
+    expect(operations).toHaveLength(121);
   });
 
   for (const operation of operations) {
