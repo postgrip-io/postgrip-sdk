@@ -214,6 +214,8 @@ export class ServiceClient {
         this.request('getRecoveryMove', { path: { serviceId, environmentId, moveId }, signal: options.signal }),
       reviseRecoveryMoveVolume: (serviceId: string, environmentId: string, moveId: string, volumeRef: string, body: OpenAPIRequestBody<'reviseRecoveryMoveVolume'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('reviseRecoveryMoveVolume', { path: { serviceId, environmentId, moveId, volumeRef }, body, ...administrationWrite(options) }, true),
+      confirmRecoveryMoveVariables: (serviceId: string, environmentId: string, moveId: string, options: AdministrationWriteOptions) =>
+        this.administrationMutation('confirmRecoveryMoveVariables', { path: { serviceId, environmentId, moveId }, ...administrationWrite(options) }, true),
       removalImpact: (serviceId: string, environmentId: string, options: RequestOptions = {}) =>
         this.request('getServiceEnvironmentRemovalImpact', { path: { serviceId, environmentId }, signal: options.signal }),
       delete: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'deleteServiceEnvironment'>, options: AdministrationWriteOptions) =>

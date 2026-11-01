@@ -616,6 +616,18 @@ func (p OpenAPIClearTargetServiceConnectionHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIConfirmRecoveryMoveVariablesHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPIConfirmRecoveryMoveVariablesHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
 type OpenAPICreatePostGripConfigurationPlanHeaders struct {
 	IdempotencyKey string
 }
@@ -1325,6 +1337,11 @@ func (c *OpenAPIClient) ClearTargetServiceConnection(ctx context.Context, servic
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIClearTargetServiceConnection, map[string]string{"serviceId": serviceId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ConfirmRecoveryMoveVariables(ctx context.Context, serviceId string, environmentId string, moveId string, headers OpenAPIConfirmRecoveryMoveVariablesHeaders) (OpenAPIConfirmRecoveryMoveVariablesResponseBody, error) {
+	var response OpenAPIConfirmRecoveryMoveVariablesResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIConfirmRecoveryMoveVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "moveId": moveId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) CreatePostGripConfigurationPlan(ctx context.Context, stackKey string, headers OpenAPICreatePostGripConfigurationPlanHeaders, body OpenAPICreatePostGripConfigurationPlanRequestBody) (OpenAPICreatePostGripConfigurationPlanResponseBody, error) {
 	var response OpenAPICreatePostGripConfigurationPlanResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreatePostGripConfigurationPlan, map[string]string{"stackKey": stackKey}, nil, body, &response)
@@ -1868,6 +1885,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 121
+const OpenAPIClientOperationCount = 122
 
-const openAPIClientSpecSHA256 = "896e341335e4fccd8b6cf94c535eae2025d65103b8af6b713fa31911cc0be584"
+const openAPIClientSpecSHA256 = "ac469c153f7368128d5730e928553bfbbd4dbf157ea857fd1f880e5eb6ba7ee5"

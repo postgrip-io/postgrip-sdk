@@ -1045,6 +1045,15 @@
       "plane": "service",
       "protocolException": null
     },
+    "confirmRecoveryMoveVariables": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/confirmRecoveryMoveVariables.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "redeployService": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,

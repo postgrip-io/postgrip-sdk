@@ -70,6 +70,7 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(environments.Reassign(ctx, "project-1", "environment-1", OpenAPIReassignServiceEnvironmentRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(environments.RecoveryMove(ctx, "project-1", "environment-1", "move-1")))
 	mustServiceResult(t, serviceResultError(environments.ReviseRecoveryMoveVolume(ctx, "project-1", "environment-1", "move-1", "volume-1", OpenAPIReviseRecoveryMoveVolumeRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(environments.ConfirmRecoveryMoveVariables(ctx, "project-1", "environment-1", "move-1", write)))
 	mustServiceResult(t, serviceResultError(environments.RemovalImpact(ctx, "project-1", "environment-1")))
 	mustServiceResult(t, serviceResultError(environments.Delete(ctx, "project-1", "environment-1", OpenAPIDeleteServiceEnvironmentRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(environments.GetCompose(ctx, "project-1", "environment-1")))
@@ -176,8 +177,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(traffic.Trim(ctx, "project-1", OpenAPITrimServiceTrafficQuery{}, mutation)))
 	mustServiceResult(t, serviceResultError(traffic.Flush(ctx, "project-1", OpenAPIFlushServiceTrafficQuery{}, mutation)))
 
-	if calls.Load() != 103 {
-		t.Fatalf("transport calls=%d, want 103", calls.Load())
+	if calls.Load() != 104 {
+		t.Fatalf("transport calls=%d, want 104", calls.Load())
 	}
 }
 

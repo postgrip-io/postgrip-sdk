@@ -879,6 +879,7 @@ type OpenAPIServiceEnvironmentReassignmentPreview struct {
 	HasRepositoryCredential bool                                     `json:"hasRepositoryCredential"`
 	RuntimeStatus           string                                   `json:"runtimeStatus"`
 	Volumes                 []OpenAPIServiceReassignmentVolumeImpact `json:"volumes"`
+	KnownVariables          []OpenAPIServiceRecoveryKnownVariable    `json:"knownVariables,omitempty"`
 	ImpactHash              string                                   `json:"impactHash"`
 	ExpiresAt               time.Time                                `json:"expiresAt"`
 	EnvironmentEtag         string                                   `json:"environmentEtag"`
@@ -1016,21 +1017,39 @@ type OpenAPIServiceRecoveryMoveVolume struct {
 	ConfigurationOperationId *string `json:"configurationOperationId,omitempty"`
 }
 type OpenAPIServiceRecoveryMove struct {
-	Id                       string                             `json:"id"`
-	EnvironmentId            string                             `json:"environmentId"`
-	SourceWorkerId           string                             `json:"sourceWorkerId"`
-	DestinationWorkerId      string                             `json:"destinationWorkerId"`
-	ConfigurationOperationId string                             `json:"configurationOperationId"`
-	State                    string                             `json:"state"`
-	Volumes                  []OpenAPIServiceRecoveryMoveVolume `json:"volumes"`
-	Version                  int64                              `json:"version"`
-	Etag                     string                             `json:"etag"`
-	CreatedAt                time.Time                          `json:"createdAt"`
-	UpdatedAt                time.Time                          `json:"updatedAt"`
+	Id                       string                               `json:"id"`
+	EnvironmentId            string                               `json:"environmentId"`
+	SourceWorkerId           string                               `json:"sourceWorkerId"`
+	DestinationWorkerId      string                               `json:"destinationWorkerId"`
+	ConfigurationOperationId string                               `json:"configurationOperationId"`
+	State                    string                               `json:"state"`
+	Volumes                  []OpenAPIServiceRecoveryMoveVolume   `json:"volumes"`
+	Variables                *OpenAPIServiceRecoveryMoveVariables `json:"variables,omitempty"`
+	Version                  int64                                `json:"version"`
+	Etag                     string                               `json:"etag"`
+	CreatedAt                time.Time                            `json:"createdAt"`
+	UpdatedAt                time.Time                            `json:"updatedAt"`
 }
 type OpenAPIReviseRecoveryMoveVolumeRequest struct {
 	Disposition          string  `json:"disposition"`
 	ReplacementVolumeRef *string `json:"replacementVolumeRef,omitempty"`
+}
+type OpenAPIServiceRecoveryKnownVariable struct {
+	VariableId           string  `json:"variableId"`
+	Name                 string  `json:"name"`
+	IsSecret             bool    `json:"isSecret"`
+	ResubmissionRequired bool    `json:"resubmissionRequired"`
+	UnverifiedValue      *string `json:"unverifiedValue,omitempty"`
+}
+type OpenAPIServiceRecoveryMoveVariables struct {
+	State          string                                `json:"state"`
+	KnownVariables []OpenAPIServiceRecoveryKnownVariable `json:"knownVariables"`
+	ConfirmedAt    *time.Time                            `json:"confirmedAt,omitempty"`
+}
+type OpenAPIServiceRecoveryMoveConfirmationResponse struct {
+	RecoveryMove           OpenAPIServiceRecoveryMove `json:"recoveryMove"`
+	ConfirmedVariableNames []string                   `json:"confirmedVariableNames"`
+	Receipt                OpenAPIOperationReceipt    `json:"receipt"`
 }
 type OpenAPIServiceRecoveryMoveRevisionResponse struct {
 	RecoveryMove             OpenAPIServiceRecoveryMove `json:"recoveryMove"`
@@ -1955,6 +1974,8 @@ type OpenAPIClearServiceVariableValueRequestBody = OpenAPINoBody
 type OpenAPIClearServiceVariableValueResponseBody = OpenAPIServiceVariableMutationResponse
 type OpenAPIClearTargetServiceConnectionRequestBody = OpenAPINoBody
 type OpenAPIClearTargetServiceConnectionResponseBody = OpenAPIServiceTargetMutationResponse
+type OpenAPIConfirmRecoveryMoveVariablesRequestBody = OpenAPINoBody
+type OpenAPIConfirmRecoveryMoveVariablesResponseBody = OpenAPIServiceRecoveryMoveConfirmationResponse
 type OpenAPICreatePostGripConfigurationPlanRequestBody = OpenAPICreatePostGripConfigurationPlanRequest
 type OpenAPICreatePostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
 type OpenAPICreateServiceAppRequestBody = OpenAPICreateServiceAppRequest
@@ -2379,6 +2400,9 @@ type ServiceEnvironmentMutationResponse = OpenAPIServiceEnvironmentMutationRespo
 type ServiceRecoveryMoveVolume = OpenAPIServiceRecoveryMoveVolume
 type ServiceRecoveryMove = OpenAPIServiceRecoveryMove
 type ReviseRecoveryMoveVolumeRequest = OpenAPIReviseRecoveryMoveVolumeRequest
+type ServiceRecoveryKnownVariable = OpenAPIServiceRecoveryKnownVariable
+type ServiceRecoveryMoveVariables = OpenAPIServiceRecoveryMoveVariables
+type ServiceRecoveryMoveConfirmationResponse = OpenAPIServiceRecoveryMoveConfirmationResponse
 type ServiceRecoveryMoveRevisionResponse = OpenAPIServiceRecoveryMoveRevisionResponse
 type ServiceVolumeMutationResponse = OpenAPIServiceVolumeMutationResponse
 type ServiceVolumeBindingMutationResponse = OpenAPIServiceVolumeBindingMutationResponse
@@ -2468,4 +2492,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "896e341335e4fccd8b6cf94c535eae2025d65103b8af6b713fa31911cc0be584"
+const openAPITypesSpecSHA256 = "ac469c153f7368128d5730e928553bfbbd4dbf157ea857fd1f880e5eb6ba7ee5"
