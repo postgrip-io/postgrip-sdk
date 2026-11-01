@@ -59,6 +59,7 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "Environments": (
         "getServiceEnvironment", "createServiceEnvironment", "updateServiceEnvironment",
         "previewServiceEnvironmentReassignment", "reassignServiceEnvironment",
+        "getRecoveryMove", "reviseRecoveryMoveVolume",
         "getServiceEnvironmentRemovalImpact", "deleteServiceEnvironment",
         "getServiceComposeFile", "putServiceComposeFile", "deleteServiceComposeFile",
     ),

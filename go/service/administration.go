@@ -310,6 +310,21 @@ func (c ServiceEnvironmentsClient) Reassign(ctx context.Context, projectID, envi
 	return c.client.OpenAPI().ReassignServiceEnvironment(ctx, projectID, environmentID, OpenAPIReassignServiceEnvironmentHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
 }
 
+// RecoveryMove reads the record of a recovery move off a lost Worker, with
+// its ETag for ReviseRecoveryMoveVolume.
+func (c ServiceEnvironmentsClient) RecoveryMove(ctx context.Context, projectID, environmentID, moveID string) (OpenAPIGetRecoveryMoveResponseBody, error) {
+	return c.client.OpenAPI().GetRecoveryMove(ctx, projectID, environmentID, moveID)
+}
+
+// ReviseRecoveryMoveVolume repairs one failed or pending adopt-on-destination
+// volume of a recovery move, fenced by the record's ETag.
+func (c ServiceEnvironmentsClient) ReviseRecoveryMoveVolume(ctx context.Context, projectID, environmentID, moveID, volumeRef string, body OpenAPIReviseRecoveryMoveVolumeRequestBody, options WriteOptions) (OpenAPIReviseRecoveryMoveVolumeResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIReviseRecoveryMoveVolumeResponseBody{}, err
+	}
+	return c.client.OpenAPI().ReviseRecoveryMoveVolume(ctx, projectID, environmentID, moveID, volumeRef, OpenAPIReviseRecoveryMoveVolumeHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+}
+
 func (c ServiceEnvironmentsClient) RemovalImpact(ctx context.Context, projectID, environmentID string) (OpenAPIGetServiceEnvironmentRemovalImpactResponseBody, error) {
 	return c.client.OpenAPI().GetServiceEnvironmentRemovalImpact(ctx, projectID, environmentID)
 }

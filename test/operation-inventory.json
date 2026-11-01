@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "310550ab0e7959a33bd56dffb0b2542d5ba824a55f1ac1cfa94329d40e796170",
+  "contractBundleDigest": "f3dce6dee939b7245252ca30d36a85e4ecbba70dc3d5b05997c92189c5650e5c",
   "contractDigests": {
     "agent": "0afbde31bd07059bc872324c82711bb8284fba1722c5bf9aa6b7cf76a42f7060",
-    "service": "b5177fdfd9a35d163f37c79aa8cdf51fada33ec02d6a50db5452064107aaf6cf",
+    "service": "896e341335e4fccd8b6cf94c535eae2025d65103b8af6b713fa31911cc0be584",
     "worker": "f7def7a70065868cf99d6a769e724347ebb9af048a5fdb656d4b7498768620b9"
   },
   "operations": [
@@ -2635,6 +2635,39 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getRecoveryMove",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/recovery-moves/{moveId}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "moveId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRecoveryMove",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getService",
       "pagination": "none",
       "path": "/api/v1/services/{source}/{serviceId}",
@@ -4599,6 +4632,42 @@
         "application/json"
       ],
       "responseSchema": "ServiceReleaseGroup",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "reviseRecoveryMoveVolume",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/environments/{environmentId}/recovery-moves/{moveId}/volumes/{volumeRef}",
+      "pathParameters": [
+        "serviceId",
+        "environmentId",
+        "moveId",
+        "volumeRef"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ReviseRecoveryMoveVolumeRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceRecoveryMoveRevisionResponse",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null

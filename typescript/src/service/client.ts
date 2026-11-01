@@ -210,6 +210,10 @@ export class ServiceClient {
         this.administrationMutation('previewServiceEnvironmentReassignment', { path: { serviceId, environmentId }, body, ...mutationRequest(options) }),
       reassign: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'reassignServiceEnvironment'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('reassignServiceEnvironment', { path: { serviceId, environmentId }, body, ...administrationWrite(options) }, true),
+      recoveryMove: (serviceId: string, environmentId: string, moveId: string, options: RequestOptions = {}) =>
+        this.request('getRecoveryMove', { path: { serviceId, environmentId, moveId }, signal: options.signal }),
+      reviseRecoveryMoveVolume: (serviceId: string, environmentId: string, moveId: string, volumeRef: string, body: OpenAPIRequestBody<'reviseRecoveryMoveVolume'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('reviseRecoveryMoveVolume', { path: { serviceId, environmentId, moveId, volumeRef }, body, ...administrationWrite(options) }, true),
       removalImpact: (serviceId: string, environmentId: string, options: RequestOptions = {}) =>
         this.request('getServiceEnvironmentRemovalImpact', { path: { serviceId, environmentId }, signal: options.signal }),
       delete: (serviceId: string, environmentId: string, body: OpenAPIRequestBody<'deleteServiceEnvironment'>, options: AdministrationWriteOptions) =>
