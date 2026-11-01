@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '47e54a3aff83f8e34ead22b552547ee48d458f8b3f4447e923d25155b5c7ea1e'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = 'eaa33d8443f0431112bc1e9d35ee4150803d180042771015feb41a8b00ab99da'
+OPENAPI_SPEC_SHA256 = '896e341335e4fccd8b6cf94c535eae2025d65103b8af6b713fa31911cc0be584'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'f3dce6dee939b7245252ca30d36a85e4ecbba70dc3d5b05997c92189c5650e5c'
 OPENAPI_OPERATION_COUNT = 121
 OPENAPI_CLIENT_OPERATION_COUNT = 121
 
@@ -3189,7 +3189,7 @@ class OpenAPIClient:
     def list_service_apps(self) -> ListServiceAppsResponseBody:
         return cast(ListServiceAppsResponseBody, self._transport(OperationId.LIST_SERVICE_APPS))
 
-    def list_service_configuration_operations(self, *, limit: int | None = None, cursor: str | None = None, service_ref: str | None = None, state: Literal['pending', 'applying', 'succeeded', 'failed', 'blocked'] | None = None) -> ListServiceConfigurationOperationsResponseBody:
+    def list_service_configuration_operations(self, *, limit: int | None = None, cursor: str | None = None, service_ref: str | None = None, state: Literal['pending', 'applying', 'succeeded', 'failed', 'blocked', 'superseded'] | None = None) -> ListServiceConfigurationOperationsResponseBody:
         _query: dict[str, Any] = {}
         if limit is not None: _query['limit'] = limit
         if cursor is not None: _query['cursor'] = cursor
