@@ -494,7 +494,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 103)
+        self.assertEqual(len(exposed), 104)
 
         client.administration.target_services.attach_target_service(
             {
@@ -555,7 +555,7 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 96)
+        self.assertEqual(len(opener.requests), 97)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
@@ -743,7 +743,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 96)
+            self.assertEqual(len(opener.requests), 97)
 
         asyncio.run(run())
 

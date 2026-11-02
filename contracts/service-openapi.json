@@ -849,7 +849,7 @@
           "Release Groups"
         ],
         "summary": "Preview and fence a multi-project release",
-        "description": "Validates the complete dependency graph, exact revisions or artifacts, worker placement, current deployments, environment versions, verification policy, and overlap fences without dispatching work. Independent dependency-ready members form an explicit parallel group. An exact-commit member's `expectedCommitSha` must be the head of its `branch`, and is otherwise refused with `409` `SERVICE_STATE_CHANGED`. A member whose repository credential is held by its Worker (a private GitHub service bound to no GitHub installation, GitLab, or Bitbucket) has its head read by that Worker; a Worker that must be upgraded first fails the preview with `409` `WORKER_UPGRADE_REQUIRED`, and any other unreadable or moved head with `409` `SERVICE_STATE_CHANGED`. Such a member later fails with `REPOSITORY_CREDENTIAL_UNAVAILABLE` when its Worker holds no credential that can read the repository, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` while a supplied one is still being delivered, `SECRET_RESUBMISSION_REQUIRED` when it must be resubmitted, and `WORKER_UPGRADE_REQUIRED` when its Worker must be upgraded, with no build dispatched.",
+        "description": "Validates the complete dependency graph, exact revisions or artifacts, worker placement, current deployments, environment versions, verification policy, and overlap fences without dispatching work. Independent dependency-ready members form an explicit parallel group. An exact-commit member's `expectedCommitSha` must be the head of its `branch`, and is otherwise refused with `409` `SERVICE_STATE_CHANGED`. A member whose repository credential is held by its Worker (a private GitHub service bound to no GitHub installation, GitLab, or Bitbucket) has its head read by that Worker; a Worker that must be upgraded first fails the preview with `409` `WORKER_UPGRADE_REQUIRED`, and any other unreadable or moved head with `409` `SERVICE_STATE_CHANGED`. Such a member later fails with `REPOSITORY_CREDENTIAL_UNAVAILABLE` when its Worker holds no credential that can read the repository, `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` while a supplied one is still being delivered, `SECRET_RESUBMISSION_REQUIRED` when it must be resubmitted, and `WORKER_UPGRADE_REQUIRED` when its Worker must be upgraded, with no build dispatched. A member whose environment awaits the confirmation of a recovery move's variables (confirmRecoveryMoveVariables) fails with `VARIABLES_UNRECONCILED`, with no build dispatched.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1588,7 +1588,7 @@
             }
           },
           "409": {
-            "description": "Conflict. These refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the Worker that holds the service's credential holds none, or holds one the repository refuses (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded to read the branch head (`details.workerId`, `details.requiredCapability`); `NO_ELIGIBLE_WORKER`, no Worker can read the branch head; `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. These refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the Worker that holds the service's credential holds none, or holds one the repository refuses (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded to read the branch head (`details.workerId`, `details.requiredCapability`); `NO_ELIGIBLE_WORKER`, no Worker can read the branch head; `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -1671,7 +1671,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Four refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -1803,7 +1803,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Four refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED`, `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED`, `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -3189,6 +3189,99 @@
                 "$ref": "#/components/schemas/ReviseRecoveryMoveVolumeRequest"
               }
             }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/environments/{environmentId}/recovery-moves/{moveId}/variables/confirm": {
+      "post": {
+        "operationId": "confirmRecoveryMoveVariables",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Confirm Recovery Move Variables",
+        "description": "Confirms that the variables the environment's Worker now holds are the complete set, after a recovery move off a lost Worker. Variable values lived only on the lost source, so the move restores none: it records the variables the control plane knows of (the record's `variables.knownVariables`), creates each `resubmissionRequired` one on the destination with an empty value, and refuses every deployment of the environment as `409 VARIABLES_UNRECONCILED` until this confirmation. Supply every value on the environment's Worker first (through the Service API or the console); any other variable the environment needs must be created too, since the known inventory may be incomplete. `If-Match` is the variable collection ETag of the Worker the environment is on (the move's destination, or the Worker a later live reassignment relayed the set to), read from its masked variable collection, so you confirm exactly the set you read. In one transaction it clears the environment's mark, marks the record's variables `confirmed` and advances the record's version, and it is audited with every confirmed variable name. Refusals write nothing.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentId"
+          },
+          {
+            "$ref": "#/components/parameters/RecoveryMoveId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceRecoveryMoveConfirmationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `VARIABLE_RESUBMISSION_REQUIRED`: a recorded `resubmissionRequired` variable that still exists in the Service API is absent from the environment's Worker or has no value there (`details.names`); supply them, or delete a variable the environment no longer needs through the Service API. `SERVICE_STATE_CHANGED`: the record's variables are not awaiting confirmation (already confirmed, recorded before variable reconciliation, or superseded by a later recovery move of the environment), the environment has no Worker, or it moved to another Worker while its variables were read. `WORKER_UPGRADE_REQUIRED`: the environment's Worker cannot serve its masked variables. `VARIABLE_RESUBMISSION_REQUIRED`, `WORKER_UPGRADE_REQUIRED` and the Worker changes of `SERVICE_STATE_CHANGED` are not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "`PRECONDITION_FAILED`: `If-Match` is not the current variable collection ETag of the environment's Worker. Read the variables again before confirming. Not stored against the Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`WORKER_UNAVAILABLE`: the environment's Worker could not be read. Not stored against the Idempotency-Key; retry once it is reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
           }
         },
         "x-postgrip-operation-class": "tenant-api",
@@ -5249,7 +5342,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Four refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -11304,7 +11397,7 @@
           },
           "sourceLost": {
             "type": "boolean",
-            "description": "The source Worker is lost: removed, replaced, revoked, or offline with a session it no longer has. The move is then a recovery move: the source is never contacted, its volumes take the recovery dispositions, its pending legacy adoptions do not block the move, and its variables are not relayed. The signed `impactHash` covers it, so a source that changes either way before the reassignment invalidates the preview."
+            "description": "The source Worker is lost: removed, replaced, revoked, or offline with a session it no longer has. The move is then a recovery move: the source is never contacted, its volumes take the recovery dispositions, its pending legacy adoptions do not block the move, and its variables are not relayed: `knownVariables` lists the ones the control plane knows of, and the move leaves the environment refusing deployments until confirmRecoveryMoveVariables. The signed `impactHash` covers it, so a source that changes either way before the reassignment invalidates the preview."
           },
           "destinationWorkerId": {
             "type": "string",
@@ -11336,6 +11429,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ServiceReassignmentVolumeImpact"
+            }
+          },
+          "knownVariables": {
+            "type": "array",
+            "description": "Only when `sourceLost`: the variables the control plane knows of for the environment, which may be incomplete (a variable created only through the console is not listed). The move creates each `resubmissionRequired` one on the destination with an empty value; supply every value there, and create any variable the list misses, before confirmRecoveryMoveVariables.",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRecoveryKnownVariable"
             }
           },
           "impactHash": {
@@ -12024,6 +12124,9 @@
               "$ref": "#/components/schemas/ServiceRecoveryMoveVolume"
             }
           },
+          "variables": {
+            "$ref": "#/components/schemas/ServiceRecoveryMoveVariables"
+          },
           "version": {
             "type": "integer",
             "format": "int64"
@@ -12060,6 +12163,89 @@
             "type": "string",
             "format": "uuid",
             "description": "Required with `replace-with`, and only with it: a volume available on the move's destination."
+          }
+        }
+      },
+      "ServiceRecoveryKnownVariable": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "A variable a recovery move knows of: one the Service API records for the environment. The inventory may be incomplete: a variable created only through the console is not listed.",
+        "required": [
+          "variableId",
+          "name",
+          "isSecret",
+          "resubmissionRequired"
+        ],
+        "properties": {
+          "variableId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isSecret": {
+            "type": "boolean"
+          },
+          "resubmissionRequired": {
+            "type": "boolean",
+            "description": "The variable had a value on the lost source, so a value must be supplied again on the destination before confirmRecoveryMoveVariables. On a record, false also for a variable deleted through the Service API since the move."
+          },
+          "unverifiedValue": {
+            "type": "string",
+            "description": "Preview only, for a non-secret variable: the value its Configuration document declares. Nothing proves it current (a console edit does not update the document), so it is a suggestion to verify, never restored."
+          }
+        }
+      },
+      "ServiceRecoveryMoveVariables": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "A recovery move's variables. `unreconciled` from the move, while every deployment of the environment is refused as `VARIABLES_UNRECONCILED`, until confirmRecoveryMoveVariables makes them `confirmed`. Absent on a move recorded before variable reconciliation.",
+        "required": [
+          "state",
+          "knownVariables"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "unreconciled",
+              "confirmed"
+            ]
+          },
+          "knownVariables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceRecoveryKnownVariable"
+            }
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ServiceRecoveryMoveConfirmationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recoveryMove",
+          "confirmedVariableNames",
+          "receipt"
+        ],
+        "properties": {
+          "recoveryMove": {
+            "$ref": "#/components/schemas/ServiceRecoveryMove"
+          },
+          "confirmedVariableNames": {
+            "type": "array",
+            "description": "Every variable name the environment's Worker held at the confirmed ETag.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
           }
         }
       },

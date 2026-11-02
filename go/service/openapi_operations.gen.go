@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "896e341335e4fccd8b6cf94c535eae2025d65103b8af6b713fa31911cc0be584"
-	OpenAPIContractBundleSHA256 = "f3dce6dee939b7245252ca30d36a85e4ecbba70dc3d5b05997c92189c5650e5c"
-	OpenAPIOperationCount       = 121
+	OpenAPISpecSHA256           = "ac469c153f7368128d5730e928553bfbbd4dbf157ea857fd1f880e5eb6ba7ee5"
+	OpenAPIContractBundleSHA256 = "77c3f0c12e83cb2b2eb31b67b623e9fb3281bbbce39ee61b6b03e303ba83097e"
+	OpenAPIOperationCount       = 122
 )
 
 type openAPIOperationID string
@@ -32,6 +32,7 @@ const (
 	openAPIClearServiceRepositoryCredential               openAPIOperationID = "clearServiceRepositoryCredential"
 	openAPIClearServiceVariableValue                      openAPIOperationID = "clearServiceVariableValue"
 	openAPIClearTargetServiceConnection                   openAPIOperationID = "clearTargetServiceConnection"
+	openAPIConfirmRecoveryMoveVariables                   openAPIOperationID = "confirmRecoveryMoveVariables"
 	openAPICreatePostGripConfigurationPlan                openAPIOperationID = "createPostGripConfigurationPlan"
 	openAPICreateServiceApp                               openAPIOperationID = "createServiceApp"
 	openAPICreateServiceDNSPlan                           openAPIOperationID = "createServiceDNSPlan"
@@ -159,6 +160,7 @@ var openAPIOperationTable = map[openAPIOperationID]transport.Operation{
 	openAPIClearServiceRepositoryCredential:               {ID: "clearServiceRepositoryCredential", Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/repository/credentials/{credentialKind}", AuthLane: "service-management", Safety: "destructive", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRepositoryMutationResponse", PathParameters: []string{"serviceId", "credentialKind"}, HeaderParameters: []string{"Idempotency-Key", "If-Match"}},
 	openAPIClearServiceVariableValue:                      {ID: "clearServiceVariableValue", Method: "DELETE", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/variables/{variableId}/value", AuthLane: "service-management", Safety: "destructive", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceVariableMutationResponse", PathParameters: []string{"serviceId", "environmentId", "variableId"}, HeaderParameters: []string{"Idempotency-Key", "If-Match"}},
 	openAPIClearTargetServiceConnection:                   {ID: "clearTargetServiceConnection", Method: "DELETE", Path: "/api/v1/services/target/{serviceId}/connection", AuthLane: "service-management", Safety: "destructive", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceTargetMutationResponse", PathParameters: []string{"serviceId"}, HeaderParameters: []string{"Idempotency-Key", "If-Match"}},
+	openAPIConfirmRecoveryMoveVariables:                   {ID: "confirmRecoveryMoveVariables", Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/recovery-moves/{moveId}/variables/confirm", AuthLane: "service-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "ServiceRecoveryMoveConfirmationResponse", PathParameters: []string{"serviceId", "environmentId", "moveId"}, HeaderParameters: []string{"Idempotency-Key", "If-Match"}},
 	openAPICreatePostGripConfigurationPlan:                {ID: "createPostGripConfigurationPlan", Method: "POST", Path: "/api/v1/services/configuration-stacks/{stackKey}/plans", AuthLane: "service-management", Safety: "read-only", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreatePostGripConfigurationPlanRequest", ResponseSchema: "PostGripConfigurationPlan", PathParameters: []string{"stackKey"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPICreateServiceApp:                               {ID: "createServiceApp", Method: "POST", Path: "/api/v1/services/apps", AuthLane: "service-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceAppRequest", ResponseSchema: "ServiceAppMutationResponse", PathParameters: []string{}, HeaderParameters: []string{"Idempotency-Key", "If-Match"}},
 	openAPICreateServiceDNSPlan:                           {ID: "createServiceDNSPlan", Method: "POST", Path: "/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans", AuthLane: "service-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "CreateServiceDNSPlanRequest", ResponseSchema: "ServiceDNSPlan", PathParameters: []string{"serviceId", "environmentId", "domainId"}, HeaderParameters: []string{"Idempotency-Key"}},
