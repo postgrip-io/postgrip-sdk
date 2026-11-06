@@ -8,6 +8,12 @@ nav_order: 7
 
 ## Unreleased
 
+- A managed workflow runtime's `client.NewConnection` with an empty `Address`
+  now connects to the `POSTGRIP_AGENTORCHESTRATOR_URL` its host Agent injects,
+  ahead of `POSTGRIP_AGENT_URL` and `POSTGRIP_URL`. Previously it ignored that
+  address, so on installations not served by the built-in cloud address the
+  runtime polled the wrong host. Outside a managed runtime, and with an
+  explicit `Address`, resolution is unchanged.
 - `protocol.PollTaskResponse`, `protocol.Sandbox`, `protocol.TaskResult` and
   `protocol.SandboxCreateRequest` (and their `client` aliases) keep an explicit
   JSON `null` for their optional nullable properties when a decoded value is

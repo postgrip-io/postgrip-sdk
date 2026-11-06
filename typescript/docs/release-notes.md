@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- A managed workflow runtime's Agent `Connection.create` or `Connection.connect`
+  without a `baseUrl` now connects to the `POSTGRIP_AGENTORCHESTRATOR_URL` its
+  host Agent injects, ahead of `POSTGRIP_AGENT_URL` and `POSTGRIP_URL`.
+  Previously it ignored that address, so on installations not served by the
+  built-in cloud address the runtime polled the wrong host. Outside a managed
+  runtime, and with an explicit `baseUrl`, resolution is unchanged.
 - Worker requests run through a shared contract-driven executor. Each exchange
   is bounded at 30 seconds by default (`WorkerClientConfig.timeoutMs`), and an
   earlier `AbortSignal` abort still wins.

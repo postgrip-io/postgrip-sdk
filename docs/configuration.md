@@ -40,9 +40,21 @@ when that same insecure-development option is enabled explicitly.
 
 Direct Worker and Service clients expose environment factory methods using
 the same plane URL and `POSTGRIP_TOKEN` variables; their ordinary constructors
-take explicit configuration. Agent connections also consult the environment
-and fall back to the built-in cloud address when no URL is supplied. Direct
-plane clients do not import or initialize the root facade or another plane.
+take explicit configuration. Direct plane clients do not import or initialize
+the root facade or another plane.
+
+A directly constructed Agent connection (Go `client.NewConnection`, TypeScript
+`Connection.create`/`connect`, Python `Connection`/`Client.connect`) uses the
+first configured address of:
+
+1. Its explicit address option.
+2. `POSTGRIP_AGENTORCHESTRATOR_URL`, only when `POSTGRIP_AGENT_MANAGED_RUNTIME`
+   is `true`. A host PostGrip Agent injects both into each managed workflow
+   runtime it launches, and a task cannot override `POSTGRIP_*` variables.
+3. `POSTGRIP_AGENT_URL`.
+4. `POSTGRIP_URL`.
+5. The built-in cloud address, `https://agentorchestrator1.postgrip.io`.
+
 See [authentication](authentication.md) for Agent runtime credential selection.
 
 ## Timeouts, retries, and idempotency

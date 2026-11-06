@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- A managed workflow runtime's Agent `Connection` or `Client.connect` without an
+  address now connects to the `POSTGRIP_AGENTORCHESTRATOR_URL` its host Agent
+  injects, ahead of `POSTGRIP_AGENT_URL` and `POSTGRIP_URL`. Previously it
+  ignored that address, so on installations not served by the built-in cloud
+  address the runtime polled the wrong host. Outside a managed runtime, and
+  with an explicit address, resolution is unchanged.
 - Agent HTTP failures, including workspace uploads, raise the new exported
   `AgentAPIError`, a `PostGripAPIError` and still a `RuntimeError`, instead of a
   `RuntimeError` carrying the server body. Its `str()` and `repr()` name only
