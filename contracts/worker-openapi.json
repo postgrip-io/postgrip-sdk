@@ -65,7 +65,7 @@
           "Workers"
         ],
         "summary": "Create a pending Worker with client-owned bootstrap material",
-        "description": "The caller must durably store the write-only bootstrap values and Idempotency-Key before sending this request. The response never returns either bootstrap value.",
+        "description": "The caller must durably store the write-only bootstrap values and Idempotency-Key before sending this request. The response never returns either bootstrap value. Public Worker creation is enabled per tenant: a tenant it is not enabled for gets `404` `CAPABILITY_NOT_ENABLED`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -484,6 +484,7 @@
           "Logs"
         ],
         "summary": "List operational logs",
+        "description": "Requires a Worker that advertises the `log_cursor_v1` capability: an older Worker answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. An invalid `window` or `since` answers `400` `VALIDATION`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -566,6 +567,7 @@
           "Logs"
         ],
         "summary": "List security logs",
+        "description": "Requires a Worker that advertises the `log_cursor_v1` capability: an older Worker answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. An invalid `window` or `since` answers `400` `VALIDATION`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -660,6 +662,7 @@
           "Workers"
         ],
         "summary": "Place a worker in maintenance",
+        "description": "A quarantined or revoked Worker is not placed in maintenance: the request answers `409` `LIFECYCLE_CONFLICT` with `details.status`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -713,7 +716,7 @@
           "Workers"
         ],
         "summary": "Resume a worker from maintenance",
-        "description": "A revoked worker is never resumed: revoked is terminal, so the request changes nothing and answers 409 WORKER_REVOKED. Enroll a new worker or replace the revoked one instead. The refusal is permanent, so a retry with the same Idempotency-Key replays it.",
+        "description": "A revoked worker is never resumed: revoked is terminal, so the request changes nothing and answers 409 WORKER_REVOKED. Enroll a new worker or replace the revoked one instead. The refusal is permanent, so a retry with the same Idempotency-Key replays it. Any other Worker that is not in maintenance answers `409` `LIFECYCLE_CONFLICT` with `details.status`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -869,6 +872,7 @@
         }
       },
       "LogWindow": {
+        "description": "How far back to read, as a Go duration greater than 0 and at most `24h`, for example `15m`. Ignored when `since` is sent.",
         "name": "window",
         "in": "query",
         "schema": {
@@ -880,6 +884,7 @@
         }
       },
       "LogSince": {
+        "description": "Read events from this RFC 3339 instant. It must be within the last 24 hours and at most 5 minutes ahead of the server clock. Takes precedence over `window`.",
         "name": "since",
         "in": "query",
         "schema": {
@@ -1008,11 +1013,13 @@
         ],
         "properties": {
           "name": {
+            "description": "At most 128 bytes of UTF-8, with no leading or trailing whitespace and no control characters.",
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           },
           "host": {
+            "description": "The Worker's public origin: an absolute https URL with a hostname and optional port, and no credentials, path, query, fragment or IPv6 zone. An IP literal in a private, loopback or link-local range is refused. The hostname does not have to resolve yet.",
             "type": "string",
             "format": "uri",
             "pattern": "^https://",
@@ -1162,7 +1169,7 @@
           },
           "recoveredFromWorkerId": {
             "type": "string",
-            "format": "uuid"
+            "description": "The identifier of the Worker this one was recovered from, as the Worker reports it."
           },
           "recoverySourceWorkerId": {
             "type": "string",
