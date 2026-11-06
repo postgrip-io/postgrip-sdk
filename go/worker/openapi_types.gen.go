@@ -229,4 +229,4 @@ type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
 
-const openAPITypesSpecSHA256 = "f7def7a70065868cf99d6a769e724347ebb9af048a5fdb656d4b7498768620b9"
+const openAPITypesSpecSHA256 = "9b87efa1eb8e99dc8f6514a0f4d37f26de7fed401cbf9e51051253226c0be38f"
