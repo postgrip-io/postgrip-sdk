@@ -39,7 +39,7 @@
       "get": {
         "operationId": "health",
         "summary": "Liveness probe",
-        "description": "Returns a fixed ok status without touching the store. This is the only route that bypasses authentication entirely, so an uptime monitor can call it with no credential.",
+        "description": "Returns a fixed ok status without touching the store. It needs no credential at all, so an uptime monitor can call it. (`refreshAgentSession` is also public, but its body carries a refresh token.)",
         "tags": [
           "System"
         ],
@@ -771,7 +771,7 @@
       "post": {
         "operationId": "pauseSchedule",
         "summary": "Pause a schedule",
-        "description": "Stops the schedule firing without deleting it, and returns the updated schedule.",
+        "description": "Stops the schedule firing without deleting it, and returns the updated schedule. The request's `reason` is accepted but not stored or audited.",
         "tags": [
           "Schedules"
         ],
@@ -825,6 +825,7 @@
       "post": {
         "operationId": "unpauseSchedule",
         "summary": "Resume a paused schedule",
+        "description": "The request's `reason` is accepted but not stored or audited.",
         "tags": [
           "Schedules"
         ],
@@ -878,7 +879,7 @@
       "post": {
         "operationId": "triggerSchedule",
         "summary": "Run a schedule immediately",
-        "description": "Fires the schedule out of band from its spec. The next scheduled run is unaffected.",
+        "description": "Fires the schedule out of band from its spec. The next scheduled run is unaffected. The request's `reason` is accepted but not stored or audited.",
         "tags": [
           "Schedules"
         ],
@@ -939,7 +940,7 @@
       "post": {
         "operationId": "backfillSchedule",
         "summary": "Backfill a schedule across a time range",
-        "description": "Enqueues one task per scheduled instant between the requested start and end. A range that would exceed the server's per-request cap is rejected outright rather than silently truncated.",
+        "description": "Enqueues one task per scheduled instant between the requested start and end. A request enqueues at most 100 tasks: a range with more scheduled instants is truncated to its first 100 and still answers 202, so backfill a longer range in several requests.",
         "tags": [
           "Schedules"
         ],
@@ -2061,7 +2062,7 @@
       "post": {
         "operationId": "createSandbox",
         "summary": "Create a sandbox",
-        "description": "Records the desired sandbox and returns 201. Provisioning is asynchronous, so the returned record is not yet running. Names must be unique per tenant among live sandboxes.",
+        "description": "Records the desired sandbox and returns 201. Provisioning is asynchronous, so the returned record is not yet running. Names must be unique per tenant among live sandboxes. The request answers 400 unless: `name` matches `^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$`; `architecture`, when set, is `amd64` or `arm64`; resource limits are non-negative, at most 4 CPUs and 4 GiB of memory, with disk between 64 MiB and 20 GiB; every port mapping has host and guest ports from 1 through 65535, protocol `tcp` (the default) or `udp`, and no host port repeats for a protocol; `internetEgress` is not combined with `denyHostAccess` or `allowCidrs`; `expiresAt`, when set, is in the future and at most 24 hours ahead (it defaults to 24 hours).",
         "tags": [
           "Sandboxes"
         ],
@@ -2559,7 +2560,7 @@
       "get": {
         "operationId": "connectSandboxSession",
         "summary": "Attach to an interactive session over WebSocket",
-        "description": "Upgrades to the one-shot WebSocket stream authorized by the ticket. For pty and exec sessions, binary messages carry raw stdin/stdout bytes and stdout/stderr are interleaved. postgrip.sandbox.terminal.v1 reserves client-to-agent text frames for strict resize JSON of the form {\"type\":\"resize\",\"rows\":24,\"columns\":80}; postgrip.sandbox.terminal.v2 applies strict JSON control framing in both directions and additionally permits agent-to-client notice messages of the form {\"type\":\"notice\",\"code\":\"session_ready\",\"message\":\"Sandbox stream is ready\"}. Rows and columns must be integers from 1 through 65535. A zero-length client binary message signals terminal stdin EOF without closing output. Without a negotiated terminal protocol, text messages remain legacy raw stdin. Exec exit codes, and only exec exit codes, use WebSocket close status 4000 plus the process code. For port sessions, postgrip.sandbox.port.v1 carries raw TCP bytes in binary messages; text messages are invalid, and terminal controls and terminal close-code semantics do not apply. Ping/Pong liveness is enforced independently on every proxy hop, and any failed hop terminates both relay peers.",
+        "description": "Upgrades to the one-shot WebSocket stream authorized by the ticket. For pty and exec sessions, binary messages carry raw stdin/stdout bytes and stdout/stderr are interleaved. postgrip.sandbox.terminal.v1 reserves client-to-agent text frames for strict resize JSON of the form {\"type\":\"resize\",\"rows\":24,\"columns\":80}; postgrip.sandbox.terminal.v2 applies strict JSON control framing in both directions and additionally permits agent-to-client notice messages of the form {\"type\":\"notice\",\"code\":\"session_ready\",\"message\":\"Sandbox stream is ready\"}. Rows and columns must be integers from 1 through 65535. A zero-length client binary message signals terminal stdin EOF without closing output. Without a negotiated terminal protocol, text messages remain legacy raw stdin. Exec exit codes, and only exec exit codes, use WebSocket close status 4000 plus the process code. For port sessions, postgrip.sandbox.port.v1 carries raw TCP bytes in binary messages; text messages are invalid, and terminal controls and terminal close-code semantics do not apply. Ping/Pong liveness is enforced independently on every proxy hop, and any failed hop terminates both relay peers. Two refusals are plain text rather than the JSON error body: a cross-origin request answers 403, and a session that can no longer be claimed answers 409.",
         "tags": [
           "Sandboxes"
         ],
@@ -4335,6 +4336,7 @@
             }
           },
           "credentialRefs": {
+            "description": "Not supported yet: any non-empty value answers 400.",
             "type": "array",
             "items": {
               "type": "string"
