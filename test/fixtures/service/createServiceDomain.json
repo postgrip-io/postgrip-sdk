@@ -33,7 +33,7 @@
       "Content-Type": "application/json",
       "X-Request-Id": "req_createServiceDomain"
     },
-    "status": 201
+    "status": 202
   },
   "schemaVersion": 1
 }
