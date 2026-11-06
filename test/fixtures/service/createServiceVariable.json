@@ -33,7 +33,7 @@
       "Content-Type": "application/json",
       "X-Request-Id": "req_createServiceVariable"
     },
-    "status": 201
+    "status": 202
   },
   "schemaVersion": 1
 }

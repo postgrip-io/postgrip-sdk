@@ -44,7 +44,7 @@
       "Content-Type": "application/json",
       "X-Request-Id": "req_createServiceVolume"
     },
-    "status": 201
+    "status": 202
   },
   "schemaVersion": 1
 }

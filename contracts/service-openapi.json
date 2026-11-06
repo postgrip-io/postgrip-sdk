@@ -141,6 +141,14 @@
         "responses": {
           "201": {
             "description": "Service application created",
+            "headers": {
+              "Service-Catalog-ETag": {
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key carries it too.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -261,6 +269,14 @@
         "responses": {
           "200": {
             "description": "Service application updated",
+            "headers": {
+              "Service-Catalog-ETag": {
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key carries it too.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -313,6 +329,14 @@
         "responses": {
           "200": {
             "description": "Service application deleted and attached services detached",
+            "headers": {
+              "Service-Catalog-ETag": {
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key carries it too.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -970,7 +994,7 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/Limit"
+            "$ref": "#/components/parameters/ReleaseGroupLimit"
           },
           {
             "$ref": "#/components/parameters/Cursor"
@@ -1147,7 +1171,7 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/Limit"
+            "$ref": "#/components/parameters/ReleaseGroupLimit"
           },
           {
             "$ref": "#/components/parameters/Cursor"
@@ -2064,6 +2088,14 @@
         "responses": {
           "202": {
             "description": "Successful response",
+            "headers": {
+              "Service-Catalog-ETag": {
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key does not carry it; read the catalog ETag again before the next mutation.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2471,6 +2503,14 @@
         "responses": {
           "201": {
             "description": "Successful response",
+            "headers": {
+              "Service-Catalog-ETag": {
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key does not carry it; read the catalog ETag again before the next mutation.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2860,6 +2900,14 @@
         "responses": {
           "201": {
             "description": "Successful response",
+            "headers": {
+              "Service-Project-ETag": {
+                "description": "The project's ETag after this change. Send it as `If-Match` on the next `createServiceEnvironment` for this project. A replay with the same Idempotency-Key does not carry it.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -3496,8 +3544,16 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "Successful response",
+          "202": {
+            "description": "Accepted. The change is recorded and applied to the Worker by the configuration operation the body names.",
+            "headers": {
+              "Service-Collection-ETag": {
+                "description": "The service's volume collection ETag after this change. Send it as `If-Match` on the next `createServiceVolume` for this service. A replay with the same Idempotency-Key does not carry it.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -4002,8 +4058,16 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "Successful response",
+          "202": {
+            "description": "Accepted. The change is recorded and applied to the Worker by the configuration operation the body names.",
+            "headers": {
+              "Service-Collection-ETag": {
+                "description": "The environment's domain collection ETag after this change. Send it as `If-Match` on the next `createServiceDomain` for this environment. A replay with the same Idempotency-Key does not carry it.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -4371,8 +4435,16 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "Successful response",
+          "202": {
+            "description": "Accepted. The change is recorded and applied to the Worker by the configuration operation the body names.",
+            "headers": {
+              "Service-Collection-ETag": {
+                "description": "The environment's variable collection ETag after this change. Send it as `If-Match` on the next `createServiceVariable` for this environment. A replay with the same Idempotency-Key does not carry it.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -7420,6 +7492,17 @@
           "format": "uuid"
         }
       },
+      "ReleaseGroupLimit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Page size. Larger values are clamped to 100.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 100
+        }
+      },
       "Limit": {
         "name": "limit",
         "in": "query",
@@ -8623,12 +8706,11 @@
           "kind": {
             "type": "string",
             "enum": [
-              "postgresql",
-              "sqlite",
-              "web",
-              "backend",
-              "zvec",
-              "ladybugdb"
+              "preview",
+              "production",
+              "staging",
+              "development",
+              "custom"
             ]
           },
           "worker": {
@@ -11698,9 +11780,6 @@
           "version": {
             "type": "integer",
             "format": "int64"
-          },
-          "errorCode": {
-            "type": "string"
           }
         }
       },
@@ -11765,10 +11844,6 @@
           "errorCode": {
             "type": "string",
             "description": "Machine-readable code for the target's outcome, normally set when the target failed or is blocked. A `succeeded` target of a `repository-credential-refresh` operation with `CREDENTIAL_SOURCE_SUPPLIED` is a Worker skipped because its `source-access` credential is supplied: it was sent nothing and kept that credential. A `blocked` target of a repository credential put, clear or refresh, a GitHub repository adoption, or a configuration apply with `CREDENTIAL_SUPERSEDED` is a Worker whose credential a newer decision for the same service already owns: this obsolete intent was not delivered, the Worker keeps the newer decision's credential, and nothing needs to be retried. A `succeeded` target of a deletion (an operation whose kind ends in `-delete`) with `WORKER_CLEANUP_SKIPPED` is a Worker that is gone, removed, replaced or revoked: the deletion completed in the control plane and nothing was sent to that Worker. `WORKER_UNAVAILABLE` on a `blocked` target has two meanings. On a repository-credential target it is a live Worker whose delivery attempts were exhausted, recoverable once the Worker is reachable: for a clear or removal target, retry the cleanup; for an issue target (a put, refresh or adoption), make a new credential decision by repeating the put or refresh. On any other target it is a Worker that is gone, removed, replaced or revoked, which no retry can reach. `MANAGED_VOLUME_ADOPTION_FAILED` on a `failed` target of a `legacy-volume-adopt` operation is the Worker refusing to adopt the legacy directory (missing, unreadable or conflicting); it is retried, and a recovery move's step in that state can be repaired with `reviseRecoveryMoveVolume`."
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },

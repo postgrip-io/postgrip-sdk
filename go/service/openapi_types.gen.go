@@ -938,8 +938,7 @@ type OpenAPIServiceRuntimeLogWorkerStatus struct {
 		OldestEntry       *time.Time `json:"oldestEntry,omitempty"`
 		NewestEntry       *time.Time `json:"newestEntry,omitempty"`
 	} `json:"storage,omitempty"`
-	Version   int64   `json:"version"`
-	ErrorCode *string `json:"errorCode,omitempty"`
+	Version int64 `json:"version"`
 }
 type OpenAPIServiceRuntimeLogStatus struct {
 	Consistency string                                 `json:"consistency"`
@@ -948,11 +947,10 @@ type OpenAPIServiceRuntimeLogStatus struct {
 	Etag        string                                 `json:"etag"`
 }
 type OpenAPIServiceConfigurationTargetState struct {
-	WorkerId      *string    `json:"workerId,omitempty"`
-	EnvironmentId *string    `json:"environmentId,omitempty"`
-	State         string     `json:"state"`
-	ErrorCode     *string    `json:"errorCode,omitempty"`
-	UpdatedAt     *time.Time `json:"updatedAt,omitempty"`
+	WorkerId      *string `json:"workerId,omitempty"`
+	EnvironmentId *string `json:"environmentId,omitempty"`
+	State         string  `json:"state"`
+	ErrorCode     *string `json:"errorCode,omitempty"`
 }
 type OpenAPIServiceConfigurationOperation struct {
 	Id            string                                   `json:"id"`
@@ -2492,4 +2490,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "ac469c153f7368128d5730e928553bfbbd4dbf157ea857fd1f880e5eb6ba7ee5"
+const openAPITypesSpecSHA256 = "a04e230c8143ee3f8e3ed9ff0689e45a02efaab69e07f4f3bf41fd1719f4b231"
