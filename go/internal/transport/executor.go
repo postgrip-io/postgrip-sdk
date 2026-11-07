@@ -82,6 +82,10 @@ type Call struct {
 	// a long poll whose server hold counts against it. It never lowers a
 	// configured timeout, and an unbounded client stays unbounded.
 	Lifetime time.Duration
+	// NoRetryStatuses are otherwise retryable statuses this call never retries,
+	// such as an answer the server does not keep against the idempotency key,
+	// after which a resend repeats the operation's side effect.
+	NoRetryStatuses []int
 }
 
 // Response is the bounded raw response of a successful or accepted exchange.
@@ -181,7 +185,8 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 		}
 		apiErr, retryAfterSet := decodeAPIError(response, responseBody, e.Retry.RetryAfterMax)
 		apiErr.Method, apiErr.Route, apiErr.Body = operation.Method, operation.Path, responseBody
-		if attempt < maxAttempts && RetryableStatus(response.StatusCode) {
+		if attempt < maxAttempts && RetryableStatus(response.StatusCode) &&
+			!slices.Contains(call.NoRetryStatuses, response.StatusCode) {
 			if err := waitRetry(ctx, e.Retry.delay(attempt, response.StatusCode, apiErr.RetryAfter, retryAfterSet)); err != nil {
 				return nil, err
 			}

@@ -108,6 +108,19 @@ class ExecutorTests(unittest.TestCase):
             self.assertEqual(executor(opener).request(Operation()), {"ok": True})
         self.assertEqual(len(opener.requests), 2)
 
+    def test_never_retries_the_statuses_a_call_excludes_and_still_retries_the_others(self) -> None:
+        unconfirmed = HTTPError(
+            "https://api.example.com", 504, "unconfirmed", Message(),
+            BytesIO(json.dumps({"code": "UNCONFIRMED"}).encode()),
+        )
+        opener = FakeOpener([busy(), unconfirmed, {}])
+        mutation = replace(Operation(), method="POST", safety="mutation", idempotency="required",
+                           header_parameters=("Idempotency-Key",))
+        with patch("postgrip._internal.transport.time.sleep"), self.assertRaises(PostGripAPIError) as raised:
+            executor(opener).request(mutation, idempotency_key="key-1", no_retry_statuses=frozenset({504}))
+        self.assertEqual((raised.exception.status, raised.exception.code), (504, "UNCONFIRMED"))
+        self.assertEqual(len(opener.requests), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
