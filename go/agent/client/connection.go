@@ -31,7 +31,10 @@ const maxResponseBytes = 40 << 20
 const defaultUploadTimeout = 30 * time.Minute
 
 // ConnectionOptions configures the HTTP connection to the agent runtime
-// service. Address is the base URL (defaults to DefaultAddress).
+// service. Address is the base URL. When it is empty, NewConnection uses
+// POSTGRIP_AGENTORCHESTRATOR_URL inside a managed workflow runtime
+// (POSTGRIP_AGENT_MANAGED_RUNTIME=true), then POSTGRIP_AGENT_URL, POSTGRIP_URL
+// and DefaultAddress.
 // AuthToken is the common tenant-bound bearer sent as
 // `Authorization: Bearer <token>` on management endpoints. Global-
 // administration APIs are not part of this SDK.
@@ -89,13 +92,28 @@ type Connection struct {
 	agentSignPub  ed25519.PublicKey
 }
 
+// resolveAddress returns the first configured Agent Orchestrator address: the
+// explicit option, then the orchestrator URL a host agent injects into a
+// managed workflow runtime, then POSTGRIP_AGENT_URL, POSTGRIP_URL and
+// DefaultAddress.
+func resolveAddress(explicit string) string {
+	managedRuntimeAddress := ""
+	if os.Getenv("POSTGRIP_AGENT_MANAGED_RUNTIME") == "true" {
+		managedRuntimeAddress = os.Getenv("POSTGRIP_AGENTORCHESTRATOR_URL")
+	}
+	return firstNonEmpty(
+		explicit,
+		managedRuntimeAddress,
+		os.Getenv("POSTGRIP_AGENT_URL"),
+		os.Getenv("POSTGRIP_URL"),
+		DefaultAddress,
+	)
+}
+
 // NewConnection constructs a Connection after validating its base URL and
 // installing the shared redirect-safe HTTP policy.
 func NewConnection(opts ConnectionOptions) (*Connection, error) {
-	address := firstNonEmpty(opts.Address, os.Getenv("POSTGRIP_AGENT_URL"), os.Getenv("POSTGRIP_URL"))
-	if address == "" {
-		address = DefaultAddress
-	}
+	address := resolveAddress(opts.Address)
 	baseURL, err := transport.ParseBaseURL("agent", address, opts.InsecureDevelopment)
 	if err != nil {
 		return nil, err

@@ -61,7 +61,9 @@ client = await Client.connect(
 )
 ```
 
-When the address is omitted, the connection checks `POSTGRIP_AGENT_URL`, then
-`POSTGRIP_URL`, before using the built-in cloud address. For root-facade and
+When the address is omitted, a managed workflow runtime uses the
+`POSTGRIP_AGENTORCHESTRATOR_URL` its host Agent injects. Otherwise the
+connection checks `POSTGRIP_AGENT_URL`, then `POSTGRIP_URL`, before using the
+built-in cloud address. For root-facade and
 direct-client precedence, see the
 [configuration owner](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/configuration.md).

@@ -145,9 +145,7 @@ class Connection:
         agent_signing_private_key: str | None = None,
         enable_retries: bool = False,
     ):
-        if not address:
-            address = os.environ.get("POSTGRIP_AGENT_URL") or os.environ.get("POSTGRIP_URL") or DEFAULT_ADDRESS
-        address = validate_base_url("Agent", address, insecure_development=insecure_development)
+        address = validate_base_url("Agent", _resolve_address(address), insecure_development=insecure_development)
         self.address = address.rstrip("/")
         self.insecure_development = insecure_development
         self.timeout = timeout
@@ -517,6 +515,27 @@ class Connection:
 
     def backfill_schedule(self, schedule_id: str, request: BackfillScheduleRequest) -> BackfillScheduleResponse:
         return self.openapi.backfill_schedule(schedule_id, request)
+
+
+def _resolve_address(explicit: str | None) -> str:
+    """Return the first configured Agent Orchestrator address.
+
+    The explicit argument wins, then the orchestrator URL a host agent injects
+    into a managed workflow runtime, then ``POSTGRIP_AGENT_URL``,
+    ``POSTGRIP_URL`` and the built-in cloud address.
+    """
+    managed_runtime_address = (
+        os.environ.get("POSTGRIP_AGENTORCHESTRATOR_URL")
+        if os.environ.get("POSTGRIP_AGENT_MANAGED_RUNTIME") == "true"
+        else None
+    )
+    return (
+        explicit
+        or managed_runtime_address
+        or os.environ.get("POSTGRIP_AGENT_URL")
+        or os.environ.get("POSTGRIP_URL")
+        or DEFAULT_ADDRESS
+    )
 
 
 def _runtime_only_task_type(task_type: str) -> bool:

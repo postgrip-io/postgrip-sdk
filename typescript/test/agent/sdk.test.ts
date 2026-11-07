@@ -1,7 +1,7 @@
 import { verify } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { Client } from '../../src/agent/client.js';
-import { Connection } from '../../src/agent/connection.js';
+import { Connection, DEFAULT_BASE_URL } from '../../src/agent/connection.js';
 import { AgentAPIError } from '../../src/agent/errors.js';
 import { PostGripAPIError } from '../../src/internal/transport.js';
 import { canonicalRequest, importSigningKeyFromBase64 } from '../../src/agent/_signing.js';
@@ -74,6 +74,66 @@ describe('PostGrip Agent TypeScript Connection', () => {
       });
       await connection.listNamespaces();
       expect(authorization).toBe('Bearer opaque-direct-token');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  // A host agent launches a workflow.runtime task with its orchestrator's URL in
+  // POSTGRIP_AGENTORCHESTRATOR_URL and forbids the task from overriding POSTGRIP_*
+  // variables, so a managed runtime must prefer that URL over the general ones.
+  it.each<{ name: string; baseUrl?: string; env: Record<string, string>; want: string }>([
+    {
+      name: 'managed runtime with only the host-injected address',
+      env: { POSTGRIP_AGENT_MANAGED_RUNTIME: 'true', POSTGRIP_AGENTORCHESTRATOR_URL: 'https://orchestrator.example.test' },
+      want: 'https://orchestrator.example.test',
+    },
+    {
+      name: 'managed runtime prefers the host-injected address',
+      env: {
+        POSTGRIP_AGENT_MANAGED_RUNTIME: 'true',
+        POSTGRIP_AGENTORCHESTRATOR_URL: 'https://orchestrator.example.test',
+        POSTGRIP_AGENT_URL: 'https://agent.example.test',
+        POSTGRIP_URL: 'https://common.example.test',
+      },
+      want: 'https://orchestrator.example.test',
+    },
+    {
+      name: 'explicit address wins in a managed runtime',
+      baseUrl: 'https://explicit.example.test',
+      env: { POSTGRIP_AGENT_MANAGED_RUNTIME: 'true', POSTGRIP_AGENTORCHESTRATOR_URL: 'https://orchestrator.example.test' },
+      want: 'https://explicit.example.test',
+    },
+    {
+      name: 'managed runtime without a host-injected address',
+      env: { POSTGRIP_AGENT_MANAGED_RUNTIME: 'true', POSTGRIP_AGENT_URL: 'https://agent.example.test' },
+      want: 'https://agent.example.test',
+    },
+    {
+      name: 'orchestrator address is ignored outside a managed runtime',
+      env: {
+        POSTGRIP_AGENTORCHESTRATOR_URL: 'https://orchestrator.example.test',
+        POSTGRIP_AGENT_URL: 'https://agent.example.test',
+        POSTGRIP_URL: 'https://common.example.test',
+      },
+      want: 'https://agent.example.test',
+    },
+    {
+      name: 'common address follows the Agent address',
+      env: { POSTGRIP_AGENTORCHESTRATOR_URL: 'https://orchestrator.example.test', POSTGRIP_URL: 'https://common.example.test' },
+      want: 'https://common.example.test',
+    },
+    {
+      name: 'built-in cloud address is the last resort',
+      env: { POSTGRIP_AGENTORCHESTRATOR_URL: 'https://orchestrator.example.test' },
+      want: DEFAULT_BASE_URL,
+    },
+  ])('resolves the Agent address: $name', ({ baseUrl, env, want }) => {
+    for (const name of ['POSTGRIP_AGENT_MANAGED_RUNTIME', 'POSTGRIP_AGENTORCHESTRATOR_URL', 'POSTGRIP_AGENT_URL', 'POSTGRIP_URL']) {
+      vi.stubEnv(name, env[name]);
+    }
+    try {
+      expect(Connection.create({ baseUrl }).baseUrl).toBe(want);
     } finally {
       vi.unstubAllEnvs();
     }

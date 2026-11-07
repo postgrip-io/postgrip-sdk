@@ -113,6 +113,97 @@ func TestNewConnectionNormalizesAddress(t *testing.T) {
 	}
 }
 
+// A host agent launches a workflow.runtime task with its orchestrator's URL in
+// POSTGRIP_AGENTORCHESTRATOR_URL and forbids the task from overriding POSTGRIP_*
+// variables, so a managed runtime must prefer that URL over the general ones.
+func TestNewConnectionResolvesAddressFromEnvironment(t *testing.T) {
+	cases := []struct {
+		name     string
+		explicit string
+		env      map[string]string
+		want     string
+	}{
+		{
+			name: "managed runtime with only the host-injected address",
+			env: map[string]string{
+				"POSTGRIP_AGENT_MANAGED_RUNTIME": "true",
+				"POSTGRIP_AGENTORCHESTRATOR_URL": "https://orchestrator.example.test",
+			},
+			want: "https://orchestrator.example.test",
+		},
+		{
+			name: "managed runtime prefers the host-injected address",
+			env: map[string]string{
+				"POSTGRIP_AGENT_MANAGED_RUNTIME": "true",
+				"POSTGRIP_AGENTORCHESTRATOR_URL": "https://orchestrator.example.test",
+				"POSTGRIP_AGENT_URL":             "https://agent.example.test",
+				"POSTGRIP_URL":                   "https://common.example.test",
+			},
+			want: "https://orchestrator.example.test",
+		},
+		{
+			name:     "explicit address wins in a managed runtime",
+			explicit: "https://explicit.example.test",
+			env: map[string]string{
+				"POSTGRIP_AGENT_MANAGED_RUNTIME": "true",
+				"POSTGRIP_AGENTORCHESTRATOR_URL": "https://orchestrator.example.test",
+			},
+			want: "https://explicit.example.test",
+		},
+		{
+			name: "managed runtime without a host-injected address",
+			env: map[string]string{
+				"POSTGRIP_AGENT_MANAGED_RUNTIME": "true",
+				"POSTGRIP_AGENT_URL":             "https://agent.example.test",
+			},
+			want: "https://agent.example.test",
+		},
+		{
+			name: "orchestrator address is ignored outside a managed runtime",
+			env: map[string]string{
+				"POSTGRIP_AGENTORCHESTRATOR_URL": "https://orchestrator.example.test",
+				"POSTGRIP_AGENT_URL":             "https://agent.example.test",
+				"POSTGRIP_URL":                   "https://common.example.test",
+			},
+			want: "https://agent.example.test",
+		},
+		{
+			name: "common address follows the Agent address",
+			env: map[string]string{
+				"POSTGRIP_AGENTORCHESTRATOR_URL": "https://orchestrator.example.test",
+				"POSTGRIP_URL":                   "https://common.example.test",
+			},
+			want: "https://common.example.test",
+		},
+		{
+			name: "built-in cloud address is the last resort",
+			env: map[string]string{
+				"POSTGRIP_AGENTORCHESTRATOR_URL": "https://orchestrator.example.test",
+			},
+			want: DefaultAddress,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			for _, name := range []string{
+				"POSTGRIP_AGENT_MANAGED_RUNTIME",
+				"POSTGRIP_AGENTORCHESTRATOR_URL",
+				"POSTGRIP_AGENT_URL",
+				"POSTGRIP_URL",
+			} {
+				t.Setenv(name, c.env[name])
+			}
+			conn, err := NewConnection(ConnectionOptions{Address: c.explicit})
+			if err != nil {
+				t.Fatalf("NewConnection: %v", err)
+			}
+			if got := conn.Address(); got != c.want {
+				t.Fatalf("address = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
 func TestManagementTokenIsNotForwardedAcrossRedirectOrigins(t *testing.T) {
 	t.Parallel()
 	targetCalled := make(chan string, 1)

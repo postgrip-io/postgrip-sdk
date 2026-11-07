@@ -49,7 +49,7 @@ import {
   type OpenAPIRequestOptions,
   type OpenAPIResponseBody,
 } from './generated/openapi.js';
-import { defaultPostGripEnvironment, validateBaseUrl } from '../internal/config.js';
+import { defaultPostGripEnvironment, validateBaseUrl, type PostGripEnvironment } from '../internal/config.js';
 import { readBoundedResponseBody } from '../internal/http.js';
 import { apiErrorFields, configuredTimeoutMs, Executor, type SignableRequest } from '../internal/transport.js';
 import { AgentAPIError } from './errors.js';
@@ -111,6 +111,23 @@ interface PollTaskOptions {
   signal?: AbortSignal;
 }
 
+/** The variables a host agent injects into a managed workflow runtime, beside the common ones. */
+interface AgentConnectionEnvironment extends PostGripEnvironment {
+  readonly POSTGRIP_AGENT_MANAGED_RUNTIME?: string;
+  readonly POSTGRIP_AGENTORCHESTRATOR_URL?: string;
+}
+
+/**
+ * Returns the first configured Agent Orchestrator address: the explicit option,
+ * then the orchestrator URL a host agent injects into a managed workflow
+ * runtime, then `POSTGRIP_AGENT_URL`, `POSTGRIP_URL` and the built-in cloud address.
+ */
+function resolveBaseUrl(explicit: string | undefined, environment: AgentConnectionEnvironment): string {
+  const managedRuntimeUrl =
+    environment.POSTGRIP_AGENT_MANAGED_RUNTIME === 'true' ? environment.POSTGRIP_AGENTORCHESTRATOR_URL : undefined;
+  return explicit ?? managedRuntimeUrl ?? environment.POSTGRIP_AGENT_URL ?? environment.POSTGRIP_URL ?? DEFAULT_BASE_URL;
+}
+
 type AgentSessionResponse = OpenAPIComponents['AgentSessionResponse'];
 type AgentSigningModule = typeof import('./_signing.js');
 type AgentSigningKey = Awaited<ReturnType<AgentSigningModule['importSigningKeyFromBase64']>>;
@@ -170,7 +187,7 @@ export class Connection {
   /** Constructs a connection without issuing a network request. */
   static create(options: ConnectionOptions = {}): Connection {
     const environment = defaultPostGripEnvironment();
-    const baseUrl = options.baseUrl ?? environment.POSTGRIP_AGENT_URL ?? environment.POSTGRIP_URL ?? DEFAULT_BASE_URL;
+    const baseUrl = resolveBaseUrl(options.baseUrl, environment);
     const authToken = options.authToken ?? environment.POSTGRIP_TOKEN;
     validateBaseUrl('Agent', baseUrl, options.insecureDevelopment);
     return new Connection({ ...options, baseUrl, authToken });

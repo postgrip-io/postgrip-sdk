@@ -54,11 +54,12 @@ async def main() -> None:
         await submit_managed_runtime()
         return
 
-    address = os.environ.get("POSTGRIP_AGENT_URL") or os.environ.get("POSTGRIP_AGENT_LIVE_SERVER_URL") or "https://agentorchestrator1.postgrip.io"
     queue = os.environ.get("POSTGRIP_AGENT_TASK_QUEUE", "python-example")
     agent_id = os.environ.get("POSTGRIP_AGENT_ID", "python-example-agent")
 
-    client = await Client.connect(address, headers=agent_token_headers())
+    # No address: the connection uses the orchestrator the host Agent injects
+    # (POSTGRIP_AGENTORCHESTRATOR_URL).
+    client = await Client.connect(headers=agent_token_headers())
 
     agent = Agent(
         client,

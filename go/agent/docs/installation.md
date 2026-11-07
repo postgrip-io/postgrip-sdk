@@ -55,7 +55,9 @@ conn, err := client.NewConnection(client.ConnectionOptions{
 if err != nil { return err }
 ```
 
-When `Address` is empty, the connection checks `POSTGRIP_AGENT_URL`, then
-`POSTGRIP_URL`, before using the built-in cloud address. The root facade has
+When `Address` is empty, a managed workflow runtime uses the
+`POSTGRIP_AGENTORCHESTRATOR_URL` its host Agent injects. Otherwise the
+connection checks `POSTGRIP_AGENT_URL`, then `POSTGRIP_URL`, before using the
+built-in cloud address. The root facade has
 different constructor behavior; see the
 [configuration owner](https://github.com/postgrip-io/postgrip-sdk/blob/main/docs/configuration.md).
