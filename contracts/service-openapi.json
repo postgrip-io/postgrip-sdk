@@ -970,7 +970,7 @@
             }
           },
           "400": {
-            "description": "Invalid request. `VALIDATION`: the request is not a valid release group. `INVALID_BODY` also uses this status.",
+            "description": "Invalid request. `VALIDATION`: the request is not a valid release group, for example a member's `dependsOn` repeats a key, names the member itself or a missing key, or the dependencies form a cycle. `INVALID_BODY` also uses this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -981,6 +981,16 @@
           },
           "409": {
             "description": "Conflict. `SERVICE_STATE_CHANGED`: a member's branch head does not match `expectedCommitSha` or could not be verified, or a member's placement, current deployment or source artifact does not match the request. `WORKER_UPGRADE_REQUIRED`: a member's Worker must be upgraded to read its branch head (`details.workerId`, `details.requiredCapability`). Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED`, `WORKER_UNAVAILABLE`, `REPOSITORY_UNAVAILABLE`, `SOURCE_ARTIFACT_NOT_READY` and `PUBLIC_VERIFICATION_UNAVAILABLE`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error. `PREVIEW_UNAVAILABLE`: PostGrip could not sign the preview; try again. `DB_ERROR` also uses this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1111,6 +1121,26 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `RELEASE_OVERLAP`: another active release group already includes one of the environments; wait for it to end, or cancel it, then preview again. `SERVICE_STATE_CHANGED`: the preview token is older than 10 minutes, damaged or not your organization's, or a member's service or environment settings, Worker or current deployment changed after the preview; preview again and create with a new key. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing changed; send it again with the same key. `CONFIGURATION_UNAVAILABLE` also uses this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -1157,6 +1187,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceReleaseGroup"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. `RELEASE_GROUP_NOT_FOUND`: no release group with that id exists in your organization, or the id is not a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1219,6 +1259,16 @@
               }
             }
           },
+          "404": {
+            "description": "Not found. `RELEASE_GROUP_NOT_FOUND`: no release group with that id exists in your organization, or the id is not a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -1273,6 +1323,36 @@
               }
             }
           },
+          "404": {
+            "description": "Not found. `RELEASE_GROUP_NOT_FOUND`: no release group with that id exists in your organization, or the id is not a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `CANCEL_NOT_ALLOWED`: the release group has already ended. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing changed; send it again with the same key. `CONFIGURATION_UNAVAILABLE` also uses this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -1323,6 +1403,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceReleaseGroup"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. `RELEASE_GROUP_NOT_FOUND`: no release group with that id exists in your organization, or the id is not a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `RETRY_NOT_ALLOWED`: the release group is not `recovered` or `cancelled`; an intervention-required group needs a new preview. `RETRY_LIMIT_REACHED`: the group was already retried 20 times. `SERVICE_STATE_CHANGED`: a member's target changed after recovery, so the pinned plan no longer applies; create a new preview. `details.memberKey` and `details.memberId` name the first such member, and `details.reason` says what changed: `projectVersion` (the service's configuration changed), `environmentVersion` (the environment changed or was removed), `worker` (the environment moved to another Worker) or `currentDeployment` (another deployment became current). Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing changed; send it again with the same key. `CONFIGURATION_UNAVAILABLE` also uses this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1532,6 +1642,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `SQLITE_READ_ONLY`: a connected SQLite service's file opens but does not accept writes on its Worker: the file, or the directory its journal goes in, is read-only to the Worker. The Worker starts a write and rolls it back, so the file is not changed. The service's status becomes `degraded`; make the file and its directory writable to the Worker and check again. `SERVICE_OPERATION_NOT_SUPPORTED`: the service cannot be checked. Other conflicts on this route also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -1695,7 +1815,7 @@
             }
           },
           "409": {
-            "description": "Conflict. These refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the Worker that holds the service's credential holds none, or holds one the repository refuses (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded to read the branch head (`details.workerId`, `details.requiredCapability`); `NO_ELIGIBLE_WORKER`, no Worker can read the branch head; `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. These refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the Worker that holds the service's credential holds none, or holds one the repository refuses (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded to read the branch head (`details.workerId`, `details.requiredCapability`); `NO_ELIGIBLE_WORKER`, no Worker can read the branch head; `WRITE_OUTCOME_UNKNOWN`, a ZVEC or LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -1798,7 +1918,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a ZVEC or LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -1960,7 +2080,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED`, `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a ZVEC or LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED`, `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -2882,6 +3002,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `RELEASE_GROUP_ACTIVE`: an active release group still uses the service, one of its environments, domains or deployments; wait for the group to end, or cancel it (cancelServiceReleaseGroup), then retry. Nothing is changed, and the refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route, such as `REMOVAL_IMPACT_CHANGED`, `DATA_DISPOSITION_REQUIRED`, `CANONICAL_DNS_ACTIVE` and `WORKER_UPGRADE_REQUIRED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -3072,7 +3202,7 @@
             "description": "Successful response",
             "headers": {
               "Service-Project-ETag": {
-                "description": "The project's ETag after this change. Send it as `If-Match` on the next `createServiceEnvironment` for this project. A replay with the same Idempotency-Key does not carry it.",
+                "description": "The project's ETag after this change. Send it as `If-Match` on the next `createServiceEnvironment` for this project; removing build logs, by hand or by the automatic trim, does not change it. A replay with the same Idempotency-Key does not carry it.",
                 "schema": {
                   "type": "string"
                 }
@@ -3087,7 +3217,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `WORKER_REVOKED` (`details.workerId`): with `assignedWorkerId`, that Worker is revoked; revoked is terminal (enroll a new Worker or replace the revoked one), so the refusal is stored against the Idempotency-Key and replays. Without `assignedWorkerId`, the Worker selection chose (the project default or automatic placement) was revoked before the placement locked it; that refusal is not stored against the key, so a retry with the same key selects again. `NO_ELIGIBLE_WORKER` (`details.requiredCapabilities`, `details.defaultWorkerId`): no Worker is eligible, or the Worker placement chose was removed, replaced or became ineligible after the request's pre-check, including a removed or replaced project default. Placement does not reselect, but the refusal is not stored against the key, so a retry with the same key selects again. `WORKER_UPGRADE_REQUIRED`: with `assignedWorkerId`, that Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); without it, the project default or automatic candidate runs a version below the one the control plane expects (`details.requiredCapabilities`). Upgrade the Worker and retry; the refusal is not stored against the key, so a retry with the same key runs again. `404` `NOT_FOUND` applies only to an explicit `assignedWorkerId` already removed or replaced when the request arrived, including one that is also revoked. `SERVICE_STATE_CHANGED`: the project already has an environment with that `name`; the refusal is stored against the Idempotency-Key. Other conflicts on this route also use this status.",
+            "description": "Conflict. `WORKER_REVOKED` (`details.workerId`): with `assignedWorkerId`, that Worker is revoked; revoked is terminal (enroll a new Worker or replace the revoked one), so the refusal is stored against the Idempotency-Key and replays. Without `assignedWorkerId`, the Worker selection chose (the project default or automatic placement) was revoked before the placement locked it; that refusal is not stored against the key, so a retry with the same key selects again. `NO_ELIGIBLE_WORKER` (`details.requiredCapabilities`, `details.defaultWorkerId`): no Worker is eligible, or the Worker placement chose was removed, replaced or became ineligible after the request's pre-check, including a removed or replaced project default. Placement does not reselect, but the refusal is not stored against the key, so a retry with the same key selects again. `WORKER_UPGRADE_REQUIRED`: with `assignedWorkerId`, that Worker does not advertise a capability the environment needs (`details.workerId`, `details.requiredCapability`): `service_configuration_revision_v1`, `build`, or for a static site (`deploymentMode` `static`) `service_static_host_builds_v1`, which a Worker advertises once static host builds are enabled on it. The project default and automatic placement require the same capabilities, listed in `details.requiredCapabilities` when no Worker has them (`NO_ELIGIBLE_WORKER`); without it, the project default or automatic candidate runs a version below the one the control plane expects (`details.requiredCapabilities`). Upgrade the Worker and retry; the refusal is not stored against the key, so a retry with the same key runs again. `404` `NOT_FOUND` applies only to an explicit `assignedWorkerId` already removed or replaced when the request arrived, including one that is also revoked. `SERVICE_STATE_CHANGED`: the project already has an environment with that `name`; the refusal is stored against the Idempotency-Key. `SERVICE_OPERATION_NOT_SUPPORTED`: the service is a ZVEC or LadybugDB service, which has one production environment, and it already has it; nothing is created, and the refusal is stored against the Idempotency-Key. Other conflicts on this route also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3243,7 +3373,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `WORKER_REVOKED`: `destinationWorkerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker, including one that is also revoked, answers `404` `NOT_FOUND`. `WORKER_UPGRADE_REQUIRED`: the Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); upgrade the Worker and retry. This refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "description": "Conflict. `WORKER_REVOKED`: `destinationWorkerId` names a revoked Worker (`details.workerId`). Revoked is terminal: enroll a new Worker or replace the revoked one. The refusal is permanent, so a retry with the same Idempotency-Key replays it. A removed or replaced Worker, including one that is also revoked, answers `404` `NOT_FOUND`. `WORKER_UPGRADE_REQUIRED`: the Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); upgrade the Worker and retry. This refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. `RELEASE_GROUP_ACTIVE`: an active release group still uses the environment on its current Worker; wait for the group to end, or cancel it (cancelServiceReleaseGroup), then retry. Nothing is changed, and the refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3614,6 +3744,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceDeletionResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `RELEASE_GROUP_ACTIVE`: an active release group still uses the environment, one of its domains or deployments; wait for the group to end, or cancel it (cancelServiceReleaseGroup), then retry. Nothing is changed, and the refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route, such as `REMOVAL_IMPACT_CHANGED`, `DATA_DISPOSITION_REQUIRED`, `CANONICAL_DNS_ACTIVE` and `WORKER_UPGRADE_REQUIRED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4400,6 +4540,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceDomainMutationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `RELEASE_GROUP_ACTIVE`: an active release group still uses the domain to verify a member; wait for the group to end, or cancel it (cancelServiceReleaseGroup), then retry. Nothing is changed, and the refusal is not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route, such as `CANONICAL_DNS_ACTIVE`, `SERVICE_STATE_CHANGED` and `WORKER_UPGRADE_REQUIRED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -5600,7 +5750,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a ZVEC or LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -5832,7 +5982,7 @@
           "Administration"
         ],
         "summary": "Trim Service Build Logs",
-        "description": "Removes the build log of every deployment of the app that finished more than `retentionDays` ago. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
+        "description": "Removes the build log of every deployment of the app that finished more than `retentionDays` ago. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`. It is not a configuration change: the build log settings' ETag and the app's stay as they were.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5889,7 +6039,7 @@
           "Administration"
         ],
         "summary": "Flush Service Build Logs",
-        "description": "Removes the build log of every deployment of the app. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
+        "description": "Removes the build log of every deployment of the app. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`. It is not a configuration change: the build log settings' ETag and the app's stay as they were.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -7748,7 +7898,7 @@
       "ReleaseGroupLimit": {
         "name": "limit",
         "in": "query",
-        "description": "Page size. Larger values are clamped to 100.",
+        "description": "Page size. A missing, non-numeric, zero or negative value means 100, and a value above 100 means 100; neither is refused.",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -9804,10 +9954,12 @@
             "description": "Explicit placement override. When omitted, the project default or deterministic automatic placement is used."
           },
           "buildCommand": {
-            "type": "string"
+            "type": "string",
+            "description": "The command the environment's builds run. Empty or omitted, a web app builds with `npm run build`. A backend app has no default, so its build detects its own command, and a backend environment that stored `npm run build` from an earlier default is built as if it had none. A ZVEC or LadybugDB service ignores it."
           },
           "outputDir": {
-            "type": "string"
+            "type": "string",
+            "description": "The build output directory. Empty or omitted, a web app uses `dist`. A backend app has no default, and a backend environment that stored `dist` from an earlier default is built as if it had none. A ZVEC or LadybugDB service ignores it."
           },
           "containerPort": {
             "type": "integer",
@@ -9865,10 +10017,12 @@
             "type": "boolean"
           },
           "buildCommand": {
-            "type": "string"
+            "type": "string",
+            "description": "The command the environment's builds run. Omitted keeps the current one; empty sets the default, `npm run build` for a web app. A backend app has no default, so its build detects its own command, and a backend environment that stored `npm run build` from an earlier default is built as if it had none. A ZVEC or LadybugDB service ignores it."
           },
           "outputDir": {
-            "type": "string"
+            "type": "string",
+            "description": "The build output directory. Omitted keeps the current one; empty sets the default, `dist` for a web app. A backend app has no default, and a backend environment that stored `dist` from an earlier default is built as if it had none. A ZVEC or LadybugDB service ignores it."
           },
           "containerPort": {
             "type": "integer",
@@ -11132,10 +11286,12 @@
             "$ref": "#/components/schemas/ServiceEnvironmentPlacement"
           },
           "buildCommand": {
-            "type": "string"
+            "type": "string",
+            "description": "The command the environment's builds run. Empty, a web app builds with `npm run build`. A backend app has no default, so its build detects its own command, and a backend environment that stored `npm run build` from an earlier default is built as if it had none. A ZVEC or LadybugDB service ignores it."
           },
           "outputDir": {
-            "type": "string"
+            "type": "string",
+            "description": "The build output directory. Empty, a web app uses `dist`. A backend app has no default, and a backend environment that stored `dist` from an earlier default is built as if it had none. A ZVEC or LadybugDB service ignores it."
           },
           "containerPort": {
             "type": "integer"
@@ -11721,7 +11877,8 @@
             }
           },
           "durableData": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the resource holds data that outlives a running container: a managed target, a bound managed volume, or a ZVEC or LadybugDB service, whose data is in its Compose volume (`zvec_data` or `ladybugdb_data`) on its Worker. Removal does not delete that Compose volume, whatever `dataDisposition` says: it stays on the Worker until you remove it there, and it is not listed in `volumes`."
           },
           "impactHash": {
             "type": "string"
@@ -15635,7 +15792,7 @@
       },
       "ServiceTrafficSettings": {
         "type": "object",
-        "description": "An app's traffic settings on one Worker. They are kept per app on each Worker, not per environment, and apply to all of the app's environments there; `lastTrimmedAt` and `lastFlushedAt` are likewise the app's last trim and flush on that Worker, including one that selected environments. A Worker that has no settings for the app answers the defaults, `enabled: true` and `retentionDays: 14`, with the read's time as `updatedAt`.",
+        "description": "An app's traffic settings on one Worker. They are kept per app on each Worker, not per environment, and apply to all of the app's environments there; `lastTrimmedAt` and `lastFlushedAt` are likewise the app's last trim and flush on that Worker, including one that selected environments. `updatedAt` is when the settings last changed on that Worker; a trim, flush or compaction does not change it. Each Worker trims the app's traffic older than `retentionDays` at least hourly, whether or not `enabled` is true or requests arrive. A Worker that has no settings for the app answers the defaults, `enabled: true` and `retentionDays: 14`, with the read's time as `updatedAt`.",
         "additionalProperties": false,
         "required": ["tenantId", "enabled", "retentionDays", "updatedAt"],
         "properties": {
