@@ -291,7 +291,7 @@ describe('WorkerClient', () => {
       seen.push(`${init?.method ?? 'GET'} ${url.pathname}`);
       const headers = new Headers(init?.headers);
       if (url.pathname !== '/health') expect(headers.get('authorization')).toBe('Bearer pgt_test-token');
-      if ((init?.method ?? 'GET') === 'POST') expect(headers.get('idempotency-key')).toBe('operation-1');
+      if (['POST', 'PUT'].includes(init?.method ?? 'GET')) expect(headers.get('idempotency-key')).toBe('operation-1');
       if (url.pathname.endsWith('/operational-logs') || url.pathname.endsWith('/security-logs')) {
         return Response.json({ items: [], nextCursor: '' });
       }
@@ -316,6 +316,11 @@ describe('WorkerClient', () => {
     await client.maintenance('worker-1', { idempotencyKey: 'operation-1' });
     await client.resume('worker-1', { idempotencyKey: 'operation-1' });
     await client.upgrade('worker-1', { idempotencyKey: 'operation-1' });
+    await client.snapshotStatus('worker-1');
+    await client.snapshots('worker-1');
+    await client.takeSnapshot('worker-1', { idempotencyKey: 'operation-1' });
+    await client.snapshotSettings('worker-1');
+    await client.updateSnapshotSettings('worker-1', { enabled: false }, { idempotencyKey: 'operation-1' });
 
     expect(seen).toEqual([
       'GET /health',
@@ -330,6 +335,11 @@ describe('WorkerClient', () => {
       'POST /api/v1/workers/worker-1/maintenance',
       'POST /api/v1/workers/worker-1/maintenance/resume',
       'POST /api/v1/workers/worker-1/upgrade',
+      'GET /api/v1/workers/worker-1/snapshot/status',
+      'GET /api/v1/workers/worker-1/snapshots',
+      'POST /api/v1/workers/worker-1/snapshots',
+      'GET /api/v1/workers/worker-1/snapshot/settings',
+      'PUT /api/v1/workers/worker-1/snapshot/settings',
     ]);
   });
 

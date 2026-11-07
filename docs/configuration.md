@@ -102,6 +102,18 @@ through their generated low-level clients. Service administration writes may
 additionally require the current `If-Match` value; Service in every language
 forwards `If-Match` only on operations whose contract declares it.
 
+A Worker snapshot run (`createWorkerSnapshot`) waits up to 5 minutes on the
+server, so every language gives that call a 6-minute lifetime: Go raises the
+HTTP client's timeout for the call, TypeScript its exchange lifetime and Python
+its socket timeout, never below a longer configured value; an earlier context
+deadline, `AbortSignal` or cancellation still wins. Its `502` and `504`
+answers are never retried, even with retries enabled: the server does not keep
+them against the key, so a resend takes another snapshot. After `504`
+`SNAPSHOT_UNCONFIRMED`, read the snapshot status before resending with a new
+key. `409` `SNAPSHOT_IN_PROGRESS` is not retried either; its `Retry-After` is on
+the Worker error. `updateWorkerSnapshotSettings` takes the write-only
+`signingKey`, which no answer carries.
+
 Do not blindly retry protocol operations, signed Agent runtime mutations,
 archive transfers, or WebSocket sessions. Their generated pages name the
 dedicated adapter and conformance runner.

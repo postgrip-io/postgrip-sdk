@@ -23,6 +23,22 @@ const (
 	retryAfterMaxWait = 30 * time.Second
 )
 
+// snapshotRunLifetime bounds createWorkerSnapshot. The server waits up to 5
+// minutes for the run before it answers, so the call needs longer than the
+// default 30-second exchange; a shorter caller context deadline still wins.
+const snapshotRunLifetime = 6 * time.Minute
+
+// operationCallPolicy holds the Worker plane's per-operation exchange policy.
+// createWorkerSnapshot's 502 and 504 answers are not kept against the
+// Idempotency-Key, so an automatic resend, even with the same key, would take
+// another snapshot; the caller reads the snapshot status first instead.
+var operationCallPolicy = map[openAPIOperationID]struct {
+	lifetime time.Duration
+	noRetry  []int
+}{
+	openAPICreateWorkerSnapshot: {lifetime: snapshotRunLifetime, noRetry: []int{http.StatusBadGateway, http.StatusGatewayTimeout}},
+}
+
 type Config struct {
 	BaseURL             string
 	Token               string
@@ -134,7 +150,9 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 			header.Set("Idempotency-Key", key)
 		}
 	}
-	_, err = c.executor.Do(ctx, transport.Call{Operation: operation, Header: header, Body: body}, out)
+	policy := operationCallPolicy[id]
+	_, err = c.executor.Do(ctx, transport.Call{Operation: operation, Header: header, Body: body,
+		Lifetime: policy.lifetime, NoRetryStatuses: policy.noRetry}, out)
 	return err
 }
 
@@ -194,4 +212,37 @@ func (c *Client) Resume(ctx context.Context, workerID, idempotencyKey string) (W
 
 func (c *Client) Upgrade(ctx context.Context, workerID, idempotencyKey string) (UpgradeWorkerResponse, error) {
 	return c.OpenAPI().UpgradeWorker(ctx, workerID, OpenAPIUpgradeWorkerHeaders{IdempotencyKey: idempotencyKey})
+}
+
+// SnapshotStatus reads the Worker's snapshot schedule and last run. It answers
+// with Enabled false when snapshots are off.
+func (c *Client) SnapshotStatus(ctx context.Context, workerID string) (WorkerSnapshotStatus, error) {
+	return c.OpenAPI().GetWorkerSnapshotStatus(ctx, workerID)
+}
+
+// Snapshots lists the Worker's archives in its storage destination, newest
+// first. The list is not paged.
+func (c *Client) Snapshots(ctx context.Context, workerID string) (WorkerSnapshotList, error) {
+	return c.OpenAPI().ListWorkerSnapshots(ctx, workerID)
+}
+
+// TakeSnapshot runs a snapshot on the Worker and waits for it. The server
+// waits up to 5 minutes, so the exchange is allowed 6 minutes, and its 502 and
+// 504 answers are never retried automatically: a 504 SNAPSHOT_UNCONFIRMED run
+// may still land, so read SnapshotStatus before resending with a new key.
+func (c *Client) TakeSnapshot(ctx context.Context, workerID, idempotencyKey string) (CreateWorkerSnapshotResponse, error) {
+	return c.OpenAPI().CreateWorkerSnapshot(ctx, workerID, OpenAPICreateWorkerSnapshotHeaders{IdempotencyKey: idempotencyKey})
+}
+
+// SnapshotSettings reads the Worker's snapshot settings. The signing key is
+// never answered; HasSigningKey reports whether one is stored.
+func (c *Client) SnapshotSettings(ctx context.Context, workerID string) (WorkerSnapshotSettings, error) {
+	return c.OpenAPI().GetWorkerSnapshotSettings(ctx, workerID)
+}
+
+// UpdateSnapshotSettings replaces the Worker's whole snapshot settings record:
+// every field but Enabled takes its zero value when omitted. SigningKey is
+// write-only; leave it nil to keep the stored key.
+func (c *Client) UpdateSnapshotSettings(ctx context.Context, workerID string, request UpdateWorkerSnapshotSettingsRequest, idempotencyKey string) (UpdateWorkerSnapshotSettingsResponse, error) {
+	return c.OpenAPI().UpdateWorkerSnapshotSettings(ctx, workerID, OpenAPIUpdateWorkerSnapshotSettingsHeaders{IdempotencyKey: idempotencyKey}, request)
 }

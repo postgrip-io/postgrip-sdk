@@ -8,6 +8,13 @@ nav_order: 7
 
 ## Unreleased
 
+- `worker.Client` gains the Worker snapshot operations: `SnapshotStatus`,
+  `Snapshots`, `TakeSnapshot`, `SnapshotSettings` and `UpdateSnapshotSettings`.
+  The two mutations require an idempotency key. `TakeSnapshot` (and
+  `OpenAPI().CreateWorkerSnapshot`) raises the HTTP client's timeout to 6
+  minutes for the call and never retries a `502` or `504`, because a resend
+  takes another snapshot. `SigningKey` is write-only: settings answer
+  `HasSigningKey`.
 - `protocol.PollTaskResponse`, `protocol.Sandbox`, `protocol.TaskResult` and
   `protocol.SandboxCreateRequest` (and their `client` aliases) keep an explicit
   JSON `null` for their optional nullable properties when a decoded value is

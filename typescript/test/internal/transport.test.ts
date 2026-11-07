@@ -78,4 +78,15 @@ describe('Executor', () => {
     await expect(instance.request({ operation: operation() })).resolves.toEqual({ ok: true });
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('never retries the statuses a call excludes, and still retries the others', async () => {
+    const unconfirmed = () => Response.json({ code: 'UNCONFIRMED', message: 'unconfirmed' }, { status: 504 });
+    const { fetch, instance } = executor([busy, unconfirmed, () => Response.json({})]);
+    await expect(instance.request({
+      operation: operation({ safety: 'mutation', method: 'POST', idempotency: 'required', headerParameters: ['Idempotency-Key'] }),
+      idempotencyKey: 'key-1',
+      noRetryStatuses: [504],
+    })).rejects.toMatchObject({ status: 504, code: 'UNCONFIRMED' });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 });

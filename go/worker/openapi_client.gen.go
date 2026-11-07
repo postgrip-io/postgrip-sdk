@@ -175,6 +175,16 @@ func (p OpenAPICreateWorkerHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPICreateWorkerSnapshotHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPICreateWorkerSnapshotHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIPlaceWorkerInMaintenanceHeaders struct {
 	IdempotencyKey string
 }
@@ -190,6 +200,16 @@ type OpenAPIResumeWorkerFromMaintenanceHeaders struct {
 }
 
 func (p OpenAPIResumeWorkerFromMaintenanceHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
+type OpenAPIUpdateWorkerSnapshotSettingsHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIUpdateWorkerSnapshotSettingsHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	return values
@@ -215,6 +235,11 @@ func (c *OpenAPIClient) CreateWorker(ctx context.Context, headers OpenAPICreateW
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateWorker, nil, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CreateWorkerSnapshot(ctx context.Context, workerId string, headers OpenAPICreateWorkerSnapshotHeaders) (OpenAPICreateWorkerSnapshotResponseBody, error) {
+	var response OpenAPICreateWorkerSnapshotResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateWorkerSnapshot, map[string]string{"workerId": workerId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) GetWorker(ctx context.Context, workerId string) (OpenAPIGetWorkerResponseBody, error) {
 	var response OpenAPIGetWorkerResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIGetWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
@@ -223,6 +248,16 @@ func (c *OpenAPIClient) GetWorker(ctx context.Context, workerId string) (OpenAPI
 func (c *OpenAPIClient) GetWorkerJob(ctx context.Context, workerId string, jobId string) (OpenAPIGetWorkerJobResponseBody, error) {
 	var response OpenAPIGetWorkerJobResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIGetWorkerJob, map[string]string{"workerId": workerId, "jobId": jobId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetWorkerSnapshotSettings(ctx context.Context, workerId string) (OpenAPIGetWorkerSnapshotSettingsResponseBody, error) {
+	var response OpenAPIGetWorkerSnapshotSettingsResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIGetWorkerSnapshotSettings, map[string]string{"workerId": workerId}, nil, nil, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetWorkerSnapshotStatus(ctx context.Context, workerId string) (OpenAPIGetWorkerSnapshotStatusResponseBody, error) {
+	var response OpenAPIGetWorkerSnapshotStatusResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIGetWorkerSnapshotStatus, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListWorkerAssignments(ctx context.Context, workerId string) (OpenAPIListWorkerAssignmentsResponseBody, error) {
@@ -245,6 +280,11 @@ func (c *OpenAPIClient) ListWorkerSecurityLogs(ctx context.Context, workerId str
 	err := c.executor.doOpenAPI(ctx, openAPIListWorkerSecurityLogs, map[string]string{"workerId": workerId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ListWorkerSnapshots(ctx context.Context, workerId string) (OpenAPIListWorkerSnapshotsResponseBody, error) {
+	var response OpenAPIListWorkerSnapshotsResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIListWorkerSnapshots, map[string]string{"workerId": workerId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ListWorkers(ctx context.Context, query OpenAPIListWorkersQuery) (OpenAPIListWorkersResponseBody, error) {
 	var response OpenAPIListWorkersResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIListWorkers, nil, query.values(), nil, &response)
@@ -260,6 +300,11 @@ func (c *OpenAPIClient) ResumeWorkerFromMaintenance(ctx context.Context, workerI
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIResumeWorkerFromMaintenance, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) UpdateWorkerSnapshotSettings(ctx context.Context, workerId string, headers OpenAPIUpdateWorkerSnapshotSettingsHeaders, body OpenAPIUpdateWorkerSnapshotSettingsRequestBody) (OpenAPIUpdateWorkerSnapshotSettingsResponseBody, error) {
+	var response OpenAPIUpdateWorkerSnapshotSettingsResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateWorkerSnapshotSettings, map[string]string{"workerId": workerId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) UpgradeWorker(ctx context.Context, workerId string, headers OpenAPIUpgradeWorkerHeaders) (OpenAPIUpgradeWorkerResponseBody, error) {
 	var response OpenAPIUpgradeWorkerResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpgradeWorker, map[string]string{"workerId": workerId}, nil, nil, &response)
@@ -273,6 +318,6 @@ func (c *OpenAPIClient) WorkerOrchestratorHealth(ctx context.Context) (OpenAPIWo
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 13
+const OpenAPIClientOperationCount = 18
 
-const openAPIClientSpecSHA256 = "9b87efa1eb8e99dc8f6514a0f4d37f26de7fed401cbf9e51051253226c0be38f"
+const openAPIClientSpecSHA256 = "8d07b8d36c75dda71eb8e708472fca5f9f7dbd15eb2674aae905d049f58be0c3"

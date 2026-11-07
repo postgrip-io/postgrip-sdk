@@ -1,0 +1,41 @@
+{
+  "operationId": "getWorkerSnapshotStatus",
+  "plane": "worker",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "workerId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "cron": "0 3 * * *",
+      "degraded": false,
+      "enabled": true,
+      "lastRunAt": "2026-11-07T03:00:00Z",
+      "lastRunFailed": false,
+      "lastSkipped": [],
+      "lastSnapshot": {
+        "lastModified": "2026-11-07T03:00:41Z",
+        "objectKey": "worker-snapshots/9b1f5c7e-7f0e-4d1c-9f3a-2a8f0d6b4c11/20261107T030000.000Z.pgsnap",
+        "size": 1048576,
+        "snapshotId": "20261107T030000.000Z"
+      },
+      "lastSuccessAt": "2026-11-07T03:00:41Z",
+      "nextRunAt": "2026-11-08T03:00:00Z",
+      "retention": 7,
+      "running": false,
+      "settingsRejected": false,
+      "workerId": "9b1f5c7e-7f0e-4d1c-9f3a-2a8f0d6b4c11"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getWorkerSnapshotStatus"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}
