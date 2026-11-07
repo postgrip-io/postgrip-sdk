@@ -51,8 +51,9 @@ the [configuration owner](../configuration.md), the language installation
 guides that restate the lookup, and each SDK's unreleased release notes. Run
 each SDK's suite, then the shared [PR review process](../development/contributing.md).
 
-## Open gaps
+## Examples
 
-The bundled Go and Python examples pass `POSTGRIP_AGENT_URL` or a fallback as
-an explicit address in their managed-runtime branch, which still bypasses the
-host-injected address. Correcting those launchers is a separate slice.
+The bundled Go, TypeScript and Python examples (`greeting` and `longrun`)
+connect with no address in their managed-runtime branch, so they reach the
+host-injected orchestrator through the lookup above. Their submitting branch,
+which runs outside a managed runtime, keeps its explicit address.
