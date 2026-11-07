@@ -1,5 +1,13 @@
 {
   "operations": {
+    "abandonServiceConfigurationOperation": {
+      "behavior": "Uses the contract-defined POST /api/v1/services/configuration-operations/{operationId}/abandon behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Abandon Service Configuration Operation"
+    },
     "adoptGitHubRepository": {
       "behavior": "Revalidates an immutable adoption preview, tenant-owned GitHub App installation, repository identity, permissions, repository ETag, and assigned Workers before queuing the shared per-Worker credential and webhook reconciliation operation. No GitHub token or webhook secret is returned.",
       "lifecycle": [
@@ -555,6 +563,11 @@
       "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId}/environments behavior.",
       "lifecycle": [],
       "summary": "List service environments"
+    },
+    "listServiceGitHubAccounts": {
+      "behavior": "Uses the contract-defined GET /api/v1/services/integrations/github/accounts behavior.",
+      "lifecycle": [],
+      "summary": "List Service GitHub Accounts"
     },
     "listServiceLogs": {
       "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId}/logs behavior.",

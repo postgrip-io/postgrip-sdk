@@ -8,6 +8,25 @@ nav_order: 7
 
 ## Unreleased
 
+- Service contract bundle `0fd58ddb…`: `ServiceRepositoriesClient.ListGitHubAccounts`
+  lists the organization's connected GitHub accounts, and
+  `ServiceConfigurationOperationsClient.Abandon` ends a failed or blocked
+  delete as `abandoned` without contacting a Worker. Runtime-log settings are
+  per app per Worker: `ServiceRetentionClient.UpdateRuntime` and
+  `OpenAPIClient.UpdateServiceRuntimeLogSettings` no longer take a query
+  (`OpenAPIUpdateServiceRuntimeLogSettingsQuery` is removed), and `TrimBuild`,
+  `FlushBuild`, `TrimServiceBuildLogs` and `FlushServiceBuildLogs` take an
+  `OpenAPITrimServiceBuildLogsQuery` or `OpenAPIFlushServiceBuildLogsQuery`
+  with an optional `EnvironmentId`. `OpenAPIPutServiceComposeFileHeaders` gains
+  an optional `IfMatch`.
+  The Compose file read answers an `etag`, and its write takes an optional
+  `If-Match` (`412` when stale). Default runtime-log and traffic settings
+  answer `isDefault: true`, and traffic windows add `6h` and `5d`. A project's
+  repository answers `bound` and, for GitHub, `gitHubInstallationRef`, and a
+  GitHub create may name `repository.installationRef`
+  (`409 GITHUB_INSTALLATION_REQUIRED` or `GITHUB_INSTALLATION_MISMATCH`). A
+  private GitLab or Bitbucket repository is refused with
+  `422 REPOSITORY_NOT_PUBLIC`.
 - Service contract bundle `cc37cae6…`: `service.OpenAPICreateServiceProjectRequest.Repository`
   is now an optional `*OpenAPIServiceRepositoryWriteRequest` (`omitempty`)
   instead of a required value; callers that set it take its address. A `zvec`

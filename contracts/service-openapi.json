@@ -2792,7 +2792,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `WORKER_REVOKED`: `defaultWorkerId` names a Worker that was revoked after the request's pre-check (`details.workerId`); revoked is terminal. `NO_ELIGIBLE_WORKER`: `defaultWorkerId` names a Worker that is not trusted, recently online and capable, including one already revoked, removed or replaced. `WORKER_UPGRADE_REQUIRED`: the Worker runs a version below the one the control plane expects; upgrade the Worker and retry. `NO_ELIGIBLE_WORKER` and `WORKER_UPGRADE_REQUIRED` are not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
+            "description": "Conflict. `GITHUB_INSTALLATION_REQUIRED`: `repository.installationRef` is not an active GitHub account of the organization. `GITHUB_INSTALLATION_MISMATCH`: its login does not own `repository.repoOwner`. `WORKER_REVOKED`: `defaultWorkerId` names a Worker that was revoked after the request's pre-check (`details.workerId`); revoked is terminal. `NO_ELIGIBLE_WORKER`: `defaultWorkerId` names a Worker that is not trusted, recently online and capable, including one already revoked, removed or replaced. `WORKER_UPGRADE_REQUIRED`: the Worker runs a version below the one the control plane expects; upgrade the Worker and retry. `NO_ELIGIBLE_WORKER` and `WORKER_UPGRADE_REQUIRED` are not stored against the Idempotency-Key, so a retry with the same key runs again. Other conflicts on this route also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5164,6 +5164,52 @@
         "x-postgrip-retry": "bounded"
       }
     },
+    "/api/v1/services/integrations/github/accounts": {
+      "get": {
+        "operationId": "listServiceGitHubAccounts",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "List Service GitHub Accounts",
+        "description": "Lists the GitHub accounts (installations) connected to the tenant, ordered by login, with the `installationRef` that `createServiceProject`, `listServiceGitHubBranches`, `checkServiceGitHubRepositoryFile` and `listGitHubAppRepositories` take. Every connected account is listed, whatever its `status`: only an `active` one can be used; `suspended` is suspended on GitHub, `removed` is uninstalled on GitHub, and `disconnecting` is being disconnected from PostGrip. Accounts are connected in the console, under **Integrations**. It calls no GitHub API, and answers an empty `items` when no account is connected.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceGitHubAccountList"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
     "/api/v1/services/integrations/github/repositories": {
       "get": {
         "operationId": "listGitHubAppRepositories",
@@ -5408,6 +5454,7 @@
           "Administration"
         ],
         "summary": "Update Service Repository",
+        "description": "Changes the app's repository. A change that points a `gitlab` or `bitbucket` app at another repository reads that repository's visibility anonymously first, as creation does: PostGrip accepts no source credential for those providers yet, so a private repository, or one that does not exist, is refused with `422` `REPOSITORY_NOT_PUBLIC` (`details.provider`), and a visibility the provider does not answer with `503` `REPOSITORY_VISIBILITY_UNAVAILABLE`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5992,7 +6039,7 @@
           "Administration"
         ],
         "summary": "Trim Service Build Logs",
-        "description": "Removes the build log of every deployment of the app that finished more than `retentionDays` ago. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`. It is not a configuration change: the build log settings' ETag and the app's stay as they were.",
+        "description": "Removes the build log of every deployment of the app that finished more than `retentionDays` ago, or only of the deployments of the environment `environmentId` names. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`. It is not a configuration change: the build log settings' ETag and the app's stay as they were.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -6008,6 +6055,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentFilter"
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -6049,7 +6099,7 @@
           "Administration"
         ],
         "summary": "Flush Service Build Logs",
-        "description": "Removes the build log of every deployment of the app. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`. It is not a configuration change: the build log settings' ETag and the app's stay as they were.",
+        "description": "Removes the build log of every deployment of the app, or only of the deployments of the environment `environmentId` names. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`. It is not a configuration change: the build log settings' ETag and the app's stay as they were.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -6065,6 +6115,9 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/EnvironmentFilter"
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -6158,7 +6211,7 @@
           "Administration"
         ],
         "summary": "Update Service Runtime Log Settings",
-        "description": "Sets, on the environments' Workers, whether the app's runtime output is recorded and how long it is kept. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
+        "description": "Sets, on the environments' Workers, whether the app's runtime output is recorded and how long it is kept. A Worker keeps one setting per app, for every environment of the app it runs, so the setting covers the whole app: an `environmentId` query answers `400` `VALIDATION`. Trim and flush accept `environmentId`. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -6174,9 +6227,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/ServiceId"
-          },
-          {
-            "$ref": "#/components/parameters/EnvironmentFilter"
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -6447,6 +6497,63 @@
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
         "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/configuration-operations/{operationId}/abandon": {
+      "post": {
+        "operationId": "abandonServiceConfigurationOperation",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Abandon Service Configuration Operation",
+        "description": "Ends a stuck delete without its Workers. Only a `failed` or `blocked` operation whose `kind` ends in `-delete` (`project-delete`, `environment-delete`, `volume-delete` or `target-delete`) can be abandoned; anything else answers `409` `CONFIGURATION_OPERATION_NOT_ABANDONABLE` with `details.reason` (`not-a-delete`, `state`, or `stack-child` for an operation a configuration stack staged, which its stack retries) and `details.state`. `If-Match` is the operation's `etag`; a change after it was read answers `412` `PRECONDITION_FAILED`. No Worker is contacted. The operation becomes `abandoned` and is never run or retried again. The service is already gone from PostGrip; each Worker whose target did not succeed keeps what it still holds of it: the containers, the Compose file, the environment's variables and secrets, the domain routes, and the volumes with their data. The volumes the delete was removing stop being tracked and are listed in `abandonedVolumes` with the Worker that holds each. A repository credential the delete revoked keeps its own cleanup record, which PostGrip keeps retrying and the console shows on the GitHub account. To clean a Worker up, remove the containers and volumes on its host, or remove the Worker.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OperationId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceConfigurationOperationAbandonResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
         "x-postgrip-retry": "bounded"
       }
     },
@@ -7617,14 +7724,14 @@
         "operationId": "getServiceComposeFile",
         "tags": ["Configuration"],
         "summary": "Get Environment Compose File",
-        "description": "Returns the Worker-held Compose override for an exact service environment. For the production environment of a service built with Docker (including ZVEC and LadybugDB), when the Worker has no file, or still has an earlier file PostGrip generated, the read first writes PostGrip's generated starter file to the Worker and returns it. Otherwise an environment with no file answers an empty `content`.",
+        "description": "Returns the Worker-held Compose override for an exact service environment. For the production environment of a service built with Docker (including ZVEC and LadybugDB), when the Worker has no file, or still has an earlier file PostGrip generated, the read first writes PostGrip's generated starter file to the Worker and returns it. Otherwise an environment with no file answers an empty `content`. A Worker with versioned Compose files also answers the file's `etag`, in the body and the `ETag` header, which putServiceComposeFile takes as `If-Match`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:admin"]],
         "security": [{"postgripToken": []}],
         "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}],
         "responses": {
-          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeFile"}}}},
+          "200": {"description": "Successful response", "headers": {"ETag": {"description": "The Compose file's ETag, from a Worker with versioned Compose files.", "schema": {"type": "string"}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeFile"}}}},
           "404": {
             "description": "Not found. `SERVICE_NOT_FOUND`: `serviceId` or `environmentId` is not a UUID, or names no service or environment of the tenant.",
             "content": {
@@ -7649,15 +7756,15 @@
         "operationId": "putServiceComposeFile",
         "tags": ["Configuration"],
         "summary": "Replace Environment Compose File",
-        "description": "Validates and replaces the Worker-held Compose override. This administrative operation can materially change workload execution.",
+        "description": "Validates and replaces the Worker-held Compose override. This administrative operation can materially change workload execution. Without `If-Match` the write is unconditional. With `If-Match` set to the `etag` getServiceComposeFile answered, the file is replaced only if it has not changed since: otherwise `412` `PRECONDITION_FAILED`, and nothing is written. A conditional write needs a Worker with versioned Compose files, the ones whose read answers an `etag`; an older Worker answers `409` `WORKER_UPGRADE_REQUIRED`. When the write's answer is lost, `409` `WRITE_OUTCOME_UNKNOWN`: read the file again before retrying. The new `etag` is only in the answer in hand: a replay of the same Idempotency-Key answers the file without `etag` and with no `ETag` header, so read the file again for its ETag. An `If-Match` that is not one Compose ETag answers `400` `VALIDATION`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:admin"]],
         "security": [{"postgripToken": []}],
-        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}, {"$ref": "#/components/parameters/IdempotencyKey"}],
+        "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}, {"$ref": "#/components/parameters/IdempotencyKey"}, {"name": "If-Match", "in": "header", "required": false, "description": "Optional: the Compose file's `etag`, as getServiceComposeFile answers it. The file is replaced only while it still has that ETag.", "schema": {"type": "string"}}],
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PutServiceComposeFileRequest"}}}},
         "responses": {
-          "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeMutationResponse"}}}},
+          "200": {"description": "Successful response. A conditional write answers the file's new `etag`, in `compose.etag` and the `ETag` header; an unconditional one, and a replay of either, answers none.", "headers": {"ETag": {"description": "The Compose file's ETag after a conditional write.", "schema": {"type": "string"}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeMutationResponse"}}}},
           "404": {
             "description": "Not found. `SERVICE_NOT_FOUND`: `serviceId` or `environmentId` is not a UUID, or names no service or environment of the tenant.",
             "content": {
@@ -7765,7 +7872,7 @@
         "parameters": [
           {"$ref": "#/components/parameters/ServiceId"},
           {"$ref": "#/components/parameters/OptionalEnvironment"},
-          {"name": "window", "in": "query", "schema": {"type": "string", "enum": ["1h", "24h", "7d", "30d"], "default": "24h"}}
+          {"name": "window", "in": "query", "schema": {"type": "string", "enum": ["1h", "6h", "24h", "5d", "7d", "30d"], "default": "24h"}}
         ],
         "responses": {"200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceTrafficReportFanout"}}}}, "default": {"$ref": "#/components/responses/Error"}},
         "x-postgrip-operation-class": "tenant-api",
@@ -8067,7 +8174,8 @@
             "succeeded",
             "failed",
             "blocked",
-            "superseded"
+            "superseded",
+            "abandoned"
           ]
         }
       },
@@ -8234,7 +8342,7 @@
       },
       "ServiceReleaseGroupMemberState": {
         "type": "string",
-        "description": "`dispatching` is reserved: no member is put in that state today, so a client sees a member go from `pending` to `deploying`.",
+        "description": "`dispatching` is reserved: no member is put in that state today, so a client sees a member go from `pending` to `deploying`. A member that is not `required` and fails after it went live stays `failed` while the group runs; when the group succeeds it ends `intervention_required` with `errorCode` `OPTIONAL_MEMBER_FAILED`, which frees its environment for another release, a reassignment or a delete. Its environment may run the failed deployment: check it, and deploy or roll it back.",
         "enum": [
           "pending",
           "dispatching",
@@ -9788,13 +9896,19 @@
         "properties": {
           "provider": {
             "type": "string",
-            "description": "`github`: a GitHub repository read through a connected GitHub account (installation) whose login owns `repoOwner`, or through a `source-access` credential supplied to the Workers with putServiceRepositoryCredential. With neither, a deployment is refused with `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE`; a public repository should use `public-github`, which is read without a credential. `gitlab` and `bitbucket`: the environment's Worker reads the repository with a credential it holds.",
+            "description": "`github`: a GitHub repository read through a connected GitHub account (installation) whose login owns `repoOwner`, or through a `source-access` credential supplied to the Workers with putServiceRepositoryCredential. With neither, a deployment is refused with `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE`; a public repository should use `public-github`, which is read without a credential. `gitlab` and `bitbucket`: a public repository on gitlab.com or bitbucket.org, which the Workers read without a credential: PostGrip accepts no source credential for them yet. Creating the app reads the repository's visibility anonymously first: a private repository, or one that does not exist, is refused with `422` `REPOSITORY_NOT_PUBLIC` (`details.provider`), and a visibility the provider does not answer with `503` `REPOSITORY_VISIBILITY_UNAVAILABLE`.",
             "enum": [
               "github",
               "public-github",
               "gitlab",
               "bitbucket"
             ]
+          },
+          "installationRef": {
+            "type": "string",
+            "pattern": "^github-installation:[1-9][0-9]*$",
+            "example": "github-installation:1",
+            "description": "`github` only: the connected GitHub account (installation) to read the repository through, as listServiceGitHubAccounts lists it. It must be an active account of the organization, else `409` `GITHUB_INSTALLATION_REQUIRED`, whose login owns `repoOwner` (letter case does not matter), else `409` `GITHUB_INSTALLATION_MISMATCH` with `details.installationRef` and `details.login`. Not in the form `github-installation:{id}`: `400` `INVALID_INSTALLATION_REF`; with another provider: `400` `VALIDATION`. Omitted, the app is bound to the one active account whose login owns `repoOwner`, and to none when there is no such account or several. The answer's `repository.bound` and `repository.gitHubInstallationRef` report the binding."
           },
           "repoOwner": {
             "type": "string"
@@ -10650,6 +10764,98 @@
           }
         }
       },
+      "ServiceConfigurationOperationAbandonResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation",
+          "abandonedVolumes"
+        ],
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/ServiceConfigurationOperation"
+          },
+          "abandonedVolumes": {
+            "type": "array",
+            "description": "The volumes the delete was removing, which PostGrip no longer tracks. Each stays on its Worker with its data.",
+            "items": {
+              "$ref": "#/components/schemas/ServiceConfigurationAbandonedVolume"
+            }
+          }
+        }
+      },
+      "ServiceConfigurationAbandonedVolume": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "volumeRef",
+          "workerId"
+        ],
+        "properties": {
+          "volumeRef": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ServiceGitHubAccount": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "installationRef",
+          "login",
+          "status"
+        ],
+        "properties": {
+          "installationRef": {
+            "type": "string",
+            "pattern": "^github-installation:[1-9][0-9]*$",
+            "example": "github-installation:1"
+          },
+          "login": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The GitHub login of the user or organization the PostGrip GitHub App is installed on; the account reads only that owner's repositories."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended",
+              "removed",
+              "disconnecting"
+            ]
+          }
+        }
+      },
+      "ServiceGitHubAccountList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "example": {
+          "items": [
+            {
+              "installationRef": "github-installation:1",
+              "login": "acme",
+              "status": "active"
+            }
+          ]
+        },
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServiceGitHubAccount"
+            }
+          }
+        }
+      },
       "GitHubRepositoryList": {
         "type": "object",
         "additionalProperties": false,
@@ -11035,6 +11241,7 @@
           "hasSourceCredential",
           "hasWebhookCredential",
           "automaticDeployments",
+          "bound",
           "version",
           "etag"
         ],
@@ -11076,6 +11283,16 @@
           "webhookCredentialRotatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "bound": {
+            "type": "boolean",
+            "description": "`true` when the app reads its repository through a connected GitHub account, which `gitHubInstallationRef` names: the account of its adoption, else the one bound when the app was created. `false` for a `github` app bound to no account, which deploys only with a supplied `source-access` credential, and for every other provider. A binding stays when its account is later disconnected; a deployment then answers `409` `GITHUB_INSTALLATION_REQUIRED`."
+          },
+          "gitHubInstallationRef": {
+            "type": "string",
+            "pattern": "^github-installation:[1-9][0-9]*$",
+            "example": "github-installation:1",
+            "description": "The connected GitHub account (installation) the app is bound to, as listServiceGitHubAccounts lists it. Present only when `bound` is `true`."
           },
           "version": {
             "type": "integer",
@@ -12241,6 +12458,10 @@
               "lastFlushedAt": {
                 "type": "string",
                 "format": "date-time"
+              },
+              "isDefault": {
+                "type": "boolean",
+                "description": "`true` when the Worker stores no runtime log settings for the app and answers its defaults; `updatedAt` is then the time of the read, not of a change. Absent for stored settings."
               }
             }
           },
@@ -12401,9 +12622,10 @@
               "succeeded",
               "failed",
               "blocked",
-              "superseded"
+              "superseded",
+              "abandoned"
             ],
-            "description": "Terminal states are `succeeded`, `blocked` and `superseded`; `failed` is retried with backoff. `superseded`: a recovery move or its repair took over this operation's work (a legacy volume adoption moved to another Worker, or replaced by another disposition); nothing further runs and nothing needs to be retried."
+            "description": "Terminal states are `succeeded`, `blocked`, `superseded` and `abandoned`; `failed` is retried with backoff. `abandoned`: an administrator ended this stuck delete with abandonServiceConfigurationOperation; what its Workers still held stays there. `superseded`: a recovery move or its repair took over this operation's work (a legacy volume adoption moved to another Worker, or replaced by another disposition); nothing further runs and nothing needs to be retried."
           },
           "targets": {
             "type": "array",
@@ -15749,7 +15971,8 @@
           "projectId": {"type": "string", "format": "uuid"},
           "envId": {"type": "string", "format": "uuid"},
           "content": {"type": "string"},
-          "updatedAt": {"type": "string", "format": "date-time"}
+          "updatedAt": {"type": "string", "format": "date-time"},
+          "etag": {"type": "string", "description": "The file's Compose ETag, the `If-Match` a conditional putServiceComposeFile takes. Absent from a Worker without versioned Compose files, from an unconditional write's answer, and from a replayed write's answer: PostGrip never stores a Compose ETag."}
         }
       },
       "PutServiceComposeFileRequest": {
@@ -15822,7 +16045,7 @@
       },
       "ServiceTrafficSettings": {
         "type": "object",
-        "description": "An app's traffic settings on one Worker. They are kept per app on each Worker, not per environment, and apply to all of the app's environments there; `lastTrimmedAt` and `lastFlushedAt` are likewise the app's last trim and flush on that Worker, including one that selected environments. `updatedAt` is when the settings last changed on that Worker; a trim, flush or compaction does not change it. Each Worker trims the app's traffic older than `retentionDays` at least hourly, whether or not `enabled` is true or requests arrive. A Worker that has no settings for the app answers the defaults, `enabled: true` and `retentionDays: 14`, with the read's time as `updatedAt`.",
+        "description": "An app's traffic settings on one Worker. They are kept per app on each Worker, not per environment, and apply to all of the app's environments there; `lastTrimmedAt` and `lastFlushedAt` are likewise the app's last trim and flush on that Worker, including one that selected environments. `updatedAt` is when the settings last changed on that Worker; a trim, flush or compaction does not change it. Each Worker trims the app's traffic older than `retentionDays` at least hourly, whether or not `enabled` is true or requests arrive. A Worker that has no settings for the app answers the defaults, `enabled: true` and `retentionDays: 14`, with the read's time as `updatedAt` and `isDefault: true`.",
         "additionalProperties": false,
         "required": ["tenantId", "enabled", "retentionDays", "updatedAt"],
         "properties": {
@@ -15832,7 +16055,8 @@
           "updatedAt": {"type": "string", "format": "date-time"},
           "lastTrimmedAt": {"type": "string", "format": "date-time"},
           "lastFlushedAt": {"type": "string", "format": "date-time"},
-          "lastCompactedAt": {"type": "string", "format": "date-time"}
+          "lastCompactedAt": {"type": "string", "format": "date-time"},
+          "isDefault": {"type": "boolean", "description": "`true` when the Worker has no settings for the app, nor for its organization, and answers the defaults; `updatedAt` is then the time of the read, not of a change. Absent for stored settings."}
         }
       },
       "ServiceTrafficStorageSummary": {
@@ -15915,8 +16139,8 @@
         "additionalProperties": false,
         "required": ["window", "bucketUnit", "summary", "timeSeries", "topPaths", "topHosts", "byEnvironmentId"],
         "properties": {
-          "window": {"type": "string", "enum": ["1h", "24h", "7d", "30d"]},
-          "bucketUnit": {"type": "string", "description": "The unit of the `timeSeries` buckets: `minute` for `window` `1h` (5-minute buckets), `hour` for `24h`, and `day` for `7d` and `30d`."},
+          "window": {"type": "string", "enum": ["1h", "6h", "24h", "5d", "7d", "30d"]},
+          "bucketUnit": {"type": "string", "description": "The unit of the `timeSeries` buckets: `minute` for `window` `1h` (5-minute buckets), `hour` for `6h` and `24h`, and `day` for `5d`, `7d` and `30d`."},
           "summary": {"$ref": "#/components/schemas/ServiceTrafficReportSummary"},
           "timeSeries": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficTimeSeriesPoint"}},
           "topPaths": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficBreakdownItem"}},

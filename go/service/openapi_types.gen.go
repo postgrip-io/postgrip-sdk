@@ -377,13 +377,14 @@ type OpenAPITargetServiceConnectionRequest struct {
 	Password string `json:"password"`
 }
 type OpenAPIServiceRepositoryWriteRequest struct {
-	Provider       string  `json:"provider"`
-	RepoOwner      string  `json:"repoOwner"`
-	RepoName       string  `json:"repoName"`
-	DefaultBranch  *string `json:"defaultBranch,omitempty"`
-	ProjectPath    *string `json:"projectPath,omitempty"`
-	DockerfilePath *string `json:"dockerfilePath,omitempty"`
-	ExternalRepoId *string `json:"externalRepoId,omitempty"`
+	Provider        string  `json:"provider"`
+	InstallationRef *string `json:"installationRef,omitempty"`
+	RepoOwner       string  `json:"repoOwner"`
+	RepoName        string  `json:"repoName"`
+	DefaultBranch   *string `json:"defaultBranch,omitempty"`
+	ProjectPath     *string `json:"projectPath,omitempty"`
+	DockerfilePath  *string `json:"dockerfilePath,omitempty"`
+	ExternalRepoId  *string `json:"externalRepoId,omitempty"`
 }
 type OpenAPICreateServiceProjectRequest struct {
 	AppId           *string                               `json:"appId,omitempty"`
@@ -572,6 +573,22 @@ type OpenAPIGitHubRepository struct {
 	Permissions        OpenAPIGitHubRepositoryPermission `json:"permissions"`
 	MissingPermissions []string                          `json:"missingPermissions"`
 }
+type OpenAPIServiceConfigurationOperationAbandonResponse struct {
+	Operation        OpenAPIServiceConfigurationOperation         `json:"operation"`
+	AbandonedVolumes []OpenAPIServiceConfigurationAbandonedVolume `json:"abandonedVolumes"`
+}
+type OpenAPIServiceConfigurationAbandonedVolume struct {
+	VolumeRef string `json:"volumeRef"`
+	WorkerId  string `json:"workerId"`
+}
+type OpenAPIServiceGitHubAccount struct {
+	InstallationRef string `json:"installationRef"`
+	Login           string `json:"login"`
+	Status          string `json:"status"`
+}
+type OpenAPIServiceGitHubAccountList struct {
+	Items []OpenAPIServiceGitHubAccount `json:"items"`
+}
 type OpenAPIGitHubRepositoryList struct {
 	Items      []OpenAPIGitHubRepository `json:"items"`
 	NextCursor string                    `json:"nextCursor"`
@@ -690,6 +707,8 @@ type OpenAPIServiceRepository struct {
 	AutomaticDeployments       OpenAPIServiceAutomaticDeploymentWiring `json:"automaticDeployments"`
 	SourceCredentialRotatedAt  *time.Time                              `json:"sourceCredentialRotatedAt,omitempty"`
 	WebhookCredentialRotatedAt *time.Time                              `json:"webhookCredentialRotatedAt,omitempty"`
+	Bound                      bool                                    `json:"bound"`
+	GitHubInstallationRef      *string                                 `json:"gitHubInstallationRef,omitempty"`
 	Version                    int64                                   `json:"version"`
 	Etag                       string                                  `json:"etag"`
 }
@@ -931,6 +950,7 @@ type OpenAPIServiceRuntimeLogWorkerStatus struct {
 		UpdatedAt     time.Time  `json:"updatedAt"`
 		LastTrimmedAt *time.Time `json:"lastTrimmedAt,omitempty"`
 		LastFlushedAt *time.Time `json:"lastFlushedAt,omitempty"`
+		IsDefault     *bool      `json:"isDefault,omitempty"`
 	} `json:"settings,omitempty"`
 	Storage struct {
 		DatabaseBytes     int64      `json:"databaseBytes"`
@@ -1652,6 +1672,7 @@ type OpenAPIServiceComposeFile struct {
 	EnvId     string     `json:"envId"`
 	Content   string     `json:"content"`
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	Etag      *string    `json:"etag,omitempty"`
 }
 type OpenAPIPutServiceComposeFileRequest struct {
 	Content string `json:"content"`
@@ -1687,6 +1708,7 @@ type OpenAPIServiceTrafficSettings struct {
 	LastTrimmedAt   *time.Time `json:"lastTrimmedAt,omitempty"`
 	LastFlushedAt   *time.Time `json:"lastFlushedAt,omitempty"`
 	LastCompactedAt *time.Time `json:"lastCompactedAt,omitempty"`
+	IsDefault       *bool      `json:"isDefault,omitempty"`
 }
 type OpenAPIServiceTrafficStorageSummary struct {
 	DatabaseBytes int64      `json:"databaseBytes"`
@@ -1948,6 +1970,8 @@ type OpenAPIServiceTrafficMaintenanceFanout struct {
 	Complete bool                                           `json:"complete"`
 	Receipt  OpenAPIOperationReceipt                        `json:"receipt"`
 }
+type OpenAPIAbandonServiceConfigurationOperationRequestBody = OpenAPINoBody
+type OpenAPIAbandonServiceConfigurationOperationResponseBody = OpenAPIServiceConfigurationOperationAbandonResponse
 type OpenAPIAdoptGitHubRepositoryRequestBody = OpenAPIGitHubRepositoryAdoptionRequest
 type OpenAPIAdoptGitHubRepositoryResponseBody = OpenAPIServiceConfigurationOperation
 type OpenAPIApplyPostGripConfigurationPlanRequestBody = OpenAPIApplyPostGripConfigurationPlanRequest
@@ -2090,6 +2114,8 @@ type OpenAPIListServiceDomainsRequestBody = OpenAPINoBody
 type OpenAPIListServiceDomainsResponseBody = OpenAPIServiceDomainList
 type OpenAPIListServiceEnvironmentsRequestBody = OpenAPINoBody
 type OpenAPIListServiceEnvironmentsResponseBody = OpenAPIEnvironmentList
+type OpenAPIListServiceGitHubAccountsRequestBody = OpenAPINoBody
+type OpenAPIListServiceGitHubAccountsResponseBody = OpenAPIServiceGitHubAccountList
 type OpenAPIListServiceGitHubBranchesRequestBody = OpenAPINoBody
 type OpenAPIListServiceGitHubBranchesResponseBody = []OpenAPIServiceGitHubBranch
 type OpenAPIListServiceLogsRequestBody = OpenAPINoBody
@@ -2355,6 +2381,10 @@ type ServiceRuntimeLogSettingsRequest = OpenAPIServiceRuntimeLogSettingsRequest
 type ServiceTarget = OpenAPIServiceTarget
 type GitHubRepositoryPermission = OpenAPIGitHubRepositoryPermission
 type GitHubRepository = OpenAPIGitHubRepository
+type ServiceConfigurationOperationAbandonResponse = OpenAPIServiceConfigurationOperationAbandonResponse
+type ServiceConfigurationAbandonedVolume = OpenAPIServiceConfigurationAbandonedVolume
+type ServiceGitHubAccount = OpenAPIServiceGitHubAccount
+type ServiceGitHubAccountList = OpenAPIServiceGitHubAccountList
 type GitHubRepositoryList = OpenAPIGitHubRepositoryList
 type GitHubRepositoryAdoptionPreviewRequest = OpenAPIGitHubRepositoryAdoptionPreviewRequest
 type GitHubRepositoryAdoptionPreview = OpenAPIGitHubRepositoryAdoptionPreview
@@ -2492,4 +2522,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "6ad9e846f257b8d6c8f788002cee479dc40503f28274791b6cbc06c51d48d1d2"
+const openAPITypesSpecSHA256 = "dd9e4b81913e3757c83c6806500d5bc831f1bd379ca28210c5311f2c79a280bd"

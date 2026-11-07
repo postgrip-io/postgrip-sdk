@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "a2eca93ec7015c79105e06ba2940c0c83bb0dae39b30e720036c09aa5e1d7837",
+  "contractBundleDigest": "0fd58ddbe2da2928c78655bb5d3909020acb547de2f6959e9acb7181e8e81047",
   "operations": [
     {
       "curl": false,
@@ -780,6 +780,23 @@
       "protocolException": true,
       "protocolRunner": "streaming-protocol",
       "recordedRunner": "recorded-streaming-protocol",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "pre-release",
+      "operationId": "abandonServiceConfigurationOperation",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
       "recordedTested": true,
       "sdkGenerated": true
     },
@@ -1999,6 +2016,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "listServiceGitHubAccounts",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "listServiceGitHubBranches",
       "plane": "service",
       "protocolException": false,
@@ -3189,10 +3223,10 @@
       "recordedTested": 46
     },
     "service": {
-      "curl": 122,
-      "operations": 122,
+      "curl": 124,
+      "operations": 124,
       "protocolExceptions": 0,
-      "recordedTested": 122
+      "recordedTested": 124
     },
     "worker": {
       "curl": 19,
@@ -3203,14 +3237,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 178,
-    "documented": 187,
-    "nightlyOwned": 135,
-    "operations": 187,
-    "preReleaseOwned": 50,
+    "curl": 180,
+    "documented": 189,
+    "nightlyOwned": 136,
+    "operations": 189,
+    "preReleaseOwned": 51,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 187,
-    "sdkGenerated": 187
+    "recordedTested": 189,
+    "sdkGenerated": 189
   }
 }

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Service contract bundle `0fd58ddb…`: `repositories.list_service_git_hub_accounts`
+  lists the organization's connected GitHub accounts, and
+  `configuration_operations.abandon_service_configuration_operation` ends a
+  failed or blocked delete as `abandoned` without contacting a Worker.
+  Runtime-log settings are per app per Worker:
+  `update_service_runtime_log_settings` no longer takes `environment_id`, and
+  `trim_service_build_logs` and `flush_service_build_logs` take an optional
+  `environment_id`.
+  The Compose file read answers an `etag`, and its write takes an optional
+  `If-Match` (`412` when stale). Default runtime-log and traffic settings
+  answer `isDefault: true`, and traffic windows add `6h` and `5d`. A project's
+  repository answers `bound` and, for GitHub, `gitHubInstallationRef`, and a
+  GitHub create may name `repository.installationRef`
+  (`409 GITHUB_INSTALLATION_REQUIRED` or `GITHUB_INSTALLATION_MISMATCH`). A
+  private GitLab or Bitbucket repository is refused with
+  `422 REPOSITORY_NOT_PUBLIC`.
 - Service contract bundle `cc37cae6…`: `OpenAPICreateServiceProjectRequest`
   (and `projects.create_service_project`) takes `repository` as an optional
   key. A `zvec` or `ladybugdb` project left without one is built from its

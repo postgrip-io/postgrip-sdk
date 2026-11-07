@@ -298,6 +298,8 @@ export class ServiceClient {
         this.administrationMutation('refreshServiceRepositoryCredential', { path: { serviceId, credentialKind }, ...administrationWrite(options) }, true),
       listGitHub: (query: OpenAPIQueryParameters<'listGitHubAppRepositories'> = {}, options: RequestOptions = {}) =>
         this.request('listGitHubAppRepositories', { query, signal: options.signal }),
+      listGitHubAccounts: (options: RequestOptions = {}) =>
+        this.request('listServiceGitHubAccounts', { signal: options.signal }),
       previewGitHubAdoption: (serviceId: string, body: OpenAPIRequestBody<'previewGitHubRepositoryAdoption'>, options: MutationOptions) =>
         this.administrationMutation('previewGitHubRepositoryAdoption', { path: { serviceId }, body, ...mutationRequest(options) }),
       adoptGitHub: (serviceId: string, body: OpenAPIRequestBody<'adoptGitHubRepository'>, options: AdministrationWriteOptions) =>
@@ -333,11 +335,11 @@ export class ServiceClient {
       getBuild: (serviceId: string, options: RequestOptions = {}) => this.request('getServiceBuildLogSettings', { path: { serviceId }, signal: options.signal }),
       updateBuild: (serviceId: string, body: OpenAPIRequestBody<'updateServiceBuildLogSettings'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('updateServiceBuildLogSettings', { path: { serviceId }, body, ...administrationWrite(options) }, true),
-      trimBuild: (serviceId: string, options: AdministrationWriteOptions) => this.administrationMutation('trimServiceBuildLogs', { path: { serviceId }, ...administrationWrite(options) }, true),
-      flushBuild: (serviceId: string, options: AdministrationWriteOptions) => this.administrationMutation('flushServiceBuildLogs', { path: { serviceId }, ...administrationWrite(options) }, true),
+      trimBuild: (serviceId: string, options: AdministrationWriteOptions, query: OpenAPIQueryParameters<'trimServiceBuildLogs'> = {}) => this.administrationMutation('trimServiceBuildLogs', { path: { serviceId }, query, ...administrationWrite(options) }, true),
+      flushBuild: (serviceId: string, options: AdministrationWriteOptions, query: OpenAPIQueryParameters<'flushServiceBuildLogs'> = {}) => this.administrationMutation('flushServiceBuildLogs', { path: { serviceId }, query, ...administrationWrite(options) }, true),
       getRuntime: (serviceId: string, query: OpenAPIQueryParameters<'getServiceRuntimeLogSettings'> = {}, options: RequestOptions = {}) => this.request('getServiceRuntimeLogSettings', { path: { serviceId }, query, signal: options.signal }),
-      updateRuntime: (serviceId: string, query: OpenAPIQueryParameters<'updateServiceRuntimeLogSettings'>, body: OpenAPIRequestBody<'updateServiceRuntimeLogSettings'>, options: AdministrationWriteOptions) =>
-        this.administrationMutation('updateServiceRuntimeLogSettings', { path: { serviceId }, query, body, ...administrationWrite(options) }, true),
+      updateRuntime: (serviceId: string, body: OpenAPIRequestBody<'updateServiceRuntimeLogSettings'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('updateServiceRuntimeLogSettings', { path: { serviceId }, body, ...administrationWrite(options) }, true),
       trimRuntime: (serviceId: string, query: OpenAPIQueryParameters<'trimServiceRuntimeLogs'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('trimServiceRuntimeLogs', { path: { serviceId }, query, ...administrationWrite(options) }, true),
       flushRuntime: (serviceId: string, query: OpenAPIQueryParameters<'flushServiceRuntimeLogs'>, options: AdministrationWriteOptions) =>
@@ -365,6 +367,7 @@ export class ServiceClient {
       list: (query: OpenAPIQueryParameters<'listServiceConfigurationOperations'> = {}, options: RequestOptions = {}) => this.request('listServiceConfigurationOperations', { query, signal: options.signal }),
       get: (operationId: string, options: RequestOptions = {}) => this.request('getServiceConfigurationOperation', { path: { operationId }, signal: options.signal }),
       retry: (operationId: string, options: AdministrationWriteOptions) => this.administrationMutation('retryServiceConfigurationOperation', { path: { operationId }, ...administrationWrite(options) }, true),
+      abandon: (operationId: string, options: AdministrationWriteOptions) => this.administrationMutation('abandonServiceConfigurationOperation', { path: { operationId }, ...administrationWrite(options) }, true),
     },
     declarativeConfiguration: {
       validate: (body: OpenAPIRequestBody<'validatePostGripConfiguration'>, options: RequestOptions = {}) =>

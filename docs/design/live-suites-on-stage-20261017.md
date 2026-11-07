@@ -176,8 +176,8 @@ resource can be declared transient: it records its identifier, needs no
 cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
-assignments stay as they are. The nightly scenario covers 135 operations and
-the pre-release scenario 50, plus their fixture steps. DNS failover and plan
+assignments stay as they are. The nightly scenario covers 136 operations and
+the pre-release scenario 51, plus their fixture steps. DNS failover and plan
 rollback left the public API on 2026-10-18 (web
 `docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
 removed one nightly and three pre-release operations. Web's recovery move
@@ -207,7 +207,14 @@ added one nightly mutation, `cancelTask`. It cancels a `noop` task the
 scenario enqueued on a queue no Agent polls, so the task is still `queued`;
 the stage nightly scenario must add the enqueue and cancel steps before
 `live-nightly.yml` can pass again
-([SDK design](agent-task-cancel-20261107.md)).
+([SDK design](agent-task-cancel-20261107.md)). Web's Service batch
+(postgrip-io/postgrip-web#2533) added one nightly read,
+`listServiceGitHubAccounts`, which answers `{"items": []}` for an
+organization with no connected account, and one pre-release mutation,
+`abandonServiceConfigurationOperation`. The abandon needs a delete operation
+that is `failed` or `blocked`, which the pre-release scenario must stage
+before `live-pre-release.yml` can pass again; the nightly scenario must add
+the read before `live-nightly.yml` can.
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager

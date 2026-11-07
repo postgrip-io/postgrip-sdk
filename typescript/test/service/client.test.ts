@@ -349,7 +349,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 105 administration operations and sends concurrency fences', async () => {
+  it('groups all 107 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -361,7 +361,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(104);
+    expect(methodCount).toBe(106);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -416,7 +416,7 @@ describe('ServiceClient', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('executes all 105 administration facades through the authenticated transport', async () => {
+  it('executes all 107 administration facades through the authenticated transport', async () => {
     let requestCount = 0;
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestCount += 1;
@@ -496,6 +496,7 @@ describe('ServiceClient', () => {
       () => admin.repositories.clearCredential('project-1', 'source-access', write),
       () => admin.repositories.refreshCredential('project-1', 'source-access', write),
       () => admin.repositories.listGitHub(),
+      () => admin.repositories.listGitHubAccounts(),
       () => admin.repositories.previewGitHubAdoption('project-1', body, mutation),
       () => admin.repositories.adoptGitHub('project-1', body, write),
       () => admin.repositories.listGitHubBranches(body),
@@ -515,7 +516,7 @@ describe('ServiceClient', () => {
       () => admin.retention.trimBuild('project-1', write),
       () => admin.retention.flushBuild('project-1', write),
       () => admin.retention.getRuntime('project-1'),
-      () => admin.retention.updateRuntime('project-1', body, body, write),
+      () => admin.retention.updateRuntime('project-1', body, write),
       () => admin.retention.trimRuntime('project-1', body, write),
       () => admin.retention.flushRuntime('project-1', body, write),
       () => admin.diagnostics.screenshot('project-1', 'deployment-1'),
@@ -528,6 +529,7 @@ describe('ServiceClient', () => {
       () => admin.configurationOperations.list(),
       () => admin.configurationOperations.get('operation-1'),
       () => admin.configurationOperations.retry('operation-1', write),
+      () => admin.configurationOperations.abandon('operation-1', write),
       () => admin.declarativeConfiguration.validate(body),
       () => admin.declarativeConfiguration.getStack('stack-1'),
       () => admin.declarativeConfiguration.createPlan('stack-1', body, mutation),
@@ -541,7 +543,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(104);
+    expect(requestCount).toBe(106);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

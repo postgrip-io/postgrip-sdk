@@ -1,5 +1,14 @@
 {
   "operations": {
+    "abandonServiceConfigurationOperation": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/abandonServiceConfigurationOperation.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "adoptGitHubRepository": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,
@@ -766,6 +775,15 @@
       "cleanup": "none",
       "curlEligible": true,
       "fixture": "service/listServiceEnvironments.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServiceGitHubAccounts": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServiceGitHubAccounts.json",
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",
