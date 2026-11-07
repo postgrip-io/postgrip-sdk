@@ -1655,6 +1655,51 @@
       "mockTest": "recorded-http",
       "plane": "worker",
       "protocolException": null
+    },
+    "getWorkerSnapshotStatus": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/getWorkerSnapshotStatus.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "listWorkerSnapshots": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/listWorkerSnapshots.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "createWorkerSnapshot": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/createWorkerSnapshot.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "getWorkerSnapshotSettings": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/getWorkerSnapshotSettings.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
+    "updateWorkerSnapshotSettings": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/updateWorkerSnapshotSettings.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
     }
   },
   "schemaVersion": 1

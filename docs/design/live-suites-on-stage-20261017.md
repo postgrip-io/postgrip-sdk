@@ -176,8 +176,8 @@ resource can be declared transient: it records its identifier, needs no
 cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
-assignments stay as they are. The nightly scenario covers 131 operations and
-the pre-release scenario 47, plus their fixture steps. DNS failover and plan
+assignments stay as they are. The nightly scenario covers 133 operations and
+the pre-release scenario 50, plus their fixture steps. DNS failover and plan
 rollback left the public API on 2026-10-18 (web
 `docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
 removed one nightly and three pre-release operations. Web's recovery move
@@ -186,7 +186,16 @@ D5c) added three pre-release operations, `getRecoveryMove`,
 `reviseRecoveryMoveVolume` and `confirmRecoveryMoveVariables`. They need a
 recovery move off a lost stage Worker, so the stage pre-release scenario must
 add a lost-Worker fixture and all three steps before `live-pre-release.yml`
-can pass again.
+can pass again. Web's public Worker snapshots
+(`docs/design/public-worker-snapshots-design-20261107.md`) added five:
+`getWorkerSnapshotStatus` and `getWorkerSnapshotSettings` (nightly), and
+`listWorkerSnapshots`, `createWorkerSnapshot` and
+`updateWorkerSnapshotSettings` (pre-release). They need a stage Worker that
+advertises `worker_snapshot_api_v1`, and the pre-release three a storage
+destination whose credentials the console delivered to it; the settings step
+restores the Worker's previous settings. Both stage scenarios must add these
+steps before their workflows can pass again
+([SDK design](worker-snapshots-20261107.md)).
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager
