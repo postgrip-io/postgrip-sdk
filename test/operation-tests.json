@@ -641,6 +641,15 @@
       "plane": "worker",
       "protocolException": null
     },
+    "getWorkerRemovalImpact": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/getWorkerRemovalImpact.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
+    },
     "getWorkflow": {
       "cleanup": "none",
       "curlEligible": true,
@@ -1110,6 +1119,15 @@
       "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",
+      "protocolException": null
+    },
+    "removeWorker": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/removeWorker.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "worker",
       "protocolException": null
     },
     "resolveService": {

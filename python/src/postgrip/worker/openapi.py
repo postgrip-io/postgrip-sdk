@@ -8,10 +8,10 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '86004c9dd3c7b8cf629e47141a53e4fcfb97f633294b96a68bec1c67f957fcce'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '0fd58ddbe2da2928c78655bb5d3909020acb547de2f6959e9acb7181e8e81047'
-OPENAPI_OPERATION_COUNT = 19
-OPENAPI_CLIENT_OPERATION_COUNT = 19
+OPENAPI_SPEC_SHA256 = '40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'a20586b1bf0a44746bca6b9d4fd8511a50be823ca55450324efd077ebaca00f5'
+OPENAPI_OPERATION_COUNT = 21
+OPENAPI_CLIENT_OPERATION_COUNT = 21
 
 
 
@@ -21,6 +21,7 @@ class OperationId(str, Enum):
     CREATE_WORKER_SNAPSHOT = 'createWorkerSnapshot'
     GET_WORKER = 'getWorker'
     GET_WORKER_JOB = 'getWorkerJob'
+    GET_WORKER_REMOVAL_IMPACT = 'getWorkerRemovalImpact'
     GET_WORKER_SNAPSHOT_SETTINGS = 'getWorkerSnapshotSettings'
     GET_WORKER_SNAPSHOT_STATUS = 'getWorkerSnapshotStatus'
     LIST_STORAGE_DESTINATIONS = 'listStorageDestinations'
@@ -31,6 +32,7 @@ class OperationId(str, Enum):
     LIST_WORKER_SNAPSHOTS = 'listWorkerSnapshots'
     LIST_WORKERS = 'listWorkers'
     PLACE_WORKER_IN_MAINTENANCE = 'placeWorkerInMaintenance'
+    REMOVE_WORKER = 'removeWorker'
     RESUME_WORKER_FROM_MAINTENANCE = 'resumeWorkerFromMaintenance'
     UPDATE_WORKER_SNAPSHOT_SETTINGS = 'updateWorkerSnapshotSettings'
     UPGRADE_WORKER = 'upgradeWorker'
@@ -215,6 +217,42 @@ class _SchemaUpgradeWorkerResponse(TypedDict):
     signerImage: str
     receipt: _SchemaOperationReceipt
 
+class _SchemaWorkerRemovalImpactProject(TypedDict):
+    id: str
+    name: str
+    exclusive: bool
+    usesAsDefault: bool
+
+class _SchemaWorkerRemovalUnreachableVolume(TypedDict):
+    volumeRef: str
+    projectId: str
+    name: str
+    state: Literal['retained', 'deleting']
+
+class _SchemaWorkerRemovalImpact(TypedDict):
+    workerId: str
+    etag: str
+    serviceCount: int
+    managedVolumeCount: int
+    unreachableVolumes: list[_SchemaWorkerRemovalUnreachableVolume]
+    projects: list[_SchemaWorkerRemovalImpactProject]
+
+class _SchemaWorkerRemovalCleanup(TypedDict):
+    attempted: int
+    failed: int
+    skipped: int
+
+class _SchemaRemoveWorkerResponse(TypedDict):
+    workerId: str
+    shutdownRequested: bool
+    deletedServiceCount: int
+    deletedProjectCount: int
+    keptProjectCount: int
+    unassignedEnvironmentCount: int
+    clearedProjectDefaultCount: int
+    workerCleanup: _SchemaWorkerRemovalCleanup
+    receipt: _SchemaOperationReceipt
+
 class _SchemaWorkerSnapshotSkippedItemOptional(TypedDict, total=False):
     targetId: str
 
@@ -367,6 +405,11 @@ OpenAPIOperationalLogList: TypeAlias = _SchemaOperationalLogList
 OpenAPISecurityLogList: TypeAlias = _SchemaSecurityLogList
 OpenAPIWorkerOperationResponse: TypeAlias = _SchemaWorkerOperationResponse
 OpenAPIUpgradeWorkerResponse: TypeAlias = _SchemaUpgradeWorkerResponse
+OpenAPIWorkerRemovalImpactProject: TypeAlias = _SchemaWorkerRemovalImpactProject
+OpenAPIWorkerRemovalUnreachableVolume: TypeAlias = _SchemaWorkerRemovalUnreachableVolume
+OpenAPIWorkerRemovalImpact: TypeAlias = _SchemaWorkerRemovalImpact
+OpenAPIWorkerRemovalCleanup: TypeAlias = _SchemaWorkerRemovalCleanup
+OpenAPIRemoveWorkerResponse: TypeAlias = _SchemaRemoveWorkerResponse
 OpenAPIWorkerSnapshotSkippedItem: TypeAlias = _SchemaWorkerSnapshotSkippedItem
 OpenAPIWorkerSnapshotExcludedItem: TypeAlias = _SchemaWorkerSnapshotExcludedItem
 OpenAPIWorkerSnapshot: TypeAlias = _SchemaWorkerSnapshot
@@ -392,6 +435,8 @@ GetWorkerRequestBody: TypeAlias = None
 GetWorkerResponseBody: TypeAlias = _SchemaWorker
 GetWorkerJobRequestBody: TypeAlias = None
 GetWorkerJobResponseBody: TypeAlias = _SchemaJob
+GetWorkerRemovalImpactRequestBody: TypeAlias = None
+GetWorkerRemovalImpactResponseBody: TypeAlias = _SchemaWorkerRemovalImpact
 GetWorkerSnapshotSettingsRequestBody: TypeAlias = None
 GetWorkerSnapshotSettingsResponseBody: TypeAlias = _SchemaWorkerSnapshotSettings
 GetWorkerSnapshotStatusRequestBody: TypeAlias = None
@@ -412,6 +457,8 @@ ListWorkersRequestBody: TypeAlias = None
 ListWorkersResponseBody: TypeAlias = _SchemaWorkerList
 PlaceWorkerInMaintenanceRequestBody: TypeAlias = None
 PlaceWorkerInMaintenanceResponseBody: TypeAlias = _SchemaWorkerOperationResponse
+RemoveWorkerRequestBody: TypeAlias = None
+RemoveWorkerResponseBody: TypeAlias = _SchemaRemoveWorkerResponse
 ResumeWorkerFromMaintenanceRequestBody: TypeAlias = None
 ResumeWorkerFromMaintenanceResponseBody: TypeAlias = _SchemaWorkerOperationResponse
 UpdateWorkerSnapshotSettingsRequestBody: TypeAlias = _SchemaUpdateWorkerSnapshotSettingsRequest
@@ -427,6 +474,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.CREATE_WORKER_SNAPSHOT: (CreateWorkerSnapshotRequestBody, CreateWorkerSnapshotResponseBody),
     OperationId.GET_WORKER: (GetWorkerRequestBody, GetWorkerResponseBody),
     OperationId.GET_WORKER_JOB: (GetWorkerJobRequestBody, GetWorkerJobResponseBody),
+    OperationId.GET_WORKER_REMOVAL_IMPACT: (GetWorkerRemovalImpactRequestBody, GetWorkerRemovalImpactResponseBody),
     OperationId.GET_WORKER_SNAPSHOT_SETTINGS: (GetWorkerSnapshotSettingsRequestBody, GetWorkerSnapshotSettingsResponseBody),
     OperationId.GET_WORKER_SNAPSHOT_STATUS: (GetWorkerSnapshotStatusRequestBody, GetWorkerSnapshotStatusResponseBody),
     OperationId.LIST_STORAGE_DESTINATIONS: (ListStorageDestinationsRequestBody, ListStorageDestinationsResponseBody),
@@ -437,6 +485,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.LIST_WORKER_SNAPSHOTS: (ListWorkerSnapshotsRequestBody, ListWorkerSnapshotsResponseBody),
     OperationId.LIST_WORKERS: (ListWorkersRequestBody, ListWorkersResponseBody),
     OperationId.PLACE_WORKER_IN_MAINTENANCE: (PlaceWorkerInMaintenanceRequestBody, PlaceWorkerInMaintenanceResponseBody),
+    OperationId.REMOVE_WORKER: (RemoveWorkerRequestBody, RemoveWorkerResponseBody),
     OperationId.RESUME_WORKER_FROM_MAINTENANCE: (ResumeWorkerFromMaintenanceRequestBody, ResumeWorkerFromMaintenanceResponseBody),
     OperationId.UPDATE_WORKER_SNAPSHOT_SETTINGS: (UpdateWorkerSnapshotSettingsRequestBody, UpdateWorkerSnapshotSettingsResponseBody),
     OperationId.UPGRADE_WORKER: (UpgradeWorkerRequestBody, UpgradeWorkerResponseBody),
@@ -487,6 +536,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.CREATE_WORKER_SNAPSHOT: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/snapshots', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'CreateWorkerSnapshotResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
     OperationId.GET_WORKER: OpenAPIOperation('GET', '/api/v1/workers/{workerId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Worker', ('workerId',), 'none', 'none', ()),
     OperationId.GET_WORKER_JOB: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/jobs/{jobId}', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'Job', ('workerId', 'jobId'), 'none', 'none', ()),
+    OperationId.GET_WORKER_REMOVAL_IMPACT: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/removal-impact', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerRemovalImpact', ('workerId',), 'none', 'none', ()),
     OperationId.GET_WORKER_SNAPSHOT_SETTINGS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/snapshot/settings', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerSnapshotSettings', ('workerId',), 'none', 'none', ()),
     OperationId.GET_WORKER_SNAPSHOT_STATUS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/snapshot/status', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerSnapshotStatus', ('workerId',), 'none', 'none', ()),
     OperationId.LIST_STORAGE_DESTINATIONS: OpenAPIOperation('GET', '/api/v1/storage-destinations', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'StorageDestinationList', (), 'none', 'none', ()),
@@ -497,6 +547,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.LIST_WORKER_SNAPSHOTS: OpenAPIOperation('GET', '/api/v1/workers/{workerId}/snapshots', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerSnapshotList', ('workerId',), 'none', 'none', ()),
     OperationId.LIST_WORKERS: OpenAPIOperation('GET', '/api/v1/workers', 'worker-management', 'read-only', 'bounded', '', False, False, '', 'WorkerList', (), 'none', 'none', ()),
     OperationId.PLACE_WORKER_IN_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
+    OperationId.REMOVE_WORKER: OpenAPIOperation('DELETE', '/api/v1/workers/{workerId}', 'worker-management', 'destructive', 'bounded', '', False, False, '', 'RemoveWorkerResponse', ('workerId',), 'required', 'none', ('Idempotency-Key', 'If-Match')),
     OperationId.RESUME_WORKER_FROM_MAINTENANCE: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/maintenance/resume', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'WorkerOperationResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
     OperationId.UPDATE_WORKER_SNAPSHOT_SETTINGS: OpenAPIOperation('PUT', '/api/v1/workers/{workerId}/snapshot/settings', 'worker-management', 'mutation', 'bounded', '', False, False, 'UpdateWorkerSnapshotSettingsRequest', 'UpdateWorkerSnapshotSettingsResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
     OperationId.UPGRADE_WORKER: OpenAPIOperation('POST', '/api/v1/workers/{workerId}/upgrade', 'worker-management', 'mutation', 'bounded', '', False, False, '', 'UpgradeWorkerResponse', ('workerId',), 'required', 'none', ('Idempotency-Key',)),
@@ -566,6 +617,9 @@ class OpenAPIClient:
     def get_worker_job(self, worker_id: str, job_id: str) -> GetWorkerJobResponseBody:
         return cast(GetWorkerJobResponseBody, self._transport(OperationId.GET_WORKER_JOB, path_parameters={'workerId': worker_id, 'jobId': job_id}))
 
+    def get_worker_removal_impact(self, worker_id: str) -> GetWorkerRemovalImpactResponseBody:
+        return cast(GetWorkerRemovalImpactResponseBody, self._transport(OperationId.GET_WORKER_REMOVAL_IMPACT, path_parameters={'workerId': worker_id}))
+
     def get_worker_snapshot_settings(self, worker_id: str) -> GetWorkerSnapshotSettingsResponseBody:
         return cast(GetWorkerSnapshotSettingsResponseBody, self._transport(OperationId.GET_WORKER_SNAPSHOT_SETTINGS, path_parameters={'workerId': worker_id}))
 
@@ -621,6 +675,12 @@ class OpenAPIClient:
         _headers: dict[str, str] = {}
         _headers['Idempotency-Key'] = str(idempotency_key)
         return cast(PlaceWorkerInMaintenanceResponseBody, self._transport(OperationId.PLACE_WORKER_IN_MAINTENANCE, path_parameters={'workerId': worker_id}, headers=_headers))
+
+    def remove_worker(self, worker_id: str, *, idempotency_key: str, if_match: str) -> RemoveWorkerResponseBody:
+        _headers: dict[str, str] = {}
+        _headers['Idempotency-Key'] = str(idempotency_key)
+        _headers['If-Match'] = str(if_match)
+        return cast(RemoveWorkerResponseBody, self._transport(OperationId.REMOVE_WORKER, path_parameters={'workerId': worker_id}, headers=_headers))
 
     def resume_worker_from_maintenance(self, worker_id: str, *, idempotency_key: str) -> ResumeWorkerFromMaintenanceResponseBody:
         _headers: dict[str, str] = {}
@@ -700,4 +760,4 @@ def resolve_openapi_operation(
     )
 
 
-__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIHealthResponse', 'OpenAPIErrorResponse', 'OpenAPIMaintenanceWindow', 'OpenAPICreateWorkerBootstrap', 'OpenAPICreateWorkerRequest', 'OpenAPIWorkerBootstrapExpiry', 'OpenAPICreateWorkerResponse', 'OpenAPIWorker', 'OpenAPIWorkerList', 'OpenAPIAssignment', 'OpenAPIAssignmentList', 'OpenAPIJobState', 'OpenAPIJob', 'OpenAPIJobList', 'OpenAPIOperationReceipt', 'OpenAPICheckResult', 'OpenAPICheckWorkerResponse', 'OpenAPIOperationalLogEntry', 'OpenAPISecurityLogEntry', 'OpenAPIOperationalLogList', 'OpenAPISecurityLogList', 'OpenAPIWorkerOperationResponse', 'OpenAPIUpgradeWorkerResponse', 'OpenAPIWorkerSnapshotSkippedItem', 'OpenAPIWorkerSnapshotExcludedItem', 'OpenAPIWorkerSnapshot', 'OpenAPIWorkerSnapshotList', 'OpenAPIWorkerSnapshotRun', 'OpenAPICreateWorkerSnapshotResponse', 'OpenAPIWorkerSnapshotOrphan', 'OpenAPIWorkerSnapshotRecovery', 'OpenAPIWorkerSnapshotStatus', 'OpenAPIWorkerSnapshotSettings', 'OpenAPIUpdateWorkerSnapshotSettingsRequest', 'OpenAPIUpdateWorkerSnapshotSettingsResponse', 'OpenAPIStorageDestination', 'OpenAPIStorageDestinationList', 'CheckWorkerRequestBody', 'CheckWorkerResponseBody', 'CreateWorkerRequestBody', 'CreateWorkerResponseBody', 'CreateWorkerSnapshotRequestBody', 'CreateWorkerSnapshotResponseBody', 'GetWorkerRequestBody', 'GetWorkerResponseBody', 'GetWorkerJobRequestBody', 'GetWorkerJobResponseBody', 'GetWorkerSnapshotSettingsRequestBody', 'GetWorkerSnapshotSettingsResponseBody', 'GetWorkerSnapshotStatusRequestBody', 'GetWorkerSnapshotStatusResponseBody', 'ListStorageDestinationsRequestBody', 'ListStorageDestinationsResponseBody', 'ListWorkerAssignmentsRequestBody', 'ListWorkerAssignmentsResponseBody', 'ListWorkerJobsRequestBody', 'ListWorkerJobsResponseBody', 'ListWorkerOperationalLogsRequestBody', 'ListWorkerOperationalLogsResponseBody', 'ListWorkerSecurityLogsRequestBody', 'ListWorkerSecurityLogsResponseBody', 'ListWorkerSnapshotsRequestBody', 'ListWorkerSnapshotsResponseBody', 'ListWorkersRequestBody', 'ListWorkersResponseBody', 'PlaceWorkerInMaintenanceRequestBody', 'PlaceWorkerInMaintenanceResponseBody', 'ResumeWorkerFromMaintenanceRequestBody', 'ResumeWorkerFromMaintenanceResponseBody', 'UpdateWorkerSnapshotSettingsRequestBody', 'UpdateWorkerSnapshotSettingsResponseBody', 'UpgradeWorkerRequestBody', 'UpgradeWorkerResponseBody', 'WorkerOrchestratorHealthRequestBody', 'WorkerOrchestratorHealthResponseBody']
+__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'OpenAPIHealthResponse', 'OpenAPIErrorResponse', 'OpenAPIMaintenanceWindow', 'OpenAPICreateWorkerBootstrap', 'OpenAPICreateWorkerRequest', 'OpenAPIWorkerBootstrapExpiry', 'OpenAPICreateWorkerResponse', 'OpenAPIWorker', 'OpenAPIWorkerList', 'OpenAPIAssignment', 'OpenAPIAssignmentList', 'OpenAPIJobState', 'OpenAPIJob', 'OpenAPIJobList', 'OpenAPIOperationReceipt', 'OpenAPICheckResult', 'OpenAPICheckWorkerResponse', 'OpenAPIOperationalLogEntry', 'OpenAPISecurityLogEntry', 'OpenAPIOperationalLogList', 'OpenAPISecurityLogList', 'OpenAPIWorkerOperationResponse', 'OpenAPIUpgradeWorkerResponse', 'OpenAPIWorkerRemovalImpactProject', 'OpenAPIWorkerRemovalUnreachableVolume', 'OpenAPIWorkerRemovalImpact', 'OpenAPIWorkerRemovalCleanup', 'OpenAPIRemoveWorkerResponse', 'OpenAPIWorkerSnapshotSkippedItem', 'OpenAPIWorkerSnapshotExcludedItem', 'OpenAPIWorkerSnapshot', 'OpenAPIWorkerSnapshotList', 'OpenAPIWorkerSnapshotRun', 'OpenAPICreateWorkerSnapshotResponse', 'OpenAPIWorkerSnapshotOrphan', 'OpenAPIWorkerSnapshotRecovery', 'OpenAPIWorkerSnapshotStatus', 'OpenAPIWorkerSnapshotSettings', 'OpenAPIUpdateWorkerSnapshotSettingsRequest', 'OpenAPIUpdateWorkerSnapshotSettingsResponse', 'OpenAPIStorageDestination', 'OpenAPIStorageDestinationList', 'CheckWorkerRequestBody', 'CheckWorkerResponseBody', 'CreateWorkerRequestBody', 'CreateWorkerResponseBody', 'CreateWorkerSnapshotRequestBody', 'CreateWorkerSnapshotResponseBody', 'GetWorkerRequestBody', 'GetWorkerResponseBody', 'GetWorkerJobRequestBody', 'GetWorkerJobResponseBody', 'GetWorkerRemovalImpactRequestBody', 'GetWorkerRemovalImpactResponseBody', 'GetWorkerSnapshotSettingsRequestBody', 'GetWorkerSnapshotSettingsResponseBody', 'GetWorkerSnapshotStatusRequestBody', 'GetWorkerSnapshotStatusResponseBody', 'ListStorageDestinationsRequestBody', 'ListStorageDestinationsResponseBody', 'ListWorkerAssignmentsRequestBody', 'ListWorkerAssignmentsResponseBody', 'ListWorkerJobsRequestBody', 'ListWorkerJobsResponseBody', 'ListWorkerOperationalLogsRequestBody', 'ListWorkerOperationalLogsResponseBody', 'ListWorkerSecurityLogsRequestBody', 'ListWorkerSecurityLogsResponseBody', 'ListWorkerSnapshotsRequestBody', 'ListWorkerSnapshotsResponseBody', 'ListWorkersRequestBody', 'ListWorkersResponseBody', 'PlaceWorkerInMaintenanceRequestBody', 'PlaceWorkerInMaintenanceResponseBody', 'RemoveWorkerRequestBody', 'RemoveWorkerResponseBody', 'ResumeWorkerFromMaintenanceRequestBody', 'ResumeWorkerFromMaintenanceResponseBody', 'UpdateWorkerSnapshotSettingsRequestBody', 'UpdateWorkerSnapshotSettingsResponseBody', 'UpgradeWorkerRequestBody', 'UpgradeWorkerResponseBody', 'WorkerOrchestratorHealthRequestBody', 'WorkerOrchestratorHealthResponseBody']

@@ -167,6 +167,42 @@ type OpenAPIUpgradeWorkerResponse struct {
 	SignerImage           string                  `json:"signerImage"`
 	Receipt               OpenAPIOperationReceipt `json:"receipt"`
 }
+type OpenAPIWorkerRemovalImpactProject struct {
+	Id            string `json:"id"`
+	Name          string `json:"name"`
+	Exclusive     bool   `json:"exclusive"`
+	UsesAsDefault bool   `json:"usesAsDefault"`
+}
+type OpenAPIWorkerRemovalUnreachableVolume struct {
+	VolumeRef string `json:"volumeRef"`
+	ProjectId string `json:"projectId"`
+	Name      string `json:"name"`
+	State     string `json:"state"`
+}
+type OpenAPIWorkerRemovalImpact struct {
+	WorkerId           string                                  `json:"workerId"`
+	Etag               string                                  `json:"etag"`
+	ServiceCount       int64                                   `json:"serviceCount"`
+	ManagedVolumeCount int64                                   `json:"managedVolumeCount"`
+	UnreachableVolumes []OpenAPIWorkerRemovalUnreachableVolume `json:"unreachableVolumes"`
+	Projects           []OpenAPIWorkerRemovalImpactProject     `json:"projects"`
+}
+type OpenAPIWorkerRemovalCleanup struct {
+	Attempted int64 `json:"attempted"`
+	Failed    int64 `json:"failed"`
+	Skipped   int64 `json:"skipped"`
+}
+type OpenAPIRemoveWorkerResponse struct {
+	WorkerId                   string                      `json:"workerId"`
+	ShutdownRequested          bool                        `json:"shutdownRequested"`
+	DeletedServiceCount        int64                       `json:"deletedServiceCount"`
+	DeletedProjectCount        int64                       `json:"deletedProjectCount"`
+	KeptProjectCount           int64                       `json:"keptProjectCount"`
+	UnassignedEnvironmentCount int64                       `json:"unassignedEnvironmentCount"`
+	ClearedProjectDefaultCount int64                       `json:"clearedProjectDefaultCount"`
+	WorkerCleanup              OpenAPIWorkerRemovalCleanup `json:"workerCleanup"`
+	Receipt                    OpenAPIOperationReceipt     `json:"receipt"`
+}
 type OpenAPIWorkerSnapshotSkippedItem struct {
 	Kind     string  `json:"kind"`
 	TargetId *string `json:"targetId,omitempty"`
@@ -290,6 +326,8 @@ type OpenAPIGetWorkerRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerResponseBody = OpenAPIWorker
 type OpenAPIGetWorkerJobRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerJobResponseBody = OpenAPIJob
+type OpenAPIGetWorkerRemovalImpactRequestBody = OpenAPINoBody
+type OpenAPIGetWorkerRemovalImpactResponseBody = OpenAPIWorkerRemovalImpact
 type OpenAPIGetWorkerSnapshotSettingsRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerSnapshotSettingsResponseBody = OpenAPIWorkerSnapshotSettings
 type OpenAPIGetWorkerSnapshotStatusRequestBody = OpenAPINoBody
@@ -310,6 +348,8 @@ type OpenAPIListWorkersRequestBody = OpenAPINoBody
 type OpenAPIListWorkersResponseBody = OpenAPIWorkerList
 type OpenAPIPlaceWorkerInMaintenanceRequestBody = OpenAPINoBody
 type OpenAPIPlaceWorkerInMaintenanceResponseBody = OpenAPIWorkerOperationResponse
+type OpenAPIRemoveWorkerRequestBody = OpenAPINoBody
+type OpenAPIRemoveWorkerResponseBody = OpenAPIRemoveWorkerResponse
 type OpenAPIResumeWorkerFromMaintenanceRequestBody = OpenAPINoBody
 type OpenAPIResumeWorkerFromMaintenanceResponseBody = OpenAPIWorkerOperationResponse
 type OpenAPIUpdateWorkerSnapshotSettingsRequestBody = OpenAPIUpdateWorkerSnapshotSettingsRequest
@@ -353,6 +393,11 @@ type OperationalLogList = OpenAPIOperationalLogList
 type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
+type WorkerRemovalImpactProject = OpenAPIWorkerRemovalImpactProject
+type WorkerRemovalUnreachableVolume = OpenAPIWorkerRemovalUnreachableVolume
+type WorkerRemovalImpact = OpenAPIWorkerRemovalImpact
+type WorkerRemovalCleanup = OpenAPIWorkerRemovalCleanup
+type RemoveWorkerResponse = OpenAPIRemoveWorkerResponse
 type WorkerSnapshotSkippedItem = OpenAPIWorkerSnapshotSkippedItem
 type WorkerSnapshotExcludedItem = OpenAPIWorkerSnapshotExcludedItem
 type WorkerSnapshot = OpenAPIWorkerSnapshot
@@ -368,4 +413,4 @@ type UpdateWorkerSnapshotSettingsResponse = OpenAPIUpdateWorkerSnapshotSettingsR
 type StorageDestination = OpenAPIStorageDestination
 type StorageDestinationList = OpenAPIStorageDestinationList
 
-const openAPITypesSpecSHA256 = "86004c9dd3c7b8cf629e47141a53e4fcfb97f633294b96a68bec1c67f957fcce"
+const openAPITypesSpecSHA256 = "40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460"

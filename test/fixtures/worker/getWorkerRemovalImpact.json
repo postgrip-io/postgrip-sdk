@@ -1,0 +1,42 @@
+{
+  "operationId": "getWorkerRemovalImpact",
+  "plane": "worker",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "workerId": "11111111-1111-4111-8111-111111111111"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "etag": "\"worker-removal-5f2c0e9a7b1d4c3e8a6f0b2d9c4e7a1f\"",
+      "managedVolumeCount": 0,
+      "projects": [
+        {
+          "exclusive": true,
+          "id": "3c8e2a1f-5b7d-4e9c-a2f0-6d1b8e4c7a93",
+          "name": "storefront",
+          "usesAsDefault": false
+        },
+        {
+          "exclusive": false,
+          "id": "7a4d9e2c-1f3b-4c8a-b6e0-2d5f9a1c3e78",
+          "name": "billing",
+          "usesAsDefault": true
+        }
+      ],
+      "serviceCount": 2,
+      "unreachableVolumes": [],
+      "workerId": "9b1f5c7e-7f0e-4d1c-9f3a-2a8f0d6b4c11"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_getWorkerRemovalImpact"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

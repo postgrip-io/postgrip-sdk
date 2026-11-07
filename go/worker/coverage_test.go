@@ -22,7 +22,7 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 		if r.URL.Path != "/health" && r.Header.Get("Authorization") != "Bearer pgt_test-token" {
 			t.Fatalf("authorization=%q for %s", r.Header.Get("Authorization"), r.URL.Path)
 		}
-		if (r.Method == http.MethodPost || r.Method == http.MethodPut) && r.Header.Get("Idempotency-Key") != "operation-1" {
+		if (r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodDelete) && r.Header.Get("Idempotency-Key") != "operation-1" {
 			t.Fatalf("idempotency=%q for %s", r.Header.Get("Idempotency-Key"), r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -96,6 +96,12 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 	if _, err := client.StorageDestinations(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := client.RemovalImpact(ctx, "worker-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Remove(ctx, "worker-1", RemoveOptions{IdempotencyKey: "operation-1", IfMatch: `"impact-1"`}); err != nil {
+		t.Fatal(err)
+	}
 
 	for _, route := range []string{
 		"GET /health", "GET /api/v1/workers/worker-1", "GET /api/v1/workers/worker-1/assignments",
@@ -106,6 +112,7 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 		"GET /api/v1/workers/worker-1/snapshot/status", "GET /api/v1/workers/worker-1/snapshots",
 		"POST /api/v1/workers/worker-1/snapshots", "GET /api/v1/workers/worker-1/snapshot/settings",
 		"PUT /api/v1/workers/worker-1/snapshot/settings", "GET /api/v1/storage-destinations",
+		"GET /api/v1/workers/worker-1/removal-impact", "DELETE /api/v1/workers/worker-1",
 	} {
 		if seen[route] == 0 {
 			t.Errorf("route %s was not exercised", route)

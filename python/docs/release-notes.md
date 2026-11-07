@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Worker contract bundle `a20586b1…`: `WorkerClient` and `AsyncWorkerClient`
+  gain `removal_impact` (`getWorkerRemovalImpact`) and `remove`
+  (`removeWorker`, `workers:admin`). `removal_impact` answers what the removal
+  would delete or change and its `etag`. `remove` requires `idempotency_key`
+  and `if_match`, the impact's `etag`, both validated before any request. A
+  changed impact answers `412` `PRECONDITION_FAILED` and a Worker with managed
+  volumes `409` `WORKER_HAS_MANAGED_VOLUMES`; nothing is changed.
 - Service contract bundle `0fd58ddb…`: `repositories.list_service_git_hub_accounts`
   lists the organization's connected GitHub accounts, and
   `configuration_operations.abandon_service_configuration_operation` ends a

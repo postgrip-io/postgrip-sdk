@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "0fd58ddbe2da2928c78655bb5d3909020acb547de2f6959e9acb7181e8e81047",
+  "contractBundleDigest": "a20586b1bf0a44746bca6b9d4fd8511a50be823ca55450324efd077ebaca00f5",
   "operations": [
     {
       "curl": false,
@@ -2985,6 +2985,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "getWorkerRemovalImpact",
+      "plane": "worker",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "getWorkerSnapshotSettings",
       "plane": "worker",
       "protocolException": false,
@@ -3154,6 +3171,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "removeWorker",
+      "plane": "worker",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "resumeWorkerFromMaintenance",
       "plane": "worker",
@@ -3229,22 +3263,22 @@
       "recordedTested": 124
     },
     "worker": {
-      "curl": 19,
-      "operations": 19,
+      "curl": 21,
+      "operations": 21,
       "protocolExceptions": 0,
-      "recordedTested": 19
+      "recordedTested": 21
     }
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 180,
-    "documented": 189,
-    "nightlyOwned": 136,
-    "operations": 189,
-    "preReleaseOwned": 51,
+    "curl": 182,
+    "documented": 191,
+    "nightlyOwned": 137,
+    "operations": 191,
+    "preReleaseOwned": 52,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 189,
-    "sdkGenerated": 189
+    "recordedTested": 191,
+    "sdkGenerated": 191
   }
 }

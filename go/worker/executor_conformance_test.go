@@ -68,6 +68,9 @@ func conformanceCall(id openAPIOperationID, key string) (map[string]string, http
 	if key != "" {
 		headers.Set("Idempotency-Key", key)
 	}
+	if operation.DeclaresHeader("If-Match") {
+		headers.Set("If-Match", `"etag-`+string(id)+`"`)
+	}
 	var body any
 	if operation.RequestSchema != "" {
 		body = map[string]any{"name": "worker", "nested": map[string]any{"value": 1}}
@@ -146,6 +149,13 @@ func TestWorkerOperationsConformToExecutorContract(t *testing.T) {
 					}
 					if got := request.header.Get("Idempotency-Key"); got != key {
 						t.Fatalf("attempt %d Idempotency-Key = %q, want %q", attempt+1, got, key)
+					}
+					wantIfMatch := ""
+					if operation.DeclaresHeader("If-Match") {
+						wantIfMatch = `"etag-` + string(id) + `"`
+					}
+					if got := request.header.Get("If-Match"); got != wantIfMatch {
+						t.Fatalf("attempt %d If-Match = %q, want %q", attempt+1, got, wantIfMatch)
 					}
 					if request.header.Get("X-Caller") != "" {
 						t.Fatalf("attempt %d forwarded a caller header Worker never sends", attempt+1)

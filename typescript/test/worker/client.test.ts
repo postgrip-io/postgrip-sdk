@@ -291,7 +291,7 @@ describe('WorkerClient', () => {
       seen.push(`${init?.method ?? 'GET'} ${url.pathname}`);
       const headers = new Headers(init?.headers);
       if (url.pathname !== '/health') expect(headers.get('authorization')).toBe('Bearer pgt_test-token');
-      if (['POST', 'PUT'].includes(init?.method ?? 'GET')) expect(headers.get('idempotency-key')).toBe('operation-1');
+      if (['POST', 'PUT', 'DELETE'].includes(init?.method ?? 'GET')) expect(headers.get('idempotency-key')).toBe('operation-1');
       if (url.pathname.endsWith('/operational-logs') || url.pathname.endsWith('/security-logs')) {
         return Response.json({ items: [], nextCursor: '' });
       }
@@ -322,6 +322,8 @@ describe('WorkerClient', () => {
     await client.snapshotSettings('worker-1');
     await client.updateSnapshotSettings('worker-1', { enabled: false }, { idempotencyKey: 'operation-1' });
     await client.storageDestinations();
+    await client.removalImpact('worker-1');
+    await client.remove('worker-1', { idempotencyKey: 'operation-1', ifMatch: '"impact-1"' });
 
     expect(seen).toEqual([
       'GET /health',
@@ -342,6 +344,8 @@ describe('WorkerClient', () => {
       'GET /api/v1/workers/worker-1/snapshot/settings',
       'PUT /api/v1/workers/worker-1/snapshot/settings',
       'GET /api/v1/storage-destinations',
+      'GET /api/v1/workers/worker-1/removal-impact',
+      'DELETE /api/v1/workers/worker-1',
     ]);
   });
 

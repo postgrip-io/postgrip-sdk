@@ -251,6 +251,147 @@
         "x-postgrip-pagination": "none",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
+      },
+      "delete": {
+        "operationId": "removeWorker",
+        "tags": [
+          "Workers"
+        ],
+        "summary": "Remove a worker",
+        "description": "Removes the Worker as the console's Remove Worker dialog does, after confirming that the removal impact is still the one you read. Send `getWorkerRemovalImpact`'s `etag` as `If-Match`; without one the request answers `428` `PRECONDITION_REQUIRED`. The removal holds the Worker and reads its impact again before it deletes anything: an impact that has changed since, or an `If-Match` of `*`, answers `412` `PRECONDITION_FAILED` and nothing is changed; read the impact again and decide again. In one transaction the removal deletes the Worker's services and its exclusive deploy projects, unassigns the kept projects' environments from it, clears it as a project default, and deletes or retires the Worker. A Worker that has enrolled keeps its record, marked removed, until its next heartbeat tells its container and attestation signer to stop (`shutdownRequested: true`); the record is deleted 24 hours later. A Worker that never enrolled is deleted at once. After the commit PostGrip removes what the Worker held of those services, their deploy domains and their repository and enterprise runner credentials from the Worker, counted in `workerCleanup`; a revoked or replaced Worker is sent nothing, and those cleanups are counted `skipped`. The Worker host keeps its Docker volumes and Cloudflared; delete the host yourself. A Worker with any managed volume, a lost Worker's unreachable ones included, answers `409` `WORKER_HAS_MANAGED_VOLUMES` and nothing is changed. The request takes no body: one answers `400` `INVALID_BODY`. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A failed step answers `500` `DB_ERROR` with everything rolled back. Audited as `delete_worker`, with the token as the actor. Every answer but `408`, `429`, `502`, `503` and `504` is kept for the Idempotency-Key for 24 hours, refusals included: a resend with the same key replays it with `Idempotent-Replayed: true` and never removes twice. The key does not cover `If-Match`, so after a refusal send the removal again with a new key.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "worker-management",
+        "x-postgrip-required-scopes": [
+          [
+            "workers:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveWorkerResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `WORKER_HAS_MANAGED_VOLUMES`: the Worker still owns managed volumes; delete or move them, read the removal impact again and send the removal with a new Idempotency-Key. Nothing is changed. `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS` also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "`PRECONDITION_FAILED`: the removal impact has changed since the one `If-Match` names. Nothing is changed; read the impact again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "`PRECONDITION_REQUIRED`: the request has no `If-Match`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/workers/{workerId}/removal-impact": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WorkerId"
+        }
+      ],
+      "get": {
+        "operationId": "getWorkerRemovalImpact",
+        "tags": [
+          "Workers"
+        ],
+        "summary": "Preview a worker's removal",
+        "description": "What removing the Worker would delete or change, the read `removeWorker` confirms. `serviceCount` services (targets) on the Worker are deleted with it. Each of `projects` has an environment on the Worker or the Worker as its default: an `exclusive` project, whose every environment assigned a Worker is on this one, is deleted; any other is kept, its environments on the Worker are unassigned, and a `usesAsDefault` project's default Worker is cleared. A Worker with `managedVolumeCount` above zero cannot be removed until its managed volumes are deleted or moved; `unreachableVolumes` are those of a lost Worker, still counted, which only the console's Remove Worker dialog can abandon. The `ETag` header, equal to the body's `etag`, is the impact's fence: send it as `If-Match` with `removeWorker`. It changes when what the removal would do changes, including when a Worker becomes lost; it does not change when a project is renamed, and it does not expire. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. Read-only and not audited.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "worker-management",
+        "x-postgrip-required-scopes": [
+          [
+            "workers:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Worker removal impact",
+            "headers": {
+              "ETag": {
+                "description": "The removal impact's fence, equal to the body's `etag`: send it as `If-Match` with `removeWorker`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkerRemovalImpact"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
       }
     },
     "/api/v1/workers/{workerId}/assignments": {
@@ -1212,6 +1353,16 @@
           "maxLength": 128,
           "pattern": "^[!-~]+$"
         }
+      },
+      "IfMatch": {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "description": "The `etag` of the Worker's removal impact (`getWorkerRemovalImpact`).",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "responses": {
@@ -1906,6 +2057,242 @@
           },
           "receipt": {
             "$ref": "#/components/schemas/OperationReceipt"
+          }
+        }
+      },
+      "WorkerRemovalImpactProject": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "exclusive",
+          "usesAsDefault"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "exclusive": {
+            "type": "boolean",
+            "description": "Every environment of the project that is assigned a Worker is on this one: the removal deletes the project. Otherwise it is kept and its environments on this Worker are unassigned."
+          },
+          "usesAsDefault": {
+            "type": "boolean",
+            "description": "The Worker is the project's default; the removal clears it."
+          }
+        }
+      },
+      "WorkerRemovalUnreachableVolume": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "volumeRef",
+          "projectId",
+          "name",
+          "state"
+        ],
+        "properties": {
+          "volumeRef": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "retained",
+              "deleting"
+            ]
+          }
+        }
+      },
+      "WorkerRemovalImpact": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workerId",
+          "etag",
+          "serviceCount",
+          "managedVolumeCount",
+          "unreachableVolumes",
+          "projects"
+        ],
+        "properties": {
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "etag": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The impact's fence, equal to the `ETag` header: send it as `If-Match` with `removeWorker`."
+          },
+          "serviceCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Services (targets) on the Worker; the removal deletes them."
+          },
+          "managedVolumeCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "The Worker's managed volumes that are not abandoned. Any refuses the removal (`409` `WORKER_HAS_MANAGED_VOLUMES`)."
+          },
+          "unreachableVolumes": {
+            "type": "array",
+            "description": "Those of a lost Worker's managed volumes that it can never act on again, counted in `managedVolumeCount`. Only the console can abandon them.",
+            "items": {
+              "$ref": "#/components/schemas/WorkerRemovalUnreachableVolume"
+            }
+          },
+          "projects": {
+            "type": "array",
+            "description": "Deploy projects with an environment on the Worker or the Worker as their default, in creation order.",
+            "items": {
+              "$ref": "#/components/schemas/WorkerRemovalImpactProject"
+            }
+          }
+        },
+        "example": {
+          "workerId": "9b1f5c7e-7f0e-4d1c-9f3a-2a8f0d6b4c11",
+          "etag": "\"worker-removal-5f2c0e9a7b1d4c3e8a6f0b2d9c4e7a1f\"",
+          "serviceCount": 2,
+          "managedVolumeCount": 0,
+          "unreachableVolumes": [],
+          "projects": [
+            {
+              "id": "3c8e2a1f-5b7d-4e9c-a2f0-6d1b8e4c7a93",
+              "name": "storefront",
+              "exclusive": true,
+              "usesAsDefault": false
+            },
+            {
+              "id": "7a4d9e2c-1f3b-4c8a-b6e0-2d5f9a1c3e78",
+              "name": "billing",
+              "exclusive": false,
+              "usesAsDefault": true
+            }
+          ]
+        }
+      },
+      "WorkerRemovalCleanup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attempted",
+          "failed",
+          "skipped"
+        ],
+        "properties": {
+          "attempted": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Cleanups sent to the Worker."
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Cleanups the Worker refused or did not answer; what they were removing stays on the host."
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Cleanups never sent, because the Worker could not be reached (revoked, replaced, or without a host)."
+          }
+        }
+      },
+      "RemoveWorkerResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workerId",
+          "shutdownRequested",
+          "deletedServiceCount",
+          "deletedProjectCount",
+          "keptProjectCount",
+          "unassignedEnvironmentCount",
+          "clearedProjectDefaultCount",
+          "workerCleanup",
+          "receipt"
+        ],
+        "properties": {
+          "workerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shutdownRequested": {
+            "type": "boolean",
+            "description": "`true`: the Worker had enrolled, so its record is kept, marked removed, until its next heartbeat tells its container and attestation signer to stop, and is deleted 24 hours later. `false`: the record was deleted at once."
+          },
+          "deletedServiceCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Services (targets) deleted."
+          },
+          "deletedProjectCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Exclusive deploy projects deleted."
+          },
+          "keptProjectCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Deploy projects kept because they also run on other Workers."
+          },
+          "unassignedEnvironmentCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Environments of kept projects unassigned from the Worker."
+          },
+          "clearedProjectDefaultCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Projects whose default Worker was cleared."
+          },
+          "workerCleanup": {
+            "$ref": "#/components/schemas/WorkerRemovalCleanup"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          }
+        },
+        "example": {
+          "workerId": "9b1f5c7e-7f0e-4d1c-9f3a-2a8f0d6b4c11",
+          "shutdownRequested": true,
+          "deletedServiceCount": 2,
+          "deletedProjectCount": 1,
+          "keptProjectCount": 1,
+          "unassignedEnvironmentCount": 1,
+          "clearedProjectDefaultCount": 1,
+          "workerCleanup": {
+            "attempted": 4,
+            "failed": 0,
+            "skipped": 0
+          },
+          "receipt": {
+            "requestId": "req_01",
+            "auditRecorded": true,
+            "auditEventId": "0e6f1c2a-8b4d-4f7e-9a3c-5d2b7e1f4a60",
+            "replayed": false
           }
         }
       },

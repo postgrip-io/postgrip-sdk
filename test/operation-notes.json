@@ -478,6 +478,11 @@
       "lifecycle": [],
       "summary": "Get a worker job"
     },
+    "getWorkerRemovalImpact": {
+      "behavior": "Uses the contract-defined GET /api/v1/workers/{workerId}/removal-impact behavior.",
+      "lifecycle": [],
+      "summary": "Preview a worker's removal"
+    },
     "getWorkflow": {
       "behavior": "Returns the latest run of the workflow.",
       "lifecycle": [],
@@ -789,6 +794,14 @@
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Refresh Service Repository Credential"
+    },
+    "removeWorker": {
+      "behavior": "Uses the contract-defined DELETE /api/v1/workers/{workerId} behavior.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Remove a worker"
     },
     "resolveService": {
       "behavior": "Uses the contract-defined GET /api/v1/services/resolve behavior.",

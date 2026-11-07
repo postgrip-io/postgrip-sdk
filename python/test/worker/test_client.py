@@ -83,6 +83,8 @@ class WorkerClientTests(unittest.TestCase):
             ("GET", "/api/v1/workers/worker-id/snapshot/settings"),
             ("PUT", "/api/v1/workers/worker-id/snapshot/settings"),
             ("GET", "/api/v1/storage-destinations"),
+            ("GET", "/api/v1/workers/worker-id/removal-impact"),
+            ("DELETE", "/api/v1/workers/worker-id"),
         ]
         opener = FakeOpener([{} for _ in expected])
         client = WorkerClient(
@@ -117,6 +119,8 @@ class WorkerClientTests(unittest.TestCase):
             lambda: client.snapshot_settings("worker-id"),
             lambda: client.update_snapshot_settings("worker-id", {"enabled": False}, idempotency_key="operation-1"),
             client.storage_destinations,
+            lambda: client.removal_impact("worker-id"),
+            lambda: client.remove("worker-id", idempotency_key="operation-1", if_match='"impact-1"'),
         ]
         for invoke in calls:
             invoke()
@@ -408,6 +412,7 @@ class WorkerClientTests(unittest.TestCase):
                 {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
                 {}, {}, {}, {}, {},
                 {"items": []},
+                {"etag": '"impact-1"'}, {"shutdownRequested": True},
             ]
             opener = FakeOpener(responses)
             client = AsyncWorkerClient(
@@ -435,8 +440,14 @@ class WorkerClientTests(unittest.TestCase):
             await client.snapshot_settings("worker-id")
             await client.update_snapshot_settings("worker-id", {"enabled": False}, idempotency_key="operation-1")
             self.assertEqual(await client.storage_destinations(), {"items": []})
+            self.assertEqual(await client.removal_impact("worker-id"), {"etag": '"impact-1"'})
+            self.assertEqual(
+                await client.remove("worker-id", idempotency_key="operation-1", if_match='"impact-1"'),
+                {"shutdownRequested": True},
+            )
+            self.assertEqual(opener.requests[-1].get_header("If-match"), '"impact-1"')
 
-            self.assertEqual(len(opener.requests), 19)
+            self.assertEqual(len(opener.requests), 21)
 
         asyncio.run(run())
 

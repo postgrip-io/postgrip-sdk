@@ -78,7 +78,7 @@ describe('Worker executor conformance', () => {
   const operations = contractOperations();
 
   it('covers every generated Worker operation', () => {
-    expect(operations).toHaveLength(19);
+    expect(operations).toHaveLength(21);
   });
 
   for (const operation of operations) {
