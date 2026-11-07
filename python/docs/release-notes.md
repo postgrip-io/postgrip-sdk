@@ -13,7 +13,10 @@
   `signal_workflow` and `signal_with_start_workflow`. A key is sent only when
   given, is checked before sending, and lets `enable_retries` retry the send;
   the SDK never generates one. A key passed to the generated `openapi` calls
-  is now checked and makes the send retryable too.
+  is now checked and makes the send retryable too. A keyed
+  `WorkflowClient.signal_with_start` needs an explicit `workflow_id` and raises
+  `ValueError` before sending without one, because the ID it would generate
+  differs on every call.
 - `is_terminal_task_mutation`, which the Agent runtime uses to stop renewing a
   lease and to raise `CancelledFailure` from `activity.heartbeat()`, also reads
   a `409` with code `TASK_CANCELLED` as terminal.

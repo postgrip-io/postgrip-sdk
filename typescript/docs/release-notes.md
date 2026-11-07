@@ -15,7 +15,9 @@
   `signalWithStartWorkflow`; the generated `openapi` calls forward an
   `Idempotency-Key` header. A key is sent only when given, is checked before
   sending, and lets `enableRetries` retry the send; the SDK never generates
-  one.
+  one. A keyed `WorkflowClient.signalWithStart` needs an explicit `workflowId`
+  and fails before sending without one, because the ID it would generate
+  differs on every call.
 - `isTerminalTaskMutation`, which the Agent runtime uses to stop renewing a
   lease, also reads a `409` with code `TASK_CANCELLED` as terminal.
 - `WorkerClient` gains `storageDestinations`, which lists the organization's

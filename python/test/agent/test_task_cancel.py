@@ -92,6 +92,18 @@ class OptionalIdempotencyKeyTests(unittest.TestCase):
         self.assertEqual(recorder.keys(), ["ci-run-4512", None, "approve-1", "approve-2", "approve-3", "raw-1"])
         self.assertEqual(json.loads(recorder.requests[3].data)["args"], [1])  # type: ignore[attr-defined]
 
+    def test_refuses_a_keyed_signal_with_start_without_a_workflow_id_before_sending(self) -> None:
+        started = {"workflow": {"id": "generated", "type": "OrderWorkflow"}, "task": {"id": "task-9"}, "signal": {"id": "evt-1"}}
+        recorder = Recorder(started)
+        with patch("postgrip.agent._connection.urlopen", recorder):
+            workflows = Client(connection(managed=True)).workflow
+            with self.assertRaisesRegex(ValueError, "needs an explicit workflow ID"):
+                workflows.signal_with_start("OrderWorkflow", signal="approve", idempotency_key="approve-1")
+            self.assertEqual(recorder.requests, [])
+            # Without a key the generated workflow ID is unchanged behaviour.
+            workflows.signal_with_start("OrderWorkflow", signal="approve")
+        self.assertEqual(len(recorder.requests), 1)
+
     def test_is_checked_before_sending_and_makes_the_send_retryable(self) -> None:
         recorder = Recorder(http_error(503, {"code": "BUSY", "message": "busy"}, retry_after="0"), {"id": "task-1"})
         with patch("postgrip.agent._connection.urlopen", recorder), patch("postgrip._internal.transport.time.sleep"):

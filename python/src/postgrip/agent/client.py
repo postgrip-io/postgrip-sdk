@@ -88,6 +88,12 @@ class Client:
         return self.workflow.get_handle(workflow_id, run_id=run_id, workflow_type=workflow_type)
 
 
+_KEYED_SIGNAL_WITH_START_NEEDS_WORKFLOW_ID = (
+    "postgrip-agent: a signal-with-start with an idempotency key needs an explicit workflow ID, "
+    "so that a resend targets the same workflow"
+)
+
+
 class WorkflowClient:
     def __init__(self, connection: Connection):
         self.connection = connection
@@ -123,10 +129,14 @@ class WorkflowClient:
     def signal_with_start(self, workflow: Callable[..., Any] | str, *, signal: str | Any, signal_args: list[Any] | None = None, workflow_id: str | None = None, task_queue: str = "default", namespace: str = "default", args: list[Any] | None = None, idempotency_key: str | None = None, **options: Unpack[WorkflowClientStartOptions]) -> "WorkflowHandle":
         """Signal the workflow's running execution, starting one first when none
         runs. An ``idempotency_key`` makes a resend after a lost answer return the
-        first request's result instead of signalling again or starting another run."""
+        first request's result instead of signalling again or starting another run.
+        It needs an explicit ``workflow_id``: the ID generated without one differs
+        on every call, so a resend would target another workflow."""
         workflow_type = workflow_name(workflow)
         if not workflow_type:
             raise ValueError("workflow type is required")
+        if idempotency_key and not workflow_id:
+            raise ValueError(_KEYED_SIGNAL_WITH_START_NEEDS_WORKFLOW_ID)
         workflow_id = workflow_id or str(uuid.uuid4())
         signal_name = _definition_name(signal)
         response = self.connection.signal_with_start_workflow(workflow_id, {

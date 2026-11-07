@@ -73,6 +73,18 @@ describe('optional Idempotency-Key', () => {
     expect(recorded.map(({ headers }) => headers.get('idempotency-key'))).toEqual(['ci-run-4512', null, 'approve-1', 'approve-2', 'raw-1']);
   });
 
+  it('refuses a keyed signal-with-start without a workflow ID before sending', async () => {
+    const { client, recorded } = recordingClient(() => Response.json({
+      workflow: { id: 'generated', type: 'OrderWorkflow' }, task: { id: 'task-9' }, signal: { id: 'evt-1' },
+    }), true);
+    await expect(client.workflow.signalWithStart('OrderWorkflow', { signal: 'approve', idempotencyKey: 'approve-1' }))
+      .rejects.toThrow('needs an explicit workflow ID');
+    expect(recorded).toHaveLength(0);
+    // Without a key the generated workflow ID is unchanged behaviour.
+    await client.workflow.signalWithStart('OrderWorkflow', { signal: 'approve' });
+    expect(recorded).toHaveLength(1);
+  });
+
   it('is checked before sending and makes the send retryable', async () => {
     let attempt = 0;
     const { client, recorded } = recordingClient(() => (attempt++ === 0

@@ -74,7 +74,7 @@ connection forwards per-call headers only where the operation declares them.
 | | Go | TypeScript | Python |
 | --- | --- | --- | --- |
 | Task send | `EnqueueInput.IdempotencyKey` | `task.enqueue({ idempotencyKey })` | `task.enqueue(idempotency_key=)` |
-| Signal-with-start | `SignalWithStartOptions.IdempotencyKey` | `workflow.signalWithStart(wf, { idempotencyKey })` | `workflow.signal_with_start(idempotency_key=)` |
+| Signal-with-start | `SignalWithStartOptions.IdempotencyKey` | `workflow.signalWithStart(wf, { workflowId, idempotencyKey })` | `workflow.signal_with_start(workflow_id=, idempotency_key=)` |
 | Signal | `WorkflowHandle.Signal(client.WithIdempotencyKey(ctx, key), …)` | `connection.signalWorkflow(id, request, { idempotencyKey })` | `handle.signal(name, *args, idempotency_key=)` |
 | Connection calls | `client.WithIdempotencyKey(ctx, key)` | `{ idempotencyKey }` options argument | `idempotency_key=` keyword |
 | Generated client | `OpenAPI().Do(…, headers, …)` | `openapi.enqueueTask({ headers })` | `openapi.enqueue_task(idempotency_key=)` |
@@ -83,6 +83,16 @@ Go's `WithIdempotencyKey` covers the calls whose signatures cannot take an
 option (`WorkflowHandle.Signal` is variadic); the option fields are the same
 mechanism. TypeScript's `WorkflowHandle.signal` is variadic too, so a keyed
 signal goes through `Connection.signalWorkflow`.
+
+A keyed signal-with-start needs an explicit workflow ID. TypeScript's and
+Python's `signalWithStart` / `signal_with_start` generate a random workflow ID
+when none is given, which is part of both the path and the body, so a resend
+with the same arguments would name another workflow and conflict or start a
+second run instead of replaying. With a key and no workflow ID they refuse
+locally, before any request; without a key they keep generating one. Go's
+`SignalWithStart` never generates an ID (an omitted `WorkflowID` is sent as
+given), so the same arguments always make the same request and it needs no
+check.
 
 ### D4. Cancellation reaches the runtimes as a terminal 409
 
@@ -124,6 +134,7 @@ fixtures of the three idempotent operations now carry a recorded key.
 - Go, TypeScript and Python suites pass, including tests for the cancel route
   and body, `409 TASK_TERMINAL`, a key sent only when given and only where
   declared, an invalid key refused before sending, a keyed send retried with
-  the same key and body, `TASK_CANCELLED` read as a terminal mutation, and the
+  the same key and body, a keyed signal-with-start without a workflow ID
+  refused before sending, `TASK_CANCELLED` read as a terminal mutation, and the
   Go Worker stopping a cancelled task without reporting it.
 - Web's discovery gate passes once web pins the merged commit.

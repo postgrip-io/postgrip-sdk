@@ -104,7 +104,9 @@ export class WorkflowClient {
    * Signals the workflow's running execution, starting one first when none
    * runs. An `idempotencyKey` makes a resend after a lost answer return the
    * first request's result instead of signalling again or starting another
-   * run (see {@link IdempotencyOptions}).
+   * run (see {@link IdempotencyOptions}). It needs an explicit `workflowId`:
+   * the ID generated without one differs on every call, so a resend would
+   * target another workflow.
    */
   async signalWithStart<WF extends WorkflowFunction, SignalArgs extends unknown[] = unknown[]>(
     workflow: WF | string,
@@ -116,6 +118,9 @@ export class WorkflowClient {
     const workflowType = typeof workflow === 'string' ? workflow : workflow.name;
     if (!workflowType) {
       throw new Error('workflow type is required');
+    }
+    if (options.idempotencyKey && !options.workflowId) {
+      throw new Error('postgrip-agent: a signal-with-start with an idempotency key needs an explicit workflow ID, so that a resend targets the same workflow');
     }
     const workflowId = options.workflowId ?? crypto.randomUUID();
     const namespace = options.namespace ?? 'default';
