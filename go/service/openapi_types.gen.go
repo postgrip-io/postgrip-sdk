@@ -386,15 +386,15 @@ type OpenAPIServiceRepositoryWriteRequest struct {
 	ExternalRepoId *string `json:"externalRepoId,omitempty"`
 }
 type OpenAPICreateServiceProjectRequest struct {
-	AppId           *string                              `json:"appId,omitempty"`
-	Name            string                               `json:"name"`
-	Slug            string                               `json:"slug"`
-	Framework       *string                              `json:"framework,omitempty"`
-	DeploymentMode  *string                              `json:"deploymentMode,omitempty"`
-	ProjectType     *string                              `json:"projectType,omitempty"`
-	ServerType      *string                              `json:"serverType,omitempty"`
-	DefaultWorkerId *string                              `json:"defaultWorkerId,omitempty"`
-	Repository      OpenAPIServiceRepositoryWriteRequest `json:"repository"`
+	AppId           *string                               `json:"appId,omitempty"`
+	Name            string                                `json:"name"`
+	Slug            string                                `json:"slug"`
+	Framework       *string                               `json:"framework,omitempty"`
+	DeploymentMode  *string                               `json:"deploymentMode,omitempty"`
+	ProjectType     *string                               `json:"projectType,omitempty"`
+	ServerType      *string                               `json:"serverType,omitempty"`
+	DefaultWorkerId *string                               `json:"defaultWorkerId,omitempty"`
+	Repository      *OpenAPIServiceRepositoryWriteRequest `json:"repository,omitempty"`
 }
 type OpenAPIUpdateServiceProjectRequest struct {
 	AppId              *string `json:"appId,omitempty"`
@@ -550,6 +550,7 @@ type OpenAPIServiceTarget struct {
 	Ssl                 bool      `json:"ssl"`
 	Managed             bool      `json:"managed"`
 	HasConnectionSecret bool      `json:"hasConnectionSecret"`
+	SnapshotCovered     *bool     `json:"snapshotCovered,omitempty"`
 	Version             int64     `json:"version"`
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`
@@ -834,13 +835,14 @@ type OpenAPIServiceVariableList struct {
 	Etag    string                   `json:"etag"`
 }
 type OpenAPIServiceRemovalVolumeImpact struct {
-	VolumeRef          string  `json:"volumeRef"`
-	Name               string  `json:"name"`
-	WorkerId           string  `json:"workerId"`
-	State              string  `json:"state"`
-	BoundEnvironmentId *string `json:"boundEnvironmentId,omitempty"`
-	ApproximateBytes   *int64  `json:"approximateBytes,omitempty"`
-	Version            int64   `json:"version"`
+	VolumeRef              string   `json:"volumeRef"`
+	Name                   string   `json:"name"`
+	WorkerId               string   `json:"workerId"`
+	State                  string   `json:"state"`
+	BoundEnvironmentId     *string  `json:"boundEnvironmentId,omitempty"`
+	ApproximateBytes       *int64   `json:"approximateBytes,omitempty"`
+	Version                int64    `json:"version"`
+	MountedByDeploymentIds []string `json:"mountedByDeploymentIds,omitempty"`
 }
 type OpenAPIServiceRemovalImpact struct {
 	ResourceRef             string                              `json:"resourceRef"`
@@ -2490,4 +2492,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "d8b9e8339ba1f2e4c663bfa41dcc11062c53339c9235cec6e5288d915f072377"
+const openAPITypesSpecSHA256 = "1a03ed98a794cbce8a45d413e51db982d7b72dc1b4dcaf71452b553fbea9b16a"

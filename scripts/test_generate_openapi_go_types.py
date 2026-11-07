@@ -51,6 +51,7 @@ class GoStructNullabilityTest(unittest.TestCase):
                     "value": {"oneOf": [{"type": "string"}, {"type": "null"}]},
                     "name": {"type": "string"},
                     "label": {"$ref": "#/components/schemas/Name"},
+                    "described": {"description": "A described reference.", "allOf": [{"$ref": "#/components/schemas/Name"}]},
                 },
             },
             SCHEMAS,
@@ -58,6 +59,7 @@ class GoStructNullabilityTest(unittest.TestCase):
         self.assertIn('Value *string `json:"value"`', fields)
         self.assertIn('Name *string `json:"name,omitempty"`', fields)
         self.assertIn('Label *OpenAPIName `json:"label,omitempty"`', fields)
+        self.assertIn('Described *OpenAPIName `json:"described,omitempty"`', fields)
 
 
 if __name__ == "__main__":

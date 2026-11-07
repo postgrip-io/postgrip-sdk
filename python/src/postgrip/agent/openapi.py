@@ -9,7 +9,7 @@ from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDi
 from urllib.parse import quote, urlencode
 
 OPENAPI_SPEC_SHA256 = 'ff3811f5561777a76363ee2e5a49ba40bcaff6d6fdaf2d834862dd56b5d58f3f'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '11ab5c645b5ba2b87e37ebdd1dd90abbcbe47b5927a8f68607cd3d1ca5dbfbfe'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'cc37cae62ec8c792f3a0c624ca9b5cc49bbcb3015c68de8f984b02e7f0345f66'
 OPENAPI_OPERATION_COUNT = 46
 OPENAPI_CLIENT_OPERATION_COUNT = 44
 CONNECT_SANDBOX_SESSION_PATH_SESSION_ID = 'sessionId'

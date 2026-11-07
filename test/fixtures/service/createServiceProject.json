@@ -4,11 +4,6 @@
   "request": {
     "body": {
       "name": "string",
-      "repository": {
-        "provider": "github",
-        "repoName": "string",
-        "repoOwner": "string"
-      },
       "slug": "string"
     },
     "headers": {

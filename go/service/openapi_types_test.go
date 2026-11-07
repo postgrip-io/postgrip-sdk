@@ -29,6 +29,38 @@ func TestServiceRepositoryExposesAutomaticDeploymentWiring(t *testing.T) {
 	}
 }
 
+func TestCreateServiceProjectRepositoryIsOptional(t *testing.T) {
+	projectType := "zvec"
+	encoded, err := json.Marshal(OpenAPICreateServiceProjectRequest{Name: "vectors", Slug: "vectors", ProjectType: &projectType})
+	if err != nil || string(encoded) != `{"name":"vectors","slug":"vectors","projectType":"zvec"}` {
+		t.Fatalf("marshal without repository=%s err=%v", encoded, err)
+	}
+	encoded, err = json.Marshal(OpenAPICreateServiceProjectRequest{
+		Name: "api", Slug: "api",
+		Repository: &OpenAPIServiceRepositoryWriteRequest{Provider: "github", RepoOwner: "postgrip", RepoName: "api"},
+	})
+	if err != nil || !bytes.Contains(encoded, []byte(`"repository":{"provider":"github","repoOwner":"postgrip","repoName":"api"`)) {
+		t.Fatalf("marshal with repository=%s err=%v", encoded, err)
+	}
+}
+
+func TestServiceSnapshotCoverageAndVolumeMountsDecode(t *testing.T) {
+	var target OpenAPIServiceTarget
+	if err := json.Unmarshal([]byte(`{"snapshotCovered":false}`), &target); err != nil || target.SnapshotCovered == nil || *target.SnapshotCovered {
+		t.Fatalf("snapshotCovered=%v err=%v", target.SnapshotCovered, err)
+	}
+	var absent OpenAPIServiceTarget
+	if err := json.Unmarshal([]byte(`{}`), &absent); err != nil || absent.SnapshotCovered != nil {
+		t.Fatalf("absent snapshotCovered=%v err=%v", absent.SnapshotCovered, err)
+	}
+	var impact OpenAPIServiceRemovalVolumeImpact
+	deploymentID := "11111111-1111-4111-8111-111111111111"
+	if err := json.Unmarshal([]byte(`{"mountedByDeploymentIds":["`+deploymentID+`"]}`), &impact); err != nil ||
+		len(impact.MountedByDeploymentIds) != 1 || impact.MountedByDeploymentIds[0] != deploymentID {
+		t.Fatalf("mountedByDeploymentIds=%v err=%v", impact.MountedByDeploymentIds, err)
+	}
+}
+
 func TestPostGripConfigurationWorkerSelectorIsClosed(t *testing.T) {
 	id := "11111111-1111-4111-8111-111111111111"
 	encoded, err := json.Marshal(OpenAPIPostGripConfigurationWorkerSelector{Id: &id})

@@ -366,6 +366,21 @@ def schema_label(schema: dict[str, Any] | None) -> str:
     return schema_ref_name(schema) or "inline"
 
 
+def single_reference_all_of(schema: dict[str, Any]) -> dict[str, Any]:
+    """Unwrap ``allOf: [{$ref}]``, the form a contract uses to describe a
+    referenced property, to its reference; return any other schema unchanged."""
+    branches = schema.get("allOf")
+    if (
+        isinstance(branches, list)
+        and len(branches) == 1
+        and isinstance(branches[0], dict)
+        and set(branches[0]) == {"$ref"}
+        and not set(schema) - {"allOf", "description", "title", "readOnly", "writeOnly", "deprecated", "example", "examples"}
+    ):
+        return branches[0]
+    return schema
+
+
 def merged_all_of_object_schema(spec: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
     branches = schema.get("allOf")
     if not isinstance(branches, list) or not branches or any("if" in branch for branch in branches):
@@ -393,6 +408,7 @@ def merged_all_of_object_schema(spec: dict[str, Any], schema: dict[str, Any]) ->
 def go_schema_type(
     schema: dict[str, Any], optional: bool = False, schemas: dict[str, Any] | None = None
 ) -> str:
+    schema = single_reference_all_of(schema)
     reference_name = schema_ref_name(schema)
     if reference_name:
         if reference_name == "JsonValue":
@@ -442,6 +458,7 @@ def schema_is_nullable(
 ) -> bool:
     """Whether a property schema admits null: explicitly, through a referenced or
     variant schema, or as an unconstrained value such as JsonValue."""
+    schema = single_reference_all_of(schema)
     reference = schema.get("$ref")
     if reference is not None:
         reference_name = schema_ref_name(schema)
@@ -1091,6 +1108,7 @@ def python_schema_type(
     schema: dict[str, Any], name: str | None = None, declarations: PythonDeclarations | None = None
 ) -> str:
     """Return a schema's annotation, declaring a closed inline object as the TypedDict ``name``."""
+    schema = single_reference_all_of(schema)
     reference_name = schema_ref_name(schema)
     if reference_name:
         return f"_Schema{pascal_name(reference_name)}"

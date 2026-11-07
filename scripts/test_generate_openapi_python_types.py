@@ -20,6 +20,7 @@ from generate_openapi import (
     python_types_source,
     schema_ref_name,
     schema_required_alternatives,
+    single_reference_all_of,
 )
 
 PYTHON_SOURCE = ROOT / "python" / "src"
@@ -91,6 +92,7 @@ class ContractShapeChecker:
                 self.annotation(member_hints[name], property_schema, f"{path}.{name}")
 
     def annotation(self, hint: Any, schema: dict[str, Any], path: str) -> None:
+        schema = single_reference_all_of(schema)
         if not schema or schema_ref_name(schema):
             return
         if "const" in schema:
@@ -198,6 +200,12 @@ class NestedTypedDictGenerationTests(unittest.TestCase):
             "_SchemaSelector: TypeAlias = _SchemaSelectorAlternative1 | _SchemaSelectorAlternative2\n", source
         )
         self.assertLess(source.index("class _SchemaSelectorAlternative2(TypedDict):"), source.index("_SchemaSelector: TypeAlias"))
+
+    def test_described_reference_keeps_its_reference_type(self) -> None:
+        described = {"description": "A described reference.", "allOf": [{"$ref": "#/components/schemas/Leaf"}]}
+        self.assertEqual(python_schema_type(described), "_SchemaLeaf")
+        constrained = {"allOf": [{"$ref": "#/components/schemas/Leaf"}], "type": "object"}
+        self.assertIs(single_reference_all_of(constrained), constrained)
 
     def test_name_collision_fails_generation(self) -> None:
         colliding = {"type": "object", "required": ["other"], "properties": {"other": {"type": "string"}}}
