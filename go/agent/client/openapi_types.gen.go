@@ -84,6 +84,12 @@ type OpenAPIAgentSessionResponse = protocol.AgentSessionResponse
 type OpenAPISandboxResourceLimits = protocol.SandboxResourceLimits
 type OpenAPISandboxPortMapping = protocol.SandboxPortMapping
 type OpenAPISandboxNetworkPolicy = protocol.SandboxNetworkPolicy
+type OpenAPISandboxNetworkPolicyInput struct {
+	InternetEgress *bool                       `json:"internetEgress,omitempty"`
+	AllowCidrs     []string                    `json:"allowCidrs,omitempty"`
+	DenyHostAccess *bool                       `json:"denyHostAccess,omitempty"`
+	Ports          []OpenAPISandboxPortMapping `json:"ports,omitempty"`
+}
 type OpenAPISandbox = protocol.Sandbox
 type OpenAPISandboxCreateRequest = protocol.SandboxCreateRequest
 type OpenAPISandboxListResponse = protocol.SandboxListResponse
@@ -312,6 +318,7 @@ type AgentSessionResponse = protocol.AgentSessionResponse
 type SandboxResourceLimits = protocol.SandboxResourceLimits
 type SandboxPortMapping = protocol.SandboxPortMapping
 type SandboxNetworkPolicy = protocol.SandboxNetworkPolicy
+type SandboxNetworkPolicyInput = OpenAPISandboxNetworkPolicyInput
 type Sandbox = protocol.Sandbox
 type SandboxCreateRequest = protocol.SandboxCreateRequest
 type SandboxListResponse = protocol.SandboxListResponse
@@ -320,4 +327,4 @@ type CreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type SandboxWorkspace = protocol.SandboxWorkspace
 type SandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
 
-const openAPITypesSpecSHA256 = "b888f64c8796fe545f48c8ea7b04fe52dd4ac7fe544611940c65d52537ae2e1a"
+const openAPITypesSpecSHA256 = "f29550a4e011d59dd76b398bd364f2c39674a0c47c6428d5a2cfdc2e153bf1c3"

@@ -199,6 +199,7 @@
       "OpenAPISandboxDesiredState",
       "OpenAPISandboxListResponse",
       "OpenAPISandboxNetworkPolicy",
+      "OpenAPISandboxNetworkPolicyInput",
       "OpenAPISandboxObservedState",
       "OpenAPISandboxPortMapping",
       "OpenAPISandboxResourceLimits",
