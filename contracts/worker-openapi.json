@@ -2034,7 +2034,8 @@
             "objectKey": "worker-snapshots/9b1f5c7e-7f0e-4d1c-9f3a-2a8f0d6b4c11/20261107T101500.000Z.pgsnap",
             "size": 1048576,
             "degraded": false,
-            "skipped": []
+            "skipped": [],
+            "excluded": []
           },
           "receipt": {
             "requestId": "0f6c2f0e-5d1a-4d55-9b0e-4f3b9c2a7d10",
@@ -2233,7 +2234,8 @@
             "size": 1048576,
             "lastModified": "2026-11-07T03:00:41Z"
           },
-          "lastSkipped": []
+          "lastSkipped": [],
+          "lastExcluded": []
         }
       },
       "WorkerSnapshotSettings": {

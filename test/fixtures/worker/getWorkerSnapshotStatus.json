@@ -15,6 +15,7 @@
       "cron": "0 3 * * *",
       "degraded": false,
       "enabled": true,
+      "lastExcluded": [],
       "lastRunAt": "2026-11-07T03:00:00Z",
       "lastRunFailed": false,
       "lastSkipped": [],
