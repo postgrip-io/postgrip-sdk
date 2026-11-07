@@ -12,6 +12,7 @@ import {
   type OpenAPIJobState,
   type OpenAPIOperationalLogEntry,
   type OpenAPIOperationalLogList,
+  type OpenAPIRemoveWorkerResponse,
   type OpenAPISecurityLogEntry,
   type OpenAPISecurityLogList,
   type OpenAPIStorageDestinationList,
@@ -21,6 +22,7 @@ import {
   type OpenAPIWorker,
   type OpenAPIWorkerList,
   type OpenAPIWorkerOperationResponse,
+  type OpenAPIWorkerRemovalImpact,
   type OpenAPIWorkerSnapshotList,
   type OpenAPIWorkerSnapshotSettings,
   type OpenAPIWorkerSnapshotStatus,
@@ -108,6 +110,11 @@ export interface MutationOptions extends RequestOptions {
   readonly idempotencyKey: string;
 }
 
+/** The two fences a Worker removal requires; `ifMatch` is the removal impact's `etag`. */
+export interface RemoveWorkerOptions extends MutationOptions {
+  readonly ifMatch: string;
+}
+
 export class WorkerAPIError extends PostGripAPIError {
   constructor(
     status: number,
@@ -128,6 +135,7 @@ interface InternalRequestOptions {
   readonly query?: object | URLSearchParams;
   readonly signal?: AbortSignal;
   readonly idempotencyKey?: string;
+  readonly ifMatch?: string;
 }
 
 export class WorkerClient {
@@ -174,6 +182,7 @@ export class WorkerClient {
         query: options.query,
         signal: options.signal,
         idempotencyKey: headers?.['Idempotency-Key'],
+        ifMatch: headers?.['If-Match'],
       });
     });
   }
@@ -316,6 +325,33 @@ export class WorkerClient {
     return this.request('listStorageDestinations', { signal: options.signal });
   }
 
+  /**
+   * Read what removing the Worker would delete or change. The answer's `etag`,
+   * equal to the `ETag` header, is the fence `remove` sends as `ifMatch`. A
+   * `managedVolumeCount` above zero means the removal will be refused.
+   */
+  removalImpact(workerId: string, options: RequestOptions = {}): Promise<OpenAPIWorkerRemovalImpact> {
+    return this.request('getWorkerRemovalImpact', { path: { workerId }, signal: options.signal });
+  }
+
+  /**
+   * Remove the Worker, its services and its exclusive deploy projects.
+   * `ifMatch` is the `etag` of a `removalImpact` read: a changed impact answers
+   * `412` `PRECONDITION_FAILED` and nothing is changed. Both fences are
+   * validated before any request. The key does not cover `If-Match`, so after
+   * a refusal read the impact again and send the removal with a new key.
+   */
+  remove(workerId: string, options: RemoveWorkerOptions): Promise<OpenAPIRemoveWorkerResponse> {
+    validateIdempotencyKey(options.idempotencyKey);
+    validateETag(options.ifMatch);
+    return this.request('removeWorker', {
+      path: { workerId },
+      signal: options.signal,
+      idempotencyKey: options.idempotencyKey,
+      ifMatch: options.ifMatch,
+    });
+  }
+
   private mutate<I extends 'checkWorker' | 'placeWorkerInMaintenance' | 'resumeWorkerFromMaintenance' | 'upgradeWorker' | 'createWorkerSnapshot'>(
     operation: I,
     workerId: string,
@@ -368,10 +404,17 @@ export class WorkerClient {
       operation,
       body: options.body,
       idempotencyKey: options.idempotencyKey,
+      ifMatch: options.ifMatch,
       signal: options.signal,
       lifetimeMs: policy?.lifetimeMs,
       noRetryStatuses: policy?.noRetryStatuses,
     });
+  }
+}
+
+function validateETag(value: string): void {
+  if (typeof value !== 'string' || !value.trim() || /[\r\n]/.test(value)) {
+    throw new Error('If-Match ETag must be non-empty and contain no line breaks');
   }
 }
 

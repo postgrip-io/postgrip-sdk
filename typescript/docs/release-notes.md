@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Worker contract bundle `a20586b1…`: `WorkerClient` gains `removalImpact`
+  (`getWorkerRemovalImpact`) and `remove` (`removeWorker`, `workers:admin`).
+  `removalImpact` answers what the removal would delete or change and its
+  `etag`. `remove(workerId, { idempotencyKey, ifMatch })` takes the impact's
+  `etag` as `ifMatch`; both fences are validated before any request. A changed
+  impact answers `412` `PRECONDITION_FAILED` and a Worker with managed volumes
+  `409` `WORKER_HAS_MANAGED_VOLUMES`; nothing is changed. The Worker entry
+  publishes `RemoveWorkerOptions`, `OpenAPIWorkerRemovalImpact`,
+  `OpenAPIWorkerRemovalImpactProject`, `OpenAPIWorkerRemovalUnreachableVolume`,
+  `OpenAPIWorkerRemovalCleanup`, `OpenAPIRemoveWorkerResponse` and the two
+  operations' request and response body types.
 - Service contract bundle `0fd58ddb…`: `repositories.listGitHubAccounts`
   lists the organization's connected GitHub accounts
   (`listServiceGitHubAccounts`), and `configurationOperations.abandon` ends a

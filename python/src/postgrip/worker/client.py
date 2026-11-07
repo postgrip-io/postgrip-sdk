@@ -20,6 +20,7 @@ from .openapi import (
     CreateWorkerResponseBody,
     CreateWorkerSnapshotResponseBody,
     GetWorkerJobResponseBody,
+    GetWorkerRemovalImpactResponseBody,
     GetWorkerResponseBody,
     GetWorkerSnapshotSettingsResponseBody,
     GetWorkerSnapshotStatusResponseBody,
@@ -34,6 +35,7 @@ from .openapi import (
     OpenAPIClient,
     OperationId,
     PlaceWorkerInMaintenanceResponseBody,
+    RemoveWorkerResponseBody,
     ResumeWorkerFromMaintenanceResponseBody,
     UpdateWorkerSnapshotSettingsRequestBody,
     UpdateWorkerSnapshotSettingsResponseBody,
@@ -58,6 +60,11 @@ class _CallPolicy:
 _OPERATION_CALL_POLICY: dict[OperationId, _CallPolicy] = {
     OperationId.CREATE_WORKER_SNAPSHOT: _CallPolicy(timeout=SNAPSHOT_RUN_TIMEOUT, no_retry_statuses=frozenset({502, 504})),
 }
+
+def _validate_if_match(if_match: str) -> None:
+    if not isinstance(if_match, str) or not if_match.strip() or "\r" in if_match or "\n" in if_match:
+        raise ValueError("if_match must be a non-empty HTTP ETag without line breaks")
+
 
 @dataclass(frozen=True)
 class WorkerAPIError(PostGripAPIError):
@@ -135,12 +142,16 @@ class WorkerClient:
         idempotency_key = request_headers.get("Idempotency-Key")
         if idempotency_key is not None:
             validate_idempotency_key(idempotency_key)
+        if_match = request_headers.get("If-Match")
+        if if_match is not None:
+            _validate_if_match(if_match)
         return self._request(
             operation_id,
             body=body,
             path=path_parameters,
             query=query,
             idempotency_key=idempotency_key,
+            if_match=if_match,
         )
 
     def list(self, *, page_size: int | None = None, page_token: str | None = None,
@@ -255,6 +266,32 @@ class WorkerClient:
         """
         return cast(ListStorageDestinationsResponseBody, self._request(OperationId.LIST_STORAGE_DESTINATIONS))
 
+    def removal_impact(self, worker_id: str) -> GetWorkerRemovalImpactResponseBody:
+        """Read what removing the Worker would delete or change.
+
+        The answer's ``etag``, equal to the ``ETag`` header, is the fence
+        :meth:`remove` sends as ``if_match``. A ``managedVolumeCount`` above
+        zero means the removal will be refused.
+        """
+        return cast(GetWorkerRemovalImpactResponseBody, self._request(
+            OperationId.GET_WORKER_REMOVAL_IMPACT, path={"workerId": worker_id}))
+
+    def remove(self, worker_id: str, *, idempotency_key: str, if_match: str) -> RemoveWorkerResponseBody:
+        """Remove the Worker, its services and its exclusive deploy projects.
+
+        ``if_match`` is the ``etag`` of a :meth:`removal_impact` read: a
+        changed impact answers ``412`` ``PRECONDITION_FAILED`` and nothing is
+        changed. Both fences are validated before any request. The key does
+        not cover ``If-Match``, so after a refusal read the impact again and
+        send the removal with a new key.
+        """
+        validate_idempotency_key(idempotency_key)
+        _validate_if_match(if_match)
+        return cast(RemoveWorkerResponseBody, self._request(
+            OperationId.REMOVE_WORKER, path={"workerId": worker_id},
+            idempotency_key=idempotency_key, if_match=if_match,
+        ))
+
     def operational_logs(
         self,
         worker_id: str,
@@ -360,15 +397,16 @@ class WorkerClient:
         return self._executor.opener
 
     def _request(self, operation_id: OperationId, *, body: Any = None, path: Mapping[str, str] | None = None,
-                 query: Mapping[str, Any] | None = None, idempotency_key: str | None = None) -> Any:
+                 query: Mapping[str, Any] | None = None, idempotency_key: str | None = None,
+                 if_match: str | None = None) -> Any:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         operation = resolve_openapi_operation(operation_id, path, clean_query)
         policy = _OPERATION_CALL_POLICY.get(operation_id)
         if policy is None:
-            return self._executor.request(operation, body=body, idempotency_key=idempotency_key)
+            return self._executor.request(operation, body=body, idempotency_key=idempotency_key, if_match=if_match)
         # The policy raises the call's timeout; it never lowers a longer configured one.
         return self._executor.request(
-            operation, body=body, idempotency_key=idempotency_key,
+            operation, body=body, idempotency_key=idempotency_key, if_match=if_match,
             timeout=max(self._timeout, policy.timeout), no_retry_statuses=policy.no_retry_statuses,
         )
 
@@ -467,6 +505,12 @@ class AsyncWorkerClient:
 
     async def storage_destinations(self) -> ListStorageDestinationsResponseBody:
         return await self._run(self._sync.storage_destinations)
+
+    async def removal_impact(self, worker_id: str) -> GetWorkerRemovalImpactResponseBody:
+        return await self._run(self._sync.removal_impact, worker_id)
+
+    async def remove(self, worker_id: str, *, idempotency_key: str, if_match: str) -> RemoveWorkerResponseBody:
+        return await self._run(self._sync.remove, worker_id, idempotency_key=idempotency_key, if_match=if_match)
 
     async def operational_logs(self, worker_id: str, **query: Any) -> ListWorkerOperationalLogsResponseBody:
         return await self._run(self._sync.operational_logs, worker_id, **query)

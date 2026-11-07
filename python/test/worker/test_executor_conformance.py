@@ -62,7 +62,7 @@ def client(opener: FakeOpener, *, enable_retries: bool = False) -> WorkerClient:
 
 class WorkerExecutorConformanceTests(unittest.TestCase):
     def test_covers_every_generated_worker_operation(self) -> None:
-        self.assertEqual(len(contract_operations()), 19)
+        self.assertEqual(len(contract_operations()), 21)
 
     def test_each_operation_follows_its_contract_annotations(self) -> None:
         for operation in contract_operations():

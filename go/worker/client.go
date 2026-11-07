@@ -3,6 +3,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -138,7 +139,9 @@ func withOpenAPIHeaders(ctx context.Context, headers http.Header) context.Contex
 }
 
 // doOpenAPI runs a generated operation through the shared executor. Worker
-// forwards only the caller's Idempotency-Key; other caller headers are not sent.
+// forwards only the caller's Idempotency-Key and If-Match; other caller headers
+// are not sent, and the executor drops If-Match where the operation does not
+// declare it.
 func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathParameters map[string]string, query url.Values, body, out any) error {
 	operation, err := resolveOpenAPIOperation(id, pathParameters, query)
 	if err != nil {
@@ -146,8 +149,10 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 	}
 	header := http.Header{}
 	if headers, ok := ctx.Value(openAPIHeadersContextKey{}).(http.Header); ok {
-		if key := headers.Get("Idempotency-Key"); key != "" {
-			header.Set("Idempotency-Key", key)
+		for _, name := range []string{"Idempotency-Key", "If-Match"} {
+			if value := headers.Get(name); value != "" {
+				header.Set(name, value)
+			}
 		}
 	}
 	policy := operationCallPolicy[id]
@@ -253,4 +258,40 @@ func (c *Client) UpdateSnapshotSettings(ctx context.Context, workerID string, re
 // answered: the access key and secret stay on the Workers.
 func (c *Client) StorageDestinations(ctx context.Context) (StorageDestinationList, error) {
 	return c.OpenAPI().ListStorageDestinations(ctx)
+}
+
+// RemoveOptions carries the two fences a Worker removal requires: the
+// idempotency key and the removal impact's etag, sent as If-Match.
+type RemoveOptions struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (o RemoveOptions) validate() error {
+	if err := transport.ValidateIdempotencyKey("worker", o.IdempotencyKey); err != nil {
+		return err
+	}
+	if strings.TrimSpace(o.IfMatch) == "" || strings.ContainsAny(o.IfMatch, "\r\n") {
+		return errors.New("postgrip-worker: If-Match ETag must be non-empty and contain no line breaks")
+	}
+	return nil
+}
+
+// RemovalImpact reads what removing the Worker would delete or change. Its
+// Etag, equal to the ETag header, is the fence Remove sends as If-Match. A
+// ManagedVolumeCount above zero means the removal will be refused.
+func (c *Client) RemovalImpact(ctx context.Context, workerID string) (WorkerRemovalImpact, error) {
+	return c.OpenAPI().GetWorkerRemovalImpact(ctx, workerID)
+}
+
+// Remove removes the Worker, its services and its exclusive deploy projects.
+// options.IfMatch must be the Etag of a RemovalImpact read: a changed impact
+// answers 412 PRECONDITION_FAILED and nothing is changed. Both fences are
+// validated before any request. The key does not cover If-Match, so after a
+// refusal read the impact again and send the removal with a new key.
+func (c *Client) Remove(ctx context.Context, workerID string, options RemoveOptions) (RemoveWorkerResponse, error) {
+	if err := options.validate(); err != nil {
+		return RemoveWorkerResponse{}, err
+	}
+	return c.OpenAPI().RemoveWorker(ctx, workerID, OpenAPIRemoveWorkerHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }

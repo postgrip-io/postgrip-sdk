@@ -42,7 +42,7 @@ compatibility even though the repository is `postgrip-sdk`.
 
 See the repository [quick start](../README.md), [authentication
 model](../docs/authentication.md), and [generated API
-reference](../docs/reference/0fd58ddbe2da2928c78655bb5d3909020acb547de2f6959e9acb7181e8e81047/README.md).
+reference](../docs/reference/a20586b1bf0a44746bca6b9d4fd8511a50be823ca55450324efd077ebaca00f5/README.md).
 Durable public Worker creation is covered in the [Worker bootstrap
 guide](../docs/worker-bootstrap.md).
 

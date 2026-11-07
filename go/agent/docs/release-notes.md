@@ -8,6 +8,14 @@ nav_order: 7
 
 ## Unreleased
 
+- Worker contract bundle `a20586b1…`: `worker.Client` gains `RemovalImpact`
+  (`getWorkerRemovalImpact`) and `Remove` (`removeWorker`, `workers:admin`).
+  `RemovalImpact` answers what the removal would delete or change and its
+  `Etag`. `Remove` takes `RemoveOptions` with the required `IdempotencyKey`
+  and `IfMatch`, the impact's `Etag`, both validated before any request. A
+  changed impact answers `412` `PRECONDITION_FAILED` and a Worker with managed
+  volumes `409` `WORKER_HAS_MANAGED_VOLUMES`; nothing is changed. The Worker
+  client now forwards `If-Match` where an operation declares it.
 - Service contract bundle `0fd58ddb…`: `ServiceRepositoriesClient.ListGitHubAccounts`
   lists the organization's connected GitHub accounts, and
   `ServiceConfigurationOperationsClient.Abandon` ends a failed or blocked

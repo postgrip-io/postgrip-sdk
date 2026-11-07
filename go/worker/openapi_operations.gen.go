@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "86004c9dd3c7b8cf629e47141a53e4fcfb97f633294b96a68bec1c67f957fcce"
-	OpenAPIContractBundleSHA256 = "0fd58ddbe2da2928c78655bb5d3909020acb547de2f6959e9acb7181e8e81047"
-	OpenAPIOperationCount       = 19
+	OpenAPISpecSHA256           = "40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460"
+	OpenAPIContractBundleSHA256 = "a20586b1bf0a44746bca6b9d4fd8511a50be823ca55450324efd077ebaca00f5"
+	OpenAPIOperationCount       = 21
 )
 
 type openAPIOperationID string
@@ -24,6 +24,7 @@ const (
 	openAPICreateWorkerSnapshot         openAPIOperationID = "createWorkerSnapshot"
 	openAPIGetWorker                    openAPIOperationID = "getWorker"
 	openAPIGetWorkerJob                 openAPIOperationID = "getWorkerJob"
+	openAPIGetWorkerRemovalImpact       openAPIOperationID = "getWorkerRemovalImpact"
 	openAPIGetWorkerSnapshotSettings    openAPIOperationID = "getWorkerSnapshotSettings"
 	openAPIGetWorkerSnapshotStatus      openAPIOperationID = "getWorkerSnapshotStatus"
 	openAPIListStorageDestinations      openAPIOperationID = "listStorageDestinations"
@@ -34,6 +35,7 @@ const (
 	openAPIListWorkerSnapshots          openAPIOperationID = "listWorkerSnapshots"
 	openAPIListWorkers                  openAPIOperationID = "listWorkers"
 	openAPIPlaceWorkerInMaintenance     openAPIOperationID = "placeWorkerInMaintenance"
+	openAPIRemoveWorker                 openAPIOperationID = "removeWorker"
 	openAPIResumeWorkerFromMaintenance  openAPIOperationID = "resumeWorkerFromMaintenance"
 	openAPIUpdateWorkerSnapshotSettings openAPIOperationID = "updateWorkerSnapshotSettings"
 	openAPIUpgradeWorker                openAPIOperationID = "upgradeWorker"
@@ -49,6 +51,7 @@ var openAPIOperationTable = map[openAPIOperationID]transport.Operation{
 	openAPICreateWorkerSnapshot:         {ID: "createWorkerSnapshot", Method: "POST", Path: "/api/v1/workers/{workerId}/snapshots", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "CreateWorkerSnapshotResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPIGetWorker:                    {ID: "getWorker", Method: "GET", Path: "/api/v1/workers/{workerId}", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Worker", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIGetWorkerJob:                 {ID: "getWorkerJob", Method: "GET", Path: "/api/v1/workers/{workerId}/jobs/{jobId}", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Job", PathParameters: []string{"workerId", "jobId"}, HeaderParameters: []string{}},
+	openAPIGetWorkerRemovalImpact:       {ID: "getWorkerRemovalImpact", Method: "GET", Path: "/api/v1/workers/{workerId}/removal-impact", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerRemovalImpact", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIGetWorkerSnapshotSettings:    {ID: "getWorkerSnapshotSettings", Method: "GET", Path: "/api/v1/workers/{workerId}/snapshot/settings", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerSnapshotSettings", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIGetWorkerSnapshotStatus:      {ID: "getWorkerSnapshotStatus", Method: "GET", Path: "/api/v1/workers/{workerId}/snapshot/status", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerSnapshotStatus", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIListStorageDestinations:      {ID: "listStorageDestinations", Method: "GET", Path: "/api/v1/storage-destinations", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "StorageDestinationList", PathParameters: []string{}, HeaderParameters: []string{}},
@@ -59,6 +62,7 @@ var openAPIOperationTable = map[openAPIOperationID]transport.Operation{
 	openAPIListWorkerSnapshots:          {ID: "listWorkerSnapshots", Method: "GET", Path: "/api/v1/workers/{workerId}/snapshots", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerSnapshotList", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIListWorkers:                  {ID: "listWorkers", Method: "GET", Path: "/api/v1/workers", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerList", PathParameters: []string{}, HeaderParameters: []string{}},
 	openAPIPlaceWorkerInMaintenance:     {ID: "placeWorkerInMaintenance", Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
+	openAPIRemoveWorker:                 {ID: "removeWorker", Method: "DELETE", Path: "/api/v1/workers/{workerId}", AuthLane: "worker-management", Safety: "destructive", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "RemoveWorkerResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key", "If-Match"}},
 	openAPIResumeWorkerFromMaintenance:  {ID: "resumeWorkerFromMaintenance", Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance/resume", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPIUpdateWorkerSnapshotSettings: {ID: "updateWorkerSnapshotSettings", Method: "PUT", Path: "/api/v1/workers/{workerId}/snapshot/settings", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateWorkerSnapshotSettingsRequest", ResponseSchema: "UpdateWorkerSnapshotSettingsResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPIUpgradeWorker:                {ID: "upgradeWorker", Method: "POST", Path: "/api/v1/workers/{workerId}/upgrade", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "UpgradeWorkerResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
