@@ -64,6 +64,18 @@ func (p OpenAPICheckServiceGitHubRepositoryFileQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIFlushServiceBuildLogsQuery struct {
+	EnvironmentId *string
+}
+
+func (p OpenAPIFlushServiceBuildLogsQuery) values() url.Values {
+	values := url.Values{}
+	if p.EnvironmentId != nil {
+		values.Set("environmentId", fmt.Sprint(*p.EnvironmentId))
+	}
+	return values
+}
+
 type OpenAPIFlushServiceRuntimeLogsQuery struct {
 	EnvironmentId *string
 }
@@ -448,6 +460,18 @@ func (p OpenAPIResolveServiceEnvironmentQuery) values() url.Values {
 	return values
 }
 
+type OpenAPITrimServiceBuildLogsQuery struct {
+	EnvironmentId *string
+}
+
+func (p OpenAPITrimServiceBuildLogsQuery) values() url.Values {
+	values := url.Values{}
+	if p.EnvironmentId != nil {
+		values.Set("environmentId", fmt.Sprint(*p.EnvironmentId))
+	}
+	return values
+}
+
 type OpenAPITrimServiceRuntimeLogsQuery struct {
 	EnvironmentId *string
 }
@@ -472,15 +496,15 @@ func (p OpenAPITrimServiceTrafficQuery) values() url.Values {
 	return values
 }
 
-type OpenAPIUpdateServiceRuntimeLogSettingsQuery struct {
-	EnvironmentId *string
+type OpenAPIAbandonServiceConfigurationOperationHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
 }
 
-func (p OpenAPIUpdateServiceRuntimeLogSettingsQuery) values() url.Values {
-	values := url.Values{}
-	if p.EnvironmentId != nil {
-		values.Set("environmentId", fmt.Sprint(*p.EnvironmentId))
-	}
+func (p OpenAPIAbandonServiceConfigurationOperationHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
 	return values
 }
 
@@ -900,11 +924,15 @@ func (p OpenAPIPromoteServiceDeploymentHeaders) values() http.Header {
 
 type OpenAPIPutServiceComposeFileHeaders struct {
 	IdempotencyKey string
+	IfMatch        *string
 }
 
 func (p OpenAPIPutServiceComposeFileHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	if p.IfMatch != nil {
+		values.Set("If-Match", fmt.Sprint(*p.IfMatch))
+	}
 	return values
 }
 
@@ -1272,6 +1300,11 @@ func (p OpenAPIVerifyServiceDomainHeaders) values() http.Header {
 	return values
 }
 
+func (c *OpenAPIClient) AbandonServiceConfigurationOperation(ctx context.Context, operationId string, headers OpenAPIAbandonServiceConfigurationOperationHeaders) (OpenAPIAbandonServiceConfigurationOperationResponseBody, error) {
+	var response OpenAPIAbandonServiceConfigurationOperationResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIAbandonServiceConfigurationOperation, map[string]string{"operationId": operationId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) AdoptGitHubRepository(ctx context.Context, serviceId string, headers OpenAPIAdoptGitHubRepositoryHeaders, body OpenAPIAdoptGitHubRepositoryRequestBody) (OpenAPIAdoptGitHubRepositoryResponseBody, error) {
 	var response OpenAPIAdoptGitHubRepositoryResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIAdoptGitHubRepository, map[string]string{"serviceId": serviceId}, nil, body, &response)
@@ -1437,9 +1470,9 @@ func (c *OpenAPIClient) ExportServiceVariables(ctx context.Context, serviceId st
 	err := c.executor.doOpenAPI(ctx, openAPIExportServiceVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, nil, &response)
 	return response, err
 }
-func (c *OpenAPIClient) FlushServiceBuildLogs(ctx context.Context, serviceId string, headers OpenAPIFlushServiceBuildLogsHeaders) (OpenAPIFlushServiceBuildLogsResponseBody, error) {
+func (c *OpenAPIClient) FlushServiceBuildLogs(ctx context.Context, serviceId string, query OpenAPIFlushServiceBuildLogsQuery, headers OpenAPIFlushServiceBuildLogsHeaders) (OpenAPIFlushServiceBuildLogsResponseBody, error) {
 	var response OpenAPIFlushServiceBuildLogsResponseBody
-	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceBuildLogs, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIFlushServiceBuildLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) FlushServiceRuntimeLogs(ctx context.Context, serviceId string, query OpenAPIFlushServiceRuntimeLogsQuery, headers OpenAPIFlushServiceRuntimeLogsHeaders) (OpenAPIFlushServiceRuntimeLogsResponseBody, error) {
@@ -1627,6 +1660,11 @@ func (c *OpenAPIClient) ListServiceEnvironments(ctx context.Context, source stri
 	err := c.executor.doOpenAPI(ctx, openAPIListServiceEnvironments, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ListServiceGitHubAccounts(ctx context.Context) (OpenAPIListServiceGitHubAccountsResponseBody, error) {
+	var response OpenAPIListServiceGitHubAccountsResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIListServiceGitHubAccounts, nil, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ListServiceGitHubBranches(ctx context.Context, query OpenAPIListServiceGitHubBranchesQuery) (OpenAPIListServiceGitHubBranchesResponseBody, error) {
 	var response OpenAPIListServiceGitHubBranchesResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIListServiceGitHubBranches, nil, query.values(), nil, &response)
@@ -1802,9 +1840,9 @@ func (c *OpenAPIClient) StopServiceRuntime(ctx context.Context, serviceId string
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIStopServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
 	return response, err
 }
-func (c *OpenAPIClient) TrimServiceBuildLogs(ctx context.Context, serviceId string, headers OpenAPITrimServiceBuildLogsHeaders) (OpenAPITrimServiceBuildLogsResponseBody, error) {
+func (c *OpenAPIClient) TrimServiceBuildLogs(ctx context.Context, serviceId string, query OpenAPITrimServiceBuildLogsQuery, headers OpenAPITrimServiceBuildLogsHeaders) (OpenAPITrimServiceBuildLogsResponseBody, error) {
 	var response OpenAPITrimServiceBuildLogsResponseBody
-	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceBuildLogs, map[string]string{"serviceId": serviceId}, nil, nil, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPITrimServiceBuildLogs, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) TrimServiceRuntimeLogs(ctx context.Context, serviceId string, query OpenAPITrimServiceRuntimeLogsQuery, headers OpenAPITrimServiceRuntimeLogsHeaders) (OpenAPITrimServiceRuntimeLogsResponseBody, error) {
@@ -1852,9 +1890,9 @@ func (c *OpenAPIClient) UpdateServiceRepository(ctx context.Context, serviceId s
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceRepository, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
-func (c *OpenAPIClient) UpdateServiceRuntimeLogSettings(ctx context.Context, serviceId string, query OpenAPIUpdateServiceRuntimeLogSettingsQuery, headers OpenAPIUpdateServiceRuntimeLogSettingsHeaders, body OpenAPIUpdateServiceRuntimeLogSettingsRequestBody) (OpenAPIUpdateServiceRuntimeLogSettingsResponseBody, error) {
+func (c *OpenAPIClient) UpdateServiceRuntimeLogSettings(ctx context.Context, serviceId string, headers OpenAPIUpdateServiceRuntimeLogSettingsHeaders, body OpenAPIUpdateServiceRuntimeLogSettingsRequestBody) (OpenAPIUpdateServiceRuntimeLogSettingsResponseBody, error) {
 	var response OpenAPIUpdateServiceRuntimeLogSettingsResponseBody
-	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceRuntimeLogSettings, map[string]string{"serviceId": serviceId}, query.values(), body, &response)
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateServiceRuntimeLogSettings, map[string]string{"serviceId": serviceId}, nil, body, &response)
 	return response, err
 }
 func (c *OpenAPIClient) UpdateServiceVariable(ctx context.Context, serviceId string, environmentId string, variableId string, headers OpenAPIUpdateServiceVariableHeaders, body OpenAPIUpdateServiceVariableRequestBody) (OpenAPIUpdateServiceVariableResponseBody, error) {
@@ -1885,6 +1923,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 122
+const OpenAPIClientOperationCount = 124
 
-const openAPIClientSpecSHA256 = "6ad9e846f257b8d6c8f788002cee479dc40503f28274791b6cbc06c51d48d1d2"
+const openAPIClientSpecSHA256 = "dd9e4b81913e3757c83c6806500d5bc831f1bd379ca28210c5311f2c79a280bd"

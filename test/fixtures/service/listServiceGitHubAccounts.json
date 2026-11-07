@@ -1,0 +1,28 @@
+{
+  "operationId": "listServiceGitHubAccounts",
+  "plane": "service",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "items": [
+        {
+          "installationRef": "github-installation:1",
+          "login": "acme",
+          "status": "active"
+        }
+      ]
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listServiceGitHubAccounts"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

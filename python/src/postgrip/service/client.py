@@ -121,7 +121,7 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
         "clear_service_repository_credential", "refresh_service_repository_credential",
         "list_git_hub_app_repositories", "preview_git_hub_repository_adoption",
         "adopt_git_hub_repository", "list_service_git_hub_branches",
-        "check_service_git_hub_repository_file",
+        "check_service_git_hub_repository_file", "list_service_git_hub_accounts",
     ),
     "promotions": (
         "list_service_promotions", "preview_service_promotion", "promote_service_deployment",
@@ -145,7 +145,7 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "configuration_operations": (
         "list_service_configuration_operations", "get_service_configuration_operation",
-        "retry_service_configuration_operation",
+        "retry_service_configuration_operation", "abandon_service_configuration_operation",
     ),
     "declarative_configuration": (
         "validate_post_grip_configuration", "get_post_grip_configuration_stack",

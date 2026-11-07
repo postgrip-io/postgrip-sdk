@@ -120,6 +120,7 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(repositories.ClearCredential(ctx, "project-1", "source-access", write)))
 	mustServiceResult(t, serviceResultError(repositories.RefreshCredential(ctx, "project-1", "source-access", write)))
 	mustServiceResult(t, serviceResultError(repositories.ListGitHub(ctx, OpenAPIListGitHubAppRepositoriesQuery{})))
+	mustServiceResult(t, serviceResultError(repositories.ListGitHubAccounts(ctx)))
 	mustServiceResult(t, serviceResultError(repositories.PreviewGitHubAdoption(ctx, "project-1", OpenAPIPreviewGitHubRepositoryAdoptionRequestBody{RepositoryId: &repositoryID}, mutation)))
 	mustServiceResult(t, serviceResultError(repositories.AdoptGitHub(ctx, "project-1", OpenAPIAdoptGitHubRepositoryRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(repositories.GitHubBranches(ctx, OpenAPIListServiceGitHubBranchesQuery{})))
@@ -142,10 +143,10 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	retention := client.ServiceRetention()
 	mustServiceResult(t, serviceResultError(retention.GetBuild(ctx, "project-1")))
 	mustServiceResult(t, serviceResultError(retention.UpdateBuild(ctx, "project-1", OpenAPIUpdateServiceBuildLogSettingsRequestBody{}, write)))
-	mustServiceResult(t, serviceResultError(retention.TrimBuild(ctx, "project-1", write)))
-	mustServiceResult(t, serviceResultError(retention.FlushBuild(ctx, "project-1", write)))
+	mustServiceResult(t, serviceResultError(retention.TrimBuild(ctx, "project-1", OpenAPITrimServiceBuildLogsQuery{}, write)))
+	mustServiceResult(t, serviceResultError(retention.FlushBuild(ctx, "project-1", OpenAPIFlushServiceBuildLogsQuery{}, write)))
 	mustServiceResult(t, serviceResultError(retention.GetRuntime(ctx, "project-1", OpenAPIGetServiceRuntimeLogSettingsQuery{})))
-	mustServiceResult(t, serviceResultError(retention.UpdateRuntime(ctx, "project-1", OpenAPIUpdateServiceRuntimeLogSettingsQuery{}, OpenAPIUpdateServiceRuntimeLogSettingsRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(retention.UpdateRuntime(ctx, "project-1", OpenAPIUpdateServiceRuntimeLogSettingsRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(retention.TrimRuntime(ctx, "project-1", OpenAPITrimServiceRuntimeLogsQuery{}, write)))
 	mustServiceResult(t, serviceResultError(retention.FlushRuntime(ctx, "project-1", OpenAPIFlushServiceRuntimeLogsQuery{}, write)))
 
@@ -153,6 +154,7 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(operations.List(ctx, OpenAPIListServiceConfigurationOperationsQuery{})))
 	mustServiceResult(t, serviceResultError(operations.Get(ctx, "operation-1")))
 	mustServiceResult(t, serviceResultError(operations.Retry(ctx, "operation-1", write)))
+	mustServiceResult(t, serviceResultError(operations.Abandon(ctx, "operation-1", write)))
 
 	configuration := client.DeclarativeConfiguration()
 	mustServiceResult(t, serviceResultError(configuration.Validate(ctx, OpenAPIValidatePostGripConfigurationRequestBody{})))
@@ -177,8 +179,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(traffic.Trim(ctx, "project-1", OpenAPITrimServiceTrafficQuery{}, mutation)))
 	mustServiceResult(t, serviceResultError(traffic.Flush(ctx, "project-1", OpenAPIFlushServiceTrafficQuery{}, mutation)))
 
-	if calls.Load() != 104 {
-		t.Fatalf("transport calls=%d, want 104", calls.Load())
+	if calls.Load() != 106 {
+		t.Fatalf("transport calls=%d, want 106", calls.Load())
 	}
 }
 

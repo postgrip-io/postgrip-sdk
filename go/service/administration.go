@@ -546,6 +546,12 @@ func (c ServiceRepositoriesClient) ListGitHub(ctx context.Context, query OpenAPI
 	return c.client.OpenAPI().ListGitHubAppRepositories(ctx, query)
 }
 
+// ListGitHubAccounts lists the organization's connected GitHub accounts, whose
+// installationRef a project's create can name.
+func (c ServiceRepositoriesClient) ListGitHubAccounts(ctx context.Context) (OpenAPIListServiceGitHubAccountsResponseBody, error) {
+	return c.client.OpenAPI().ListServiceGitHubAccounts(ctx)
+}
+
 func (c ServiceRepositoriesClient) PreviewGitHubAdoption(ctx context.Context, projectID string, body OpenAPIPreviewGitHubRepositoryAdoptionRequestBody, options MutationOptions) (OpenAPIPreviewGitHubRepositoryAdoptionResponseBody, error) {
 	if err := validateIdempotencyKey(options.IdempotencyKey); err != nil {
 		return OpenAPIPreviewGitHubRepositoryAdoptionResponseBody{}, err
@@ -586,29 +592,29 @@ func (c ServiceRetentionClient) UpdateBuild(ctx context.Context, projectID strin
 	return c.client.OpenAPI().UpdateServiceBuildLogSettings(ctx, projectID, OpenAPIUpdateServiceBuildLogSettingsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
 }
 
-func (c ServiceRetentionClient) TrimBuild(ctx context.Context, projectID string, options WriteOptions) (OpenAPITrimServiceBuildLogsResponseBody, error) {
+func (c ServiceRetentionClient) TrimBuild(ctx context.Context, projectID string, query OpenAPITrimServiceBuildLogsQuery, options WriteOptions) (OpenAPITrimServiceBuildLogsResponseBody, error) {
 	if err := options.validate(true); err != nil {
 		return OpenAPITrimServiceBuildLogsResponseBody{}, err
 	}
-	return c.client.OpenAPI().TrimServiceBuildLogs(ctx, projectID, OpenAPITrimServiceBuildLogsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+	return c.client.OpenAPI().TrimServiceBuildLogs(ctx, projectID, query, OpenAPITrimServiceBuildLogsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }
 
-func (c ServiceRetentionClient) FlushBuild(ctx context.Context, projectID string, options WriteOptions) (OpenAPIFlushServiceBuildLogsResponseBody, error) {
+func (c ServiceRetentionClient) FlushBuild(ctx context.Context, projectID string, query OpenAPIFlushServiceBuildLogsQuery, options WriteOptions) (OpenAPIFlushServiceBuildLogsResponseBody, error) {
 	if err := options.validate(true); err != nil {
 		return OpenAPIFlushServiceBuildLogsResponseBody{}, err
 	}
-	return c.client.OpenAPI().FlushServiceBuildLogs(ctx, projectID, OpenAPIFlushServiceBuildLogsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+	return c.client.OpenAPI().FlushServiceBuildLogs(ctx, projectID, query, OpenAPIFlushServiceBuildLogsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }
 
 func (c ServiceRetentionClient) GetRuntime(ctx context.Context, projectID string, query OpenAPIGetServiceRuntimeLogSettingsQuery) (OpenAPIGetServiceRuntimeLogSettingsResponseBody, error) {
 	return c.client.OpenAPI().GetServiceRuntimeLogSettings(ctx, projectID, query)
 }
 
-func (c ServiceRetentionClient) UpdateRuntime(ctx context.Context, projectID string, query OpenAPIUpdateServiceRuntimeLogSettingsQuery, body OpenAPIUpdateServiceRuntimeLogSettingsRequestBody, options WriteOptions) (OpenAPIUpdateServiceRuntimeLogSettingsResponseBody, error) {
+func (c ServiceRetentionClient) UpdateRuntime(ctx context.Context, projectID string, body OpenAPIUpdateServiceRuntimeLogSettingsRequestBody, options WriteOptions) (OpenAPIUpdateServiceRuntimeLogSettingsResponseBody, error) {
 	if err := options.validate(true); err != nil {
 		return OpenAPIUpdateServiceRuntimeLogSettingsResponseBody{}, err
 	}
-	return c.client.OpenAPI().UpdateServiceRuntimeLogSettings(ctx, projectID, query, OpenAPIUpdateServiceRuntimeLogSettingsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+	return c.client.OpenAPI().UpdateServiceRuntimeLogSettings(ctx, projectID, OpenAPIUpdateServiceRuntimeLogSettingsHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
 }
 
 func (c ServiceRetentionClient) TrimRuntime(ctx context.Context, projectID string, query OpenAPITrimServiceRuntimeLogsQuery, options WriteOptions) (OpenAPITrimServiceRuntimeLogsResponseBody, error) {
@@ -638,6 +644,15 @@ func (c ServiceConfigurationOperationsClient) Retry(ctx context.Context, operati
 		return OpenAPIRetryServiceConfigurationOperationResponseBody{}, err
 	}
 	return c.client.OpenAPI().RetryServiceConfigurationOperation(ctx, operationID, OpenAPIRetryServiceConfigurationOperationHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
+}
+
+// Abandon ends a failed or blocked delete operation as abandoned without
+// contacting a Worker.
+func (c ServiceConfigurationOperationsClient) Abandon(ctx context.Context, operationID string, options WriteOptions) (OpenAPIAbandonServiceConfigurationOperationResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPIAbandonServiceConfigurationOperationResponseBody{}, err
+	}
+	return c.client.OpenAPI().AbandonServiceConfigurationOperation(ctx, operationID, OpenAPIAbandonServiceConfigurationOperationHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch})
 }
 
 // Validate checks a PostGrip configuration without creating a stack or plan.

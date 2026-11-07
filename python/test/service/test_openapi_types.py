@@ -62,7 +62,7 @@ class NestedServiceTypedDictTests(unittest.TestCase):
         self.assert_typed_dict(
             hints["settings"],
             {"enabled": bool, "retentionDays": int, "updatedAt": str},
-            {"lastTrimmedAt": str, "lastFlushedAt": str},
+            {"lastTrimmedAt": str, "lastFlushedAt": str, "isDefault": bool},
         )
         self.assert_typed_dict(
             hints["storage"],
