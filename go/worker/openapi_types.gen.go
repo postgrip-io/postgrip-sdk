@@ -171,6 +171,10 @@ type OpenAPIWorkerSnapshotSkippedItem struct {
 	Kind     string  `json:"kind"`
 	TargetId *string `json:"targetId,omitempty"`
 }
+type OpenAPIWorkerSnapshotExcludedItem struct {
+	Kind     string  `json:"kind"`
+	TargetId *string `json:"targetId,omitempty"`
+}
 type OpenAPIWorkerSnapshot struct {
 	SnapshotId   string    `json:"snapshotId"`
 	ObjectKey    string    `json:"objectKey"`
@@ -181,12 +185,13 @@ type OpenAPIWorkerSnapshotList struct {
 	Items []OpenAPIWorkerSnapshot `json:"items"`
 }
 type OpenAPIWorkerSnapshotRun struct {
-	WorkerId   string                             `json:"workerId"`
-	SnapshotId string                             `json:"snapshotId"`
-	ObjectKey  *string                            `json:"objectKey,omitempty"`
-	Size       int64                              `json:"size"`
-	Degraded   bool                               `json:"degraded"`
-	Skipped    []OpenAPIWorkerSnapshotSkippedItem `json:"skipped"`
+	WorkerId   string                              `json:"workerId"`
+	SnapshotId string                              `json:"snapshotId"`
+	ObjectKey  *string                             `json:"objectKey,omitempty"`
+	Size       int64                               `json:"size"`
+	Degraded   bool                                `json:"degraded"`
+	Skipped    []OpenAPIWorkerSnapshotSkippedItem  `json:"skipped"`
+	Excluded   []OpenAPIWorkerSnapshotExcludedItem `json:"excluded"`
 }
 type OpenAPICreateWorkerSnapshotResponse struct {
 	Snapshot OpenAPIWorkerSnapshotRun `json:"snapshot"`
@@ -209,20 +214,21 @@ type OpenAPIWorkerSnapshotRecovery struct {
 	Orphans         []OpenAPIWorkerSnapshotOrphan      `json:"orphans"`
 }
 type OpenAPIWorkerSnapshotStatus struct {
-	WorkerId         string                             `json:"workerId"`
-	Enabled          bool                               `json:"enabled"`
-	Running          bool                               `json:"running"`
-	Cron             *string                            `json:"cron,omitempty"`
-	Retention        *int64                             `json:"retention,omitempty"`
-	LastRunAt        *time.Time                         `json:"lastRunAt,omitempty"`
-	LastSuccessAt    *time.Time                         `json:"lastSuccessAt,omitempty"`
-	NextRunAt        *time.Time                         `json:"nextRunAt,omitempty"`
-	LastRunFailed    bool                               `json:"lastRunFailed"`
-	SettingsRejected bool                               `json:"settingsRejected"`
-	Degraded         bool                               `json:"degraded"`
-	LastSnapshot     *OpenAPIWorkerSnapshot             `json:"lastSnapshot,omitempty"`
-	LastSkipped      []OpenAPIWorkerSnapshotSkippedItem `json:"lastSkipped"`
-	Recovery         *OpenAPIWorkerSnapshotRecovery     `json:"recovery,omitempty"`
+	WorkerId         string                              `json:"workerId"`
+	Enabled          bool                                `json:"enabled"`
+	Running          bool                                `json:"running"`
+	Cron             *string                             `json:"cron,omitempty"`
+	Retention        *int64                              `json:"retention,omitempty"`
+	LastRunAt        *time.Time                          `json:"lastRunAt,omitempty"`
+	LastSuccessAt    *time.Time                          `json:"lastSuccessAt,omitempty"`
+	NextRunAt        *time.Time                          `json:"nextRunAt,omitempty"`
+	LastRunFailed    bool                                `json:"lastRunFailed"`
+	SettingsRejected bool                                `json:"settingsRejected"`
+	Degraded         bool                                `json:"degraded"`
+	LastSnapshot     *OpenAPIWorkerSnapshot              `json:"lastSnapshot,omitempty"`
+	LastSkipped      []OpenAPIWorkerSnapshotSkippedItem  `json:"lastSkipped"`
+	LastExcluded     []OpenAPIWorkerSnapshotExcludedItem `json:"lastExcluded"`
+	Recovery         *OpenAPIWorkerSnapshotRecovery      `json:"recovery,omitempty"`
 }
 type OpenAPIWorkerSnapshotSettings struct {
 	WorkerId             string     `json:"workerId"`
@@ -241,6 +247,7 @@ type OpenAPIWorkerSnapshotSettings struct {
 	VolumeMaxBytes       *int64     `json:"volumeMaxBytes,omitempty"`
 	RecipientPublicKey   *string    `json:"recipientPublicKey,omitempty"`
 	HasSigningKey        bool       `json:"hasSigningKey"`
+	SignerPublicKey      *string    `json:"signerPublicKey,omitempty"`
 	UpdatedAt            *time.Time `json:"updatedAt,omitempty"`
 }
 type OpenAPIUpdateWorkerSnapshotSettingsRequest struct {
@@ -330,6 +337,7 @@ type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
 type WorkerSnapshotSkippedItem = OpenAPIWorkerSnapshotSkippedItem
+type WorkerSnapshotExcludedItem = OpenAPIWorkerSnapshotExcludedItem
 type WorkerSnapshot = OpenAPIWorkerSnapshot
 type WorkerSnapshotList = OpenAPIWorkerSnapshotList
 type WorkerSnapshotRun = OpenAPIWorkerSnapshotRun
@@ -341,4 +349,4 @@ type WorkerSnapshotSettings = OpenAPIWorkerSnapshotSettings
 type UpdateWorkerSnapshotSettingsRequest = OpenAPIUpdateWorkerSnapshotSettingsRequest
 type UpdateWorkerSnapshotSettingsResponse = OpenAPIUpdateWorkerSnapshotSettingsResponse
 
-const openAPITypesSpecSHA256 = "8d07b8d36c75dda71eb8e708472fca5f9f7dbd15eb2674aae905d049f58be0c3"
+const openAPITypesSpecSHA256 = "538a02d973231fb350dd5f87cd0ef62731a7a99456be534d076b40a5009cc1d9"

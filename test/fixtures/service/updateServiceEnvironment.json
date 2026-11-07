@@ -4,7 +4,7 @@
   "request": {
     "body": {
       "branchPattern": "string",
-      "kind": "string",
+      "kind": "preview",
       "name": "string"
     },
     "headers": {

@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'a04e230c8143ee3f8e3ed9ff0689e45a02efaab69e07f4f3bf41fd1719f4b231'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '87c0db92da44a39eb7a85c5f5b39186dbebc8e8f243cab5e1462838c7742a017'
+OPENAPI_SPEC_SHA256 = '37484d91ca60df1f18de9d8d4b1f8b8931e108212372a2c829e673fd83c9191b'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '542f7668e1b52416728881094d1186fce807db26bd99afa3af6f5c9260c99cdf'
 OPENAPI_OPERATION_COUNT = 122
 OPENAPI_CLIENT_OPERATION_COUNT = 122
 
@@ -394,7 +394,7 @@ class _SchemaDeployment(_SchemaDeploymentOptional):
     commitSha: str
     branch: str
     triggerKind: str
-    status: str
+    status: Literal['queued', 'building', 'uploaded', 'deploying', 'ready', 'failed', 'cancelled', 'superseded', 'expired']
     cutoverState: Literal['candidate', 'cutover', 'rollback_candidate', 'rollback_cutover', 'live', 'retained', 'historical', 'terminal']
     aliases: list[str]
     isCurrent: bool
@@ -553,7 +553,7 @@ class _SchemaCreateServiceProjectRequestOptional(TypedDict, total=False):
     appId: str
     framework: str
     deploymentMode: Literal['static', 'docker']
-    projectType: str
+    projectType: Literal['web', 'backend', 'zvec', 'ladybugdb']
     serverType: str
     defaultWorkerId: str
 
@@ -569,7 +569,7 @@ class _SchemaUpdateServiceProjectRequestOptional(TypedDict, total=False):
     slug: str
     framework: str
     deploymentMode: Literal['static', 'docker']
-    projectType: str
+    projectType: Literal['web', 'backend', 'zvec', 'ladybugdb']
     serverType: str
     defaultWorkerId: str
     clearDefaultWorker: bool
@@ -592,11 +592,11 @@ class _SchemaCreateServiceEnvironmentRequestOptional(TypedDict, total=False):
 
 class _SchemaCreateServiceEnvironmentRequest(_SchemaCreateServiceEnvironmentRequestOptional):
     name: str
-    kind: str
+    kind: Literal['preview', 'production', 'staging', 'development', 'custom']
 
 class _SchemaUpdateServiceEnvironmentRequestOptional(TypedDict, total=False):
     name: str
-    kind: str
+    kind: Literal['preview', 'production', 'staging', 'development', 'custom']
     branchPattern: str
     previewPathSegment: str
     previewTtlHours: int
@@ -2809,20 +2809,20 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.LIST_POST_GRIP_CONFIGURATION_PLAN_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/plans/{planId}/actions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationPlanActionList', ('stackKey', 'planId'), 'none', 'cursor', ()),
     OperationId.LIST_POST_GRIP_CONFIGURATION_STACK_OPERATION_ACTIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-stacks/{stackKey}/operations/{operationId}/actions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'PostGripConfigurationStackOperationActionList', ('stackKey', 'operationId'), 'none', 'cursor', ()),
     OperationId.LIST_SERVICE_APPS: OpenAPIOperation('GET', '/api/v1/services/apps', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceAppList', (), 'none', 'none', ()),
-    OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-operations', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceConfigurationOperationList', (), 'none', 'none', ()),
+    OperationId.LIST_SERVICE_CONFIGURATION_OPERATIONS: OpenAPIOperation('GET', '/api/v1/services/configuration-operations', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceConfigurationOperationList', (), 'none', 'cursor', ()),
     OperationId.LIST_SERVICE_DNS_PLANS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains/{domainId}/dns/plans', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDNSPlanList', ('serviceId', 'environmentId', 'domainId'), 'none', 'none', ()),
-    OperationId.LIST_SERVICE_DEPLOYMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/deployments', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeploymentList', ('source', 'serviceId'), 'none', 'none', ()),
+    OperationId.LIST_SERVICE_DEPLOYMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/deployments', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeploymentList', ('source', 'serviceId'), 'none', 'cursor', ()),
     OperationId.LIST_SERVICE_DOMAINS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/domains', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceDomainList', ('serviceId', 'environmentId'), 'none', 'none', ()),
-    OperationId.LIST_SERVICE_ENVIRONMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/environments', 'service-management', 'read-only', 'bounded', '', False, False, '', 'EnvironmentList', ('source', 'serviceId'), 'none', 'none', ()),
+    OperationId.LIST_SERVICE_ENVIRONMENTS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/environments', 'service-management', 'read-only', 'bounded', '', False, False, '', 'EnvironmentList', ('source', 'serviceId'), 'none', 'cursor', ()),
     OperationId.LIST_SERVICE_GIT_HUB_BRANCHES: OpenAPIOperation('GET', '/api/v1/services/integrations/github/branches', 'service-management', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
     OperationId.LIST_SERVICE_LOGS: OpenAPIOperation('GET', '/api/v1/services/{source}/{serviceId}/logs', 'service-management', 'read-only', 'bounded', '', False, False, '', 'LogList', ('source', 'serviceId'), 'none', 'none', ()),
-    OperationId.LIST_SERVICE_PROMOTIONS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/promotions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeploymentList', ('serviceId',), 'none', 'none', ()),
+    OperationId.LIST_SERVICE_PROMOTIONS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/promotions', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeploymentList', ('serviceId',), 'none', 'cursor', ()),
     OperationId.LIST_SERVICE_RELEASE_GROUP_EVENTS: OpenAPIOperation('GET', '/api/v1/services/release-groups/{releaseGroupId}/events', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceReleaseGroupEventList', ('releaseGroupId',), 'none', 'cursor', ()),
     OperationId.LIST_SERVICE_RELEASE_GROUPS: OpenAPIOperation('GET', '/api/v1/services/release-groups', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceReleaseGroupList', (), 'none', 'cursor', ()),
     OperationId.LIST_SERVICE_VARIABLES: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/environments/{environmentId}/variables', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceVariableList', ('serviceId', 'environmentId'), 'none', 'none', ()),
     OperationId.LIST_SERVICE_VOLUMES: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/volumes', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceVolumeList', ('serviceId',), 'none', 'none', ()),
     OperationId.LIST_SERVICE_WEBHOOK_DISPATCH_EVENTS: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/webhook-events', 'service-management', 'read-only', 'bounded', '', False, False, '', 'inline', ('serviceId',), 'none', 'none', ()),
-    OperationId.LIST_SERVICES: OpenAPIOperation('GET', '/api/v1/services', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceList', (), 'none', 'none', ()),
+    OperationId.LIST_SERVICES: OpenAPIOperation('GET', '/api/v1/services', 'service-management', 'read-only', 'bounded', '', False, False, '', 'ServiceList', (), 'none', 'cursor', ()),
     OperationId.PREVIEW_GIT_HUB_REPOSITORY_ADOPTION: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/repository/github/adoption-preview', 'service-management', 'mutation', 'bounded', '', False, False, 'GitHubRepositoryAdoptionPreviewRequest', 'GitHubRepositoryAdoptionPreview', ('serviceId',), 'required', 'none', ('Idempotency-Key',)),
     OperationId.PREVIEW_SERVICE_DEPLOY: OpenAPIOperation('GET', '/api/v1/services/project/{serviceId}/deploy/preview', 'service-management', 'read-only', 'bounded', '', False, False, '', 'DeployPreview', ('serviceId',), 'none', 'none', ()),
     OperationId.PREVIEW_SERVICE_ENVIRONMENT_REASSIGNMENT: OpenAPIOperation('POST', '/api/v1/services/project/{serviceId}/environments/{environmentId}/reassignment-preview', 'service-management', 'mutation', 'bounded', '', False, False, 'ServiceEnvironmentReassignmentPreviewRequest', 'ServiceEnvironmentReassignmentPreview', ('serviceId', 'environmentId'), 'required', 'none', ('Idempotency-Key',)),
@@ -3237,7 +3237,7 @@ class OpenAPIClient:
     def list_service_dns_plans(self, service_id: str, environment_id: str, domain_id: str) -> ListServiceDNSPlansResponseBody:
         return cast(ListServiceDNSPlansResponseBody, self._transport(OperationId.LIST_SERVICE_DNS_PLANS, path_parameters={'serviceId': service_id, 'environmentId': environment_id, 'domainId': domain_id}))
 
-    def list_service_deployments(self, source: _SchemaServiceSource, service_id: str, *, environment: str | None = None, status: str | None = None, limit: int | None = None, cursor: str | None = None) -> ListServiceDeploymentsResponseBody:
+    def list_service_deployments(self, source: _SchemaServiceSource, service_id: str, *, environment: str | None = None, status: Literal['queued', 'building', 'uploaded', 'deploying', 'ready', 'failed', 'cancelled', 'superseded', 'expired'] | None = None, limit: int | None = None, cursor: str | None = None) -> ListServiceDeploymentsResponseBody:
         _query: dict[str, Any] = {}
         if environment is not None: _query['environment'] = environment
         if status is not None: _query['status'] = status

@@ -86,6 +86,7 @@ export type {
   OpenAPIWorkerList,
   OpenAPIWorkerOperationResponse,
   OpenAPIWorkerSnapshot,
+  OpenAPIWorkerSnapshotExcludedItem,
   OpenAPIWorkerSnapshotList,
   OpenAPIWorkerSnapshotOrphan,
   OpenAPIWorkerSnapshotRecovery,
