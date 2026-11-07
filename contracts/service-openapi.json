@@ -4074,7 +4074,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `VOLUME_MOUNTED`: a deployment still mounts the volume (`details.volumeRef`, `details.deploymentIds`; the removal impact lists them as `mountedByDeploymentIds`): an environment's current deployment, a deployment in progress, or a ready preview, whose container keeps running until a newer preview supersedes it or the preview expires. Detach the volume (unbindServiceVolume), deploy the environment again or wait for its previews to be retired, then preview the removal again. `REMOVAL_IMPACT_CHANGED`, `CANONICAL_DNS_ACTIVE`, `DATA_DISPOSITION_REQUIRED` and `WORKER_UPGRADE_REQUIRED` also use this status.",
+            "description": "Conflict. `VOLUME_MOUNTED`: a deployment still mounts the volume (`details.volumeRef`, `details.deploymentIds`; the removal impact lists them as `mountedByDeploymentIds`): an environment's current deployment, a deployment in progress, or a preview whose container its Worker has not removed yet: a ready preview, a superseded one until a newer preview of it is ready, or an expired one until its cleanup has completed on the Worker. Detach the volume (unbindServiceVolume), deploy the environment again and wait for its previews to be removed, then preview the removal again. `REMOVAL_IMPACT_CHANGED`, `CANONICAL_DNS_ACTIVE`, `DATA_DISPOSITION_REQUIRED` and `WORKER_UPGRADE_REQUIRED` also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -11815,7 +11815,7 @@
           },
           "mountedByDeploymentIds": {
             "type": "array",
-            "description": "Present on a volume's own removal impact (getServiceVolumeRemovalImpact) while deployments still mount it: the service's current deployments, its deployments in progress, and its ready previews, which are never current and keep running until a newer preview supersedes them or they expire, whose mounts include it. A ready production deployment that is no longer current, such as a retained release, is not listed. They block the removal: deleteServiceVolume answers `409` `VOLUME_MOUNTED` until the volume is detached, the environment deployed again without it, and its previews retired. A project's or an environment's removal impact does not list them, since that removal removes the deployments too.",
+            "description": "Present on a volume's own removal impact (getServiceVolumeRemovalImpact) while deployments still mount it: the service's current deployments, its deployments in progress, and its previews whose container the Worker has not removed yet, whose mounts include it. A preview is never current and runs until its Worker removes it: it is listed while it is ready, while it is superseded until a newer preview of it is ready, and while it is expired until its cleanup has completed on the Worker. A ready production deployment that is no longer current, such as a retained release, is not listed. They block the removal: deleteServiceVolume answers `409` `VOLUME_MOUNTED` until the volume is detached, the environment deployed again without it, and its previews removed. A project's or an environment's removal impact does not list them, since that removal removes the deployments too.",
             "items": {
               "type": "string",
               "format": "uuid"
