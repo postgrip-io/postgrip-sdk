@@ -131,6 +131,7 @@ export type {
   OpenAPISandboxDesiredState,
   OpenAPISandboxListResponse,
   OpenAPISandboxNetworkPolicy,
+  OpenAPISandboxNetworkPolicyInput,
   OpenAPISandboxObservedState,
   OpenAPISandboxPortMapping,
   OpenAPISandboxResourceLimits,

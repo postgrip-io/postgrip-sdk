@@ -202,7 +202,7 @@
       "get": {
         "operationId": "listTasks",
         "summary": "List tasks",
-        "description": "Filters by namespace, queue, type, and state within the caller's tenant, then sorts and paginates.",
+        "description": "Filters by namespace, queue, type, and state within the caller's tenant, then sorts and paginates. The answer is a bare array; to read the next page, send `offset` (or `page_token`, which is the same numeric offset) advanced by the number of tasks already read. `limit` has no maximum; without it every matching task is returned. An unknown `state` or `order_by` answers 400 INVALID_REQUEST with a message that names the parameter.",
         "tags": [
           "Tasks"
         ],
@@ -235,13 +235,24 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/TaskState"
+            },
+            "description": "One task state. Any other value answers 400."
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "`created_at`, `-created_at`, `updated_at` or `-updated_at`; a leading `-` sorts newest first. Without it, tasks keep insertion order. Any other value answers 400.",
+            "schema": {
+              "type": "string"
             }
           },
           {
-            "$ref": "#/components/parameters/OrderByQuery"
-          },
-          {
-            "$ref": "#/components/parameters/PageTokenQuery"
+            "name": "page_token",
+            "in": "query",
+            "description": "A numeric offset, used only when `offset` is absent.",
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "$ref": "#/components/parameters/LimitQuery"
@@ -260,6 +271,16 @@
                   "items": {
                     "$ref": "#/components/schemas/Task"
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An unknown `state` or `order_by`. The message names the parameter and the accepted values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -590,7 +611,7 @@
       "post": {
         "operationId": "createSchedule",
         "summary": "Create a schedule",
-        "description": "Returns 202. Any tenantId in the body is replaced with the tenant the credential resolves to.",
+        "description": "Returns 202. Any tenantId in the body is replaced with the tenant the credential resolves to. An `id` already used by a live (active or paused) schedule answers 409 CONFLICT `schedule already exists`. The `id` of a deleted schedule can be used again: the new schedule replaces the deleted one, and the runs the deleted schedule started keep its `schedule_id` in their history.",
         "tags": [
           "Schedules"
         ],
@@ -680,7 +701,7 @@
       "patch": {
         "operationId": "updateSchedule",
         "summary": "Update a schedule",
-        "description": "A partial update: only the fields present in the body are changed.",
+        "description": "Only the top-level fields present in the body are changed. `spec` and `action` each replace the stored object whole, so an object that omits a member whose stored value it would change answers 400 INVALID_REQUEST, names those members (for example `invalid schedule: spec omits timezone, jitter_seconds; ...`), and changes nothing. Send every member with the value to keep, and send a member explicitly, with an empty value or null, to clear it. Defaults count as kept: an omitted `timezone` that is stored as `UTC`, `missed_run_policy` stored as `catch_up`, action `namespace` equal to the schedule's and `queue` equal to `default`. The timing mode (`cron`, `interval_seconds` or `calendar`) is never listed: the one the new spec names replaces the stored one.",
         "tags": [
           "Schedules"
         ],
@@ -705,6 +726,16 @@
           "200": {
             "$ref": "#/components/responses/ScheduleResponse"
           },
+          "400": {
+            "description": "The body is invalid, a field breaks a schedule rule, or `spec` or `action` omits a member it would reset. The message names the rule or the members.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
@@ -727,7 +758,7 @@
       "delete": {
         "operationId": "deleteSchedule",
         "summary": "Delete a schedule",
-        "description": "Returns the deleted schedule with 200 rather than an empty 204; the record moves to the deleted state.",
+        "description": "Returns the deleted schedule with 200 rather than an empty 204; the record moves to the deleted state. A later createSchedule with the same `id` replaces the deleted record.",
         "tags": [
           "Schedules"
         ],
@@ -2062,7 +2093,7 @@
       "post": {
         "operationId": "createSandbox",
         "summary": "Create a sandbox",
-        "description": "Records the desired sandbox and returns 201. Provisioning is asynchronous, so the returned record is not yet running. Names must be unique per tenant among live sandboxes. The request answers 400 unless: `name` matches `^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$`; `architecture`, when set, is `amd64` or `arm64`; resource limits are non-negative, at most 4 CPUs and 4 GiB of memory, with disk between 64 MiB and 20 GiB; every port mapping has host and guest ports from 1 through 65535, protocol `tcp` (the default) or `udp`, and no host port repeats for a protocol; `internetEgress` is not combined with `denyHostAccess` or `allowCidrs`; `expiresAt`, when set, is in the future and at most 24 hours ahead (it defaults to 24 hours).",
+        "description": "Records the desired sandbox and returns 201. Provisioning is asynchronous, so the returned record is not yet running. Names must be unique per tenant among live sandboxes. The request answers 400 unless: `name` matches `^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$`; `architecture`, when set, is `amd64` or `arm64`; resource limits are non-negative, at most 4 CPUs and 4 GiB of memory, with disk between 64 MiB and 20 GiB; every port mapping has host and guest ports from 1 through 65535, protocol `tcp` (the default) or `udp`, and no host port repeats for a protocol; `backend` is not `firecracker` (no Agent can host it yet); `allowCidrs` is empty (CIDR allow-lists are not supported); `ports` are set only with `internetEgress` (without it the sandbox has no network); `internetEgress` is not combined with `denyHostAccess`; `workspaceId`, when set, names one of the tenant's workspaces; `expiresAt`, when set, is in the future and at most 24 hours ahead (it defaults to 24 hours).",
         "tags": [
           "Sandboxes"
         ],
@@ -2384,7 +2415,7 @@
       "post": {
         "operationId": "uploadWorkspace",
         "summary": "Upload a workspace archive",
-        "description": "The request body is a raw gzipped tar stream, not a multipart form. Repository and revision metadata travel in the X-PostGrip-Repository and X-PostGrip-Revision headers. Storage is content-addressed, so re-uploading identical bytes returns the existing record rather than creating a new one.",
+        "description": "The request body is a raw gzipped tar stream, not a multipart form. Repository and revision metadata travel in the X-PostGrip-Repository and X-PostGrip-Revision headers. Storage is content-addressed, so re-uploading identical bytes returns the existing record rather than creating a new one. A body that does not start a gzipped tar (an empty body, one without the gzip magic, or gzip whose first entry is not a tar header) answers 400 INVALID_REQUEST with `workspace archive must be a gzipped tar`, and nothing is stored. The Agent checks the remaining entries when it unpacks the workspace.",
         "tags": [
           "Sandboxes"
         ],
@@ -2432,6 +2463,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SandboxWorkspace"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not a gzipped tar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2560,7 +2601,7 @@
       "get": {
         "operationId": "connectSandboxSession",
         "summary": "Attach to an interactive session over WebSocket",
-        "description": "Upgrades to the one-shot WebSocket stream authorized by the ticket. For pty and exec sessions, binary messages carry raw stdin/stdout bytes and stdout/stderr are interleaved. postgrip.sandbox.terminal.v1 reserves client-to-agent text frames for strict resize JSON of the form {\"type\":\"resize\",\"rows\":24,\"columns\":80}; postgrip.sandbox.terminal.v2 applies strict JSON control framing in both directions and additionally permits agent-to-client notice messages of the form {\"type\":\"notice\",\"code\":\"session_ready\",\"message\":\"Sandbox stream is ready\"}. Rows and columns must be integers from 1 through 65535. A zero-length client binary message signals terminal stdin EOF without closing output. Without a negotiated terminal protocol, text messages remain legacy raw stdin. Exec exit codes, and only exec exit codes, use WebSocket close status 4000 plus the process code. For port sessions, postgrip.sandbox.port.v1 carries raw TCP bytes in binary messages; text messages are invalid, and terminal controls and terminal close-code semantics do not apply. Ping/Pong liveness is enforced independently on every proxy hop, and any failed hop terminates both relay peers. Two refusals are plain text rather than the JSON error body: a cross-origin request answers 403, and a session that can no longer be claimed answers 409.",
+        "description": "Upgrades to the one-shot WebSocket stream authorized by the ticket. For pty and exec sessions, binary messages carry raw stdin/stdout bytes and stdout/stderr are interleaved. postgrip.sandbox.terminal.v1 reserves client-to-agent text frames for strict resize JSON of the form {\"type\":\"resize\",\"rows\":24,\"columns\":80}; postgrip.sandbox.terminal.v2 applies strict JSON control framing in both directions and additionally permits agent-to-client notice messages of the form {\"type\":\"notice\",\"code\":\"session_ready\",\"message\":\"Sandbox stream is ready\"}. Rows and columns must be integers from 1 through 65535. A zero-length client binary message signals terminal stdin EOF without closing output. Without a negotiated terminal protocol, text messages remain legacy raw stdin. Exec exit codes, and only exec exit codes, use WebSocket close status 4000 plus the process code. For port sessions, postgrip.sandbox.port.v1 carries raw TCP bytes in binary messages; text messages are invalid, and terminal controls and terminal close-code semantics do not apply. Ping/Pong liveness is enforced independently on every proxy hop, and any failed hop terminates both relay peers. Refusals before the upgrade use the JSON error body: a missing, wrong, expired or already used ticket answers 404 NOT_FOUND with `session ticket is invalid, expired or already used`; a cross-origin browser request answers 403 FORBIDDEN; and a session whose client peer is already connected answers 409 CONFLICT.",
         "tags": [
           "Sandboxes"
         ],
@@ -2603,12 +2644,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "pgt_...",
-        "description": "Tenant-scoped PostGrip management token carrying concrete Agent, Worker, and Service grants."
+        "description": "Tenant-scoped PostGrip management token carrying concrete Agent, Worker, and Service grants. A pgt_ token that is unknown, revoked or expired answers 401 INVALID_TOKEN on every route, including routes that also accept an agent session. A valid token without the route's scope answers 403 INSUFFICIENT_SCOPE, with the scope in details.requiredScopes (an array) and, when the route needs a single scope, details.requiredScope (a string)."
       },
       "agentSession": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Delegated short-lived agent session. Signed operations also carry the PostGrip Ed25519 request-signing headers."
+        "description": "Delegated short-lived agent session. Signed operations also carry the PostGrip Ed25519 request-signing headers. On a route that accepts both credentials, a bearer token without the pgt_ prefix is authenticated as an agent session, and a failing one answers 401 AGENT_UNAUTHORIZED."
       }
     },
     "parameters": {
@@ -2965,7 +3006,8 @@
           "docker",
           "podman",
           "firecracker"
-        ]
+        ],
+        "description": "`firecracker` is reserved: create refuses it with 400, because no Agent can host it yet (none advertises it, so `auto` never resolves to it)."
       },
       "SandboxDesiredState": {
         "type": "string",
@@ -4148,6 +4190,35 @@
           }
         }
       },
+      "SandboxNetworkPolicyInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "internetEgress": {
+            "type": "boolean",
+            "description": "Give the sandbox a network with internet access. Port mappings need it."
+          },
+          "allowCidrs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Not supported yet: any non-empty value answers 400."
+          },
+          "denyHostAccess": {
+            "type": "boolean",
+            "description": "Not supported with `internetEgress`. Without it the sandbox has no network, so the host is unreachable anyway."
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SandboxPortMapping"
+            },
+            "description": "Host-to-guest port mappings, published on the Agent's loopback. They need `internetEgress`."
+          }
+        },
+        "description": "The network policy on create. Every member is optional: the booleans default to false, which gives the sandbox no network."
+      },
       "Sandbox": {
         "type": "object",
         "additionalProperties": false,
@@ -4346,7 +4417,7 @@
             "$ref": "#/components/schemas/SandboxResourceLimits"
           },
           "networkPolicy": {
-            "$ref": "#/components/schemas/SandboxNetworkPolicy"
+            "$ref": "#/components/schemas/SandboxNetworkPolicyInput"
           },
           "labels": {
             "type": "object",
