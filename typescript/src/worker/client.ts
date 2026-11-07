@@ -14,6 +14,7 @@ import {
   type OpenAPIOperationalLogList,
   type OpenAPISecurityLogEntry,
   type OpenAPISecurityLogList,
+  type OpenAPIStorageDestinationList,
   type OpenAPIUpdateWorkerSnapshotSettingsRequest,
   type OpenAPIUpdateWorkerSnapshotSettingsResponse,
   type OpenAPIUpgradeWorkerResponse,
@@ -303,6 +304,16 @@ export class WorkerClient {
       signal: options.signal,
       idempotencyKey: options.idempotencyKey,
     });
+  }
+
+  /**
+   * List the organization's storage destinations, ordered by name; the list is
+   * not paged. A destination's `id` is the `storageDestinationId` that
+   * `updateSnapshotSettings` takes. No credential is answered: the access key
+   * and secret stay on the Workers.
+   */
+  storageDestinations(options: RequestOptions = {}): Promise<OpenAPIStorageDestinationList> {
+    return this.request('listStorageDestinations', { signal: options.signal });
   }
 
   private mutate<I extends 'checkWorker' | 'placeWorkerInMaintenance' | 'resumeWorkerFromMaintenance' | 'upgradeWorker' | 'createWorkerSnapshot'>(

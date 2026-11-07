@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "f9a7580a7b8fdde0c75e222d8301b94338bc291d6e942a29da29352a482adc8f",
+  "contractBundleDigest": "20dec2d85e3bdbf1943c2e95d09ad184847196c83341e7cc940d33ed156a37fe",
   "operations": [
     {
       "curl": false,
@@ -2968,6 +2968,23 @@
         "python"
       ],
       "liveTest": "nightly",
+      "operationId": "listStorageDestinations",
+      "plane": "worker",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
       "operationId": "listWorkerAssignments",
       "plane": "worker",
       "protocolException": false,
@@ -3161,22 +3178,22 @@
       "recordedTested": 122
     },
     "worker": {
-      "curl": 18,
-      "operations": 18,
+      "curl": 19,
+      "operations": 19,
       "protocolExceptions": 0,
-      "recordedTested": 18
+      "recordedTested": 19
     }
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 176,
-    "documented": 185,
-    "nightlyOwned": 133,
-    "operations": 185,
+    "curl": 177,
+    "documented": 186,
+    "nightlyOwned": 134,
+    "operations": 186,
     "preReleaseOwned": 50,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 185,
-    "sdkGenerated": 185
+    "recordedTested": 186,
+    "sdkGenerated": 186
   }
 }

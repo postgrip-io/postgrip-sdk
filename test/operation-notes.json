@@ -1275,6 +1275,11 @@
         "Restore the fixture Worker's previous settings after the test."
       ],
       "summary": "Replace a worker's snapshot settings"
+    },
+    "listStorageDestinations": {
+      "behavior": "Lists the organization's storage destinations, ordered by name and not paged; a destination's `id` is the `storageDestinationId` that `updateWorkerSnapshotSettings` takes. The answer holds no credential: the access key and secret stay on the Workers that use the destination, and which Workers hold them is not answered. No Worker is contacted.",
+      "lifecycle": [],
+      "summary": "List storage destinations"
     }
   },
   "schemaVersion": 1

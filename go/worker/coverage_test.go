@@ -93,6 +93,9 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 	if _, err := client.UpdateSnapshotSettings(ctx, "worker-1", UpdateWorkerSnapshotSettingsRequest{}, "operation-1"); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := client.StorageDestinations(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	for _, route := range []string{
 		"GET /health", "GET /api/v1/workers/worker-1", "GET /api/v1/workers/worker-1/assignments",
@@ -102,7 +105,7 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 		"POST /api/v1/workers/worker-1/maintenance/resume", "POST /api/v1/workers/worker-1/upgrade",
 		"GET /api/v1/workers/worker-1/snapshot/status", "GET /api/v1/workers/worker-1/snapshots",
 		"POST /api/v1/workers/worker-1/snapshots", "GET /api/v1/workers/worker-1/snapshot/settings",
-		"PUT /api/v1/workers/worker-1/snapshot/settings",
+		"PUT /api/v1/workers/worker-1/snapshot/settings", "GET /api/v1/storage-destinations",
 	} {
 		if seen[route] == 0 {
 			t.Errorf("route %s was not exercised", route)

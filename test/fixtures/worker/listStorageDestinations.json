@@ -1,0 +1,43 @@
+{
+  "operationId": "listStorageDestinations",
+  "plane": "worker",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "items": [
+        {
+          "accountId": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+          "bucket": "pg-backups",
+          "createdAt": "2026-11-01T09:30:00Z",
+          "endpoint": "https://1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d.r2.cloudflarestorage.com",
+          "id": "0d6c2a4e-8b1f-4c3d-9e7a-5f2b1c0d9e8a",
+          "name": "Production backups",
+          "prefix": "postgrip",
+          "provider": "r2",
+          "updatedAt": "2026-11-01T09:30:00Z"
+        },
+        {
+          "bucket": "acme-worker-snapshots",
+          "createdAt": "2026-10-20T14:05:12Z",
+          "id": "7e3f9a1b-2c4d-4e5f-8a6b-9c0d1e2f3a4b",
+          "name": "us-east archive",
+          "provider": "s3",
+          "region": "us-east-1",
+          "updatedAt": "2026-11-03T08:00:00Z"
+        }
+      ]
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listStorageDestinations"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

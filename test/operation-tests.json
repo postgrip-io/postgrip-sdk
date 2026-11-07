@@ -1700,6 +1700,15 @@
       "mockTest": "recorded-http",
       "plane": "worker",
       "protocolException": null
+    },
+    "listStorageDestinations": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "worker/listStorageDestinations.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
     }
   },
   "schemaVersion": 1

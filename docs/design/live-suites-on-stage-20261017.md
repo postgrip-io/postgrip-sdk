@@ -176,7 +176,7 @@ resource can be declared transient: it records its identifier, needs no
 cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
-assignments stay as they are. The nightly scenario covers 133 operations and
+assignments stay as they are. The nightly scenario covers 134 operations and
 the pre-release scenario 50, plus their fixture steps. DNS failover and plan
 rollback left the public API on 2026-10-18 (web
 `docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
@@ -195,7 +195,13 @@ advertises `worker_snapshot_api_v1`, and the pre-release three a storage
 destination whose credentials the console delivered to it; the settings step
 restores the Worker's previous settings. Both stage scenarios must add these
 steps before their workflows can pass again
-([SDK design](worker-snapshots-20261107.md)).
+([SDK design](worker-snapshots-20261107.md)). Web's public storage
+destinations (`docs/design/public-storage-destinations-design-20261107.md`)
+added one nightly read, `listStorageDestinations`. It needs no fixture beyond
+the stage organization's token and answers `{"items": []}` for an
+organization with none, so the stage nightly scenario must add the step before
+`live-nightly.yml` can pass again
+([SDK design](worker-storage-destinations-20261107.md)).
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager

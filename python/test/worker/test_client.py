@@ -82,6 +82,7 @@ class WorkerClientTests(unittest.TestCase):
             ("POST", "/api/v1/workers/worker-id/snapshots"),
             ("GET", "/api/v1/workers/worker-id/snapshot/settings"),
             ("PUT", "/api/v1/workers/worker-id/snapshot/settings"),
+            ("GET", "/api/v1/storage-destinations"),
         ]
         opener = FakeOpener([{} for _ in expected])
         client = WorkerClient(
@@ -115,6 +116,7 @@ class WorkerClientTests(unittest.TestCase):
             lambda: client.take_snapshot("worker-id", idempotency_key="operation-1"),
             lambda: client.snapshot_settings("worker-id"),
             lambda: client.update_snapshot_settings("worker-id", {"enabled": False}, idempotency_key="operation-1"),
+            client.storage_destinations,
         ]
         for invoke in calls:
             invoke()
@@ -405,6 +407,7 @@ class WorkerClientTests(unittest.TestCase):
                 {"items": []},
                 {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
                 {}, {}, {}, {}, {},
+                {"items": []},
             ]
             opener = FakeOpener(responses)
             client = AsyncWorkerClient(
@@ -431,8 +434,9 @@ class WorkerClientTests(unittest.TestCase):
             await client.take_snapshot("worker-id", idempotency_key="operation-1")
             await client.snapshot_settings("worker-id")
             await client.update_snapshot_settings("worker-id", {"enabled": False}, idempotency_key="operation-1")
+            self.assertEqual(await client.storage_destinations(), {"items": []})
 
-            self.assertEqual(len(opener.requests), 18)
+            self.assertEqual(len(opener.requests), 19)
 
         asyncio.run(run())
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `WorkerClient` and `AsyncWorkerClient` gain `storage_destinations`, which
+  lists the organization's storage destinations (`listStorageDestinations`),
+  ordered by name and not paged. A destination's `id` is the
+  `storageDestinationId` that `update_snapshot_settings` takes. No credential
+  is answered.
 - `WorkerClient` and `AsyncWorkerClient` gain the Worker snapshot operations:
   `snapshot_status`, `snapshots`, `take_snapshot`, `snapshot_settings` and
   `update_snapshot_settings`. The two mutations require `idempotency_key`.

@@ -8,6 +8,10 @@ nav_order: 7
 
 ## Unreleased
 
+- `worker.Client` gains `StorageDestinations`, which lists the organization's
+  storage destinations (`listStorageDestinations`), ordered by name and not
+  paged. A destination's `Id` is the `StorageDestinationId` that
+  `UpdateSnapshotSettings` takes. No credential is answered.
 - `worker.Client` gains the Worker snapshot operations: `SnapshotStatus`,
   `Snapshots`, `TakeSnapshot`, `SnapshotSettings` and `UpdateSnapshotSettings`.
   The two mutations require an idempotency key. `TakeSnapshot` (and
