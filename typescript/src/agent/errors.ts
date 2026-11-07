@@ -95,9 +95,11 @@ export class AgentAPIError extends PostGripAPIError {
 /**
  * Whether a task mutation failed because the task is already terminal or no
  * longer leased by this agent. The server reports both as a 409 whose envelope
- * message names the condition.
+ * message names the condition, and a task cancelled with cancelTask with the
+ * code `TASK_CANCELLED`.
  */
 export function isTerminalTaskMutation(error: unknown): boolean {
+  if (error instanceof AgentAPIError && error.status === 409 && error.code === 'TASK_CANCELLED') return true;
   const message = error instanceof AgentAPIError
     ? (error.status === 409 ? envelopeMessage(error.responseBody) : '')
     : error instanceof Error ? error.message : String(error);

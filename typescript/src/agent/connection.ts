@@ -19,6 +19,7 @@ import type {
   TriggerScheduleResponse,
   UnpauseScheduleRequest,
   UpdateScheduleRequest,
+  CancelTaskRequest,
   CancelWorkflowRequest,
   TerminateWorkflowRequest,
   Task,
@@ -57,6 +58,20 @@ import { sendWorkspaceArchive } from './_archive_upload.js';
 import { iterateHistoryPages, historyPageQuery, type HistoryPageOptions } from './_history.js';
 
 export type { HistoryPageOptions };
+
+/**
+ * An optional `Idempotency-Key` for a task send (enqueueTask), a signal
+ * (signalWorkflow) or a signal-with-start. With a key, a resend of the same
+ * request within 24 hours answers the first request's stored result (marked
+ * `Idempotent-Replayed: true`) instead of sending or signalling again, and a
+ * connection with `enableRetries` retries the request. A key names one
+ * request: reusing it with another body answers 409 `IDEMPOTENCY_CONFLICT`.
+ * It must be 1 to 128 visible ASCII characters; an invalid key fails before
+ * sending. Without a key every request runs.
+ */
+export interface IdempotencyOptions {
+  readonly idempotencyKey?: string;
+}
 
 export interface ConnectionOptions {
   baseUrl?: string;
@@ -240,11 +255,24 @@ export class Connection {
     return this.openapi.createNamespace({ body: { name } });
   }
 
-  async enqueueTask<P = unknown, R = unknown>(request: EnqueueTaskRequest<P>): Promise<Task<P, R>> {
+  async enqueueTask<P = unknown, R = unknown>(request: EnqueueTaskRequest<P>, options: IdempotencyOptions = {}): Promise<Task<P, R>> {
     if (runtimeOnlyTaskType(request.type) && !this.hasAgentRuntimeCredentials()) {
       throw new Error('postgrip-agent: workflow tasks can only be enqueued from a managed runtime; submit workflow.runtime to an agent pool');
     }
-    return this.openapi.enqueueTask({ body: request }) as Promise<Task<P, R>>;
+    return this.openapi.enqueueTask({ body: request, headers: idempotencyHeaders(options) }) as Promise<Task<P, R>>;
+  }
+
+  /**
+   * Ends a task that has not finished: it becomes `failed`, with
+   * `result.failure.type` `TaskCancelled` and the reason, when given, in its
+   * `error`. A queued task is never leased; a leased task's Agent stops it on
+   * its next heartbeat. Cancelling a task already cancelled answers it
+   * unchanged, so a resend is safe. A task that already finished fails with
+   * 409 `TASK_TERMINAL`, and a workflow's own task with 409
+   * `TASK_OWNED_BY_WORKFLOW`: cancel its workflow instead.
+   */
+  async cancelTask<P = unknown, R = unknown>(taskId: string, request: CancelTaskRequest = {}): Promise<Task<P, R>> {
+    return this.openapi.cancelTask({ pathParameters: { taskId }, body: request }) as Promise<Task<P, R>>;
   }
 
   async listTasks<P = unknown, R = unknown>(options: {
@@ -428,18 +456,27 @@ export class Connection {
     return history;
   }
 
-  async signalWorkflow<Args extends unknown[] = unknown[]>(workflowId: string, request: SignalWorkflowRequest<Args>): Promise<WorkflowHistoryEvent> {
-    return this.openapi.signalWorkflow({ pathParameters: { workflowId }, body: request });
+  async signalWorkflow<Args extends unknown[] = unknown[]>(
+    workflowId: string,
+    request: SignalWorkflowRequest<Args>,
+    options: IdempotencyOptions = {},
+  ): Promise<WorkflowHistoryEvent> {
+    return this.openapi.signalWorkflow({ pathParameters: { workflowId }, body: request, headers: idempotencyHeaders(options) });
   }
 
   async signalWithStartWorkflow<WorkflowArgs extends unknown[] = unknown[], SignalArgs extends unknown[] = unknown[], R = unknown>(
     workflowId: string,
     request: SignalWithStartWorkflowRequest<WorkflowArgs, SignalArgs>,
+    options: IdempotencyOptions = {},
   ): Promise<SignalWithStartWorkflowResponse<WorkflowArgs, R>> {
     if (!this.hasAgentRuntimeCredentials()) {
       throw new Error('postgrip-agent: signal-with-start can only run from a managed runtime; submit workflow.runtime to an agent pool');
     }
-    return this.openapi.signalWithStartWorkflow({ pathParameters: { workflowId }, body: request }) as Promise<SignalWithStartWorkflowResponse<WorkflowArgs, R>>;
+    return this.openapi.signalWithStartWorkflow({
+      pathParameters: { workflowId },
+      body: request,
+      headers: idempotencyHeaders(options),
+    }) as Promise<SignalWithStartWorkflowResponse<WorkflowArgs, R>>;
   }
 
   async cancelWorkflow(workflowId: string, request: CancelWorkflowRequest = {}): Promise<WorkflowHistoryEvent> {
@@ -664,6 +701,8 @@ export class Connection {
       // A null body is sent as no body, as before.
       body: options.body ?? undefined,
       signal: options.signal,
+      // The executor sends it only on operations that declare the header.
+      idempotencyKey: (options.headers as Readonly<Record<string, string | undefined>> | undefined)?.['Idempotency-Key'],
       // Poll Gone is a terminal shutdown directive, and a long poll's server
       // hold counts against its lifetime, so it gets 30 seconds of headroom.
       acceptedStatuses: poll ? [410] : undefined,
@@ -796,6 +835,10 @@ function normalizeAgentAuthOptions(options: AgentAuthOptions): AgentAuthOptions 
     ...canonical,
     agentId: options.agentId ?? workerId,
   };
+}
+
+function idempotencyHeaders(options: IdempotencyOptions): { readonly 'Idempotency-Key'?: string } | undefined {
+  return options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : undefined;
 }
 
 function runtimeOnlyTaskType(taskType: string): boolean {

@@ -27,7 +27,7 @@ class FakeConnection(Connection):
         self.workflows: dict[str, dict] = {}
         self.histories: dict[str, list[dict]] = {}
 
-    def enqueue_task(self, request: dict) -> dict:
+    def enqueue_task(self, request: dict, *, idempotency_key: str | None = None) -> dict:
         task_id = f"task-{len(self.enqueued) + 1}"
         task = {
             "id": task_id,

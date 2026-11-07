@@ -16,7 +16,8 @@ type TaskClient struct {
 }
 
 // Enqueue posts an arbitrary task. The Payload is JSON-marshaled before
-// transit; pass any JSON-encodable value.
+// transit; pass any JSON-encodable value. A non-empty in.IdempotencyKey is
+// sent as the request's Idempotency-Key (see WithIdempotencyKey).
 func (t *TaskClient) Enqueue(ctx context.Context, in EnqueueInput) (*Task, error) {
 	req := EnqueueTaskRequest{
 		Namespace:           in.Namespace,
@@ -27,7 +28,7 @@ func (t *TaskClient) Enqueue(ctx context.Context, in EnqueueInput) (*Task, error
 	if in.Payload != nil {
 		req.Payload = mustJSON(in.Payload)
 	}
-	return t.conn.EnqueueTask(ctx, req)
+	return t.conn.EnqueueTask(WithIdempotencyKey(ctx, in.IdempotencyKey), req)
 }
 
 // ShellExec enqueues a shell.exec task. The agent runs the command on its
@@ -108,6 +109,11 @@ func (t *TaskClient) Noop(ctx context.Context, queue string) (*Task, error) {
 // Get returns a single task by id.
 func (t *TaskClient) Get(ctx context.Context, taskID string) (*Task, error) {
 	return t.conn.GetTask(ctx, taskID)
+}
+
+// Cancel ends a task that has not finished; see Connection.CancelTask.
+func (t *TaskClient) Cancel(ctx context.Context, taskID, reason string) (*Task, error) {
+	return t.conn.CancelTask(ctx, taskID, reason)
 }
 
 // List returns tasks matching the optional filters (state=, queue=, etc.).

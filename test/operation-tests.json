@@ -89,6 +89,15 @@
       "plane": "service",
       "protocolException": null
     },
+    "cancelTask": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/cancelTask.json",
+      "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
     "cancelWorkflow": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,

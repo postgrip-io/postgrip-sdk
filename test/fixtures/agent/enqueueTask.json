@@ -5,7 +5,9 @@
     "body": {
       "type": "string"
     },
-    "headers": {},
+    "headers": {
+      "Idempotency-Key": "recorded-enqueueTask"
+    },
     "pathParameters": {},
     "query": {},
     "streamBodyBase64": null

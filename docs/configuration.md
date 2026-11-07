@@ -88,8 +88,9 @@ through `ConnectionOptions.EnableRetries`, which `postgrip.New` sets from
 `PostGripConfig.enableRetries`, and Python Agent through
 `Connection(enable_retries=...)`, which `PostGrip` and `AsyncPostGrip` set from
 their `enable_retries`. Agent in every language retries only contract-eligible
-operations: annotated bounded reads, never signed runtime actions, protocol
-operations or streaming uploads. Each attempt obtains the delegated session
+operations: annotated bounded reads and the task sends and signals that carry
+an `Idempotency-Key`, never signed runtime actions, protocol operations or
+streaming uploads. Each attempt obtains the delegated session
 again, so a token that nears expiry during a backoff is refreshed first. When the Go Agent connection creates its own
 HTTP client, a long poll's lifetime is its `wait_seconds` (the contract default
 of 20 when omitted) plus 30 seconds when that exceeds the request timeout; a
@@ -110,7 +111,13 @@ Mutations that require idempotency use a fresh
 `Idempotency-Key` for each new logical mutation, and reuse that same key and
 request on retries or response loss. Worker and Service in every language
 reject a missing or invalid key on these operations before sending, including
-through their generated low-level clients. Service administration writes may
+through their generated low-level clients. The Agent's task send
+(`enqueueTask`), signal and signal-with-start take an optional key
+(`x-postgrip-idempotency: optional`): without one every request runs and is
+sent once; with one a resend answers the stored result, and every language
+checks the key before sending. No SDK generates a key, for either kind of
+operation: only a key the caller persisted survives a restart. Service
+administration writes may
 additionally require the current `If-Match` value; Service in every language
 forwards `If-Match` only on operations whose contract declares it.
 

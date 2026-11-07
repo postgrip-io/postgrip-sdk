@@ -117,7 +117,9 @@ func (e *Executor) Do(ctx context.Context, call Call, out any) (*Response, error
 		return nil, fmt.Errorf("postgrip-%s: operation %q requires its protocol adapter", e.Plane, operation.ID)
 	}
 	idempotencyKey := call.Header.Get("Idempotency-Key")
-	if operation.Idempotency == "required" {
+	// A required key must be valid; an optional one is checked only when the
+	// caller sends it, and is never generated.
+	if operation.Idempotency == "required" || (operation.Idempotency == "optional" && idempotencyKey != "") {
 		if err := ValidateIdempotencyKey(e.Plane, idempotencyKey); err != nil {
 			return nil, err
 		}

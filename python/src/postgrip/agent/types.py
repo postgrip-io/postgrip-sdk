@@ -286,6 +286,7 @@ SignalWithStartWorkflowResponse: TypeAlias = _openapi.OpenAPISignalWithStartWork
 
 
 CancelWorkflowRequest: TypeAlias = _openapi.OpenAPICancelWorkflowRequest
+CancelTaskRequest: TypeAlias = _openapi.OpenAPICancelTaskRequest
 
 
 TerminateWorkflowRequest: TypeAlias = _openapi.OpenAPITerminateWorkflowRequest

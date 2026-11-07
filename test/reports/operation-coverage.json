@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "ff2bfcd9c8d47d12c127288828bc017238348e15c1a80386b6962c3178bf054e",
+  "contractBundleDigest": "11ab5c645b5ba2b87e37ebdd1dd90abbcbe47b5927a8f68607cd3d1ca5dbfbfe",
   "operations": [
     {
       "curl": false,
@@ -49,6 +49,23 @@
       "protocolException": true,
       "protocolRunner": "signed-agent-runtime",
       "recordedRunner": "recorded-signed-agent-runtime",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
+      "liveTest": "nightly",
+      "operationId": "cancelTask",
+      "plane": "agent",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
       "recordedTested": true,
       "sdkGenerated": true
     },
@@ -3166,10 +3183,10 @@
   ],
   "planes": {
     "agent": {
-      "curl": 36,
-      "operations": 45,
+      "curl": 37,
+      "operations": 46,
       "protocolExceptions": 9,
-      "recordedTested": 45
+      "recordedTested": 46
     },
     "service": {
       "curl": 122,
@@ -3186,14 +3203,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 177,
-    "documented": 186,
-    "nightlyOwned": 134,
-    "operations": 186,
+    "curl": 178,
+    "documented": 187,
+    "nightlyOwned": 135,
+    "operations": 187,
     "preReleaseOwned": 50,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 186,
-    "sdkGenerated": 186
+    "recordedTested": 187,
+    "sdkGenerated": 187
   }
 }

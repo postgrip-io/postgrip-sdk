@@ -79,6 +79,25 @@ describe('Executor', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('checks an optional idempotency key only when one is sent and never generates one', async () => {
+    const optional = operation({ safety: 'mutation', method: 'POST', idempotency: 'optional', headerParameters: ['Idempotency-Key'] });
+    for (const idempotencyKey of [' key ', 'k'.repeat(129), 'k\x7f']) {
+      const { fetch, instance } = executor([]);
+      await expect(instance.request({ operation: optional, idempotencyKey })).rejects.toThrow('idempotencyKey must contain');
+      expect(fetch).not.toHaveBeenCalled();
+    }
+    const unkeyed = executor([busy, () => Response.json({})]);
+    await expect(unkeyed.instance.request({ operation: optional })).rejects.toMatchObject({ status: 503 });
+    expect(unkeyed.fetch).toHaveBeenCalledOnce();
+    const sent = new Headers((unkeyed.fetch.mock.calls[0] as unknown as [URL, RequestInit])[1].headers);
+    expect(sent.has('idempotency-key')).toBe(false);
+    const keyed = executor([busy, () => Response.json({ ok: true })]);
+    await expect(keyed.instance.request({ operation: optional, idempotencyKey: 'send-1' })).resolves.toEqual({ ok: true });
+    expect(keyed.fetch).toHaveBeenCalledTimes(2);
+    const retried = new Headers((keyed.fetch.mock.calls[1] as unknown as [URL, RequestInit])[1].headers);
+    expect(retried.get('idempotency-key')).toBe('send-1');
+  });
+
   it('never retries the statuses a call excludes, and still retries the others', async () => {
     const unconfirmed = () => Response.json({ code: 'UNCONFIRMED', message: 'unconfirmed' }, { status: 504 });
     const { fetch, instance } = executor([busy, unconfirmed, () => Response.json({})]);

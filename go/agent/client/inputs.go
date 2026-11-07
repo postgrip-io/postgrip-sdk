@@ -14,6 +14,10 @@ type EnqueueInput struct {
 	Type                string
 	Payload             any
 	LeaseTimeoutSeconds int
+	// IdempotencyKey, when set, makes the send safe to repeat for 24 hours: a
+	// resend with the same key and input answers the first task instead of
+	// enqueueing another. See WithIdempotencyKey.
+	IdempotencyKey string
 }
 
 // ShellExecInput is the SDK-side input to TaskClient.ShellExec — same as
@@ -108,6 +112,11 @@ type SignalWithStartOptions struct {
 	WorkflowStartOptions
 	SignalName string
 	SignalArgs []any
+	// IdempotencyKey, when set, makes the request safe to repeat for 24 hours:
+	// a resend with the same key and options answers the first request's
+	// result instead of signalling again or starting another run. See
+	// WithIdempotencyKey.
+	IdempotencyKey string
 }
 
 // ScheduleActionInput is accepted by ScheduleClient APIs for create/update;

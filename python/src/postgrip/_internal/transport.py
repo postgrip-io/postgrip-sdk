@@ -219,7 +219,9 @@ class Executor:
         if operation.signing and self._sign is None:
             raise ValueError(f"PostGrip {self._plane} operation {operation_id} requires request signing")
         delegated = self._delegated_lane(operation, operation_id)
-        if operation.idempotency == "required":
+        # A required key must be valid; an optional one is checked only when
+        # the caller sends it, and is never generated.
+        if operation.idempotency == "required" or (operation.idempotency == "optional" and idempotency_key):
             validate_idempotency_key(idempotency_key or "")
 
         target = urlsplit(operation.path)

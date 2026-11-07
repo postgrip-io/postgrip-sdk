@@ -45,10 +45,10 @@ func TestResolveOpenAPIOperation(t *testing.T) {
 }
 
 func TestGeneratedOpenAPIPayloadTypesCompile(t *testing.T) {
-	if got, want := OpenAPIOperationCount, 45; got != want {
+	if got, want := OpenAPIOperationCount, 46; got != want {
 		t.Fatalf("generated operation count = %d, want %d", got, want)
 	}
-	if got, want := OpenAPIClientOperationCount, 43; got != want {
+	if got, want := OpenAPIClientOperationCount, 44; got != want {
 		t.Fatalf("generated client operation count = %d, want %d", got, want)
 	}
 	request := OpenAPIEnqueueTaskRequestBody{Type: "noop"}

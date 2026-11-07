@@ -48,7 +48,7 @@
         "safety": { "type": "string", "minLength": 1 },
         "protocol": { "type": "string", "minLength": 1 },
         "signing": { "type": ["string", "null"] },
-        "idempotency": { "type": "string", "minLength": 1 },
+        "idempotency": { "enum": ["none", "optional", "required"] },
         "pagination": { "type": "string", "minLength": 1 },
         "retry": { "type": "string", "minLength": 1 },
         "requestContentTypes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },

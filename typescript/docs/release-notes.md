@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Agent `Connection` gains `cancelTask` and `TaskClient` gains `cancel`, which
+  end a task that has not finished (`cancelTask`): it becomes `failed` with
+  `result.failure.type` `TaskCancelled`. A finished task fails with
+  `409 TASK_TERMINAL` and a workflow's own task with
+  `409 TASK_OWNED_BY_WORKFLOW`. The Agent entry publishes `CancelTaskRequest`,
+  `OpenAPICancelTaskRequest`, the `CancelTask` request and response body types
+  and `IdempotencyOptions`.
+- Task sends, signals and signal-with-start take an optional
+  `idempotencyKey`: `TaskClient.enqueue`, `WorkflowClient.signalWithStart`,
+  and an options argument on `Connection.enqueueTask`, `signalWorkflow` and
+  `signalWithStartWorkflow`; the generated `openapi` calls forward an
+  `Idempotency-Key` header. A key is sent only when given, is checked before
+  sending, and lets `enableRetries` retry the send; the SDK never generates
+  one. A keyed `WorkflowClient.signalWithStart` needs an explicit `workflowId`
+  and fails before sending without one, because the ID it would generate
+  differs on every call.
+- `isTerminalTaskMutation`, which the Agent runtime uses to stop renewing a
+  lease, also reads a `409` with code `TASK_CANCELLED` as terminal.
 - `WorkerClient` gains `storageDestinations`, which lists the organization's
   storage destinations (`listStorageDestinations`), ordered by name and not
   paged. A destination's `id` is the `storageDestinationId` that

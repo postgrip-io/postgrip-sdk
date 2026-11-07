@@ -214,3 +214,28 @@ func TestExecPayloadsCarrySecretEnvNamesAsSecretEnv(t *testing.T) {
 		}
 	}
 }
+
+func TestCancelTaskRequestJSONOmitsAnEmptyReason(t *testing.T) {
+	for _, tc := range []struct {
+		request CancelTaskRequest
+		want    string
+	}{
+		{CancelTaskRequest{}, `{}`},
+		{CancelTaskRequest{Reason: "superseded by build 4513"}, `{"reason":"superseded by build 4513"}`},
+	} {
+		data, err := json.Marshal(tc.request)
+		if err != nil {
+			t.Fatalf("marshal %+v: %v", tc.request, err)
+		}
+		if string(data) != tc.want {
+			t.Fatalf("marshal %+v = %s, want %s", tc.request, data, tc.want)
+		}
+		var decoded CancelTaskRequest
+		if err := json.Unmarshal(data, &decoded); err != nil {
+			t.Fatalf("unmarshal %s: %v", data, err)
+		}
+		if decoded != tc.request {
+			t.Fatalf("round trip of %s = %+v, want %+v", data, decoded, tc.request)
+		}
+	}
+}

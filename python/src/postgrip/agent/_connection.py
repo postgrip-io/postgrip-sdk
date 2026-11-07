@@ -38,6 +38,7 @@ from .types import (
     AgentSessionResponse,
     BackfillScheduleRequest,
     BackfillScheduleResponse,
+    CancelTaskRequest,
     ConnectionOptions,
     CountWorkflowsOptions,
     CreateScheduleRequest,
@@ -255,13 +256,18 @@ class Connection:
 
     def _execute(self, operation: Any, body: Any, headers: dict[str, str] | None = None) -> Any:
         poll = urlsplit(operation.path).path == "/api/v1/agent/poll"
+        call_headers = dict(headers or {})
+        # The executor checks a caller's Idempotency-Key, sends it only where the
+        # operation declares it, and lets a keyed mutation retry.
+        idempotency_key = call_headers.pop("Idempotency-Key", None)
         try:
             response = self._executor.exchange(
                 operation,
                 body=body,
+                idempotency_key=idempotency_key,
                 # The connection's headers and timeout are read on every call, so
                 # later changes apply here as they do in the upload and relay adapters.
-                headers={**self.headers, **(headers or {})},
+                headers={**self.headers, **call_headers},
                 # Poll Gone is a terminal shutdown directive, and a long poll's
                 # server hold counts against its lifetime, so it gets headroom.
                 accepted_statuses=frozenset({410}) if poll else frozenset(),
@@ -366,10 +372,32 @@ class Connection:
     def create_namespace(self, name: str) -> Namespace:
         return self.openapi.create_namespace({"name": name})
 
-    def enqueue_task(self, request: EnqueueTaskRequest) -> Task:
+    def enqueue_task(self, request: EnqueueTaskRequest, *, idempotency_key: str | None = None) -> Task:
+        """Send a task.
+
+        An ``idempotency_key`` (1 to 128 visible ASCII characters) makes the
+        send safe to repeat for 24 hours: a resend with the same key and request
+        answers the first task instead of enqueueing another, and a connection
+        with ``enable_retries`` retries it. Reusing the key with another request
+        answers 409 ``IDEMPOTENCY_CONFLICT``. Without a key every send runs.
+        """
         if _runtime_only_task_type(str(request.get("type") or "")) and not self._has_agent_runtime_credentials():
             raise RuntimeError("postgrip-agent: workflow tasks can only be enqueued from a managed runtime; submit workflow.runtime to an agent pool")
-        return self.openapi.enqueue_task(request)
+        return self.openapi.enqueue_task(request, idempotency_key=idempotency_key or None)
+
+    def cancel_task(self, task_id: str, reason: str | None = None) -> Task:
+        """End a task that has not finished.
+
+        The task becomes ``failed``, with ``result.failure.type``
+        ``TaskCancelled`` and the reason, when given, in its ``error``. A queued
+        task is never leased; a leased task's Agent stops it on its next
+        heartbeat. Cancelling a task already cancelled answers it unchanged, so
+        a resend is safe. A task that already finished raises 409
+        ``TASK_TERMINAL``, and a workflow's own task 409
+        ``TASK_OWNED_BY_WORKFLOW``: cancel its workflow instead.
+        """
+        request: CancelTaskRequest = {} if reason is None else {"reason": reason}
+        return self.openapi.cancel_task(task_id, request)
 
     def list_tasks(self, **options: Unpack[ListTasksOptions]) -> list[Task]:
         return self.openapi.list_tasks(**_query_options(options))
@@ -475,13 +503,18 @@ class Connection:
         query_options, search = _generated_workflow_query(options)
         return int(self.openapi.count_workflows(search=search, **query_options)["count"])
 
-    def signal_workflow(self, workflow_id_or_run_id: str, name: str, args: list[Any] | None = None) -> WorkflowHistoryEvent:
-        return self.openapi.signal_workflow(workflow_id_or_run_id, {"name": name, "args": args or []})
+    def signal_workflow(self, workflow_id_or_run_id: str, name: str, args: list[Any] | None = None, *, idempotency_key: str | None = None) -> WorkflowHistoryEvent:
+        """Signal a running workflow; ``idempotency_key`` is as for :meth:`enqueue_task`."""
+        return self.openapi.signal_workflow(
+            workflow_id_or_run_id, {"name": name, "args": args or []}, idempotency_key=idempotency_key or None,
+        )
 
-    def signal_with_start_workflow(self, workflow_id: str, request: SignalWithStartWorkflowRequest) -> SignalWithStartWorkflowResponse:
+    def signal_with_start_workflow(self, workflow_id: str, request: SignalWithStartWorkflowRequest, *, idempotency_key: str | None = None) -> SignalWithStartWorkflowResponse:
+        """Signal a workflow, starting it first when none runs; ``idempotency_key``
+        is as for :meth:`enqueue_task`, and a keyed resend never starts another run."""
         if not self._has_agent_runtime_credentials():
             raise RuntimeError("postgrip-agent: signal-with-start can only run from a managed runtime; submit workflow.runtime to an agent pool")
-        return self.openapi.signal_with_start_workflow(workflow_id, request)
+        return self.openapi.signal_with_start_workflow(workflow_id, request, idempotency_key=idempotency_key or None)
 
     def cancel_workflow(self, workflow_id_or_run_id: str, reason: str | None = None) -> WorkflowHistoryEvent:
         return self.openapi.cancel_workflow(workflow_id_or_run_id, {"reason": reason or ""})

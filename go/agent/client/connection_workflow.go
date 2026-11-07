@@ -5,7 +5,8 @@ import (
 	"errors"
 )
 
-// SignalWorkflow appends a signal to a workflow execution.
+// SignalWorkflow appends a signal to a workflow execution. A ctx from
+// WithIdempotencyKey sends its Idempotency-Key.
 func (c *Connection) SignalWorkflow(ctx context.Context, workflowID string, req SignalWorkflowRequest) error {
 	_, err := c.OpenAPI().SignalWorkflow(ctx, workflowID, req)
 	return err
@@ -20,6 +21,7 @@ func (c *Connection) SignalWorkflow(ctx context.Context, workflowID string, req 
 // 404s. The body's WorkflowID, when set, still wins as the start target — the
 // server takes firstNonEmpty(body.WorkflowID, pathID) — so pass the same id in
 // both unless you specifically intend to signal one workflow and start another.
+// A ctx from WithIdempotencyKey sends its Idempotency-Key.
 func (c *Connection) SignalWithStartWorkflow(ctx context.Context, workflowID string, req SignalWithStartWorkflowRequest) (*SignalWithStartWorkflowResponse, error) {
 	if !c.hasAgentRuntimeCredentials() {
 		return nil, errors.New("postgrip-agent: signal-with-start can only run from a managed runtime; submit workflow.runtime to an agent pool")

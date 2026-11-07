@@ -8,6 +8,25 @@ nav_order: 7
 
 ## Unreleased
 
+- `client.Connection` gains `CancelTask` and `client.TaskClient` gains
+  `Cancel`, which end a task that has not finished (`cancelTask`): it becomes
+  `failed` with `result.failure.type` `TaskCancelled`. A finished task fails
+  with `409 TASK_TERMINAL` and a workflow's own task with
+  `409 TASK_OWNED_BY_WORKFLOW`. The body is the new `protocol.CancelTaskRequest`
+  (alias `client.CancelTaskRequest`).
+- Task sends, signals and signal-with-start take an optional `Idempotency-Key`:
+  `EnqueueInput.IdempotencyKey`, `SignalWithStartOptions.IdempotencyKey`, or
+  `client.WithIdempotencyKey(ctx, key)` for `WorkflowHandle.Signal` and the
+  `Connection` calls. A key is sent only when given, is checked before
+  sending, and lets `EnableRetries` retry the send; the SDK never generates
+  one. `OpenAPI().Do` now forwards a header the operation declares, and still
+  refuses any other.
+- The Go `worker.Worker` stops a task whose heartbeat answers `409
+  TASK_CANCELLED`, or says the task is terminal or no longer leased: the task
+  context is cancelled, renewal stops and nothing is reported. Previously it
+  ran the task to the end and logged the refused report. `activity.Heartbeat`
+  returns a `*failure.Cancelled` for the same answer, as in TypeScript and
+  Python. Other heartbeat failures are still only logged.
 - `worker.Client` gains `StorageDestinations`, which lists the organization's
   storage destinations (`listStorageDestinations`), ordered by name and not
   paged. A destination's `Id` is the `StorageDestinationId` that

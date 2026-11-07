@@ -121,6 +121,24 @@ class ExecutorTests(unittest.TestCase):
         self.assertEqual((raised.exception.status, raised.exception.code), (504, "UNCONFIRMED"))
         self.assertEqual(len(opener.requests), 2)
 
+    def test_checks_an_optional_key_only_when_sent_and_never_generates_one(self) -> None:
+        optional = replace(Operation(), method="POST", safety="mutation", idempotency="optional",
+                           header_parameters=("Idempotency-Key",))
+        for key in (" key ", "k" * 129, "k\x7f"):
+            with self.subTest(key=key):
+                opener = FakeOpener([])
+                with self.assertRaisesRegex(ValueError, "idempotency"):
+                    executor(opener).request(optional, idempotency_key=key)
+                self.assertEqual(opener.requests, [])
+        unkeyed = FakeOpener([busy(), {}])
+        with patch("postgrip._internal.transport.time.sleep"), self.assertRaises(PostGripAPIError):
+            executor(unkeyed).request(optional)
+        self.assertEqual([r.get_header("Idempotency-key") for r in unkeyed.requests], [None])
+        keyed = FakeOpener([busy(), {"ok": True}])
+        with patch("postgrip._internal.transport.time.sleep"):
+            self.assertEqual(executor(keyed).request(optional, idempotency_key="send-1"), {"ok": True})
+        self.assertEqual([r.get_header("Idempotency-key") for r in keyed.requests], ["send-1", "send-1"])
+
 
 if __name__ == "__main__":
     unittest.main()

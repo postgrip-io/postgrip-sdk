@@ -31,6 +31,8 @@ OPERATION_FIELDS = {
     "responseContentTypes", "requestSchema", "responseSchema", "pathParameters",
 }
 LIVE_TIERS = {"nightly", "pre-release", "production-smoke"}
+# x-postgrip-idempotency values; "optional" sends a caller's key without requiring one.
+IDEMPOTENCY_VALUES = {"none", "optional", "required"}
 
 
 class ValidationError(ValueError):
@@ -109,6 +111,8 @@ def validate(inventory: dict[str, Any], tests: dict[str, Any], notes: dict[str, 
             raise ValidationError(f"{operation_id}: invalid plane")
         if operation.get("operationClass") == "global-admin":
             raise ValidationError(f"{operation_id}: global administration leaked into public inventory")
+        if operation.get("idempotency") not in IDEMPOTENCY_VALUES:
+            raise ValidationError(f"{operation_id}: invalid idempotency {operation.get('idempotency')!r}")
     duplicates = sorted({operation_id for operation_id in ids if ids.count(operation_id) > 1})
     if duplicates:
         raise ValidationError(f"duplicate operation IDs: {duplicates}")
@@ -189,6 +193,14 @@ def self_test() -> None:
         pass
     else:
         raise ValidationError("self-test failed to reject an unexplained cURL exception")
+    unknown_idempotency = copy.deepcopy(inventory)
+    unknown_idempotency["operations"][0]["idempotency"] = "sometimes"
+    try:
+        validate(unknown_idempotency, tests, notes)
+    except ValidationError:
+        pass
+    else:
+        raise ValidationError("self-test failed to reject an unknown idempotency value")
 
 
 def main() -> int:

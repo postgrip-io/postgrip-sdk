@@ -5,7 +5,9 @@
     "body": {
       "name": "string"
     },
-    "headers": {},
+    "headers": {
+      "Idempotency-Key": "recorded-signalWorkflow"
+    },
     "pathParameters": {
       "workflowId": "string"
     },
