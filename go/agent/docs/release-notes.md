@@ -8,6 +8,20 @@ nav_order: 7
 
 ## Unreleased
 
+- Service contract bundle `cc37cae6…`: `service.OpenAPICreateServiceProjectRequest.Repository`
+  is now an optional `*OpenAPIServiceRepositoryWriteRequest` (`omitempty`)
+  instead of a required value; callers that set it take its address. A `zvec`
+  or `ladybugdb` project left without one is built from its engine's public
+  repository; any other project still needs one and is refused with
+  `400 VALIDATION`. A backend's `ServerType` is `docker` or `podman`
+  (`400 VALIDATION` otherwise). `OpenAPIServiceTarget` gains the read-only
+  `SnapshotCovered *bool` for a connected SQLite file, and
+  `OpenAPIServiceRemovalVolumeImpact` gains `MountedByDeploymentIds`.
+  `checkService` answers `409` `SERVICE_AUTHENTICATION_FAILED` or
+  `SERVICE_FILE_NOT_FOUND`, attaching a missing SQLite file answers `409`
+  `SERVICE_FILE_NOT_FOUND`, deleting a mounted volume answers `409`
+  `VOLUME_MOUNTED`, and a deployment that stays queued for 30 minutes fails
+  with `ErrorCode` `DEPLOYMENT_QUEUE_TIMEOUT`.
 - `client.Connection` gains `CancelTask` and `client.TaskClient` gains
   `Cancel`, which end a task that has not finished (`cancelTask`): it becomes
   `failed` with `result.failure.type` `TaskCancelled`. A finished task fails

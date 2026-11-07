@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'd8b9e8339ba1f2e4c663bfa41dcc11062c53339c9235cec6e5288d915f072377'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '11ab5c645b5ba2b87e37ebdd1dd90abbcbe47b5927a8f68607cd3d1ca5dbfbfe'
+OPENAPI_SPEC_SHA256 = '1a03ed98a794cbce8a45d413e51db982d7b72dc1b4dcaf71452b553fbea9b16a'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'cc37cae62ec8c792f3a0c624ca9b5cc49bbcb3015c68de8f984b02e7f0345f66'
 OPENAPI_OPERATION_COUNT = 122
 OPENAPI_CLIENT_OPERATION_COUNT = 122
 
@@ -556,11 +556,11 @@ class _SchemaCreateServiceProjectRequestOptional(TypedDict, total=False):
     projectType: Literal['web', 'backend', 'zvec', 'ladybugdb']
     serverType: str
     defaultWorkerId: str
+    repository: _SchemaServiceRepositoryWriteRequest
 
 class _SchemaCreateServiceProjectRequest(_SchemaCreateServiceProjectRequestOptional):
     name: str
     slug: str
-    repository: _SchemaServiceRepositoryWriteRequest
 
 class _SchemaUpdateServiceProjectRequestOptional(TypedDict, total=False):
     appId: str
@@ -732,6 +732,7 @@ class _SchemaServiceTargetOptional(TypedDict, total=False):
     serverType: str
     kind: str
     dbUser: str
+    snapshotCovered: bool
 
 class _SchemaServiceTarget(_SchemaServiceTargetOptional):
     id: str
@@ -1031,6 +1032,7 @@ class _SchemaServiceVariableList(TypedDict):
 class _SchemaServiceRemovalVolumeImpactOptional(TypedDict, total=False):
     boundEnvironmentId: str
     approximateBytes: int
+    mountedByDeploymentIds: list[str]
 
 class _SchemaServiceRemovalVolumeImpact(_SchemaServiceRemovalVolumeImpactOptional):
     volumeRef: str

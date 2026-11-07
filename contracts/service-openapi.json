@@ -1643,7 +1643,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `SQLITE_READ_ONLY`: a connected SQLite service's file opens but does not accept writes on its Worker: the file, or the directory its journal goes in, is read-only to the Worker. The Worker starts a write and rolls it back, so the file is not changed. The service's status becomes `degraded`; make the file and its directory writable to the Worker and check again. `SERVICE_OPERATION_NOT_SUPPORTED`: the service cannot be checked. Other conflicts on this route also use this status.",
+            "description": "Conflict. `SERVICE_AUTHENTICATION_FAILED`: a connected PostgreSQL service answered the Worker but refused its login: the password is wrong (SQLSTATE `28P01`), or the server does not admit the user from the Worker's address (`28000`, for example no `pg_hba.conf` entry). The service's status becomes `degraded`; give the right password with putTargetServiceConnection, or admit the user on the server, then check again with a new Idempotency-Key. `SERVICE_FILE_NOT_FOUND`: a connected SQLite service's file, or its directory, does not exist on its Worker; the Worker never creates a connected file. The service's status becomes `unreachable`; point the service at the right path with updateTargetService, or create the file on the Worker's host, then check again with a new Idempotency-Key. `SQLITE_READ_ONLY`: a connected SQLite service's file opens but does not accept writes on its Worker: the file, or the directory its journal goes in, is read-only to the Worker. The Worker starts a write and rolls it back, so the file is not changed. The service's status becomes `degraded`; make the file and its directory writable to the Worker and check again. `SERVICE_OPERATION_NOT_SUPPORTED`: the service cannot be checked. Other conflicts on this route also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4069,6 +4069,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceDeletionResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `VOLUME_MOUNTED`: a deployment still mounts the volume (`details.volumeRef`, `details.deploymentIds`; the removal impact lists them as `mountedByDeploymentIds`): an environment's current deployment, a deployment in progress, or a ready preview, whose container keeps running until a newer preview supersedes it or the preview expires. Detach the volume (unbindServiceVolume), deploy the environment again or wait for its previews to be retired, then preview the removal again. `REMOVAL_IMPACT_CHANGED`, `CANONICAL_DNS_ACTIVE`, `DATA_DISPOSITION_REQUIRED` and `WORKER_UPGRADE_REQUIRED` also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -9258,7 +9268,8 @@
             }
           },
           "errorCode": {
-            "type": "string"
+            "type": "string",
+            "description": "Set when `status` is `failed`: `DEPLOYMENT_QUEUE_TIMEOUT` when the deployment stayed `queued` for 30 minutes without its Worker taking it, for example because the Worker was offline or busy, and `DEPLOYMENT_FAILED` for any other failure. A timed-out deployment is not retried: deploy again once the Worker is back."
           },
           "errorMessage": {
             "type": "string",
@@ -9810,8 +9821,7 @@
         "additionalProperties": false,
         "required": [
           "name",
-          "slug",
-          "repository"
+          "slug"
         ],
         "properties": {
           "appId": {
@@ -9847,7 +9857,8 @@
             "description": "`web` (the default), `backend`, `zvec` or `ladybugdb`; any other value is refused with `400` `VALIDATION`. A `framework` or `serverType` of `zvec` also makes the project `zvec`. `ladybugdb` is never inferred: a `framework` or `serverType` of `ladybugdb` without `projectType` `ladybugdb` is refused with `400` `VALIDATION`."
           },
           "serverType": {
-            "type": "string"
+            "type": "string",
+            "description": "For a backend (`projectType` `backend`), the container runtime it names: `docker` or `podman`; any other value is refused with `400` `VALIDATION`. It is recorded only: the Worker builds and runs the backend with its own runtime, Docker unless its host sets `CONTAINER_RUNTIME=podman`, so choose a Worker that runs the runtime you name. ZVEC and LadybugDB services take their `projectType`; for a web app it is stored as given."
           },
           "defaultWorkerId": {
             "type": "string",
@@ -9855,7 +9866,12 @@
             "description": "Eligible project-level Worker override used for future environment placement when assignedWorkerId is omitted."
           },
           "repository": {
-            "$ref": "#/components/schemas/ServiceRepositoryWriteRequest"
+            "description": "Required, except for a `zvec` or `ladybugdb` project, which is built from its engine's public repository when this is left out: `alibaba/zvec` or `LadybugDB/ladybug`, `public-github`, branch `main`, as the console's templates use. A ZVEC service compiles the repository's ZVEC source; a LadybugDB service installs its pinned release, so its repository supplies only the commit. Either always builds with PostGrip's own Dockerfile and HTTP service, whatever the repository holds. Left out for any other project, the answer is `400` `VALIDATION`.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ServiceRepositoryWriteRequest"
+              }
+            ]
           }
         }
       },
@@ -9900,7 +9916,8 @@
             "description": "As on createServiceProject. A legacy NodeDB project may keep `nodedb`."
           },
           "serverType": {
-            "type": "string"
+            "type": "string",
+            "description": "For a backend (`projectType` `backend`), the container runtime it names: `docker` or `podman`; any other value is refused with `400` `VALIDATION`. It is recorded only: the Worker builds and runs the backend with its own runtime, Docker unless its host sets `CONTAINER_RUNTIME=podman`, so choose a Worker that runs the runtime you name. ZVEC and LadybugDB services take their `projectType`; for a web app it is stored as given."
           },
           "defaultWorkerId": {
             "type": "string",
@@ -10527,6 +10544,11 @@
           },
           "hasConnectionSecret": {
             "type": "boolean"
+          },
+          "snapshotCovered": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "Present for a connected SQLite service named by an absolute path, once its Worker has reported its data directory (`BACKUP_DIR`): `true` when the file is inside that directory, so the Worker's snapshots include it, `false` when they leave it out. It is judged from the path as given; the Worker also follows symlinks when it takes a snapshot, which reports a file it leaves out under `skipped`. Absent for other services: a worker-managed database's volume is in a snapshot when the snapshot settings' `volumesEnabled` is on."
           },
           "version": {
             "type": "integer",
@@ -11790,6 +11812,14 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          },
+          "mountedByDeploymentIds": {
+            "type": "array",
+            "description": "Present on a volume's own removal impact (getServiceVolumeRemovalImpact) while deployments still mount it: the service's current deployments, its deployments in progress, and its ready previews, which are never current and keep running until a newer preview supersedes them or they expire, whose mounts include it. A ready production deployment that is no longer current, such as a retained release, is not listed. They block the removal: deleteServiceVolume answers `409` `VOLUME_MOUNTED` until the volume is detached, the environment deployed again without it, and its previews retired. A project's or an environment's removal impact does not list them, since that removal removes the deployments too.",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
