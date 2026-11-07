@@ -9377,11 +9377,12 @@
           },
           "errorCode": {
             "type": "string",
-            "description": "Set when `status` is `failed`: `DEPLOYMENT_QUEUE_TIMEOUT` when the deployment stayed `queued` for 30 minutes without its Worker taking it, for example because the Worker was offline or busy, and `DEPLOYMENT_FAILED` for any other failure. A timed-out deployment is not retried: deploy again once the Worker is back."
+            "description": "Set when `status` is `failed`, and one of a closed set: `BUILD_FAILED` when the build failed (the image build, or a static site's dependency install, build command or missing output directory); `IMAGE_PULL_FAILED` when the Worker could not pull the image the service runs; `HEALTHCHECK_FAILED` when the new container did not accept connections on its port in time, or failed its browser check; `REQUIRED_SECRET_MISSING` when the application could not start because a secret it requires is not set on the environment; `WORKER_LOST` when the Worker stopped reporting on the deployment before it finished, because its lease expired or it reported no progress for 30 minutes; `DEPLOYMENT_QUEUE_TIMEOUT` when the deployment stayed `queued` for 30 minutes without its Worker taking it, for example because the Worker was offline or busy; and `DEPLOYMENT_FAILED` for any other failure, a failure an older Worker reported, and a deployment that failed before these codes existed. The build log (listServiceLogs with `kind=build`) says why. A failed deployment is not retried: fix the cause, or bring the Worker back, and deploy again. Clients should treat a code they do not know as `DEPLOYMENT_FAILED`."
           },
           "errorMessage": {
             "type": "string",
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "Set when `status` is `failed`: a fixed PostGrip sentence for `errorCode`, the same for every deployment with that code. It never carries the Worker's or the build's text; `DEPLOYMENT_FAILED` answers `deployment failed`. Read the build log for the detail."
           },
           "isCurrent": {
             "type": "boolean"
