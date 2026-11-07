@@ -133,6 +133,14 @@ const (
 // against Generation as well: a "running" reading can predate a stop or start
 // that has not been observed yet.
 //
+// `failed` means the agent's last attempt to reach DesiredState failed;
+// FailureCode and FailureMessage say why. The agent tries a failed sandbox
+// again with exponential backoff, at most 5 attempts at the same Generation,
+// so a `failed` reading can still change to running. After the fifth,
+// FailureMessage ends with "(failed 5 times; not retried until the sandbox is
+// started, stopped or deleted again)" and `failed` stays. Starting, stopping
+// or deleting the sandbox raises Generation, which gives it 5 new attempts.
+//
 // Only running, stopped, deleted and failed are reported by agents today, and
 // scheduling is written by the control plane at placement. The remaining
 // values are declared for forward compatibility, so clients must accept any of
@@ -166,7 +174,9 @@ func (s SandboxObservedState) Valid() bool {
 }
 
 // Terminal reports whether this state will not change again without a new
-// client request.
+// client request. `failed` counts as terminal although the agent retries it
+// at the same Generation up to 5 times (see SandboxObservedState), so a
+// failed sandbox can still reach running on its own.
 //
 // It answers a question about the state alone, so it is not sufficient to bound
 // a poll: a sandbox that has just been asked to start still reads `stopped`
@@ -292,6 +302,12 @@ type SandboxListResponse struct {
 //
 // ID is not the digest: identical bytes uploaded twice return the *existing*
 // record, so a client must not assume a fresh ID per upload.
+//
+// ExpiresAt is 24 hours after the last upload: re-uploading the same bytes
+// moves it to 24 hours after that upload, never earlier. Shortly after
+// ExpiresAt the workspace and its archive are deleted, unless a sandbox that
+// has not been deleted uses it; such a workspace is kept until that sandbox is
+// deleted.
 type SandboxWorkspace struct {
 	TenantID  string `json:"tenantId"`
 	ID        string `json:"id"`

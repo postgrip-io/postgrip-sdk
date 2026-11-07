@@ -125,7 +125,8 @@ class SandboxClient:
         incrementally with chunked transfer encoding rather than buffered in
         memory. Uploading identical bytes twice returns the *pre-existing*
         record rather than creating a second one, so do not assume a fresh id
-        per upload.
+        per upload; that upload renews its ``expiresAt`` to 24 hours after it.
+        An expired workspace that no live sandbox uses is deleted.
         """
         headers = dict(self.connection.headers)
         headers.setdefault("User-Agent", "postgrip-agent-python")
@@ -183,6 +184,11 @@ class SandboxClient:
         burning the timeout, and the timeout error names the last observed
         state — "timed out" alone does not say whether the sandbox was still
         scheduling, mid-setup, or never picked up by an agent.
+
+        The agent may still retry a ``failed`` sandbox at the same generation,
+        up to 5 attempts with backoff, so waiting again can succeed. When the
+        request itself causes the failure, such as an image that cannot be
+        pulled, delete the sandbox and create a corrected one.
         """
         deadline = time.monotonic() + timeout
         last: Mapping[str, Any] = {}

@@ -155,6 +155,10 @@ export interface WorkflowStartOptions<Args extends unknown[] = unknown[]> {
   workflowRunTimeoutMs?: number;
   retry?: RetryPolicy;
   memo?: Record<string, unknown>;
+  /**
+   * Names that start with `postgrip.` are reserved for attributes PostGrip
+   * sets; a start that sets one is refused with 400 `INVALID_REQUEST`.
+   */
   searchAttributes?: Record<string, unknown>;
   ui?: WorkflowUIMetadata;
 }
@@ -202,6 +206,7 @@ export interface WorkflowExecutionDescription<R = unknown> {
   workflowRunTimeoutMs?: number;
   retry?: RetryPolicy;
   memo?: Record<string, unknown>;
+  /** A run a schedule emitted carries the system attribute `postgrip.scheduleId`. */
   searchAttributes?: Record<string, unknown>;
   result?: R;
   error?: string;

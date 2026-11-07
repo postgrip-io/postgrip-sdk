@@ -183,6 +183,10 @@ class WorkflowUIMetadata(TypedDict, total=False):
 
 
 class WorkflowStartOptions(TypedDict, total=False):
+    """Workflow start options. ``search_attributes`` names that start with
+    ``postgrip.`` are reserved for attributes PostGrip sets; a start that sets
+    one is refused with 400 ``INVALID_REQUEST``."""
+
     namespace: str
     workflow_id: str
     workflow_id_reuse_policy: WorkflowIdReusePolicy
@@ -466,7 +470,11 @@ class ListSchedulesOptions(TypedDict, total=False):
 
 class CountWorkflowsOptions(TypedDict, total=False):
     """``Connection.count_workflows`` query options; ``None`` values are
-    omitted and ``search_attributes`` become ``search.<key>`` filters."""
+    omitted and ``search_attributes`` become ``search.<key>`` filters.
+
+    A run a schedule emitted carries the system attribute
+    ``postgrip.scheduleId``, so ``{"postgrip.scheduleId": schedule_id}``
+    selects that schedule's runs."""
 
     namespace: str | None
     id: str | None
