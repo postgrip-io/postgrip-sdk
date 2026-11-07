@@ -343,6 +343,10 @@ func (e AgentEvent) MarshalJSON() ([]byte, error) {
 type TaskEvent = AgentEvent
 
 type TaskResult struct {
+	// ExitCode is omitted on the wire when the process exited 0 and when the
+	// task ran no process (a noop or workflow task, or a command that never
+	// started), so it decodes as 0 in both cases. Read the task's state and
+	// error for whether a process ran and why it failed.
 	ExitCode      int                  `json:"exit_code,omitempty"`
 	Stdout        string               `json:"stdout,omitempty"`
 	Stderr        string               `json:"stderr,omitempty"`

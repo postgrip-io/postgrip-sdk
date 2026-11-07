@@ -81,6 +81,12 @@ export class SandboxClient {
     return this.connection.deleteSandbox(requireSandboxId(sandboxId));
   }
 
+  /**
+   * Uploads a gzipped tar archive; the record's `id` goes in
+   * `SandboxCreateRequest.workspaceId`. Identical bytes return the existing
+   * record with its `expiresAt` renewed to 24 hours after this upload. An
+   * expired workspace that no live sandbox uses is deleted.
+   */
   async uploadWorkspace(
     archive: BodyInit,
     metadata: { repositoryName?: string; revision?: string } = {},
@@ -115,6 +121,13 @@ export class SandboxClient {
    * `observedGeneration >= generation`. State alone can predate a start or
    * stop the assigned agent hasn't observed yet, so checking only the state
    * can return a sandbox that is about to stop.
+   *
+   * A `failed` reading at the current generation rejects with the sandbox's
+   * failure message. The agent may still retry it at that generation, up to 5
+   * attempts with backoff, so waiting again can succeed; `start` raises the
+   * generation and gives a failed sandbox 5 new attempts. When the request
+   * itself causes the failure, such as an image that cannot be pulled, delete
+   * the sandbox and create a corrected one.
    */
   async waitUntilRunning(sandboxId: string, options: SandboxWaitOptions = {}): Promise<Sandbox> {
     const timeoutMs = options.timeoutMs ?? 120_000;

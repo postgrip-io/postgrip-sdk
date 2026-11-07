@@ -75,6 +75,10 @@ type WorkflowRuntimeInput struct {
 // WorkflowStartOptions is the SDK-side input to WorkflowClient.Start. It
 // carries the durable identity, queue routing, payload args, and the retry
 // / memo / search-attribute metadata the runtime service persists.
+//
+// SearchAttributes names that start with `postgrip.` are reserved for
+// attributes PostGrip sets; a start that sets one is refused with 400
+// INVALID_REQUEST.
 type WorkflowStartOptions struct {
 	Namespace             string
 	WorkflowID            string
@@ -108,6 +112,11 @@ type SignalWithStartOptions struct {
 
 // ScheduleActionInput is accepted by ScheduleClient APIs for create/update;
 // mirrors the TS/Python shape.
+//
+// SearchAttributes are copied to every run the schedule emits, and PostGrip
+// adds `postgrip.scheduleId` with the schedule's id, so the runs can be listed
+// with the `search.postgrip.scheduleId` filter. Names that start with
+// `postgrip.` are reserved; setting one is refused with 400 INVALID_REQUEST.
 type ScheduleActionInput struct {
 	Namespace             string
 	Queue                 string
@@ -140,7 +149,8 @@ type UpdateScheduleInput struct {
 }
 
 // WorkflowExecutionDescription mirrors the TS WorkflowExecutionDescription
-// returned by WorkflowHandle.Describe.
+// returned by WorkflowHandle.Describe. SearchAttributes of a run a schedule
+// emitted include the system attribute `postgrip.scheduleId`.
 type WorkflowExecutionDescription struct {
 	WorkflowID           string         `json:"workflowId"`
 	RunID                string         `json:"runId,omitempty"`

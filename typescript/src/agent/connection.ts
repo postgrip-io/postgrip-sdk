@@ -592,7 +592,8 @@ export class Connection {
    * goes in `SandboxCreateRequest.workspaceId`.
    *
    * The body is the raw archive — not multipart. Uploading identical bytes
-   * twice returns the pre-existing record rather than creating a second one.
+   * twice returns the pre-existing record rather than creating a second one,
+   * with its `expiresAt` renewed to 24 hours after this upload.
    */
   async uploadWorkspace(
     archive: BodyInit,

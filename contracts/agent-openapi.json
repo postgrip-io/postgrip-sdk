@@ -263,7 +263,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Tasks",
+            "description": "Tasks, as a bare JSON array with no envelope and no next-page token.",
             "content": {
               "application/json": {
                 "schema": {
@@ -308,7 +308,7 @@
       "post": {
         "operationId": "enqueueTask",
         "summary": "Enqueue a task",
-        "description": "Returns 202 with the created task. Any tenantId in the body is replaced with the tenant the credential resolves to. A payload that carries a plaintext credential is refused with 400 PLAINTEXT_SECRET_REJECTED and nothing is stored. A shell.exec or container.exec task names its secrets in a top-level secret_env instead, mapping environment variables to secrets in the executing Agent's local store, and is leased only to Agents that advertise task_secret_env (see EnqueueTaskRequest.payload).",
+        "description": "Returns 202 with the created task. Any tenantId in the body is replaced with the tenant the credential resolves to. A payload that carries a plaintext credential is refused with 400 PLAINTEXT_SECRET_REJECTED and nothing is stored. A shell.exec or container.exec task names its secrets in a top-level secret_env instead, mapping environment variables to secrets in the executing Agent's local store, and is leased only to Agents that advertise task_secret_env (see EnqueueTaskRequest.payload). A `workflow:` task whose payload sets a search attribute that starts with `postgrip.` is refused with 400 INVALID_REQUEST naming the attribute; that prefix is reserved for attributes PostGrip sets, such as `postgrip.scheduleId`. Any `type` is accepted: a custom type is leased only by a client that polls for it (see EnqueueTaskRequest.type).",
         "tags": [
           "Tasks"
         ],
@@ -1027,6 +1027,7 @@
       "get": {
         "operationId": "listWorkflows",
         "summary": "List workflow executions",
+        "description": "Filters, sorts and paginates workflow executions within the caller's tenant; the answer is a bare array. Filter on a search attribute with `search.<name>=<value>`, or inside `query` as `search.<name>=<value>`. A run that a schedule emits carries the system search attribute `postgrip.scheduleId`, so `search.postgrip.scheduleId=<scheduleId>` lists that schedule's runs. Runs started any other way, and runs emitted before the attribute existed, do not carry it.",
         "tags": [
           "Workflows"
         ],
@@ -1113,7 +1114,7 @@
             "schema": {
               "$ref": "#/components/schemas/JsonValue"
             },
-            "description": "Search-attribute filter; replace * with the attribute name."
+            "description": "Search-attribute filter; replace * with the attribute name, for example `search.postgrip.scheduleId=<scheduleId>` for the runs a schedule emitted."
           },
           {
             "$ref": "#/components/parameters/LimitQuery"
@@ -1234,7 +1235,7 @@
             "schema": {
               "$ref": "#/components/schemas/JsonValue"
             },
-            "description": "Search-attribute filter; replace * with the attribute name."
+            "description": "Search-attribute filter; replace * with the attribute name, for example `search.postgrip.scheduleId=<scheduleId>` for the runs a schedule emitted."
           }
         ],
         "responses": {
@@ -2227,7 +2228,7 @@
       "post": {
         "operationId": "startSandbox",
         "summary": "Request that a sandbox start",
-        "description": "Sets desired state to running and returns 202. The returned record still carries the previous observed state; a sandbox is ready only once observedState is running and observedGeneration has caught up with generation.",
+        "description": "Sets desired state to running and returns 202. The returned record still carries the previous observed state; a sandbox is ready only once observedState is running and observedGeneration has caught up with generation. Starting a `failed` sandbox raises its generation, so its Agent tries again (see Sandbox.observedState).",
         "tags": [
           "Sandboxes"
         ],
@@ -2415,7 +2416,7 @@
       "post": {
         "operationId": "uploadWorkspace",
         "summary": "Upload a workspace archive",
-        "description": "The request body is a raw gzipped tar stream, not a multipart form. Repository and revision metadata travel in the X-PostGrip-Repository and X-PostGrip-Revision headers. Storage is content-addressed, so re-uploading identical bytes returns the existing record rather than creating a new one. A body that does not start a gzipped tar (an empty body, one without the gzip magic, or gzip whose first entry is not a tar header) answers 400 INVALID_REQUEST with `workspace archive must be a gzipped tar`, and nothing is stored. The Agent checks the remaining entries when it unpacks the workspace.",
+        "description": "The request body is a raw gzipped tar stream, not a multipart form. Repository and revision metadata travel in the X-PostGrip-Repository and X-PostGrip-Revision headers. Storage is content-addressed, so re-uploading identical bytes returns the existing record, with its first labels and its `expiresAt` renewed to 24 hours after this upload, rather than creating a new one. An expired workspace that no live sandbox uses is deleted (see SandboxWorkspace.expiresAt). A body that does not start a gzipped tar (an empty body, one without the gzip magic, or gzip whose first entry is not a tar header) answers 400 INVALID_REQUEST with `workspace archive must be a gzipped tar`, and nothing is stored. The Agent checks the remaining entries when it unpacks the workspace.",
         "tags": [
           "Sandboxes"
         ],
@@ -3093,7 +3094,8 @@
             "type": "string"
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "The task type. The built-in types are `noop`, `shell.exec`, `container.exec` and `workflow.runtime`, which PostGrip Agents run, and the `workflow:`, `activity:`, `query:` and `update:` prefixes the SDK workflow runtimes use. Any other value is accepted as a custom type: a client that polls with that type in `task_types` (see pollAgentTask) leases it, and PostGrip Agents never do. A task whose type nothing polls for stays `queued`; task cancellation, once available, will remove such a task."
           },
           "namespace": {
             "type": "string"
@@ -3133,7 +3135,8 @@
             "type": "string"
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "The task type, as sent to enqueueTask (see EnqueueTaskRequest.type)."
           },
           "state": {
             "$ref": "#/components/schemas/TaskState"
@@ -3188,7 +3191,8 @@
         "properties": {
           "exit_code": {
             "type": "integer",
-            "example": 0
+            "example": 0,
+            "description": "The process's exit code. Omitted when the process exited 0, and when the task ran no process (a noop or workflow task, or a command that never started): read a missing value as 0, and the task's `state` and `error` for whether a process ran and why it failed."
           },
           "stdout": {
             "type": "string"
@@ -3515,7 +3519,8 @@
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/JsonValue"
-            }
+            },
+            "description": "Copied to every run the schedule emits, and PostGrip adds `postgrip.scheduleId` with the schedule's id so the runs can be listed with `search.postgrip.scheduleId`. Names that start with `postgrip.` are reserved for attributes PostGrip sets; a request that sets one is refused with 400 INVALID_REQUEST naming the attribute."
           },
           "args": {
             "type": "array",
@@ -3762,7 +3767,8 @@
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/JsonValue"
-            }
+            },
+            "description": "The search attributes the run started with. Names that start with `postgrip.` are reserved for attributes PostGrip sets: a run a schedule emitted carries `postgrip.scheduleId` with that schedule's id. A caller cannot set a `postgrip.` attribute."
           },
           "result": {
             "$ref": "#/components/schemas/TaskResult"
@@ -3909,7 +3915,8 @@
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/JsonValue"
-            }
+            },
+            "description": "Search attributes of the run this request starts. Names that start with `postgrip.` are reserved for attributes PostGrip sets; a request that sets one is refused with 400 INVALID_REQUEST naming the attribute."
           },
           "args": {
             "type": "array",
@@ -4259,7 +4266,8 @@
             "$ref": "#/components/schemas/SandboxDesiredState"
           },
           "observedState": {
-            "$ref": "#/components/schemas/SandboxObservedState"
+            "$ref": "#/components/schemas/SandboxObservedState",
+            "description": "The state the sandbox's Agent last reported. `failed` means the Agent's last attempt to reach `desiredState` failed, and `failureCode` and `failureMessage` say why. The Agent tries a failed sandbox again with exponential backoff, about 30 seconds and then 1, 2 and 4 minutes after each failure, at most 5 attempts at the same `generation`. After the fifth, `failureMessage` ends with `(failed 5 times; not retried until the sandbox is started, stopped or deleted again)` and `failed` stays. Starting, stopping or deleting the sandbox raises `generation`, which gives it 5 new attempts; a restart of the Agent also starts the count again. When the request itself causes the failure, for example an image that cannot be pulled or a setup command that fails, delete the sandbox and create a corrected one."
           },
           "generation": {
             "type": "integer"
@@ -4562,7 +4570,8 @@
           },
           "expiresAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When the workspace expires: 24 hours after its last upload. Uploading the same bytes again returns the same workspace and moves `expiresAt` to 24 hours after that upload; it never moves it earlier. Within about a minute after `expiresAt`, PostGrip deletes the workspace and its archive, as `deleteWorkspace` does, unless a sandbox without a `deletedAt` uses it; such a workspace is kept while that sandbox exists and deleted at the next pass after the sandbox's `deletedAt`. A re-upload that arrives before the deletion keeps the workspace."
           }
         }
       },

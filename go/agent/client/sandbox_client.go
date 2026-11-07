@@ -65,7 +65,9 @@ func (s *SandboxClient) Delete(ctx context.Context, sandboxID string) (*Sandbox,
 }
 
 // UploadWorkspace streams a gzipped tar archive and returns the workspace
-// record. Put its ID in SandboxCreateRequest.WorkspaceID.
+// record. Put its ID in SandboxCreateRequest.WorkspaceID. Identical bytes
+// return the existing record with its ExpiresAt renewed to 24 hours after this
+// upload; an expired workspace no live sandbox uses is deleted.
 func (s *SandboxClient) UploadWorkspace(ctx context.Context, archive io.Reader, repositoryName, revision string) (*SandboxWorkspace, error) {
 	return s.conn.UploadWorkspace(ctx, archive, repositoryName, revision)
 }
@@ -102,7 +104,11 @@ func (s *SandboxClient) CreateSession(ctx context.Context, sandboxID string, req
 // that is about to stop.
 //
 // A sandbox that reaches `failed` returns immediately with its failure
-// message rather than burning the whole timeout.
+// message rather than burning the whole timeout. The agent may still retry it
+// at the same generation (up to 5 attempts, see SandboxObservedState), so
+// calling WaitUntilRunning again can succeed. When the request itself causes
+// the failure, such as an image that cannot be pulled, delete the sandbox and
+// create a corrected one.
 func (s *SandboxClient) WaitUntilRunning(ctx context.Context, sandboxID string, opts SandboxWaitOptions) (*Sandbox, error) {
 	timeout := opts.Timeout
 	if timeout <= 0 {

@@ -327,4 +327,4 @@ type CreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type SandboxWorkspace = protocol.SandboxWorkspace
 type SandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
 
-const openAPITypesSpecSHA256 = "f29550a4e011d59dd76b398bd364f2c39674a0c47c6428d5a2cfdc2e153bf1c3"
+const openAPITypesSpecSHA256 = "8bbb85a035c6d92c72304495998c0c75e36599f7836e82eebf3ad5a91256d992"
