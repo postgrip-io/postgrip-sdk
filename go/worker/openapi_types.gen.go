@@ -265,6 +265,21 @@ type OpenAPIUpdateWorkerSnapshotSettingsResponse struct {
 	Settings OpenAPIWorkerSnapshotSettings `json:"settings"`
 	Receipt  OpenAPIOperationReceipt       `json:"receipt"`
 }
+type OpenAPIStorageDestination struct {
+	Id        string    `json:"id"`
+	Name      string    `json:"name"`
+	Provider  string    `json:"provider"`
+	Bucket    string    `json:"bucket"`
+	Region    *string   `json:"region,omitempty"`
+	Endpoint  *string   `json:"endpoint,omitempty"`
+	AccountId *string   `json:"accountId,omitempty"`
+	Prefix    *string   `json:"prefix,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+type OpenAPIStorageDestinationList struct {
+	Items []OpenAPIStorageDestination `json:"items"`
+}
 type OpenAPICheckWorkerRequestBody = OpenAPINoBody
 type OpenAPICheckWorkerResponseBody = OpenAPICheckWorkerResponse
 type OpenAPICreateWorkerRequestBody = OpenAPICreateWorkerRequest
@@ -279,6 +294,8 @@ type OpenAPIGetWorkerSnapshotSettingsRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerSnapshotSettingsResponseBody = OpenAPIWorkerSnapshotSettings
 type OpenAPIGetWorkerSnapshotStatusRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerSnapshotStatusResponseBody = OpenAPIWorkerSnapshotStatus
+type OpenAPIListStorageDestinationsRequestBody = OpenAPINoBody
+type OpenAPIListStorageDestinationsResponseBody = OpenAPIStorageDestinationList
 type OpenAPIListWorkerAssignmentsRequestBody = OpenAPINoBody
 type OpenAPIListWorkerAssignmentsResponseBody = OpenAPIAssignmentList
 type OpenAPIListWorkerJobsRequestBody = OpenAPINoBody
@@ -348,5 +365,7 @@ type WorkerSnapshotStatus = OpenAPIWorkerSnapshotStatus
 type WorkerSnapshotSettings = OpenAPIWorkerSnapshotSettings
 type UpdateWorkerSnapshotSettingsRequest = OpenAPIUpdateWorkerSnapshotSettingsRequest
 type UpdateWorkerSnapshotSettingsResponse = OpenAPIUpdateWorkerSnapshotSettingsResponse
+type StorageDestination = OpenAPIStorageDestination
+type StorageDestinationList = OpenAPIStorageDestinationList
 
-const openAPITypesSpecSHA256 = "538a02d973231fb350dd5f87cd0ef62731a7a99456be534d076b40a5009cc1d9"
+const openAPITypesSpecSHA256 = "86004c9dd3c7b8cf629e47141a53e4fcfb97f633294b96a68bec1c67f957fcce"

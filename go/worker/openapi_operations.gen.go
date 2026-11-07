@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "538a02d973231fb350dd5f87cd0ef62731a7a99456be534d076b40a5009cc1d9"
-	OpenAPIContractBundleSHA256 = "f9a7580a7b8fdde0c75e222d8301b94338bc291d6e942a29da29352a482adc8f"
-	OpenAPIOperationCount       = 18
+	OpenAPISpecSHA256           = "86004c9dd3c7b8cf629e47141a53e4fcfb97f633294b96a68bec1c67f957fcce"
+	OpenAPIContractBundleSHA256 = "20dec2d85e3bdbf1943c2e95d09ad184847196c83341e7cc940d33ed156a37fe"
+	OpenAPIOperationCount       = 19
 )
 
 type openAPIOperationID string
@@ -26,6 +26,7 @@ const (
 	openAPIGetWorkerJob                 openAPIOperationID = "getWorkerJob"
 	openAPIGetWorkerSnapshotSettings    openAPIOperationID = "getWorkerSnapshotSettings"
 	openAPIGetWorkerSnapshotStatus      openAPIOperationID = "getWorkerSnapshotStatus"
+	openAPIListStorageDestinations      openAPIOperationID = "listStorageDestinations"
 	openAPIListWorkerAssignments        openAPIOperationID = "listWorkerAssignments"
 	openAPIListWorkerJobs               openAPIOperationID = "listWorkerJobs"
 	openAPIListWorkerOperationalLogs    openAPIOperationID = "listWorkerOperationalLogs"
@@ -50,6 +51,7 @@ var openAPIOperationTable = map[openAPIOperationID]transport.Operation{
 	openAPIGetWorkerJob:                 {ID: "getWorkerJob", Method: "GET", Path: "/api/v1/workers/{workerId}/jobs/{jobId}", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "Job", PathParameters: []string{"workerId", "jobId"}, HeaderParameters: []string{}},
 	openAPIGetWorkerSnapshotSettings:    {ID: "getWorkerSnapshotSettings", Method: "GET", Path: "/api/v1/workers/{workerId}/snapshot/settings", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerSnapshotSettings", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIGetWorkerSnapshotStatus:      {ID: "getWorkerSnapshotStatus", Method: "GET", Path: "/api/v1/workers/{workerId}/snapshot/status", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerSnapshotStatus", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
+	openAPIListStorageDestinations:      {ID: "listStorageDestinations", Method: "GET", Path: "/api/v1/storage-destinations", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "StorageDestinationList", PathParameters: []string{}, HeaderParameters: []string{}},
 	openAPIListWorkerAssignments:        {ID: "listWorkerAssignments", Method: "GET", Path: "/api/v1/workers/{workerId}/assignments", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "AssignmentList", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIListWorkerJobs:               {ID: "listWorkerJobs", Method: "GET", Path: "/api/v1/workers/{workerId}/jobs", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "JobList", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},
 	openAPIListWorkerOperationalLogs:    {ID: "listWorkerOperationalLogs", Method: "GET", Path: "/api/v1/workers/{workerId}/operational-logs", AuthLane: "worker-management", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "OperationalLogList", PathParameters: []string{"workerId"}, HeaderParameters: []string{}},

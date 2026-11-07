@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `WorkerClient` gains `storageDestinations`, which lists the organization's
+  storage destinations (`listStorageDestinations`), ordered by name and not
+  paged. A destination's `id` is the `storageDestinationId` that
+  `updateSnapshotSettings` takes. No credential is answered. The Worker entry
+  publishes `OpenAPIStorageDestination`, `OpenAPIStorageDestinationList` and
+  the `ListStorageDestinations` request and response body types.
 - `WorkerClient` gains the Worker snapshot operations: `snapshotStatus`,
   `snapshots`, `takeSnapshot`, `snapshotSettings` and `updateSnapshotSettings`.
   The two mutations require `idempotencyKey`. `takeSnapshot` (and

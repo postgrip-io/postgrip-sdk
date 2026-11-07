@@ -260,6 +260,11 @@ func (c *OpenAPIClient) GetWorkerSnapshotStatus(ctx context.Context, workerId st
 	err := c.executor.doOpenAPI(ctx, openAPIGetWorkerSnapshotStatus, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ListStorageDestinations(ctx context.Context) (OpenAPIListStorageDestinationsResponseBody, error) {
+	var response OpenAPIListStorageDestinationsResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIListStorageDestinations, nil, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ListWorkerAssignments(ctx context.Context, workerId string) (OpenAPIListWorkerAssignmentsResponseBody, error) {
 	var response OpenAPIListWorkerAssignmentsResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIListWorkerAssignments, map[string]string{"workerId": workerId}, nil, nil, &response)
@@ -318,6 +323,6 @@ func (c *OpenAPIClient) WorkerOrchestratorHealth(ctx context.Context) (OpenAPIWo
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 18
+const OpenAPIClientOperationCount = 19
 
-const openAPIClientSpecSHA256 = "538a02d973231fb350dd5f87cd0ef62731a7a99456be534d076b40a5009cc1d9"
+const openAPIClientSpecSHA256 = "86004c9dd3c7b8cf629e47141a53e4fcfb97f633294b96a68bec1c67f957fcce"

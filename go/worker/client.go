@@ -246,3 +246,11 @@ func (c *Client) SnapshotSettings(ctx context.Context, workerID string) (WorkerS
 func (c *Client) UpdateSnapshotSettings(ctx context.Context, workerID string, request UpdateWorkerSnapshotSettingsRequest, idempotencyKey string) (UpdateWorkerSnapshotSettingsResponse, error) {
 	return c.OpenAPI().UpdateWorkerSnapshotSettings(ctx, workerID, OpenAPIUpdateWorkerSnapshotSettingsHeaders{IdempotencyKey: idempotencyKey}, request)
 }
+
+// StorageDestinations lists the organization's storage destinations, ordered
+// by name; the list is not paged. A destination's Id is the
+// StorageDestinationId that UpdateSnapshotSettings takes. No credential is
+// answered: the access key and secret stay on the Workers.
+func (c *Client) StorageDestinations(ctx context.Context) (StorageDestinationList, error) {
+	return c.OpenAPI().ListStorageDestinations(ctx)
+}

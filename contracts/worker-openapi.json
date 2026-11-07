@@ -1071,6 +1071,52 @@
         "x-postgrip-idempotency": "required",
         "x-postgrip-retry": "bounded"
       }
+    },
+    "/api/v1/storage-destinations": {
+      "get": {
+        "operationId": "listStorageDestinations",
+        "tags": [
+          "Snapshots"
+        ],
+        "summary": "List storage destinations",
+        "description": "The organization's storage destinations, ordered by name: the buckets a Worker's snapshots can go to. Use a destination's `id` as `storageDestinationId` in `updateWorkerSnapshotSettings`. Not paged. The answer holds no credential: a destination's access key and secret stay on the Workers that use it, and which Workers hold them is not answered. Adding a destination and delivering its credentials is done on the console's Storage page.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "worker-management",
+        "x-postgrip-required-scopes": [
+          [
+            "workers:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Storage destinations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageDestinationList"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
     }
   },
   "components": {
@@ -2398,6 +2444,115 @@
           "receipt": {
             "$ref": "#/components/schemas/OperationReceipt"
           }
+        }
+      },
+      "StorageDestination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "provider",
+          "bucket",
+          "createdAt",
+          "updatedAt"
+        ],
+        "description": "A named bucket the organization's Workers can write snapshots to. It carries no credential: the access key and secret stay on the Workers.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The destination's id; `updateWorkerSnapshotSettings` takes it as `storageDestinationId`."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name shown on the Storage page."
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "s3",
+              "r2"
+            ],
+            "description": "`s3` for Amazon S3, `r2` for Cloudflare R2."
+          },
+          "bucket": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string",
+            "description": "The bucket's region; absent when none is set. Always set for `s3`."
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "The S3-compatible endpoint; absent when none is set. Always set for `r2`."
+          },
+          "accountId": {
+            "type": "string",
+            "description": "The Cloudflare account id of an `r2` destination; absent when none is set."
+          },
+          "prefix": {
+            "type": "string",
+            "description": "The key prefix objects are written under; absent when none is set."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "example": {
+          "id": "0d6c2a4e-8b1f-4c3d-9e7a-5f2b1c0d9e8a",
+          "name": "Production backups",
+          "provider": "r2",
+          "bucket": "pg-backups",
+          "endpoint": "https://1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d.r2.cloudflarestorage.com",
+          "accountId": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+          "prefix": "postgrip",
+          "createdAt": "2026-11-01T09:30:00Z",
+          "updatedAt": "2026-11-01T09:30:00Z"
+        }
+      },
+      "StorageDestinationList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorageDestination"
+            }
+          }
+        },
+        "example": {
+          "items": [
+            {
+              "id": "0d6c2a4e-8b1f-4c3d-9e7a-5f2b1c0d9e8a",
+              "name": "Production backups",
+              "provider": "r2",
+              "bucket": "pg-backups",
+              "endpoint": "https://1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d.r2.cloudflarestorage.com",
+              "accountId": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+              "prefix": "postgrip",
+              "createdAt": "2026-11-01T09:30:00Z",
+              "updatedAt": "2026-11-01T09:30:00Z"
+            },
+            {
+              "id": "7e3f9a1b-2c4d-4e5f-8a6b-9c0d1e2f3a4b",
+              "name": "us-east archive",
+              "provider": "s3",
+              "bucket": "acme-worker-snapshots",
+              "region": "us-east-1",
+              "createdAt": "2026-10-20T14:05:12Z",
+              "updatedAt": "2026-11-03T08:00:00Z"
+            }
+          ]
         }
       }
     }

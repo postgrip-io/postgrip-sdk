@@ -24,6 +24,7 @@ from .openapi import (
     GetWorkerSnapshotSettingsResponseBody,
     GetWorkerSnapshotStatusResponseBody,
     WorkerOrchestratorHealthResponseBody,
+    ListStorageDestinationsResponseBody,
     ListWorkerAssignmentsResponseBody,
     ListWorkerJobsResponseBody,
     ListWorkerOperationalLogsResponseBody,
@@ -245,6 +246,15 @@ class WorkerClient:
             idempotency_key=idempotency_key,
         ))
 
+    def storage_destinations(self) -> ListStorageDestinationsResponseBody:
+        """List the organization's storage destinations, ordered by name. The list is not paged.
+
+        A destination's ``id`` is the ``storageDestinationId`` that
+        :meth:`update_snapshot_settings` takes. No credential is answered: the
+        access key and secret stay on the Workers.
+        """
+        return cast(ListStorageDestinationsResponseBody, self._request(OperationId.LIST_STORAGE_DESTINATIONS))
+
     def operational_logs(
         self,
         worker_id: str,
@@ -454,6 +464,9 @@ class AsyncWorkerClient:
         idempotency_key: str,
     ) -> UpdateWorkerSnapshotSettingsResponseBody:
         return await self._run(self._sync.update_snapshot_settings, worker_id, body, idempotency_key=idempotency_key)
+
+    async def storage_destinations(self) -> ListStorageDestinationsResponseBody:
+        return await self._run(self._sync.storage_destinations)
 
     async def operational_logs(self, worker_id: str, **query: Any) -> ListWorkerOperationalLogsResponseBody:
         return await self._run(self._sync.operational_logs, worker_id, **query)

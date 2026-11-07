@@ -321,6 +321,7 @@ describe('WorkerClient', () => {
     await client.takeSnapshot('worker-1', { idempotencyKey: 'operation-1' });
     await client.snapshotSettings('worker-1');
     await client.updateSnapshotSettings('worker-1', { enabled: false }, { idempotencyKey: 'operation-1' });
+    await client.storageDestinations();
 
     expect(seen).toEqual([
       'GET /health',
@@ -340,6 +341,7 @@ describe('WorkerClient', () => {
       'POST /api/v1/workers/worker-1/snapshots',
       'GET /api/v1/workers/worker-1/snapshot/settings',
       'PUT /api/v1/workers/worker-1/snapshot/settings',
+      'GET /api/v1/storage-destinations',
     ]);
   });
 
