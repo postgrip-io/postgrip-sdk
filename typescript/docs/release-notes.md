@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `WorkerClient` gains the Worker snapshot operations: `snapshotStatus`,
+  `snapshots`, `takeSnapshot`, `snapshotSettings` and `updateSnapshotSettings`.
+  The two mutations require `idempotencyKey`. `takeSnapshot` (and
+  `openapi.createWorkerSnapshot`) is allowed a 6-minute exchange, never less
+  than `timeoutMs`, and never retries a `502` or `504`, because a resend takes
+  another snapshot. `signingKey` is write-only: settings answer `hasSigningKey`.
 - A managed workflow runtime's Agent `Connection.create` or `Connection.connect`
   without a `baseUrl` now connects to the `POSTGRIP_AGENTORCHESTRATOR_URL` its
   host Agent injects, ahead of `POSTGRIP_AGENT_URL` and `POSTGRIP_URL`.

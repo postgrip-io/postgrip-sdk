@@ -177,10 +177,18 @@ class Executor:
         body: Any = None,
         idempotency_key: str | None = None,
         if_match: str | None = None,
+        timeout: float | None = None,
+        no_retry_statuses: frozenset[int] = frozenset(),
     ) -> Any:
-        """Run one operation and decode its JSON body; an empty body returns None."""
+        """Run one operation and decode its JSON body; an empty body returns None.
 
-        raw = self.exchange(operation, body=body, idempotency_key=idempotency_key, if_match=if_match).body
+        ``timeout`` and ``no_retry_statuses`` are as for :meth:`exchange`.
+        """
+
+        raw = self.exchange(
+            operation, body=body, idempotency_key=idempotency_key, if_match=if_match,
+            timeout=timeout, no_retry_statuses=no_retry_statuses,
+        ).body
         return json.loads(raw) if raw.strip() else None
 
     def exchange(
@@ -193,12 +201,16 @@ class Executor:
         headers: Mapping[str, str] | None = None,
         accepted_statuses: frozenset[int] = frozenset(),
         timeout: float | None = None,
+        no_retry_statuses: frozenset[int] = frozenset(),
     ) -> ExchangeResponse:
         """Run one operation and return the bounded raw body of a successful or accepted response.
 
         ``headers`` are per-call caller headers; ``accepted_statuses`` are non-2xx
         statuses the plane adapter handles; ``timeout`` replaces the configured
-        timeout for this call.
+        timeout for this call; ``no_retry_statuses`` are otherwise retryable
+        statuses this call never retries, such as an answer the server does not
+        keep against the idempotency key, after which a resend repeats the
+        operation's side effect.
         """
 
         operation_id = getattr(operation.operation_id, "value", operation.operation_id)
@@ -254,7 +266,7 @@ class Executor:
                         error.close()
                     return ExchangeResponse(status=error.code, headers=error.headers, body=raw)
                 fields = self._decode_error(operation, error)
-                if attempt < attempts and error.code in RETRYABLE_STATUS:
+                if attempt < attempts and error.code in RETRYABLE_STATUS and error.code not in no_retry_statuses:
                     retry_after = fields.retry_after if error.code in {429, 503} else None
                     self._wait(retry_after if retry_after is not None else jitter(attempt, retry.max_delay))
                     continue

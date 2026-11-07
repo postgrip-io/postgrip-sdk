@@ -301,6 +301,25 @@ func TestExecutorSignsEncodedBodyAndNeverRetriesSignedRequests(t *testing.T) {
 	}
 }
 
+func TestExecutorNoRetryStatusesStopOnlyThoseStatuses(t *testing.T) {
+	server, rec := recordingServer(t,
+		status(http.StatusTooManyRequests, nil, `{}`),
+		status(http.StatusGatewayTimeout, nil, `{"code":"UNCONFIRMED"}`),
+		status(http.StatusOK, nil, `{}`))
+	executor := testExecutor(t, server)
+	executor.Retry.Enabled = true
+	call := Call{Operation: operation(LaneManagement, "mutation", "required"),
+		Header: http.Header{"Idempotency-Key": {"mutation-1"}}, NoRetryStatuses: []int{http.StatusGatewayTimeout}}
+	_, err := executor.Do(context.Background(), call, nil)
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusGatewayTimeout || apiErr.Code != "UNCONFIRMED" {
+		t.Fatalf("error = %v", err)
+	}
+	if attempts := len(rec.all()); attempts != 2 {
+		t.Fatalf("attempts = %d, want the 429 retried and the 504 returned", attempts)
+	}
+}
+
 func TestExecutorAcceptedStatusesReturnRawBody(t *testing.T) {
 	server, _ := recordingServer(t, status(http.StatusGone, nil, `{"code":"SHUTDOWN"}`))
 	executor := testExecutor(t, server)

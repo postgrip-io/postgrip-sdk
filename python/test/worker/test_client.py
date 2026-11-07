@@ -77,6 +77,11 @@ class WorkerClientTests(unittest.TestCase):
             ("POST", "/api/v1/workers/worker-id/upgrade"),
             ("GET", "/api/v1/workers/worker-id/operational-logs"),
             ("GET", "/api/v1/workers/worker-id/security-logs"),
+            ("GET", "/api/v1/workers/worker-id/snapshot/status"),
+            ("GET", "/api/v1/workers/worker-id/snapshots"),
+            ("POST", "/api/v1/workers/worker-id/snapshots"),
+            ("GET", "/api/v1/workers/worker-id/snapshot/settings"),
+            ("PUT", "/api/v1/workers/worker-id/snapshot/settings"),
         ]
         opener = FakeOpener([{} for _ in expected])
         client = WorkerClient(
@@ -105,6 +110,11 @@ class WorkerClientTests(unittest.TestCase):
             lambda: client.upgrade("worker-id", idempotency_key="operation-1"),
             lambda: client.operational_logs("worker-id", service="worker", stream="stderr"),
             lambda: client.security_logs("worker-id", severity="warn", focus="upgrade"),
+            lambda: client.snapshot_status("worker-id"),
+            lambda: client.snapshots("worker-id"),
+            lambda: client.take_snapshot("worker-id", idempotency_key="operation-1"),
+            lambda: client.snapshot_settings("worker-id"),
+            lambda: client.update_snapshot_settings("worker-id", {"enabled": False}, idempotency_key="operation-1"),
         ]
         for invoke in calls:
             invoke()
@@ -118,7 +128,7 @@ class WorkerClientTests(unittest.TestCase):
         ))
         self.assertTrue(all(
             request.get_header("Idempotency-key") == "operation-1"
-            for request in [opener.requests[1], *opener.requests[7:11]]
+            for request in [opener.requests[1], *opener.requests[7:11], opener.requests[15], opener.requests[17]]
         ))
 
     def test_worker_and_job_pages_preserve_opaque_tokens(self) -> None:
@@ -394,6 +404,7 @@ class WorkerClientTests(unittest.TestCase):
                 {"items": [], "nextPageToken": "next"},
                 {"items": []},
                 {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+                {}, {}, {}, {}, {},
             ]
             opener = FakeOpener(responses)
             client = AsyncWorkerClient(
@@ -415,8 +426,13 @@ class WorkerClientTests(unittest.TestCase):
             await client.upgrade("worker-id", idempotency_key="operation-1")
             await client.operational_logs("worker-id")
             await client.security_logs("worker-id")
+            await client.snapshot_status("worker-id")
+            await client.snapshots("worker-id")
+            await client.take_snapshot("worker-id", idempotency_key="operation-1")
+            await client.snapshot_settings("worker-id")
+            await client.update_snapshot_settings("worker-id", {"enabled": False}, idempotency_key="operation-1")
 
-            self.assertEqual(len(opener.requests), 13)
+            self.assertEqual(len(opener.requests), 18)
 
         asyncio.run(run())
 

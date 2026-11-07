@@ -8,6 +8,13 @@ nav_order: 7
 
 ## Unreleased
 
+- `worker.Client` gains the Worker snapshot operations: `SnapshotStatus`,
+  `Snapshots`, `TakeSnapshot`, `SnapshotSettings` and `UpdateSnapshotSettings`.
+  The two mutations require an idempotency key. `TakeSnapshot` (and
+  `OpenAPI().CreateWorkerSnapshot`) raises the HTTP client's timeout to 6
+  minutes for the call and never retries a `502` or `504`, because a resend
+  takes another snapshot. `SigningKey` is write-only: settings answer
+  `HasSigningKey`.
 - A managed workflow runtime's `client.NewConnection` with an empty `Address`
   now connects to the `POSTGRIP_AGENTORCHESTRATOR_URL` its host Agent injects,
   ahead of `POSTGRIP_AGENT_URL` and `POSTGRIP_URL`. Previously it ignored that

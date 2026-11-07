@@ -167,14 +167,111 @@ type OpenAPIUpgradeWorkerResponse struct {
 	SignerImage           string                  `json:"signerImage"`
 	Receipt               OpenAPIOperationReceipt `json:"receipt"`
 }
+type OpenAPIWorkerSnapshotSkippedItem struct {
+	Kind     string  `json:"kind"`
+	TargetId *string `json:"targetId,omitempty"`
+}
+type OpenAPIWorkerSnapshot struct {
+	SnapshotId   string    `json:"snapshotId"`
+	ObjectKey    string    `json:"objectKey"`
+	Size         int64     `json:"size"`
+	LastModified time.Time `json:"lastModified"`
+}
+type OpenAPIWorkerSnapshotList struct {
+	Items []OpenAPIWorkerSnapshot `json:"items"`
+}
+type OpenAPIWorkerSnapshotRun struct {
+	WorkerId   string                             `json:"workerId"`
+	SnapshotId string                             `json:"snapshotId"`
+	ObjectKey  *string                            `json:"objectKey,omitempty"`
+	Size       int64                              `json:"size"`
+	Degraded   bool                               `json:"degraded"`
+	Skipped    []OpenAPIWorkerSnapshotSkippedItem `json:"skipped"`
+}
+type OpenAPICreateWorkerSnapshotResponse struct {
+	Snapshot OpenAPIWorkerSnapshotRun `json:"snapshot"`
+	Receipt  OpenAPIOperationReceipt  `json:"receipt"`
+}
+type OpenAPIWorkerSnapshotOrphan struct {
+	Kind string  `json:"kind"`
+	Id   *string `json:"id,omitempty"`
+}
+type OpenAPIWorkerSnapshotRecovery struct {
+	SourceWorkerId  string                             `json:"sourceWorkerId"`
+	SnapshotId      string                             `json:"snapshotId"`
+	ObjectKey       string                             `json:"objectKey"`
+	SnapshotTakenAt time.Time                          `json:"snapshotTakenAt"`
+	CompletedAt     time.Time                          `json:"completedAt"`
+	AnyAgeOverride  bool                               `json:"anyAgeOverride"`
+	Restored        map[string]int64                   `json:"restored"`
+	SkippedRecords  map[string]int64                   `json:"skippedRecords"`
+	Skipped         []OpenAPIWorkerSnapshotSkippedItem `json:"skipped"`
+	Orphans         []OpenAPIWorkerSnapshotOrphan      `json:"orphans"`
+}
+type OpenAPIWorkerSnapshotStatus struct {
+	WorkerId         string                             `json:"workerId"`
+	Enabled          bool                               `json:"enabled"`
+	Running          bool                               `json:"running"`
+	Cron             *string                            `json:"cron,omitempty"`
+	Retention        *int64                             `json:"retention,omitempty"`
+	LastRunAt        *time.Time                         `json:"lastRunAt,omitempty"`
+	LastSuccessAt    *time.Time                         `json:"lastSuccessAt,omitempty"`
+	NextRunAt        *time.Time                         `json:"nextRunAt,omitempty"`
+	LastRunFailed    bool                               `json:"lastRunFailed"`
+	SettingsRejected bool                               `json:"settingsRejected"`
+	Degraded         bool                               `json:"degraded"`
+	LastSnapshot     *OpenAPIWorkerSnapshot             `json:"lastSnapshot,omitempty"`
+	LastSkipped      []OpenAPIWorkerSnapshotSkippedItem `json:"lastSkipped"`
+	Recovery         *OpenAPIWorkerSnapshotRecovery     `json:"recovery,omitempty"`
+}
+type OpenAPIWorkerSnapshotSettings struct {
+	WorkerId             string     `json:"workerId"`
+	Enabled              bool       `json:"enabled"`
+	StorageDestinationId *string    `json:"storageDestinationId,omitempty"`
+	Provider             *string    `json:"provider,omitempty"`
+	Bucket               *string    `json:"bucket,omitempty"`
+	Region               *string    `json:"region,omitempty"`
+	Endpoint             *string    `json:"endpoint,omitempty"`
+	AccountId            *string    `json:"accountId,omitempty"`
+	Prefix               *string    `json:"prefix,omitempty"`
+	Cron                 *string    `json:"cron,omitempty"`
+	RetentionCount       *int64     `json:"retentionCount,omitempty"`
+	VolumesEnabled       bool       `json:"volumesEnabled"`
+	VolumesHot           bool       `json:"volumesHot"`
+	VolumeMaxBytes       *int64     `json:"volumeMaxBytes,omitempty"`
+	RecipientPublicKey   *string    `json:"recipientPublicKey,omitempty"`
+	HasSigningKey        bool       `json:"hasSigningKey"`
+	UpdatedAt            *time.Time `json:"updatedAt,omitempty"`
+}
+type OpenAPIUpdateWorkerSnapshotSettingsRequest struct {
+	Enabled              bool    `json:"enabled"`
+	StorageDestinationId *string `json:"storageDestinationId,omitempty"`
+	Cron                 *string `json:"cron,omitempty"`
+	RetentionCount       *int64  `json:"retentionCount,omitempty"`
+	VolumesEnabled       *bool   `json:"volumesEnabled,omitempty"`
+	VolumesHot           *bool   `json:"volumesHot,omitempty"`
+	VolumeMaxBytes       *int64  `json:"volumeMaxBytes,omitempty"`
+	RecipientPublicKey   *string `json:"recipientPublicKey,omitempty"`
+	SigningKey           *string `json:"signingKey,omitempty"`
+}
+type OpenAPIUpdateWorkerSnapshotSettingsResponse struct {
+	Settings OpenAPIWorkerSnapshotSettings `json:"settings"`
+	Receipt  OpenAPIOperationReceipt       `json:"receipt"`
+}
 type OpenAPICheckWorkerRequestBody = OpenAPINoBody
 type OpenAPICheckWorkerResponseBody = OpenAPICheckWorkerResponse
 type OpenAPICreateWorkerRequestBody = OpenAPICreateWorkerRequest
 type OpenAPICreateWorkerResponseBody = OpenAPICreateWorkerResponse
+type OpenAPICreateWorkerSnapshotRequestBody = OpenAPINoBody
+type OpenAPICreateWorkerSnapshotResponseBody = OpenAPICreateWorkerSnapshotResponse
 type OpenAPIGetWorkerRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerResponseBody = OpenAPIWorker
 type OpenAPIGetWorkerJobRequestBody = OpenAPINoBody
 type OpenAPIGetWorkerJobResponseBody = OpenAPIJob
+type OpenAPIGetWorkerSnapshotSettingsRequestBody = OpenAPINoBody
+type OpenAPIGetWorkerSnapshotSettingsResponseBody = OpenAPIWorkerSnapshotSettings
+type OpenAPIGetWorkerSnapshotStatusRequestBody = OpenAPINoBody
+type OpenAPIGetWorkerSnapshotStatusResponseBody = OpenAPIWorkerSnapshotStatus
 type OpenAPIListWorkerAssignmentsRequestBody = OpenAPINoBody
 type OpenAPIListWorkerAssignmentsResponseBody = OpenAPIAssignmentList
 type OpenAPIListWorkerJobsRequestBody = OpenAPINoBody
@@ -183,12 +280,16 @@ type OpenAPIListWorkerOperationalLogsRequestBody = OpenAPINoBody
 type OpenAPIListWorkerOperationalLogsResponseBody = OpenAPIOperationalLogList
 type OpenAPIListWorkerSecurityLogsRequestBody = OpenAPINoBody
 type OpenAPIListWorkerSecurityLogsResponseBody = OpenAPISecurityLogList
+type OpenAPIListWorkerSnapshotsRequestBody = OpenAPINoBody
+type OpenAPIListWorkerSnapshotsResponseBody = OpenAPIWorkerSnapshotList
 type OpenAPIListWorkersRequestBody = OpenAPINoBody
 type OpenAPIListWorkersResponseBody = OpenAPIWorkerList
 type OpenAPIPlaceWorkerInMaintenanceRequestBody = OpenAPINoBody
 type OpenAPIPlaceWorkerInMaintenanceResponseBody = OpenAPIWorkerOperationResponse
 type OpenAPIResumeWorkerFromMaintenanceRequestBody = OpenAPINoBody
 type OpenAPIResumeWorkerFromMaintenanceResponseBody = OpenAPIWorkerOperationResponse
+type OpenAPIUpdateWorkerSnapshotSettingsRequestBody = OpenAPIUpdateWorkerSnapshotSettingsRequest
+type OpenAPIUpdateWorkerSnapshotSettingsResponseBody = OpenAPIUpdateWorkerSnapshotSettingsResponse
 type OpenAPIUpgradeWorkerRequestBody = OpenAPINoBody
 type OpenAPIUpgradeWorkerResponseBody = OpenAPIUpgradeWorkerResponse
 type OpenAPIWorkerOrchestratorHealthRequestBody = OpenAPINoBody
@@ -228,5 +329,16 @@ type OperationalLogList = OpenAPIOperationalLogList
 type SecurityLogList = OpenAPISecurityLogList
 type WorkerOperationResponse = OpenAPIWorkerOperationResponse
 type UpgradeWorkerResponse = OpenAPIUpgradeWorkerResponse
+type WorkerSnapshotSkippedItem = OpenAPIWorkerSnapshotSkippedItem
+type WorkerSnapshot = OpenAPIWorkerSnapshot
+type WorkerSnapshotList = OpenAPIWorkerSnapshotList
+type WorkerSnapshotRun = OpenAPIWorkerSnapshotRun
+type CreateWorkerSnapshotResponse = OpenAPICreateWorkerSnapshotResponse
+type WorkerSnapshotOrphan = OpenAPIWorkerSnapshotOrphan
+type WorkerSnapshotRecovery = OpenAPIWorkerSnapshotRecovery
+type WorkerSnapshotStatus = OpenAPIWorkerSnapshotStatus
+type WorkerSnapshotSettings = OpenAPIWorkerSnapshotSettings
+type UpdateWorkerSnapshotSettingsRequest = OpenAPIUpdateWorkerSnapshotSettingsRequest
+type UpdateWorkerSnapshotSettingsResponse = OpenAPIUpdateWorkerSnapshotSettingsResponse
 
-const openAPITypesSpecSHA256 = "9b87efa1eb8e99dc8f6514a0f4d37f26de7fed401cbf9e51051253226c0be38f"
+const openAPITypesSpecSHA256 = "8d07b8d36c75dda71eb8e708472fca5f9f7dbd15eb2674aae905d049f58be0c3"

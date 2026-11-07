@@ -1240,6 +1240,41 @@
       "behavior": "Uses the contract-defined GET /health behavior.",
       "lifecycle": [],
       "summary": "Check Worker Orchestrator health"
+    },
+    "getWorkerSnapshotStatus": {
+      "behavior": "Reads the Worker's snapshot schedule and last run as PostGrip projects them, answered with `enabled: false` when snapshots are off. `degraded` and `lastSkipped` report an incomplete last snapshot; `lastRunFailed` and `settingsRejected` report a failed run and settings not in effect without the Worker's error text. Requires the `worker_snapshot_api_v1` capability.",
+      "lifecycle": [],
+      "summary": "Read a worker's snapshot status"
+    },
+    "listWorkerSnapshots": {
+      "behavior": "Lists the Worker's archives in its storage destination, newest first and not paged. Snapshots that are off answer `409` `SNAPSHOTS_DISABLED`. Requires the `worker_snapshot_api_v1` capability.",
+      "lifecycle": [
+        "Requires snapshots enabled on a Worker whose storage destination credentials were delivered from the console."
+      ],
+      "summary": "List a worker's snapshots"
+    },
+    "createWorkerSnapshot": {
+      "behavior": "Runs a snapshot on the Worker and waits for it, at most 5 minutes, answering `201` with the run and receipt. The SDK clients give this call a 6-minute request lifetime and never retry its `502` or `504` answers: a resend after `502` `SNAPSHOT_FAILED` or `504` `SNAPSHOT_UNCONFIRMED` takes another snapshot. `409` `SNAPSHOT_IN_PROGRESS` carries `Retry-After` and releases the key.",
+      "lifecycle": [
+        "Idempotency: required; a completed answer replays with `Idempotent-Replayed: true`.",
+        "After `504` `SNAPSHOT_UNCONFIRMED`, read the snapshot status before resending with a new key.",
+        "Archives are additional objects in the storage destination; the Worker's retention prunes them."
+      ],
+      "summary": "Take a worker snapshot now"
+    },
+    "getWorkerSnapshotSettings": {
+      "behavior": "Reads the Worker's snapshot settings. The signing key is never answered: `hasSigningKey` says whether one is stored. Destination credentials are not part of the settings. Requires the `worker_snapshot_api_v1` capability.",
+      "lifecycle": [],
+      "summary": "Read a worker's snapshot settings"
+    },
+    "updateWorkerSnapshotSettings": {
+      "behavior": "Replaces the whole settings record: every field but `enabled` takes its zero value when omitted, so read the settings and send them back to change one field. `signingKey` is write-only: omit it to keep the stored key; no answer carries it. Answers the settings as the Worker then reads them, with the receipt.",
+      "lifecycle": [
+        "Idempotency: required; the replay record never holds the signing key.",
+        "Never log or print the request body when it carries `signingKey`.",
+        "Restore the fixture Worker's previous settings after the test."
+      ],
+      "summary": "Replace a worker's snapshot settings"
     }
   },
   "schemaVersion": 1

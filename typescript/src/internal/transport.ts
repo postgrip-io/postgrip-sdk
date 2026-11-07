@@ -125,6 +125,12 @@ export interface ExecutorCall {
   readonly acceptedStatuses?: readonly number[];
   /** Raises this exchange's lifetime, for example for a long poll's server hold. It never lowers it. */
   readonly lifetimeMs?: number;
+  /**
+   * Otherwise retryable statuses this call never retries, such as an answer the
+   * server does not keep against the idempotency key, after which a resend
+   * repeats the operation's side effect.
+   */
+  readonly noRetryStatuses?: readonly number[];
 }
 
 /** The bounded raw response of a successful or accepted exchange. */
@@ -209,7 +215,7 @@ export class Executor {
           };
         }
         const apiError = await this.decodeError(operation, response, lifetime.signal);
-        if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status)) {
+        if (attempt < maxAttempts && RETRYABLE_STATUS.has(response.status) && !call.noRetryStatuses?.includes(response.status)) {
           const retryAfterMs = response.status === 429 || response.status === 503 ? apiError.retryAfterMs : undefined;
           await abortableDelay(retryAfterMs ?? jitter(attempt, retry.maxDelayMs), call.signal);
           continue;
