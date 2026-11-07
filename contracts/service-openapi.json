@@ -419,6 +419,14 @@
         "responses": {
           "200": {
             "description": "Services",
+            "headers": {
+              "ETag": {
+                "description": "The Service catalog fence, equal to the body's `catalogEtag`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -437,7 +445,7 @@
         ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
-        "x-postgrip-pagination": "none",
+        "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       }
@@ -670,7 +678,7 @@
         ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
-        "x-postgrip-pagination": "none",
+        "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       }
@@ -752,6 +760,7 @@
           "Deployments"
         ],
         "summary": "List service deployments",
+        "description": "Lists a project service's deployments, newest first. A connected service (`source` `target`) has none: `409` `SERVICE_OPERATION_NOT_SUPPORTED`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -776,8 +785,20 @@
           {
             "name": "status",
             "in": "query",
+            "description": "Only deployments with this status, in any letter case. Any other value is refused with `400` `INVALID_FILTER`.",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "queued",
+                "building",
+                "uploaded",
+                "deploying",
+                "ready",
+                "failed",
+                "cancelled",
+                "superseded",
+                "expired"
+              ]
             }
           },
           {
@@ -798,6 +819,16 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request. `INVALID_FILTER`: `status` is not a deployment status, or `environment` is not an environment id (`message` says which). `INVALID_CURSOR`: the cursor is not one PostGrip issued for this request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -808,7 +839,7 @@
         ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
-        "x-postgrip-pagination": "none",
+        "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       }
@@ -1326,6 +1357,7 @@
           "Logs"
         ],
         "summary": "List build or runtime logs",
+        "description": "Reads one page of a project service's build or runtime log. A connected service (`source` `target`) has no logs: `409` `SERVICE_OPERATION_NOT_SUPPORTED`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -1376,6 +1408,7 @@
           {
             "name": "follow",
             "in": "query",
+            "description": "Marks the read as one page of a follow. There is no long poll: the page is answered at once. Send `nextCursor` back after `pollAfterMs` to read the lines that arrived since. On runtime logs, `true` is refused with `409` `WORKER_UPGRADE_REQUIRED` when an environment's Worker cannot continue from a cursor.",
             "schema": {
               "type": "boolean",
               "default": false
@@ -1389,6 +1422,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LogList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request. `INVALID_FILTER`: `kind` is not `build` or `runtime`, `environment` or `deployment` is not an id, or `follow` is not `true` or `false` (`message` says which). `INVALID_CURSOR`: the cursor is not one PostGrip issued, or was issued for another request (other filters, kind or deployment).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. `SERVICE_NOT_FOUND`: no such service; for a build log, no deployment matches the read yet (`message` `no deployment matches this build log read yet`), for example before the app's first deployment; for a runtime log, no environment (or not the one named) has a Worker and a deployment that ran on it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SERVICE_OPERATION_NOT_SUPPORTED`: a connected service (`source` `target`) has no logs. `WORKER_UPGRADE_REQUIRED`: an environment's Worker cannot continue a runtime log from a cursor (with `follow=true` or a `cursor`). `SERVICE_ENVIRONMENT_REQUIRED`: the read matches too many environments; name one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone. `CURSOR_EXPIRED`: the cursor is more than 24 hours old. `CURSOR_GAP`: the lines the cursor points to were removed, the build log changed, or the environments' Worker assignment changed. Read again without `cursor`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1528,7 +1601,17 @@
             }
           },
           "409": {
-            "description": "Conflict. `REPOSITORY_CREDENTIAL_UNAVAILABLE`: PostGrip cannot obtain the credential it needs to read the branch head, or the Worker that holds the service's credential cannot read the repository with it (the message names what the target Worker needs). `WORKER_UPGRADE_REQUIRED`: the Worker that must read the head does not advertise `repository_head_read_v1` (`details.workerId`, `details.requiredCapability`). `NO_ELIGIBLE_WORKER`: no Worker can read the head. Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED` and `SERVICE_ENVIRONMENT_REQUIRED`, also use this status.",
+            "description": "Conflict. `REPOSITORY_CREDENTIAL_UNAVAILABLE`: PostGrip cannot obtain the credential it needs to read the branch head, or the Worker that holds the service's credential cannot read the repository with it (the message names what the target Worker needs). `WORKER_UPGRADE_REQUIRED`: the Worker that must read the head does not advertise `repository_head_read_v1` (`details.workerId`, `details.requiredCapability`). `NO_ELIGIBLE_WORKER`: no Worker can read the head. `GITHUB_INSTALLATION_REQUIRED`: the GitHub account the service is bound to is disconnected or unavailable; reconnect it or rebind the service. Other conflicts, such as `SERVICE_OPERATION_NOT_SUPPORTED` and `SERVICE_ENVIRONMENT_REQUIRED`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. `REPOSITORY_UNAVAILABLE`: the branch could not be resolved to a commit, because the repository was unreachable, or the repository or branch does not exist or cannot be read. To deploy without reading the branch, use deployService with `namedCommit: true`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1612,7 +1695,7 @@
             }
           },
           "409": {
-            "description": "Conflict. These refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the Worker that holds the service's credential holds none, or holds one the repository refuses (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded to read the branch head (`details.workerId`, `details.requiredCapability`); `NO_ELIGIBLE_WORKER`, no Worker can read the branch head; `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. These refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the Worker that holds the service's credential holds none, or holds one the repository refuses (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded to read the branch head (`details.workerId`, `details.requiredCapability`); `NO_ELIGIBLE_WORKER`, no Worker can read the branch head; `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `REPOSITORY_CREDENTIAL_UNAVAILABLE` is also returned, and stored against the key like other conflicts, when PostGrip cannot obtain the credential it needs to read the branch head. `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `SERVICE_ENVIRONMENT_REQUIRED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -1622,6 +1705,26 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway. `REPOSITORY_UNAVAILABLE`: the branch could not be resolved to a commit, because the repository was unreachable, or the repository or branch does not exist or cannot be read. To deploy without reading the branch, use deployService with `namedCommit: true`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `SERVICE_DEPLOY_FAILED`: the deployment could not be queued for another reason and nothing was created; send the request again with the same key. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing ran; send it again with the same key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1695,7 +1798,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -1705,6 +1808,16 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `SERVICE_DEPLOY_FAILED`: the deployment could not be queued for another reason and nothing was created; send the request again with the same key. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing ran; send it again with the same key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1769,6 +1882,26 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `CANCEL_NOT_ALLOWED`: the deployment is no longer queued (its Worker took it, or it ended), so it can no longer be cancelled. Other conflicts, such as `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing ran; send it again with the same key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -1827,7 +1960,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED`, `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `ROLLBACK_NOT_ALLOWED`, `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -1837,6 +1970,16 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `SERVICE_DEPLOY_FAILED`: the deployment could not be queued for another reason and nothing was created; send the request again with the same key. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing ran; send it again with the same key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2065,6 +2208,7 @@
           "Administration"
         ],
         "summary": "Attach Target Service",
+        "description": "Connects a database or HTTP service that already runs where the Worker `workerId` can reach it. `metadata.kind` says what it is; omitted, it is `postgresql`. The fields each kind needs: `postgresql` needs `host` and `databaseName`; `sqlite` needs `databaseName`, the database file's path on the Worker, and needs no `host` or `port`; `web`, `backend`, `zvec` and `ladybugdb` need `host`. A missing one is refused with `400` `VALIDATION`. Without `port`, or with `0`, the port is the kind's default: `5432` for `postgresql`, `443` for `web`, `8080` for `backend`, `7000` for `zvec` and `7100` for `ladybugdb`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -2242,6 +2386,14 @@
         "responses": {
           "200": {
             "description": "Successful response",
+            "headers": {
+              "ETag": {
+                "description": "The removed resource's version, equal to the body's `etag`: send it as `If-Match` with the removal.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2658,6 +2810,14 @@
         "responses": {
           "200": {
             "description": "Successful response",
+            "headers": {
+              "ETag": {
+                "description": "The removed resource's version, equal to the body's `etag`: send it as `If-Match` with the removal.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2842,6 +3002,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict. `SERVICE_STATE_CHANGED`: the project already has an environment with that `name`; the refusal is stored against the Idempotency-Key. Other conflicts on this route, such as `IDEMPOTENCY_CONFLICT`, also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/Error"
           }
@@ -2917,7 +3087,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `WORKER_REVOKED` (`details.workerId`): with `assignedWorkerId`, that Worker is revoked; revoked is terminal (enroll a new Worker or replace the revoked one), so the refusal is stored against the Idempotency-Key and replays. Without `assignedWorkerId`, the Worker selection chose (the project default or automatic placement) was revoked before the placement locked it; that refusal is not stored against the key, so a retry with the same key selects again. `NO_ELIGIBLE_WORKER` (`details.requiredCapabilities`, `details.defaultWorkerId`): no Worker is eligible, or the Worker placement chose was removed, replaced or became ineligible after the request's pre-check, including a removed or replaced project default. Placement does not reselect, but the refusal is not stored against the key, so a retry with the same key selects again. `WORKER_UPGRADE_REQUIRED`: with `assignedWorkerId`, that Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); without it, the project default or automatic candidate runs a version below the one the control plane expects (`details.requiredCapabilities`). Upgrade the Worker and retry; the refusal is not stored against the key, so a retry with the same key runs again. `404` `NOT_FOUND` applies only to an explicit `assignedWorkerId` already removed or replaced when the request arrived, including one that is also revoked. Other conflicts on this route also use this status.",
+            "description": "Conflict. `WORKER_REVOKED` (`details.workerId`): with `assignedWorkerId`, that Worker is revoked; revoked is terminal (enroll a new Worker or replace the revoked one), so the refusal is stored against the Idempotency-Key and replays. Without `assignedWorkerId`, the Worker selection chose (the project default or automatic placement) was revoked before the placement locked it; that refusal is not stored against the key, so a retry with the same key selects again. `NO_ELIGIBLE_WORKER` (`details.requiredCapabilities`, `details.defaultWorkerId`): no Worker is eligible, or the Worker placement chose was removed, replaced or became ineligible after the request's pre-check, including a removed or replaced project default. Placement does not reselect, but the refusal is not stored against the key, so a retry with the same key selects again. `WORKER_UPGRADE_REQUIRED`: with `assignedWorkerId`, that Worker does not advertise a capability the operation needs (`details.workerId`, `details.requiredCapability`); without it, the project default or automatic candidate runs a version below the one the control plane expects (`details.requiredCapabilities`). Upgrade the Worker and retry; the refusal is not stored against the key, so a retry with the same key runs again. `404` `NOT_FOUND` applies only to an explicit `assignedWorkerId` already removed or replaced when the request arrived, including one that is also revoked. `SERVICE_STATE_CHANGED`: the project already has an environment with that `name`; the refusal is stored against the Idempotency-Key. Other conflicts on this route also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3373,6 +3543,14 @@
         "responses": {
           "200": {
             "description": "Successful response",
+            "headers": {
+              "ETag": {
+                "description": "The removed resource's version, equal to the body's `etag`: send it as `If-Match` with the removal.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -3680,6 +3858,14 @@
         "responses": {
           "200": {
             "description": "Successful response",
+            "headers": {
+              "ETag": {
+                "description": "The removed resource's version, equal to the body's `etag`: send it as `If-Match` with the removal.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -4825,7 +5011,7 @@
           "Administration"
         ],
         "summary": "List GitHub App Repositories",
-        "description": "Lists repositories visible through one connected GitHub account (installation) of the tenant. Pass installationRef when the tenant has several active accounts; a tenant with one account needs no selector, and a cursor alone continues the installation it was issued for. Refusals: 400 GITHUB_INSTALLATION_SELECTOR_REQUIRED (several accounts and no installationRef or cursor), 400 INVALID_INSTALLATION_REF, 400 INVALID_CURSOR (malformed, another tenant, or issued for an installation other than installationRef), 410 CURSOR_EXPIRED (24 hours), and 409 GITHUB_INSTALLATION_REQUIRED (the selected installation is not an active account of the tenant, including a disconnected or revoked one). There is no cursor across accounts.",
+        "description": "Lists repositories visible through one connected GitHub account (installation) of the tenant. Pass installationRef when the tenant has several active accounts; a tenant with one account needs no selector, and a cursor alone continues the installation it was issued for. Refusals: 400 GITHUB_INSTALLATION_SELECTOR_REQUIRED (several accounts and no installationRef or cursor), 400 INVALID_INSTALLATION_REF, 400 INVALID_CURSOR (malformed, another tenant, or issued for an installation other than installationRef), 410 CURSOR_EXPIRED (24 hours), and 409 GITHUB_INSTALLATION_REQUIRED (the selected installation is not an active account of the tenant, including a disconnected or revoked one). There is no cursor across accounts. GitHub repository adoption is enabled per organization: where it is not, the operation answers `404` `CAPABILITY_NOT_ENABLED`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4882,7 +5068,7 @@
           "Administration"
         ],
         "summary": "Preview GitHub Repository Adoption",
-        "description": "Records an expiring adoption preview against exactly one GitHub account of the tenant. The account is installationRef when given, else the one active account whose login owns an owner/name repository, else the tenant's only account; a repositoryId selection carries no owner, so a tenant with several accounts names the account with installationRef. Refusals: 400 GITHUB_INSTALLATION_SELECTOR_REQUIRED (several accounts and the request resolves none), 400 INVALID_INSTALLATION_REF, and 409 GITHUB_INSTALLATION_REQUIRED (installationRef is not an active account of the tenant).",
+        "description": "Records an expiring adoption preview against exactly one GitHub account of the tenant. The account is installationRef when given, else the one active account whose login owns an owner/name repository, else the tenant's only account; a repositoryId selection carries no owner, so a tenant with several accounts names the account with installationRef. Refusals: 400 GITHUB_INSTALLATION_SELECTOR_REQUIRED (several accounts and the request resolves none), 400 INVALID_INSTALLATION_REF, and 409 GITHUB_INSTALLATION_REQUIRED (installationRef is not an active account of the tenant). GitHub repository adoption is enabled per organization: where it is not, the operation answers `404` `CAPABILITY_NOT_ENABLED`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -4946,7 +5132,7 @@
           "Administration"
         ],
         "summary": "Adopt GitHub Repository",
-        "description": "Adopts the repository of an accepted preview through the installation that preview was created under, which must still be an active account of the tenant (409 GITHUB_INSTALLATION_REQUIRED otherwise; another account is never substituted). A repository already adopted by another service of the tenant is 409 GITHUB_ADOPTION_CONFLICT, including a preview blocked as adopted-other-project; organizations sharing one installation each adopt independently.",
+        "description": "Adopts the repository of an accepted preview through the installation that preview was created under, which must still be an active account of the tenant (409 GITHUB_INSTALLATION_REQUIRED otherwise; another account is never substituted). A repository already adopted by another service of the tenant is 409 GITHUB_ADOPTION_CONFLICT, including a preview blocked as adopted-other-project; organizations sharing one installation each adopt independently. GitHub repository adoption is enabled per organization: where it is not, the operation answers `404` `CAPABILITY_NOT_ENABLED`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5371,7 +5557,7 @@
         ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
-        "x-postgrip-pagination": "none",
+        "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       },
@@ -5414,7 +5600,7 @@
             }
           },
           "409": {
-            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
+            "description": "Conflict. Five refusals queue nothing and are not stored against the Idempotency-Key, so a retry with the same key runs the request again: `SECRET_RESUBMISSION_REQUIRED`, the target Worker's supplied repository credential awaits resubmission or a re-send of it failed (resubmit it with putServiceRepositoryCredential, `source-access`); `VARIABLES_UNRECONCILED`, the environment was recovery-moved off a lost Worker and its variables await confirmation (supply them on its Worker, then confirmRecoveryMoveVariables; `details.recoveryMoveId`); `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, the Worker's supplied credential is still being delivered (retry after `Retry-After` seconds); `REPOSITORY_CREDENTIAL_UNAVAILABLE`, the service is bound to no GitHub installation and the target Worker holds no supplied credential (supply one with putServiceRepositoryCredential, `source-access`, or bind the service); `WRITE_OUTCOME_UNKNOWN`, a LadybugDB service's starter Compose file write reached the target Worker and its answer was lost, so the file may or may not have been written, and nothing was deployed (a retry rereads the file before it deploys). `NO_COMPATIBLE_WORKER`, the environment's Worker cannot take the deployment: it is offline, in maintenance, not trusted, or lacks a capability the deployment needs, such as `build`, or `service_static_host_builds_v1` for a static site (bring it back or assign another Worker); `WORKER_UPGRADE_REQUIRED`, that Worker must be upgraded before it takes the deployment; `GITHUB_INSTALLATION_REQUIRED`, the GitHub account the service is bound to is disconnected or unavailable (reconnect it or rebind the service). These three are not stored against the Idempotency-Key either. Other conflicts on this route, such as `SERVICE_STATE_CHANGED`, `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS`, also use this status.",
             "headers": {
               "Retry-After": {
                 "description": "Seconds to wait before retrying. Sent with `REPOSITORY_CREDENTIAL_DELIVERY_PENDING` and `IDEMPOTENCY_IN_PROGRESS`.",
@@ -5424,6 +5610,16 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. `SERVICE_DEPLOY_FAILED`: the deployment could not be queued for another reason and nothing was created; send the request again with the same key. `AUDIT_UNAVAILABLE`: the request could not be recorded for audit, so nothing ran; send it again with the same key. `CONFIGURATION_UNAVAILABLE`: the promotion store is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5520,6 +5716,7 @@
           "Administration"
         ],
         "summary": "Get Service Build Log Settings",
+        "description": "Reads how long the app's build logs are kept, when they were last trimmed and flushed, and how much is stored. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5568,6 +5765,7 @@
           "Administration"
         ],
         "summary": "Update Service Build Log Settings",
+        "description": "Sets how many days the app's build logs are kept. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5634,6 +5832,7 @@
           "Administration"
         ],
         "summary": "Trim Service Build Logs",
+        "description": "Removes the build log of every deployment of the app that finished more than `retentionDays` ago. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5690,6 +5889,7 @@
           "Administration"
         ],
         "summary": "Flush Service Build Logs",
+        "description": "Removes the build log of every deployment of the app. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5746,6 +5946,7 @@
           "Administration"
         ],
         "summary": "Get Service Runtime Log Settings",
+        "description": "Reads, from each environment's Worker, whether the app's runtime output is recorded and how long it is kept. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5797,6 +5998,7 @@
           "Administration"
         ],
         "summary": "Update Service Runtime Log Settings",
+        "description": "Sets, on the environments' Workers, whether the app's runtime output is recorded and how long it is kept. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5866,6 +6068,7 @@
           "Administration"
         ],
         "summary": "Trim Service Runtime Logs",
+        "description": "Removes the app's runtime lines older than `retentionDays` on its environments' Workers. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5925,6 +6128,7 @@
           "Administration"
         ],
         "summary": "Flush Service Runtime Logs",
+        "description": "Removes all of the app's runtime lines on its environments' Workers. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -6031,7 +6235,7 @@
         ],
         "x-postgrip-safety": "read-only",
         "x-postgrip-protocol": "http-json",
-        "x-postgrip-pagination": "none",
+        "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       }
@@ -7206,17 +7410,37 @@
         "operationId": "listServiceWebhookDispatchEvents",
         "tags": ["Deployments"],
         "summary": "List Webhook Dispatch Events",
-        "description": "Lists the bounded recent decisions produced while dispatching GitHub push and pull-request events for a service.",
+        "description": "Lists the bounded recent decisions produced while dispatching GitHub push and pull-request events for a service. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:read"]],
         "security": [{"postgripToken": []}],
         "parameters": [
           {"$ref": "#/components/parameters/ServiceId"},
-          {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 100}}
+          {"name": "limit", "in": "query", "description": "Page size, from 1 to 100; any other value is refused with `400` `VALIDATION`.", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 100}}
         ],
         "responses": {
           "200": {"description": "Successful response", "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceWebhookDispatchEvent"}}}}},
+          "400": {
+            "description": "Invalid request. `VALIDATION`: `limit` is not a whole number from 1 to 100.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. `SERVICE_NOT_FOUND`: the id is not a UUID, or names no app of the tenant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {"$ref": "#/components/responses/Error"}
         },
         "x-postgrip-operation-class": "tenant-api",
@@ -7233,7 +7457,7 @@
         "operationId": "getServiceComposeFile",
         "tags": ["Configuration"],
         "summary": "Get Environment Compose File",
-        "description": "Returns the Worker-held Compose override for an exact service environment.",
+        "description": "Returns the Worker-held Compose override for an exact service environment. For the production environment of a service built with Docker (including ZVEC and LadybugDB), when the Worker has no file, or still has an earlier file PostGrip generated, the read first writes PostGrip's generated starter file to the Worker and returns it. Otherwise an environment with no file answers an empty `content`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:admin"]],
@@ -7241,6 +7465,16 @@
         "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}],
         "responses": {
           "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeFile"}}}},
+          "404": {
+            "description": "Not found. `SERVICE_NOT_FOUND`: `serviceId` or `environmentId` is not a UUID, or names no service or environment of the tenant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {"$ref": "#/components/responses/Error"}
         },
         "x-postgrip-operation-class": "tenant-api",
@@ -7264,6 +7498,16 @@
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PutServiceComposeFileRequest"}}}},
         "responses": {
           "200": {"description": "Successful response", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeMutationResponse"}}}},
+          "404": {
+            "description": "Not found. `SERVICE_NOT_FOUND`: `serviceId` or `environmentId` is not a UUID, or names no service or environment of the tenant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "default": {"$ref": "#/components/responses/Error"}
         },
         "x-postgrip-operation-class": "tenant-api",
@@ -7284,7 +7528,16 @@
         "x-postgrip-required-scopes": [["services:admin"]],
         "security": [{"postgripToken": []}],
         "parameters": [{"$ref": "#/components/parameters/ServiceId"}, {"$ref": "#/components/parameters/EnvironmentId"}, {"$ref": "#/components/parameters/IdempotencyKey"}],
-        "responses": {"200": {"description": "Compose override deleted", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeDeleteResponse"}}}}, "default": {"$ref": "#/components/responses/Error"}},
+        "responses": {"200": {"description": "Compose override deleted", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServiceComposeDeleteResponse"}}}}, "404": {
+          "description": "Not found. `SERVICE_NOT_FOUND`: `serviceId` or `environmentId` is not a UUID, or names no service or environment of the tenant.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }, "default": {"$ref": "#/components/responses/Error"}},
         "x-postgrip-operation-class": "tenant-api",
         "x-postgrip-accepted-credentials": ["postgrip-token"],
         "x-postgrip-safety": "destructive",
@@ -7323,7 +7576,7 @@
         "operationId": "getServiceTrafficStatus",
         "tags": ["Observability"],
         "summary": "Get Service Traffic Status",
-        "description": "Returns traffic telemetry status from every Worker assigned to the project or selected environment.",
+        "description": "Returns traffic telemetry status from every Worker assigned to the project or selected environment. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:logs:read"]],
@@ -7344,7 +7597,7 @@
         "operationId": "getServiceTrafficReport",
         "tags": ["Observability"],
         "summary": "Get Service Traffic Report",
-        "description": "Returns bounded traffic time-series and breakdown data from every assigned Worker.",
+        "description": "Returns bounded traffic time-series and breakdown data from every assigned Worker. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:logs:read"]],
@@ -7369,7 +7622,7 @@
         "operationId": "putServiceTrafficSettings",
         "tags": ["Observability"],
         "summary": "Update Service Traffic Settings",
-        "description": "Updates project-scoped traffic collection and retention settings on every assigned Worker.",
+        "description": "Updates project-scoped traffic collection and retention settings on every assigned Worker. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:admin"]],
@@ -7391,7 +7644,7 @@
         "operationId": "trimServiceTraffic",
         "tags": ["Observability"],
         "summary": "Trim Service Traffic Telemetry",
-        "description": "Deletes traffic rollups older than the configured retention window on every selected Worker.",
+        "description": "Deletes traffic rollups older than the configured retention window on every selected Worker. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:admin"]],
@@ -7412,7 +7665,7 @@
         "operationId": "flushServiceTraffic",
         "tags": ["Observability"],
         "summary": "Flush Service Traffic Telemetry",
-        "description": "Deletes all project or selected-environment traffic rollups on every selected Worker.",
+        "description": "Deletes all project or selected-environment traffic rollups on every selected Worker. Only an app (a project service) has these; a connected service's id answers `404` `SERVICE_NOT_FOUND`.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [["services:admin"]],
@@ -7506,6 +7759,7 @@
       "Limit": {
         "name": "limit",
         "in": "query",
+        "description": "Page size. A missing, non-numeric, zero or negative value means 100, and a value above 200 means 200; neither is refused.",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -7516,6 +7770,7 @@
       "ConfigurationOperationLimit": {
         "name": "limit",
         "in": "query",
+        "description": "Page size. A missing, non-numeric, zero or negative value means 50, and a value above 100 means 100; neither is refused.",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -7767,6 +8022,7 @@
           },
           "details": {
             "type": "object",
+            "description": "Machine-readable context of the refusal. A `400` `INVALID_BODY` from the request body check has `reason`: `body_required`, `body_not_allowed`, `malformed_json`, `not_an_object`, `unknown_field`, `wrong_type`, `invalid_value`, `null_field`, `missing_field` or `empty_field`; and, when one field is at fault, `field`: its JSON name or path, such as `members[0].environmentId`. They never hold a value from the body, and `message` says the same in words.",
             "additionalProperties": {}
           }
         }
@@ -7818,6 +8074,7 @@
       },
       "ServiceReleaseGroupMemberState": {
         "type": "string",
+        "description": "`dispatching` is reserved: no member is put in that state today, so a client sees a member go from `pending` to `deploying`.",
         "enum": [
           "pending",
           "dispatching",
@@ -7872,11 +8129,13 @@
           },
           "expectedArtifactIdentity": {
             "type": "string",
+            "description": "With `sourceDeploymentId`: the source deployment's artifact identity, as previewServicePromotion answers it in `artifactIdentity`.",
             "minLength": 1,
             "maxLength": 256
           },
           "expectedCurrentDeploymentId": {
             "type": "string",
+            "description": "The environment's current deployment, as getServiceEnvironment's `currentDeploymentId` gives it. Omit it only when the environment has none: an omitted value is compared as \"none\", and a mismatch is refused.",
             "format": "uuid"
           },
           "required": {
@@ -8484,6 +8743,7 @@
       },
       "ServiceKind": {
         "type": "string",
+        "description": "`nodedb` is a legacy kind: existing NodeDB services are still listed, but none can be created (createServiceProject refuses one with `400` `VALIDATION`).",
         "enum": [
           "postgresql",
           "sqlite",
@@ -8798,7 +9058,18 @@
             "type": "string"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "queued",
+              "building",
+              "uploaded",
+              "deploying",
+              "ready",
+              "failed",
+              "cancelled",
+              "superseded",
+              "expired"
+            ]
           },
           "cutoverState": {
             "type": "string",
@@ -9000,6 +9271,7 @@
       },
       "LogList": {
         "type": "object",
+        "description": "One page of a log: at most `limit` lines and at most 256 KiB of them, so a page with fewer lines than `limit` is not the end. `nextCursor` continues after the page; a follow page with no new lines answers the cursor it was sent.",
         "additionalProperties": false,
         "required": [
           "items",
@@ -9018,6 +9290,7 @@
           },
           "pollAfterMs": {
             "type": "integer",
+            "description": "How long to wait before reading the next page when this one had no new lines: 2000 milliseconds.",
             "minimum": 1
           }
         }
@@ -9205,6 +9478,7 @@
           },
           "kind": {
             "type": "string",
+            "description": "What the connected service is. Omitted, `postgresql`; an empty string is refused. It decides which of `host`, `port` and `databaseName` attachTargetService needs, and the default `port`.",
             "enum": [
               "postgresql",
               "sqlite",
@@ -9261,6 +9535,7 @@
         "properties": {
           "appId": {
             "type": "string",
+            "description": "The application this service belongs to: a ServiceApp id, as listServiceApps lists them. The console calls an application a Project. Optional here, although the console always sets one.",
             "format": "uuid"
           },
           "workerId": {
@@ -9274,15 +9549,18 @@
             "type": "string"
           },
           "host": {
-            "type": "string"
+            "type": "string",
+            "description": "The host the Worker connects to. Required for every kind but `sqlite`."
           },
           "port": {
             "type": "integer",
+            "description": "The port the Worker connects to. Omitted or `0`: the kind's default, `5432` for `postgresql`, `443` for `web`, `8080` for `backend`, `7000` for `zvec` and `7100` for `ladybugdb`. Not used for `sqlite`.",
             "minimum": 0,
             "maximum": 65535
           },
           "databaseName": {
-            "type": "string"
+            "type": "string",
+            "description": "The database name for `postgresql`, or the database file's path on the Worker for `sqlite`. Required for both; the HTTP kinds do not need it."
           },
           "metadata": {
             "$ref": "#/components/schemas/ServiceTargetMetadataRequest"
@@ -9296,6 +9574,7 @@
         "properties": {
           "appId": {
             "type": "string",
+            "description": "The application this service belongs to: a ServiceApp id, as listServiceApps lists them. The console calls an application a Project. Optional here, although the console always sets one.",
             "format": "uuid"
           },
           "clearAppId": {
@@ -9348,6 +9627,7 @@
         "properties": {
           "provider": {
             "type": "string",
+            "description": "`github`: a GitHub repository read through a connected GitHub account (installation) whose login owns `repoOwner`, or through a `source-access` credential supplied to the Workers with putServiceRepositoryCredential. With neither, a deployment is refused with `409` `REPOSITORY_CREDENTIAL_UNAVAILABLE`; a public repository should use `public-github`, which is read without a credential. `gitlab` and `bitbucket`: the environment's Worker reads the repository with a credential it holds.",
             "enum": [
               "github",
               "public-github",
@@ -9386,6 +9666,7 @@
         "properties": {
           "appId": {
             "type": "string",
+            "description": "The application this service belongs to: a ServiceApp id, as listServiceApps lists them. The console calls an application a Project. Optional here, although the console always sets one.",
             "format": "uuid"
           },
           "name": {
@@ -9399,13 +9680,21 @@
           },
           "deploymentMode": {
             "type": "string",
+            "description": "How the app is built and served. Omitted, `static`: the Worker runs the build on its own host and serves the output directory, which needs a Worker whose `capabilities` include `service_static_host_builds_v1`, reported only by a Worker started with `WORKER_UNSAFE_HOST_BUILDS_ENABLED=true`. `docker` builds and runs a container. A `backend`, `zvec` or `ladybugdb` project, and a `docker` or `dockerfile` framework, always use `docker`: omitted, it is `docker` for them, and `static` is refused with `400` `VALIDATION`.",
             "enum": [
               "static",
               "docker"
             ]
           },
           "projectType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "web",
+              "backend",
+              "zvec",
+              "ladybugdb"
+            ],
+            "description": "`web` (the default), `backend`, `zvec` or `ladybugdb`; any other value is refused with `400` `VALIDATION`. A `framework` or `serverType` of `zvec` also makes the project `zvec`. `ladybugdb` is never inferred: a `framework` or `serverType` of `ladybugdb` without `projectType` `ladybugdb` is refused with `400` `VALIDATION`."
           },
           "serverType": {
             "type": "string"
@@ -9427,6 +9716,7 @@
         "properties": {
           "appId": {
             "type": "string",
+            "description": "The application this service belongs to: a ServiceApp id, as listServiceApps lists them. The console calls an application a Project. Optional here, although the console always sets one.",
             "format": "uuid"
           },
           "clearAppId": {
@@ -9443,13 +9733,21 @@
           },
           "deploymentMode": {
             "type": "string",
+            "description": "As on createServiceProject. A `backend`, `zvec` or `ladybugdb` project, and a `docker` or `dockerfile` framework, always use `docker`: `static` is refused with `400` `VALIDATION`, judged on the project as the update leaves it.",
             "enum": [
               "static",
               "docker"
             ]
           },
           "projectType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "web",
+              "backend",
+              "zvec",
+              "ladybugdb"
+            ],
+            "description": "As on createServiceProject. A legacy NodeDB project may keep `nodedb`."
           },
           "serverType": {
             "type": "string"
@@ -9477,7 +9775,15 @@
             "type": "string"
           },
           "kind": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "preview",
+              "production",
+              "staging",
+              "development",
+              "custom"
+            ],
+            "description": "Any other value, including one in another letter case, is refused with `400` `VALIDATION`."
           },
           "branchPattern": {
             "type": "string"
@@ -9532,7 +9838,15 @@
             "type": "string"
           },
           "kind": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "preview",
+              "production",
+              "staging",
+              "development",
+              "custom"
+            ],
+            "description": "As on createServiceEnvironment."
           },
           "branchPattern": {
             "type": "string"
@@ -9909,7 +10223,8 @@
         "properties": {
           "value": {
             "type": "string",
-            "writeOnly": true
+            "writeOnly": true,
+            "minLength": 1
           }
         }
       },
@@ -10672,7 +10987,8 @@
             "type": "string"
           },
           "projectType": {
-            "type": "string"
+            "type": "string",
+            "description": "`web`, `backend`, `zvec` or `ladybugdb`, or `nodedb` for a legacy NodeDB service."
           },
           "serverType": {
             "type": "string"
@@ -15319,6 +15635,7 @@
       },
       "ServiceTrafficSettings": {
         "type": "object",
+        "description": "An app's traffic settings on one Worker. They are kept per app on each Worker, not per environment, and apply to all of the app's environments there; `lastTrimmedAt` and `lastFlushedAt` are likewise the app's last trim and flush on that Worker, including one that selected environments. A Worker that has no settings for the app answers the defaults, `enabled: true` and `retentionDays: 14`, with the read's time as `updatedAt`.",
         "additionalProperties": false,
         "required": ["tenantId", "enabled", "retentionDays", "updatedAt"],
         "properties": {
@@ -15412,7 +15729,7 @@
         "required": ["window", "bucketUnit", "summary", "timeSeries", "topPaths", "topHosts", "byEnvironmentId"],
         "properties": {
           "window": {"type": "string", "enum": ["1h", "24h", "7d", "30d"]},
-          "bucketUnit": {"type": "string"},
+          "bucketUnit": {"type": "string", "description": "The unit of the `timeSeries` buckets: `minute` for `window` `1h` (5-minute buckets), `hour` for `24h`, and `day` for `7d` and `30d`."},
           "summary": {"$ref": "#/components/schemas/ServiceTrafficReportSummary"},
           "timeSeries": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficTimeSeriesPoint"}},
           "topPaths": {"type": "array", "items": {"$ref": "#/components/schemas/ServiceTrafficBreakdownItem"}},
@@ -15425,7 +15742,7 @@
         "additionalProperties": false,
         "required": ["deletedRows", "compacted", "storage", "settings", "operation", "completedAt"],
         "properties": {
-          "deletedRows": {"type": "integer", "format": "int64"},
+          "deletedRows": {"type": "integer", "description": "How many of the Worker's per-minute rollup rows were deleted; not a number of requests.", "format": "int64"},
           "compacted": {"type": "boolean"},
           "storage": {"$ref": "#/components/schemas/ServiceTrafficStorageSummary"},
           "settings": {"$ref": "#/components/schemas/ServiceTrafficSettings"},

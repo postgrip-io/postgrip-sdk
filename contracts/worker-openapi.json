@@ -68,7 +68,7 @@
           "Workers"
         ],
         "summary": "Create a pending Worker with client-owned bootstrap material",
-        "description": "The caller must durably store the write-only bootstrap values and Idempotency-Key before sending this request. The response never returns either bootstrap value. Public Worker creation is enabled per tenant: a tenant it is not enabled for gets `404` `CAPABILITY_NOT_ENABLED`.",
+        "description": "The caller must durably store the write-only bootstrap values and Idempotency-Key before sending this request. The response never returns either bootstrap value. Public Worker creation is enabled per tenant: a tenant it is not enabled for gets `404` `CAPABILITY_NOT_ENABLED`. Bootstrap values that already registered a Worker (an enrollment key of the organization, or an attestation bootstrap token of any organization) answer `409` `BOOTSTRAP_MATERIAL_REUSED` with nothing written, and release the Idempotency-Key: generate new values and resend.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -823,7 +823,7 @@
           "Snapshots"
         ],
         "summary": "Read a worker's snapshot status",
-        "description": "The Worker's snapshot schedule and its last run, as PostGrip projects them. Answered when snapshots are off, with `enabled: false`. `degraded` is true when the last snapshot succeeded without capturing everything; `lastSkipped` says what, by kind. `lastRunFailed` and `settingsRejected` report that the last run failed and that saved settings are not in effect; the Worker's error text is not answered. `recovery` is the Worker's restore report when it was recovered from another Worker's archive. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
+        "description": "The Worker's snapshot schedule and its last run, as PostGrip projects them. Answered when snapshots are off, with `enabled: false`. `degraded` is true when the last snapshot succeeded without capturing everything; `lastSkipped` says what, by kind. `lastExcluded` lists what it left out by the settings' choice, such as the volumes of worker-managed databases with `volumesEnabled` off; that does not make it degraded. `lastRunFailed` and `settingsRejected` report that the last run failed and that saved settings are not in effect; the Worker's error text is not answered. `recovery` is the Worker's restore report when it was recovered from another Worker's archive. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -918,7 +918,7 @@
           "Snapshots"
         ],
         "summary": "Take a worker snapshot now",
-        "description": "Runs a snapshot on the Worker and waits for it, at most 5 minutes; the Worker keeps running one that takes longer. `snapshot.degraded` and `snapshot.skipped` report anything the archive could not capture. Snapshots that are off answer `409` `SNAPSHOTS_DISABLED`; a run already in progress `409` `SNAPSHOT_IN_PROGRESS` with `Retry-After`; a failed run `502` `SNAPSHOT_FAILED`; and a run that outlives the wait `504` `SNAPSHOT_UNCONFIRMED`: it may still land, so read the snapshot status before resending. A resend after a `502` or `504` takes another snapshot. Audited as `snapshot_worker`. `WORKER_NOT_LIVE`, `WORKER_UPGRADE_REQUIRED`, `SNAPSHOTS_DISABLED` and `SNAPSHOT_IN_PROGRESS` release the Idempotency-Key, so a resend after the cause is fixed runs again; a completed answer replays with `Idempotent-Replayed: true`. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
+        "description": "Runs a snapshot on the Worker and waits for it, at most 5 minutes; the Worker keeps running one that takes longer. `snapshot.degraded` and `snapshot.skipped` report anything the archive could not capture. `snapshot.excluded` reports what it left out by the settings' choice, which is not degraded. Snapshots that are off answer `409` `SNAPSHOTS_DISABLED`; a run already in progress `409` `SNAPSHOT_IN_PROGRESS` with `Retry-After`; a failed run `502` `SNAPSHOT_FAILED`; and a run that outlives the wait `504` `SNAPSHOT_UNCONFIRMED`: it may still land, so read the snapshot status before resending. A resend after a `502` or `504` takes another snapshot. Audited as `snapshot_worker`. `WORKER_NOT_LIVE`, `WORKER_UPGRADE_REQUIRED`, `SNAPSHOTS_DISABLED` and `SNAPSHOT_IN_PROGRESS` release the Idempotency-Key, so a resend after the cause is fixed runs again; a completed answer replays with `Idempotent-Replayed: true`. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -974,7 +974,7 @@
           "Snapshots"
         ],
         "summary": "Read a worker's snapshot settings",
-        "description": "The Worker's snapshot settings. The signing key is never answered: `hasSigningKey` says whether one is stored. Destination credentials are not part of the settings. A settings store the Worker can't read answers `502` `SNAPSHOT_SETTINGS_UNAVAILABLE`. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
+        "description": "The Worker's snapshot settings. The signing key is never answered: `hasSigningKey` says whether one is stored, and `signerPublicKey` is its public half. Destination credentials are not part of the settings. A settings store the Worker can't read answers `502` `SNAPSHOT_SETTINGS_UNAVAILABLE`. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -1018,7 +1018,7 @@
           "Snapshots"
         ],
         "summary": "Replace a worker's snapshot settings",
-        "description": "Replaces the whole settings record: every field but `enabled` takes its zero value when omitted, so read the settings and send them back to change one field. `storageDestinationId` names a storage destination of the organization, required to enable snapshots; the bucket coordinates come from that destination, and its credentials must already be delivered to the Worker from the console's Storage page. `signingKey` is write-only: omit it to keep the stored key. Unknown fields answer `400` `INVALID_BODY`; a destination the organization doesn't have, a missing `enabled` or settings the Worker refuses answer `400` `VALIDATION` with `details.field` where one is known. The write is unconditional: no precondition is taken. Answers the settings as the Worker then reads them. Audited as `configure_worker_snapshots`, never with the signing key. `WORKER_NOT_LIVE`, `WORKER_UPGRADE_REQUIRED`, `SNAPSHOTS_DISABLED` and `SNAPSHOT_IN_PROGRESS` release the Idempotency-Key, so a resend after the cause is fixed runs again; a completed answer replays with `Idempotent-Replayed: true`. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
+        "description": "Replaces the whole settings record: every field but `enabled` takes its zero value when omitted, so read the settings and send them back to change one field. `storageDestinationId` names a storage destination of the organization, required to enable snapshots; the bucket coordinates come from that destination, and its credentials must already be delivered to the Worker from the console's Storage page. `signingKey` is write-only: omit it to keep the stored key. Unknown fields answer `400` `INVALID_BODY`; a destination the organization doesn't have, a missing `enabled`, a `retentionCount` below 1 with `enabled` (refused before the Worker is contacted) or settings the Worker refuses answer `400` `VALIDATION`. `details.field`, where one is known, is one of `enabled`, `storageDestinationId`, `cron`, `retentionCount`, `volumeMaxBytes`, `recipientPublicKey` or `signingKey`, and `message` is PostGrip's own text for it. A Worker refusal names its field when the Worker reports one: `storageDestinationId` also covers the destination's bucket settings, which come from the destination. A Worker too old to report one answers without `details.field`. The write is unconditional: no precondition is taken. Answers the settings as the Worker then reads them. Audited as `configure_worker_snapshots`, never with the signing key. `WORKER_NOT_LIVE`, `WORKER_UPGRADE_REQUIRED`, `SNAPSHOTS_DISABLED` and `SNAPSHOT_IN_PROGRESS` release the Idempotency-Key, so a resend after the cause is fixed runs again; a completed answer replays with `Idempotent-Replayed: true`. A Worker the tenant doesn't have, or a removed one, answers `404` `NOT_FOUND`. A pending or revoked Worker, or one the fence finds replaced, revoked or removed, answers `409` `WORKER_NOT_LIVE` with `details.status`. A Worker that doesn't advertise the `worker_snapshot_api_v1` capability answers `409` `WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`; upgrade it and retry. Nothing is sent to the Worker for these. A Worker that doesn't answer is `502` `WORKER_UNAVAILABLE`, any answer outside the operation's own is `502` `WORKER_REFUSED`, and a malformed or oversized one is `502` `INVALID_WORKER_RESPONSE`. The Worker's own messages are never answered.",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "worker-management",
         "x-postgrip-required-scopes": [
@@ -1283,7 +1283,7 @@
             "maxLength": 128
           },
           "host": {
-            "description": "The Worker's public origin: an absolute https URL with a hostname and optional port, and no credentials, path, query, fragment or IPv6 zone. An IP literal in a private, loopback or link-local range is refused. The hostname does not have to resolve yet.",
+            "description": "The Worker's public origin: an absolute https URL with a hostname and optional port, and no credentials, path, query, fragment or IPv6 zone. A single trailing `/` is accepted and removed, and the scheme is stored in lower case; the hostname is kept as sent. An IP literal in a private, loopback or link-local range is refused. The hostname does not have to resolve yet, and another Worker may have the same host.",
             "type": "string",
             "format": "uri",
             "pattern": "^https://",
@@ -1363,7 +1363,8 @@
             "type": "string"
           },
           "host": {
-            "type": "string"
+            "type": "string",
+            "description": "The Worker's public origin as PostGrip stored it: the scheme in lower case and no trailing `/`."
           },
           "status": {
             "type": "string"
@@ -1372,7 +1373,8 @@
             "type": "string"
           },
           "trustReason": {
-            "type": "string"
+            "type": "string",
+            "description": "Why PostGrip trusts the Worker's attestation or does not. Absent until PostGrip has made an attestation decision for the Worker, while `trustState` is `unknown`."
           },
           "lastSeenAt": {
             "type": "string",
@@ -1426,7 +1428,8 @@
             "type": "string"
           },
           "signerIdentity": {
-            "type": "string"
+            "type": "string",
+            "description": "The attestation signer. On the `createWorker` answer, the signer identity the new Worker's signer must present, `worker-signer:{workerId}`. On reads, the signer of the attestation PostGrip last trusted; absent until PostGrip has trusted one."
           },
           "autoShutdownOnRemoval": {
             "type": "boolean"
@@ -1886,6 +1889,28 @@
           }
         }
       },
+      "WorkerSnapshotExcludedItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind"
+        ],
+        "description": "Something a snapshot left out because the Worker's settings chose to: with `volumesEnabled` off, the volume of each worker-managed database (`volume`, with the database's `targetId`). A recovery brings back that database's configuration, not its data. Unlike a skipped item, it does not make the snapshot `degraded`. The volume's name stays with the Worker.",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "volume",
+              "other"
+            ]
+          },
+          "targetId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The worker-managed database whose volume was left out, for `volume`."
+          }
+        }
+      },
       "WorkerSnapshot": {
         "type": "object",
         "additionalProperties": false,
@@ -1946,7 +1971,8 @@
           "snapshotId",
           "size",
           "degraded",
-          "skipped"
+          "skipped",
+          "excluded"
         ],
         "properties": {
           "workerId": {
@@ -1975,6 +2001,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WorkerSnapshotSkippedItem"
+            }
+          },
+          "excluded": {
+            "type": "array",
+            "description": "What the archive left out by the settings' choice; it does not make the snapshot `degraded`.",
+            "items": {
+              "$ref": "#/components/schemas/WorkerSnapshotExcludedItem"
             }
           }
         }
@@ -2114,7 +2147,8 @@
           "lastRunFailed",
           "settingsRejected",
           "degraded",
-          "lastSkipped"
+          "lastSkipped",
+          "lastExcluded"
         ],
         "properties": {
           "workerId": {
@@ -2170,6 +2204,13 @@
               "$ref": "#/components/schemas/WorkerSnapshotSkippedItem"
             }
           },
+          "lastExcluded": {
+            "type": "array",
+            "description": "What the last snapshot left out by the settings' choice, such as the volumes of worker-managed databases with `volumesEnabled` off; it does not make the status `degraded`.",
+            "items": {
+              "$ref": "#/components/schemas/WorkerSnapshotExcludedItem"
+            }
+          },
           "recovery": {
             "$ref": "#/components/schemas/WorkerSnapshotRecovery"
           }
@@ -2205,7 +2246,7 @@
           "volumesHot",
           "hasSigningKey"
         ],
-        "description": "A Worker's snapshot settings. The signing key and destination credentials are never answered.",
+        "description": "A Worker's snapshot settings. The signing key and destination credentials are never answered; the signing key's public half is, as `signerPublicKey`.",
         "properties": {
           "workerId": {
             "type": "string",
@@ -2270,6 +2311,11 @@
           "hasSigningKey": {
             "type": "boolean",
             "description": "Whether a signing key is stored. The key itself is never answered."
+          },
+          "signerPublicKey": {
+            "type": "string",
+            "maxLength": 44,
+            "description": "The public half of the stored signing key, standard base64 of an Ed25519 public key, as the Worker derives it; absent when no signing key is stored. It is not a secret. Record it when you set the signing key: a recovery takes it as `WORKER_RECOVERY_SIGNER_PUBLIC_KEY` to pin which archives it accepts, and the copy you recorded, not one read from the Worker at recovery time, is the trust anchor."
           },
           "updatedAt": {
             "type": "string",

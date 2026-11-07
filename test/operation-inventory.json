@@ -1,9 +1,9 @@
 {
-  "contractBundleDigest": "87c0db92da44a39eb7a85c5f5b39186dbebc8e8f243cab5e1462838c7742a017",
+  "contractBundleDigest": "e437cfeeb820e975d8f84fc0ed191836711c6304db85da3597330cd4508ab201",
   "contractDigests": {
     "agent": "b888f64c8796fe545f48c8ea7b04fe52dd4ac7fe544611940c65d52537ae2e1a",
-    "service": "a04e230c8143ee3f8e3ed9ff0689e45a02efaab69e07f4f3bf41fd1719f4b231",
-    "worker": "8d07b8d36c75dda71eb8e708472fca5f9f7dbd15eb2674aae905d049f58be0c3"
+    "service": "37484d91ca60df1f18de9d8d4b1f8b8931e108212372a2c829e673fd83c9191b",
+    "worker": "fc63b9eb820e684122c478fb54136420ea1839a0f775673f259aebdb0fd37611"
   },
   "operations": [
     {
@@ -3522,7 +3522,7 @@
       "method": "GET",
       "operationClass": "tenant-api",
       "operationId": "listServiceConfigurationOperations",
-      "pagination": "none",
+      "pagination": "cursor",
       "path": "/api/v1/services/configuration-operations",
       "pathParameters": [],
       "plane": "service",
@@ -3584,7 +3584,7 @@
       "method": "GET",
       "operationClass": "tenant-api",
       "operationId": "listServiceDeployments",
-      "pagination": "none",
+      "pagination": "cursor",
       "path": "/api/v1/services/{source}/{serviceId}/deployments",
       "pathParameters": [
         "source",
@@ -3648,7 +3648,7 @@
       "method": "GET",
       "operationClass": "tenant-api",
       "operationId": "listServiceEnvironments",
-      "pagination": "none",
+      "pagination": "cursor",
       "path": "/api/v1/services/{source}/{serviceId}/environments",
       "pathParameters": [
         "source",
@@ -3741,7 +3741,7 @@
       "method": "GET",
       "operationClass": "tenant-api",
       "operationId": "listServicePromotions",
-      "pagination": "none",
+      "pagination": "cursor",
       "path": "/api/v1/services/project/{serviceId}/promotions",
       "pathParameters": [
         "serviceId"
@@ -3926,7 +3926,7 @@
       "method": "GET",
       "operationClass": "tenant-api",
       "operationId": "listServices",
-      "pagination": "none",
+      "pagination": "cursor",
       "path": "/api/v1/services",
       "pathParameters": [],
       "plane": "service",
