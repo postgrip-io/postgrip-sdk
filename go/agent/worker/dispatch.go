@@ -41,7 +41,13 @@ func (w *Worker) runActivity(ctx context.Context, task *client.Task) (*client.Ta
 			Args:      args,
 		},
 		Emitter: func(ctx context.Context, ev activity.EventInput) error {
-			return w.opts.Connection.EmitTaskEvent(ctx, task.ID, w.opts.AgentID, ev)
+			err := w.opts.Connection.EmitTaskEvent(ctx, task.ID, w.opts.AgentID, ev)
+			if ev.Kind == client.TaskEventKindHeartbeat && isTerminalTaskMutation(err) {
+				// As in TypeScript and Python, activity.Heartbeat reports a
+				// task PostGrip ended or cancelled as cancellation.
+				return &failure.Cancelled{Message: "activity cancellation requested"}
+			}
+			return err
 		},
 	}
 	activityCtx := activity.WithRuntime(ctx, runtime)

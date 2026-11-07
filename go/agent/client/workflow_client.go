@@ -34,7 +34,8 @@ func (h *WorkflowHandle) Describe(ctx context.Context) (*WorkflowExecutionDescri
 	return workflowExecutionToDescription(exec), nil
 }
 
-// Signal appends a signal event to the workflow.
+// Signal appends a signal event to the workflow. A ctx from
+// WithIdempotencyKey sends its Idempotency-Key.
 func (h *WorkflowHandle) Signal(ctx context.Context, name string, args ...any) error {
 	return h.conn.SignalWorkflow(ctx, h.WorkflowID, SignalWorkflowRequest{
 		Name: name,
@@ -114,7 +115,7 @@ func (c *WorkflowClient) SignalWithStart(ctx context.Context, workflowType, sign
 	if len(opts.SearchAttributes) > 0 {
 		req.SearchAttributes = opts.SearchAttributes
 	}
-	started, err := c.conn.SignalWithStartWorkflow(ctx, opts.WorkflowID, req)
+	started, err := c.conn.SignalWithStartWorkflow(WithIdempotencyKey(ctx, opts.IdempotencyKey), opts.WorkflowID, req)
 	if err != nil {
 		return nil, err
 	}

@@ -164,7 +164,9 @@ export class Executor {
       throw new Error(`PostGrip ${plane} operation ${operation.id} requires request signing`);
     }
     const delegated = this.delegatedLane(operation);
-    if (operation.idempotency === 'required') {
+    // A required key must be valid; an optional one is checked only when the
+    // caller sends it, and is never generated.
+    if (operation.idempotency === 'required' || (operation.idempotency === 'optional' && call.idempotencyKey)) {
       validateIdempotencyKey(call.idempotencyKey);
     }
     const endpoint = new URL(`${this.config.baseUrl.href.replace(/\/+$/, '')}${operation.path}`);

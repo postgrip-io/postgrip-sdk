@@ -57,6 +57,7 @@ c := client.New(conn)
 |:----------------------------|:---------------------------------------------------------------|
 | `c.Task.WorkflowRuntime`  | Submit a managed SDK runtime to an existing agent pool. |
 | `c.Task.Get / List / Events / Result / WatchEvents`  | Inspect tasks; wait for results. |
+| `c.Task.Cancel`  | End a task that has not finished (`cancelTask`). |
 | `c.Workflow.Start / SignalWithStart / GetHandle`     | Start workflows; reach existing ones. |
 | `c.Schedule.Create / List / Get / Update / Pause / Unpause / Trigger / Backfill / Delete` | Manage scheduled workflows. |
 

@@ -213,6 +213,14 @@ type BlockTaskRequest struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+// CancelTaskRequest is the body of cancelTask (POST /api/v1/tasks/{taskId}/cancel).
+// Reason is optional, at most 1024 characters; it is added to the cancelled
+// task's error and its result.failure.message. An empty request cancels
+// without a reason.
+type CancelTaskRequest struct {
+	Reason string `json:"reason,omitempty"`
+}
+
 type SignalWorkflowRequest struct {
 	Name string          `json:"name"`
 	Args json.RawMessage `json:"args,omitempty"`

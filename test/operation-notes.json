@@ -71,6 +71,13 @@
       ],
       "summary": "Cancel a queued service deployment"
     },
+    "cancelTask": {
+      "behavior": "Ends a task that has not finished: it becomes `failed` at once, with `error` `task cancelled` (or `task cancelled: <reason>`) and `result.failure.type` `TaskCancelled`. A leased task's Agent learns of it on its next heartbeat, which answers `409 TASK_CANCELLED`, and stops it; its later reports are refused. Cancelling a cancelled task answers it unchanged, so a resend is safe without an idempotency key. A finished task answers `409 TASK_TERMINAL` with `details.state`, a workflow's own task `409 TASK_OWNED_BY_WORKFLOW`, and another tenant's task 404.",
+      "lifecycle": [
+        "Cancel only a task the test enqueued; a workflow's task is refused, so cancel its workflow instead."
+      ],
+      "summary": "Cancel a task"
+    },
     "cancelWorkflow": {
       "behavior": "Asks the workflow to stop at its next cancellation point. Use terminate for an execution that does not cooperate.",
       "lifecycle": [
@@ -319,6 +326,7 @@
     "enqueueTask": {
       "behavior": "Returns 202 with the created task. Any tenantId in the body is replaced with the tenant the credential resolves to.",
       "lifecycle": [
+        "Idempotency: optional; send an Idempotency-Key to make a resend answer the stored result (`Idempotent-Replayed: true`) instead of running again. A reused key with another request answers `409 IDEMPOTENCY_CONFLICT`, one still running `409 IDEMPOTENCY_IN_PROGRESS` with `Retry-After`.",
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Enqueue a task"
@@ -478,7 +486,7 @@
       "summary": "Liveness probe"
     },
     "heartbeatAgentTask": {
-      "behavior": "Extends the lease and appends a heartbeat event. The task must currently be leased to the calling agent.",
+      "behavior": "Extends the lease and appends a heartbeat event. The task must currently be leased to the calling agent. A task cancelled with cancelTask answers this and every other mutation `409 TASK_CANCELLED`, whose message still says the task is terminal: stop the task and report nothing.",
       "lifecycle": [
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
@@ -829,8 +837,9 @@
       "summary": "Queue rollback to a historical service deployment"
     },
     "signalWithStartWorkflow": {
-      "behavior": "Starts a new execution of workflowType when no running one exists, then delivers the signal. A workflowId in the body takes precedence over the one in the path.",
+      "behavior": "Delivers the signal to the workflow's running execution, first starting a new one of workflowType under `workflowIdReusePolicy` when none runs; the default refuses with `409 CONFLICT` after a run that succeeded. A workflowId in the body takes precedence over the one in the path. Without an Idempotency-Key a resend after a lost answer signals again, and may start another run.",
       "lifecycle": [
+        "Idempotency: optional; send an Idempotency-Key to make a resend answer the stored result (`Idempotent-Replayed: true`) instead of running again. A reused key with another request answers `409 IDEMPOTENCY_CONFLICT`, one still running `409 IDEMPOTENCY_IN_PROGRESS` with `Retry-After`.",
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Signal a workflow, starting it first if none is running"
@@ -838,6 +847,7 @@
     "signalWorkflow": {
       "behavior": "Returns 202 with the appended history event. A signal also releases the workflow's blocked task, which is how a task that parked itself resumes. Signalling a workflow that is no longer running fails.",
       "lifecycle": [
+        "Idempotency: optional; send an Idempotency-Key to make a resend answer the stored result (`Idempotent-Replayed: true`) instead of running again. A reused key with another request answers `409 IDEMPOTENCY_CONFLICT`, one still running `409 IDEMPOTENCY_IN_PROGRESS` with `Retry-After`.",
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Send a signal to a running workflow"

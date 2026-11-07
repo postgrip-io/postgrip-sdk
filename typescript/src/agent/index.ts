@@ -8,7 +8,7 @@ export {
 export type { ActivityEventInput, ActivityInfo, ActivityOutputOptions, MilestoneOptions } from './activity.js';
 export { Client, ScheduleClient, TaskClient, WorkflowClient, WorkflowHandle, WorkflowUpdateHandle } from './client.js';
 export { Connection } from './connection.js';
-export type { ConnectionOptions, HistoryPageOptions } from './connection.js';
+export type { ConnectionOptions, HistoryPageOptions, IdempotencyOptions } from './connection.js';
 export {
   CONNECT_SANDBOX_SESSION_PATH_SESSION_ID,
   CONNECT_SANDBOX_SESSION_QUERY_TICKET,
@@ -29,6 +29,8 @@ export type {
   BackfillScheduleResponseBody,
   BlockAgentTaskRequestBody,
   BlockAgentTaskResponseBody,
+  CancelTaskRequestBody,
+  CancelTaskResponseBody,
   CancelWorkflowRequestBody,
   CancelWorkflowResponseBody,
   CompleteAgentTaskRequestBody,
@@ -96,6 +98,7 @@ export type {
   OpenAPIBackfillScheduleRequest,
   OpenAPIBackfillScheduleResponse,
   OpenAPIBlockTaskRequest,
+  OpenAPICancelTaskRequest,
   OpenAPICancelWorkflowRequest,
   OpenAPICompleteTaskRequest,
   OpenAPIComponents,
@@ -239,6 +242,7 @@ export type {
   BackfillScheduleResponse,
   CancellationScopeType,
   CancellationType,
+  CancelTaskRequest,
   ContainerExecPayload,
   ContinueAsNewOptions,
   ContinueAsNewResult,

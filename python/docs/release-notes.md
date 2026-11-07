@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Agent `Connection` gains `cancel_task` and `TaskClient` gains `cancel`,
+  which end a task that has not finished (`cancelTask`): it becomes `failed`
+  with `result.failure.type` `TaskCancelled`. A finished task raises
+  `409 TASK_TERMINAL` and a workflow's own task `409 TASK_OWNED_BY_WORKFLOW`.
+  `postgrip.agent` exports `CancelTaskRequest`.
+- Task sends, signals and signal-with-start take an optional
+  `idempotency_key`: `TaskClient.enqueue`, `WorkflowClient.signal_with_start`,
+  `WorkflowHandle.signal` and `signal_sync`, and `Connection.enqueue_task`,
+  `signal_workflow` and `signal_with_start_workflow`. A key is sent only when
+  given, is checked before sending, and lets `enable_retries` retry the send;
+  the SDK never generates one. A key passed to the generated `openapi` calls
+  is now checked and makes the send retryable too.
+- `is_terminal_task_mutation`, which the Agent runtime uses to stop renewing a
+  lease and to raise `CancelledFailure` from `activity.heartbeat()`, also reads
+  a `409` with code `TASK_CANCELLED` as terminal.
 - `WorkerClient` and `AsyncWorkerClient` gain `storage_destinations`, which
   lists the organization's storage destinations (`listStorageDestinations`),
   ordered by name and not paged. A destination's `id` is the

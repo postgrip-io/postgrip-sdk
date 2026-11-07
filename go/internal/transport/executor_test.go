@@ -274,6 +274,43 @@ func TestExecutorRequiredIdempotencyKey(t *testing.T) {
 	}
 }
 
+// An optional key is checked only when the caller sends one, and is never
+// generated; without a key a mutation is sent once even with retries enabled.
+func TestExecutorOptionalIdempotencyKey(t *testing.T) {
+	for _, key := range []string{" key ", strings.Repeat("k", 129), "k\x7f"} {
+		server, rec := recordingServer(t, status(http.StatusOK, nil, `{}`))
+		call := Call{Operation: operation(LaneManagement, "mutation", "optional"), Header: http.Header{"Idempotency-Key": {key}}}
+		_, err := testExecutor(t, server).Do(context.Background(), call, nil)
+		if err == nil || !strings.HasPrefix(err.Error(), "postgrip-test: idempotency key must contain") {
+			t.Fatalf("key %q error = %v", key, err)
+		}
+		if len(rec.all()) != 0 {
+			t.Fatalf("key %q reached the server", key)
+		}
+	}
+
+	server, rec := recordingServer(t, status(http.StatusBadGateway, nil, `{}`), status(http.StatusOK, nil, `{}`))
+	executor := testExecutor(t, server)
+	executor.Retry.Enabled = true
+	if _, err := executor.Do(context.Background(), Call{Operation: operation(LaneManagement, "mutation", "optional"), Header: http.Header{}}, nil); err == nil {
+		t.Fatal("a mutation without a key was retried past its 502")
+	}
+	if requests := rec.all(); len(requests) != 1 || requests[0].header.Get("Idempotency-Key") != "" {
+		t.Fatalf("requests = %d; want one request without a key", len(requests))
+	}
+
+	server, rec = recordingServer(t, status(http.StatusBadGateway, nil, `{}`), status(http.StatusOK, nil, `{}`))
+	executor = testExecutor(t, server)
+	executor.Retry.Enabled = true
+	call := Call{Operation: operation(LaneManagement, "mutation", "optional"), Header: http.Header{"Idempotency-Key": {"send-1"}}}
+	if _, err := executor.Do(context.Background(), call, nil); err != nil {
+		t.Fatal(err)
+	}
+	if requests := rec.all(); len(requests) != 2 || requests[1].header.Get("Idempotency-Key") != "send-1" {
+		t.Fatalf("requests = %d; want the keyed mutation retried with its key", len(requests))
+	}
+}
+
 func TestExecutorSignsEncodedBodyAndNeverRetriesSignedRequests(t *testing.T) {
 	server, rec := recordingServer(t, status(http.StatusServiceUnavailable, nil, `{}`))
 	executor := testExecutor(t, server)

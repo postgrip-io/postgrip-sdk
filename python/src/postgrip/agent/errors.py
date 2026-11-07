@@ -79,7 +79,10 @@ class AgentAPIError(PostGripAPIError, RuntimeError):
 def is_terminal_task_mutation(exc: BaseException) -> bool:
     """Whether a task mutation failed because the task is already terminal or no
     longer leased. The server reports both as a 409 whose envelope message names
-    the condition."""
+    the condition, and a task cancelled with cancelTask with the code
+    ``TASK_CANCELLED``."""
+    if isinstance(exc, AgentAPIError) and exc.status == 409 and exc.code == "TASK_CANCELLED":
+        return True
     if isinstance(exc, AgentAPIError):
         message = exc.message if exc.status == 409 else ""
     else:

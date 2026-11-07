@@ -83,7 +83,7 @@ def call(client: Connection, operation: dict[str, object]) -> object:
 class AgentExecutorConformanceTests(unittest.TestCase):
     def test_covers_every_agent_operation_and_leaves_adapters_alone(self) -> None:
         operations = contract_operations()
-        self.assertEqual(len(operations), 45)
+        self.assertEqual(len(operations), 46)
         self.assertEqual(sorted(o["id"].value for o in operations if o["adapter"]),  # type: ignore[union-attr]
                          ["connectSandboxSession", "uploadWorkspace"])
         executed = [o for o in operations if not o["adapter"]]
@@ -175,6 +175,20 @@ class AgentExecutorConformanceTests(unittest.TestCase):
         self.assertTrue(is_terminal_task_mutation(failure(409, "task is not leased by agent")))
         self.assertFalse(is_terminal_task_mutation(failure(409, "workflow exists")))
         self.assertFalse(is_terminal_task_mutation(failure(500, "task is already terminal")))
+
+    def test_detects_a_mutation_of_a_task_cancelled_with_cancel_task_from_its_code(self) -> None:
+        def cancelled(message: str) -> BaseException:
+            recorder = Recorder([http_error(409, {"code": "TASK_CANCELLED", "message": message, "requestId": "req-1"})])
+            with patch("postgrip.agent._connection.urlopen", recorder):
+                try:
+                    connection(agent_access_token="delegated-1", agent_access_expires_at=FRESH["accessExpiresAt"]
+                               ).heartbeat_task("task-1", "agent-1")
+                except BaseException as error:  # noqa: BLE001
+                    return error
+            raise AssertionError("expected a failure")
+
+        self.assertTrue(is_terminal_task_mutation(cancelled("task was cancelled: task is already terminal")))
+        self.assertTrue(is_terminal_task_mutation(cancelled("cancelled")))
 
     def test_poll_keeps_gone_as_shutdown_and_gets_long_poll_headroom(self) -> None:
         recorder = Recorder([http_error(410, {"directive": {"reason": "drain"}})])

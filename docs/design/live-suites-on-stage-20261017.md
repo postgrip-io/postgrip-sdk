@@ -176,7 +176,7 @@ resource can be declared transient: it records its identifier, needs no
 cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
-assignments stay as they are. The nightly scenario covers 134 operations and
+assignments stay as they are. The nightly scenario covers 135 operations and
 the pre-release scenario 50, plus their fixture steps. DNS failover and plan
 rollback left the public API on 2026-10-18 (web
 `docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
@@ -201,7 +201,13 @@ added one nightly read, `listStorageDestinations`. It needs no fixture beyond
 the stage organization's token and answers `{"items": []}` for an
 organization with none, so the stage nightly scenario must add the step before
 `live-nightly.yml` can pass again
-([SDK design](worker-storage-destinations-20261107.md)).
+([SDK design](worker-storage-destinations-20261107.md)). Web's Agent task
+cancel (`docs/design/agent-task-cancel-and-idempotency-design-20261107.md`)
+added one nightly mutation, `cancelTask`. It cancels a `noop` task the
+scenario enqueued on a queue no Agent polls, so the task is still `queued`;
+the stage nightly scenario must add the enqueue and cancel steps before
+`live-nightly.yml` can pass again
+([SDK design](agent-task-cancel-20261107.md)).
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager

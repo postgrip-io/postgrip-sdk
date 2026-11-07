@@ -218,6 +218,12 @@ func (w *Worker) handleTask(ctx context.Context, task *client.Task) {
 	}
 
 	result, err := w.dispatch(taskCtx, task)
+	if errors.Is(context.Cause(taskCtx), errTaskStopped) {
+		// The task is terminal on the server or leased elsewhere, so a
+		// complete or fail would only be refused.
+		logger.Info("task stopped by PostGrip")
+		return
+	}
 	finishedAt := time.Now().UTC()
 	if result == nil {
 		result = &client.TaskResult{StartedAt: startedAt, FinishedAt: finishedAt}
@@ -291,9 +297,13 @@ var errWorkflowAlreadyBlocked = errors.New("postgrip-agent: workflow task blocke
 // startHeartbeat fires task heartbeat events on a timer derived from the
 // task's lease_timeout_seconds. Returns a derived context that is cancelled
 // when the caller invokes the returned cancel func; the heartbeat goroutine
-// also exits on cancellation.
+// also exits on cancellation. A heartbeat answered with a terminal-task 409,
+// such as TASK_CANCELLED after cancelTask, cancels the context with
+// errTaskStopped and stops renewing; any other heartbeat failure is only
+// logged, so a flaky connection never stops a task.
 func (w *Worker) startHeartbeat(parent context.Context, task *client.Task) (context.Context, func()) {
-	ctx, cancel := context.WithCancel(parent)
+	ctx, cancelCause := context.WithCancelCause(parent)
+	cancel := func() { cancelCause(nil) }
 	interval := heartbeatInterval(task.LeaseTimeoutSeconds)
 	go func() {
 		ticker := time.NewTicker(interval)
@@ -310,6 +320,10 @@ func (w *Worker) startHeartbeat(parent context.Context, task *client.Task) (cont
 					Details: map[string]any{"type": task.Type, "attempt": task.Attempt},
 				}
 				if err := w.opts.Connection.HeartbeatTask(ctx, task.ID, w.opts.AgentID, &ev); err != nil {
+					if isTerminalTaskMutation(err) {
+						cancelCause(errTaskStopped)
+						return
+					}
 					w.logger.Warn("task heartbeat failed", "task_id", task.ID, "error", err)
 				}
 			}

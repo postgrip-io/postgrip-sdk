@@ -17,7 +17,7 @@ type HistoryPageOptions struct {
 
 // EnqueueTask enqueues a single task. Use TaskClient.Enqueue / ShellExec /
 // ContainerExec / Noop helpers for ergonomic construction; this is the raw
-// transport call.
+// transport call. A ctx from WithIdempotencyKey sends its Idempotency-Key.
 func (c *Connection) EnqueueTask(ctx context.Context, req EnqueueTaskRequest) (*Task, error) {
 	if runtimeOnlyTaskType(req.Type) && !c.hasAgentRuntimeCredentials() {
 		return nil, errors.New("postgrip-agent: workflow tasks can only be enqueued from a managed runtime; submit workflow.runtime to an agent pool")
@@ -52,6 +52,21 @@ func (c *Connection) ListTasks(ctx context.Context, params map[string]string) ([
 // GetTask fetches a single task by id.
 func (c *Connection) GetTask(ctx context.Context, taskID string) (*Task, error) {
 	out, err := c.OpenAPI().GetTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CancelTask ends a task that has not finished: it becomes failed, with
+// result.failure.type "TaskCancelled" and reason, when not empty, in its
+// error. A queued task is never leased; a leased task's Agent stops it on its
+// next heartbeat. Cancelling a task already cancelled returns it unchanged,
+// so a resend is safe. A task that already finished fails with 409
+// TASK_TERMINAL, and a workflow's own task with 409 TASK_OWNED_BY_WORKFLOW:
+// cancel its workflow instead.
+func (c *Connection) CancelTask(ctx context.Context, taskID, reason string) (*Task, error) {
+	out, err := c.OpenAPI().CancelTask(ctx, taskID, CancelTaskRequest{Reason: reason})
 	if err != nil {
 		return nil, err
 	}

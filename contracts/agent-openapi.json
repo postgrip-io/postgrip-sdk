@@ -322,6 +322,11 @@
             "agentSession": []
           }
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -335,6 +340,32 @@
         "responses": {
           "202": {
             "$ref": "#/components/responses/TaskResponse"
+          },
+          "409": {
+            "description": "With an `Idempotency-Key`: `IDEMPOTENCY_CONFLICT` for a key already used with another request, `IDEMPOTENCY_IN_PROGRESS` while the first request with the key still runs. A `workflow:` task whose `workflowId` names an existing run answers `409 CONFLICT` (`workflowIdReusePolicy`), and does not keep the key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "conflict": {
+                    "value": {
+                      "code": "IDEMPOTENCY_CONFLICT",
+                      "message": "idempotency key was already used with a different request",
+                      "requestId": "req_7f3a2c"
+                    }
+                  },
+                  "inProgress": {
+                    "value": {
+                      "code": "IDEMPOTENCY_IN_PROGRESS",
+                      "message": "an operation with this idempotency key is still in progress",
+                      "requestId": "req_7f3a2c"
+                    }
+                  }
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
@@ -353,8 +384,8 @@
         "x-postgrip-safety": "mutation",
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
-        "x-postgrip-idempotency": "none",
-        "x-postgrip-retry": "none"
+        "x-postgrip-idempotency": "optional",
+        "x-postgrip-retry": "bounded"
       }
     },
     "/api/v1/task-events": {
@@ -538,6 +569,93 @@
         "x-postgrip-pagination": "cursor",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/tasks/{taskId}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TaskId"
+        }
+      ],
+      "post": {
+        "operationId": "cancelTask",
+        "summary": "Cancel a task",
+        "description": "Ends a task that has not finished: it becomes `failed` at once, with `error` `task cancelled` (or `task cancelled: <reason>`), `result.failure.type` `TaskCancelled` and a `failed` event with stage `cancelled`. A `queued` task is never leased. A `leased` task's Agent learns of the cancel on its next heartbeat, which answers `409 TASK_CANCELLED`, and stops the task's process and the processes it started; its result is refused, so the task stays cancelled. This is how a `workflow.runtime` task is stopped. Cancelling a task that is already cancelled answers it unchanged, so a resend is safe. A task that already finished answers `409 TASK_TERMINAL` with `details.state`, and a workflow's own task (a `workflow:`, `activity:`, `query:` or `update:` type, or `timer`) `409 TASK_OWNED_BY_WORKFLOW`: cancel its workflow instead. A task belonging to another tenant is reported as 404, as getTask does.",
+        "tags": [
+          "Tasks"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "either",
+        "security": [
+          {
+            "postgripToken": []
+          },
+          {
+            "agentSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TaskResponse"
+          },
+          "409": {
+            "description": "`TASK_TERMINAL`: the task already finished, and `details.state` says how. `TASK_OWNED_BY_WORKFLOW`: the task belongs to a workflow; cancel or terminate the workflow instead.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "terminal": {
+                    "value": {
+                      "code": "TASK_TERMINAL",
+                      "message": "task is already terminal",
+                      "requestId": "req_7f3a2c",
+                      "details": {
+                        "state": "succeeded"
+                      }
+                    }
+                  },
+                  "ownedByWorkflow": {
+                    "value": {
+                      "code": "TASK_OWNED_BY_WORKFLOW",
+                      "message": "a workflow's task is cancelled through its workflow",
+                      "requestId": "req_7f3a2c"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-required-scopes": [
+          [
+            "agent:operate"
+          ]
+        ],
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token",
+          "agent-session"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "none"
       }
     },
     "/api/v1/schedules": {
@@ -1404,6 +1522,11 @@
             "agentSession": []
           }
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1417,6 +1540,32 @@
         "responses": {
           "202": {
             "$ref": "#/components/responses/WorkflowHistoryEventResponse"
+          },
+          "409": {
+            "description": "The workflow is no longer running (`CONFLICT`, which does not keep the key), or, with an `Idempotency-Key`, `IDEMPOTENCY_CONFLICT` or `IDEMPOTENCY_IN_PROGRESS`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "conflict": {
+                    "value": {
+                      "code": "IDEMPOTENCY_CONFLICT",
+                      "message": "idempotency key was already used with a different request",
+                      "requestId": "req_7f3a2c"
+                    }
+                  },
+                  "inProgress": {
+                    "value": {
+                      "code": "IDEMPOTENCY_IN_PROGRESS",
+                      "message": "an operation with this idempotency key is still in progress",
+                      "requestId": "req_7f3a2c"
+                    }
+                  }
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
@@ -1435,8 +1584,8 @@
         "x-postgrip-safety": "mutation",
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
-        "x-postgrip-idempotency": "none",
-        "x-postgrip-retry": "none"
+        "x-postgrip-idempotency": "optional",
+        "x-postgrip-retry": "bounded"
       }
     },
     "/api/v1/workflows/{workflowId}/signal-with-start": {
@@ -1448,7 +1597,7 @@
       "post": {
         "operationId": "signalWithStartWorkflow",
         "summary": "Signal a workflow, starting it first if none is running",
-        "description": "Starts a new execution of workflowType when no running one exists, then delivers the signal. A workflowId in the body takes precedence over the one in the path.",
+        "description": "Delivers the signal to the workflow's running execution. When none is running, it first starts a new execution of workflowType, under `workflowIdReusePolicy`: the default, `allow_duplicate_failed_only`, starts one after a run that failed and answers `409 CONFLICT` (`workflow already exists`) after one that succeeded, `allow_duplicate` always starts one, and `reject_duplicate` answers `409` whenever a run exists. A workflowId in the body takes precedence over the one in the path. Without an `Idempotency-Key`, a resend after a lost answer signals again, and starts another run if the first one ended meanwhile; send a key to make the resend answer the first request's result instead.",
         "tags": [
           "Workflows"
         ],
@@ -1460,6 +1609,11 @@
           },
           {
             "agentSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
           }
         ],
         "requestBody": {
@@ -1483,6 +1637,32 @@
               }
             }
           },
+          "409": {
+            "description": "`CONFLICT` (`workflow already exists`) when `workflowIdReusePolicy` refuses a new run, which does not keep the key, or, with an `Idempotency-Key`, `IDEMPOTENCY_CONFLICT` or `IDEMPOTENCY_IN_PROGRESS`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "conflict": {
+                    "value": {
+                      "code": "IDEMPOTENCY_CONFLICT",
+                      "message": "idempotency key was already used with a different request",
+                      "requestId": "req_7f3a2c"
+                    }
+                  },
+                  "inProgress": {
+                    "value": {
+                      "code": "IDEMPOTENCY_IN_PROGRESS",
+                      "message": "an operation with this idempotency key is still in progress",
+                      "requestId": "req_7f3a2c"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
@@ -1500,8 +1680,8 @@
         "x-postgrip-safety": "mutation",
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
-        "x-postgrip-idempotency": "none",
-        "x-postgrip-retry": "none"
+        "x-postgrip-idempotency": "optional",
+        "x-postgrip-retry": "bounded"
       }
     },
     "/api/v1/workflows/{workflowId}/cancel": {
@@ -1793,7 +1973,7 @@
       "post": {
         "operationId": "heartbeatAgentTask",
         "summary": "Extend a leased task's lease",
-        "description": "Extends the lease and appends a heartbeat event. The task must currently be leased to the calling agent.",
+        "description": "Extends the lease and appends a heartbeat event. The task must currently be leased to the calling agent. When the task was cancelled (cancelTask) while this agent held it, the heartbeat, like every other mutation of the task, answers `409 TASK_CANCELLED`: stop the task and report nothing. Its message still says the task is terminal.",
         "tags": [
           "Agent runtime"
         ],
@@ -1818,6 +1998,25 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/TaskResponse"
+          },
+          "409": {
+            "description": "`TASK_CANCELLED`: the task was cancelled; stop running it. `CONFLICT`: the task is terminal for another reason or no longer leased to this agent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "cancelled": {
+                    "value": {
+                      "code": "TASK_CANCELLED",
+                      "message": "task was cancelled: task is already terminal",
+                      "requestId": "req_7f3a2c"
+                    }
+                  }
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
@@ -2782,6 +2981,19 @@
           "default": 100
         },
         "description": "Maximum number of events in one response page. The server may return fewer items to honor its serialized response-size bound."
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "description": "Makes the request safe to send again for 24 hours: 1 to 128 visible ASCII characters, unique to this request. A resend with the same key and the same request answers the stored status and body with `Idempotent-Replayed: true` and runs nothing again. The same key with another method, path or body answers `409 IDEMPOTENCY_CONFLICT`, and a resend while the first request still runs `409 IDEMPOTENCY_IN_PROGRESS` with `Retry-After`. Only a 2xx answer and a 400 refusal are kept; any other answer releases the key, so a resend after its cause is fixed runs again. A key belongs to the credential that sent it and the operation: another token, user or Agent, or another operation, never sees it. Without the header every request runs.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[!-~]+$"
+        },
+        "example": "ci-run-4512-report"
       }
     },
     "responses": {
@@ -3173,7 +3385,8 @@
             "$ref": "#/components/schemas/TaskResult"
           },
           "error": {
-            "type": "string"
+            "type": "string",
+            "description": "Why the task failed. A cancelled task (cancelTask) has `task cancelled`, or `task cancelled: <reason>`, and `result.failure.type` `TaskCancelled`."
           },
           "created_at": {
             "type": "string",
@@ -3955,6 +4168,20 @@
         "properties": {
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "CancelTaskRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "example": {
+          "reason": "superseded by build 4513"
+        },
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Why the task was cancelled. It is added to the task's `error` and its `result.failure.message`."
           }
         }
       },

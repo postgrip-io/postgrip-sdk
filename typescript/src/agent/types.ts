@@ -252,6 +252,8 @@ export type SignalWithStartWorkflowResponse<WorkflowArgs extends unknown[] = unk
   task: Task<WorkflowPayload<WorkflowArgs>, R>;
 };
 export type CancelWorkflowRequest = OpenAPIComponents['CancelWorkflowRequest'];
+/** The body of cancelTask: an optional `reason`, at most 1024 characters. */
+export type CancelTaskRequest = OpenAPIComponents['CancelTaskRequest'];
 export type TerminateWorkflowRequest = OpenAPIComponents['TerminateWorkflowRequest'];
 
 export interface WorkflowQueryPayload<Args extends unknown[] = unknown[]> {

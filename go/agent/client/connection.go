@@ -232,6 +232,13 @@ func (c *Connection) doOpenAPI(ctx context.Context, id openAPIOperationID, pathP
 	// Agent has always treated that response as a non-error, so the adapter,
 	// not the executor's envelope decoding, handles it below.
 	call := transport.Call{Operation: operation, Header: c.callerHeaders(), Body: body, AcceptedStatuses: unfollowedRedirectStatuses}
+	// A per-call header parameter, such as an Idempotency-Key, is sent only
+	// by the operations that declare it.
+	for name, values := range openAPIHeaders(ctx) {
+		if operation.DeclaresHeader(name) {
+			call.Header[name] = values
+		}
+	}
 	if id == openAPIPollAgentTask {
 		// Poll Gone is a successful terminal response handled below. A long
 		// poll's server hold counts against the exchange, so give it headroom.

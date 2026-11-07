@@ -120,7 +120,10 @@ class WorkflowClient:
         timeout = options.pop("timeout", None)
         return self.start(workflow, **options).result_sync(timeout=timeout)
 
-    def signal_with_start(self, workflow: Callable[..., Any] | str, *, signal: str | Any, signal_args: list[Any] | None = None, workflow_id: str | None = None, task_queue: str = "default", namespace: str = "default", args: list[Any] | None = None, **options: Unpack[WorkflowClientStartOptions]) -> "WorkflowHandle":
+    def signal_with_start(self, workflow: Callable[..., Any] | str, *, signal: str | Any, signal_args: list[Any] | None = None, workflow_id: str | None = None, task_queue: str = "default", namespace: str = "default", args: list[Any] | None = None, idempotency_key: str | None = None, **options: Unpack[WorkflowClientStartOptions]) -> "WorkflowHandle":
+        """Signal the workflow's running execution, starting one first when none
+        runs. An ``idempotency_key`` makes a resend after a lost answer return the
+        first request's result instead of signalling again or starting another run."""
         workflow_type = workflow_name(workflow)
         if not workflow_type:
             raise ValueError("workflow type is required")
@@ -139,7 +142,7 @@ class WorkflowClient:
             "searchAttributes": options.get("search_attributes"),
             "args": args or [],
             "signal": {"name": signal_name, "args": signal_args or []},
-        })
+        }, idempotency_key=idempotency_key)
         workflow_result = response["workflow"]
         return WorkflowHandle(
             self.connection,
@@ -230,12 +233,14 @@ class WorkflowHandle:
         async for event in _watch_task_events(self.connection, task_id, poll_interval=poll_interval):
             yield event
 
-    async def signal(self, name: str | Any, *args: Any) -> None:
-        await run_cancellable(self.signal_sync, name, *args)
+    async def signal(self, name: str | Any, *args: Any, idempotency_key: str | None = None) -> None:
+        """Signal the workflow. An ``idempotency_key`` makes a resend after a lost
+        answer return the first signal instead of appending another."""
+        await run_cancellable(self.signal_sync, name, *args, idempotency_key=idempotency_key)
 
-    def signal_sync(self, name: str | Any, *args: Any) -> None:
+    def signal_sync(self, name: str | Any, *args: Any, idempotency_key: str | None = None) -> None:
         signal_name = _definition_name(name)
-        self.connection.signal_workflow(self.run_id or self.workflow_id, signal_name, list(args))
+        self.connection.signal_workflow(self.run_id or self.workflow_id, signal_name, list(args), idempotency_key=idempotency_key)
 
     async def cancel(self, reason: str | None = None) -> None:
         await run_cancellable(self.connection.cancel_workflow, self.run_id or self.workflow_id, reason)
@@ -302,14 +307,20 @@ class TaskClient:
     def __init__(self, connection: Connection):
         self.connection = connection
 
-    def enqueue(self, *, type: str, namespace: str = "default", queue: str = "default", payload: JsonValue = None, lease_timeout_seconds: int = 0) -> Task:
+    def enqueue(self, *, type: str, namespace: str = "default", queue: str = "default", payload: JsonValue = None, lease_timeout_seconds: int = 0, idempotency_key: str | None = None) -> Task:
+        """Send a task. An ``idempotency_key`` makes a resend after a lost answer
+        return the first task instead of enqueueing another."""
         return self.connection.enqueue_task({
             "namespace": namespace,
             "queue": queue,
             "type": type,
             "payload": payload,
             "lease_timeout_seconds": lease_timeout_seconds,
-        })
+        }, idempotency_key=idempotency_key)
+
+    def cancel(self, task_id: str, *, reason: str | None = None) -> Task:
+        """End a task that has not finished; see ``Connection.cancel_task``."""
+        return self.connection.cancel_task(task_id, reason)
 
     def shell_exec(self, *, command: str, args: list[str] | None = None, env: dict[str, str] | None = None, working_dir: str | None = None, timeout_seconds: int | None = None, queue: str = "default", namespace: str = "default") -> Task:
         return self.enqueue(

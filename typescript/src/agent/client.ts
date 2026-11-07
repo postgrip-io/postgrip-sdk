@@ -1,5 +1,5 @@
 import { SandboxClient } from './sandbox.js';
-import { Connection } from './connection.js';
+import { Connection, type IdempotencyOptions } from './connection.js';
 import { TaskFailedError, TimeoutFailure } from './errors.js';
 import { abortableDelay } from '../internal/polling.js';
 import { describeWorkflowExecution, describeWorkflowTask, memoWithWorkflowUI } from './_workflow_models.js';
@@ -100,9 +100,15 @@ export class WorkflowClient {
     return handle.result({ pollIntervalMs: options.pollIntervalMs, timeoutMs: options.timeoutMs });
   }
 
+  /**
+   * Signals the workflow's running execution, starting one first when none
+   * runs. An `idempotencyKey` makes a resend after a lost answer return the
+   * first request's result instead of signalling again or starting another
+   * run (see {@link IdempotencyOptions}).
+   */
   async signalWithStart<WF extends WorkflowFunction, SignalArgs extends unknown[] = unknown[]>(
     workflow: WF | string,
-    options: WorkflowStartOptions<Parameters<WF>> & {
+    options: WorkflowStartOptions<Parameters<WF>> & IdempotencyOptions & {
       signal: WorkflowSignalDefinition<SignalArgs> | string;
       signalArgs?: SignalArgs;
     },
@@ -130,7 +136,7 @@ export class WorkflowClient {
         name: signalName,
         args: options.signalArgs ?? ([] as unknown as SignalArgs),
       },
-    });
+    }, { idempotencyKey: options.idempotencyKey });
     return new WorkflowHandle(this.connection, response.task.id, response.workflow.id, response.workflow.type, response.workflow.run_id);
   }
 
@@ -434,20 +440,29 @@ export class WorkflowUpdateHandle<R = unknown> {
 export class TaskClient {
   constructor(private readonly connection: Connection) {}
 
+  /**
+   * Sends a task. An `idempotencyKey` makes a resend after a lost answer return
+   * the first task instead of enqueueing another (see {@link IdempotencyOptions}).
+   */
   async enqueue<P = unknown, R = unknown>(input: {
     type: string;
     namespace?: string;
     queue?: string;
     payload?: P;
     leaseTimeoutSeconds?: number;
-  }): Promise<Task<P, R>> {
+  } & IdempotencyOptions): Promise<Task<P, R>> {
     return this.connection.enqueueTask<P, R>({
       type: input.type,
       namespace: input.namespace,
       queue: input.queue,
       payload: input.payload,
       lease_timeout_seconds: input.leaseTimeoutSeconds,
-    });
+    }, { idempotencyKey: input.idempotencyKey });
+  }
+
+  /** Ends a task that has not finished; see {@link Connection.cancelTask}. */
+  async cancel<P = unknown, R = unknown>(taskId: string, reason?: string): Promise<Task<P, R>> {
+    return this.connection.cancelTask<P, R>(taskId, { reason });
   }
 
   async shellExec(input: { queue?: string } & ShellExecPayload): Promise<Task<ShellExecPayload>> {

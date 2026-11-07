@@ -104,7 +104,7 @@ describe('Agent executor conformance', () => {
   const executed = operations.filter((operation) => !operation.adapterOnly);
 
   it('covers every Agent operation; the upload and WebSocket stay with their adapters', () => {
-    expect(operations).toHaveLength(45);
+    expect(operations).toHaveLength(46);
     expect(operations.filter((operation) => operation.adapterOnly).map((operation) => operation.id).sort())
       .toEqual(['connectSandboxSession', 'uploadWorkspace']);
   });
@@ -266,6 +266,15 @@ describe('Agent executor conformance', () => {
     expect(isTerminalTaskMutation(await conflict('task is not leased by agent').catch((caught: unknown) => caught))).toBe(true);
     expect(isTerminalTaskMutation(await conflict('workflow exists').catch((caught: unknown) => caught))).toBe(false);
     expect(isTerminalTaskMutation(await conflict('task is already terminal', 500).catch((caught: unknown) => caught))).toBe(false);
+  });
+
+  it('detects a mutation of a task cancelled with cancelTask from its TASK_CANCELLED code', async () => {
+    const cancelled = (message: string) => recordingConnection(
+      [() => Response.json({ code: 'TASK_CANCELLED', message, requestId: 'req-1' }, { status: 409 })],
+      { agentAuth: freshSession },
+    ).connection.heartbeatTask('task-1', 'agent-1').catch((caught: unknown) => caught);
+    expect(isTerminalTaskMutation(await cancelled('task was cancelled: task is already terminal'))).toBe(true);
+    expect(isTerminalTaskMutation(await cancelled('cancelled'))).toBe(true);
   });
 
   it('keeps a 410 poll as a shutdown directive', async () => {

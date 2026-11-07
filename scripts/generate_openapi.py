@@ -36,11 +36,15 @@ GO_PROTOCOL_SCHEMAS = {
     "SignalWorkflowRequest", "SignalWithStartWorkflowRequest", "SignalWithStartWorkflowResponse",
     "CancelWorkflowRequest", "TerminateWorkflowRequest", "AgentPollDirective", "PollTaskResponse",
     "HeartbeatTaskRequest", "AppendTaskEventRequest", "CompleteTaskRequest", "BlockTaskRequest",
-    "FailTaskRequest", "RefreshAgentSessionRequest", "AgentSessionResponse",
+    "FailTaskRequest", "CancelTaskRequest", "RefreshAgentSessionRequest", "AgentSessionResponse",
     "SandboxResourceLimits", "SandboxPortMapping", "SandboxNetworkPolicy", "Sandbox",
     "SandboxCreateRequest", "SandboxListResponse", "CreateSandboxSessionRequest",
     "CreateSandboxSessionResponse", "SandboxWorkspace", "SandboxWorkspaceListResponse",
 }
+# The x-postgrip-idempotency values web's contract checker accepts
+# (postgrip-web scripts/lib/openapi-checker.mjs). "optional" honours an
+# Idempotency-Key header without requiring one.
+IDEMPOTENCY_VALUES = ("none", "optional", "required")
 GO_PROTOCOL_TYPE_OVERRIDES = {"WorkflowIdReusePolicy": "WorkflowIDReusePolicy"}
 GO_COMPATIBILITY_EXCLUDED_SCHEMAS = {"ErrorResponse"}
 SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
@@ -206,6 +210,32 @@ def validate_operation_metadata(operation_id: str, operation: dict[str, Any]) ->
             raise ValueError(f"operation {operation_id} has invalid or missing {name}")
     if operation["x-postgrip-operation-class"] == "global-admin":
         raise ValueError(f"public contract operation {operation_id} must not be global administration")
+    if operation["x-postgrip-idempotency"] not in IDEMPOTENCY_VALUES:
+        raise ValueError(
+            f"operation {operation_id} has unknown x-postgrip-idempotency "
+            f"{operation['x-postgrip-idempotency']!r}; expected one of {list(IDEMPOTENCY_VALUES)}"
+        )
+
+
+def validate_idempotency_header(
+    operation_id: str, idempotency: str, header_parameters: dict[str, dict[str, Any]]
+) -> None:
+    """Keep the idempotency annotation and the Idempotency-Key header in step.
+
+    ``required`` declares a required header, ``optional`` an optional one that
+    the SDK runtimes send only when the caller supplies a key, and ``none`` no
+    header at all.
+    """
+    declared = header_parameters.get("Idempotency-Key")
+    if idempotency == "none":
+        if declared is not None:
+            raise ValueError(f"operation {operation_id} declares Idempotency-Key but x-postgrip-idempotency is none")
+        return
+    if declared is None:
+        raise ValueError(f"operation {operation_id} is x-postgrip-idempotency {idempotency} without an Idempotency-Key header")
+    if bool(declared.get("required")) != (idempotency == "required"):
+        expected = "required" if idempotency == "required" else "optional"
+        raise ValueError(f"operation {operation_id} must declare its Idempotency-Key header {expected}")
 
 
 def operation_parameters(
@@ -259,6 +289,7 @@ def operation_rows(spec: dict[str, Any]) -> list[dict[str, Any]]:
             path_parameters = operation_parameters(spec, path_item, operation, "path")
             query_parameters = operation_parameters(spec, path_item, operation, "query")
             header_parameters = operation_parameters(spec, path_item, operation, "header")
+            validate_idempotency_header(operation_id, operation["x-postgrip-idempotency"], header_parameters)
             placeholders = re.findall(r"\{([^}]+)\}", route_path)
             if set(placeholders) != set(path_parameters):
                 raise ValueError(
@@ -793,9 +824,12 @@ def go_openapi_client_source(rows: list[dict[str, Any]], digest: str, include_he
     dynamic_headers = (
         "\tctx = withOpenAPIHeaders(ctx, headers)"
         if include_headers
-        else '''\tif len(headers) != 0 {
-\t\treturn fmt.Errorf("postgrip-agent: operation %q does not accept generated header parameters", operationID)
-\t}'''
+        else '''\tfor name := range headers {
+\t\tif !operation.DeclaresHeader(name) {
+\t\t\treturn fmt.Errorf("postgrip-agent: operation %q does not accept header %q", operationID, name)
+\t\t}
+\t}
+\tctx = withOpenAPIHeaders(ctx, headers)'''
     )
     declarations_source = "\n".join(query_types + header_types)
     time_import = '\t"time"\n' if "time.Time" in declarations_source else ""

@@ -38,9 +38,12 @@ func (c *OpenAPIClient) Do(ctx context.Context, operationID string, pathParamete
 	if operation.StreamingRequest || operation.WebSocket {
 		return fmt.Errorf("postgrip-agent: operation %q requires its protocol adapter", operationID)
 	}
-	if len(headers) != 0 {
-		return fmt.Errorf("postgrip-agent: operation %q does not accept generated header parameters", operationID)
+	for name := range headers {
+		if !operation.DeclaresHeader(name) {
+			return fmt.Errorf("postgrip-agent: operation %q does not accept header %q", operationID, name)
+		}
 	}
+	ctx = withOpenAPIHeaders(ctx, headers)
 	return c.executor.doOpenAPI(ctx, id, pathParameters, query, body, out)
 }
 
@@ -389,6 +392,11 @@ func (c *OpenAPIClient) BlockAgentTask(ctx context.Context, taskId string, query
 	err := c.executor.doOpenAPI(ctx, openAPIBlockAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CancelTask(ctx context.Context, taskId string, body OpenAPICancelTaskRequestBody) (OpenAPICancelTaskResponseBody, error) {
+	var response OpenAPICancelTaskResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPICancelTask, map[string]string{"taskId": taskId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) CancelWorkflow(ctx context.Context, workflowId string, body OpenAPICancelWorkflowRequestBody) (OpenAPICancelWorkflowResponseBody, error) {
 	var response OpenAPICancelWorkflowResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPICancelWorkflow, map[string]string{"workflowId": workflowId}, nil, body, &response)
@@ -590,6 +598,6 @@ func (c *OpenAPIClient) UpdateSchedule(ctx context.Context, scheduleId string, b
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 43
+const OpenAPIClientOperationCount = 44
 
-const openAPIClientSpecSHA256 = "8bbb85a035c6d92c72304495998c0c75e36599f7836e82eebf3ad5a91256d992"
+const openAPIClientSpecSHA256 = "ff3811f5561777a76363ee2e5a49ba40bcaff6d6fdaf2d834862dd56b5d58f3f"
