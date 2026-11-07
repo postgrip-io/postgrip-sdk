@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Service contract bundle `5dba38d5…`: a failed deployment's `errorCode` is one
+  of a closed set: `BUILD_FAILED`, `IMAGE_PULL_FAILED`, `HEALTHCHECK_FAILED`,
+  `REQUIRED_SECRET_MISSING`, `WORKER_LOST`, `DEPLOYMENT_QUEUE_TIMEOUT`, or
+  `DEPLOYMENT_FAILED` for anything unclassified. `errorMessage` is a fixed
+  sentence per code, never the Worker's text; the build log keeps the detail.
+  The types do not change.
 - Worker contract bundle `a20586b1…`: `WorkerClient` and `AsyncWorkerClient`
   gain `removal_impact` (`getWorkerRemovalImpact`) and `remove`
   (`removeWorker`, `workers:admin`). `removal_impact` answers what the removal
