@@ -22,7 +22,7 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 		if r.URL.Path != "/health" && r.Header.Get("Authorization") != "Bearer pgt_test-token" {
 			t.Fatalf("authorization=%q for %s", r.Header.Get("Authorization"), r.URL.Path)
 		}
-		if r.Method == http.MethodPost && r.Header.Get("Idempotency-Key") != "operation-1" {
+		if (r.Method == http.MethodPost || r.Method == http.MethodPut) && r.Header.Get("Idempotency-Key") != "operation-1" {
 			t.Fatalf("idempotency=%q for %s", r.Header.Get("Idempotency-Key"), r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -78,6 +78,21 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 	if _, err := client.Upgrade(ctx, "worker-1", "operation-1"); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := client.SnapshotStatus(ctx, "worker-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Snapshots(ctx, "worker-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.TakeSnapshot(ctx, "worker-1", "operation-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.SnapshotSettings(ctx, "worker-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.UpdateSnapshotSettings(ctx, "worker-1", UpdateWorkerSnapshotSettingsRequest{}, "operation-1"); err != nil {
+		t.Fatal(err)
+	}
 
 	for _, route := range []string{
 		"GET /health", "GET /api/v1/workers/worker-1", "GET /api/v1/workers/worker-1/assignments",
@@ -85,6 +100,9 @@ func TestEveryWorkerFacadeUsesItsCanonicalRoute(t *testing.T) {
 		"GET /api/v1/workers/worker-1/operational-logs", "GET /api/v1/workers/worker-1/security-logs",
 		"POST /api/v1/workers/worker-1/check", "POST /api/v1/workers/worker-1/maintenance",
 		"POST /api/v1/workers/worker-1/maintenance/resume", "POST /api/v1/workers/worker-1/upgrade",
+		"GET /api/v1/workers/worker-1/snapshot/status", "GET /api/v1/workers/worker-1/snapshots",
+		"POST /api/v1/workers/worker-1/snapshots", "GET /api/v1/workers/worker-1/snapshot/settings",
+		"PUT /api/v1/workers/worker-1/snapshot/settings",
 	} {
 		if seen[route] == 0 {
 			t.Errorf("route %s was not exercised", route)

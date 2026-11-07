@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `WorkerClient` gains the Worker snapshot operations: `snapshotStatus`,
+  `snapshots`, `takeSnapshot`, `snapshotSettings` and `updateSnapshotSettings`.
+  The two mutations require `idempotencyKey`. `takeSnapshot` (and
+  `openapi.createWorkerSnapshot`) is allowed a 6-minute exchange, never less
+  than `timeoutMs`, and never retries a `502` or `504`, because a resend takes
+  another snapshot. `signingKey` is write-only: settings answer `hasSigningKey`.
 - Worker requests run through a shared contract-driven executor. Each exchange
   is bounded at 30 seconds by default (`WorkerClientConfig.timeoutMs`), and an
   earlier `AbortSignal` abort still wins.

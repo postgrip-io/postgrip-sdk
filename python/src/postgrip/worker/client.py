@@ -18,21 +18,45 @@ from .openapi import (
     CheckWorkerResponseBody,
     CreateWorkerRequestBody,
     CreateWorkerResponseBody,
+    CreateWorkerSnapshotResponseBody,
     GetWorkerJobResponseBody,
     GetWorkerResponseBody,
+    GetWorkerSnapshotSettingsResponseBody,
+    GetWorkerSnapshotStatusResponseBody,
     WorkerOrchestratorHealthResponseBody,
     ListWorkerAssignmentsResponseBody,
     ListWorkerJobsResponseBody,
     ListWorkerOperationalLogsResponseBody,
     ListWorkerSecurityLogsResponseBody,
+    ListWorkerSnapshotsResponseBody,
     ListWorkersResponseBody,
     OpenAPIClient,
     OperationId,
     PlaceWorkerInMaintenanceResponseBody,
     ResumeWorkerFromMaintenanceResponseBody,
+    UpdateWorkerSnapshotSettingsRequestBody,
+    UpdateWorkerSnapshotSettingsResponseBody,
     UpgradeWorkerResponseBody,
     resolve_openapi_operation,
 )
+
+# createWorkerSnapshot waits up to 5 minutes on the server before it answers, so
+# the call needs longer than the default 30-second timeout.
+SNAPSHOT_RUN_TIMEOUT = 360.0
+
+
+@dataclass(frozen=True)
+class _CallPolicy:
+    timeout: float
+    no_retry_statuses: frozenset[int]
+
+
+# createWorkerSnapshot's 502 and 504 answers are not kept against the
+# Idempotency-Key, so an automatic resend, even with the same key, would take
+# another snapshot; the caller reads the snapshot status first instead.
+_OPERATION_CALL_POLICY: dict[OperationId, _CallPolicy] = {
+    OperationId.CREATE_WORKER_SNAPSHOT: _CallPolicy(timeout=SNAPSHOT_RUN_TIMEOUT, no_retry_statuses=frozenset({502, 504})),
+}
 
 @dataclass(frozen=True)
 class WorkerAPIError(PostGripAPIError):
@@ -69,6 +93,7 @@ class WorkerClient:
         token = validate_management_token(token)
         self._base_url = base_url.rstrip("/") + "/"
         self._token = token
+        self._timeout = timeout
         self._follow_interval = max(follow_interval, 0.001)
         self._executor = Executor(
             plane="Worker",
@@ -175,6 +200,50 @@ class WorkerClient:
 
     def upgrade(self, worker_id: str, *, idempotency_key: str) -> UpgradeWorkerResponseBody:
         return cast(UpgradeWorkerResponseBody, self._mutation(OperationId.UPGRADE_WORKER, worker_id, idempotency_key))
+
+    def snapshot_status(self, worker_id: str) -> GetWorkerSnapshotStatusResponseBody:
+        """Read the Worker's snapshot schedule and last run; ``enabled`` is false when snapshots are off."""
+        return cast(GetWorkerSnapshotStatusResponseBody, self._request(
+            OperationId.GET_WORKER_SNAPSHOT_STATUS, path={"workerId": worker_id}))
+
+    def snapshots(self, worker_id: str) -> ListWorkerSnapshotsResponseBody:
+        """List the Worker's archives in its storage destination, newest first. The list is not paged."""
+        return cast(ListWorkerSnapshotsResponseBody, self._request(
+            OperationId.LIST_WORKER_SNAPSHOTS, path={"workerId": worker_id}))
+
+    def take_snapshot(self, worker_id: str, *, idempotency_key: str) -> CreateWorkerSnapshotResponseBody:
+        """Run a snapshot on the Worker and wait for it.
+
+        The server waits up to 5 minutes, so the call is allowed 6 minutes, and
+        its 502 and 504 answers are never retried automatically: a ``504``
+        ``SNAPSHOT_UNCONFIRMED`` run may still land, so read
+        :meth:`snapshot_status` before resending with a new key.
+        """
+        return cast(CreateWorkerSnapshotResponseBody,
+            self._mutation(OperationId.CREATE_WORKER_SNAPSHOT, worker_id, idempotency_key))
+
+    def snapshot_settings(self, worker_id: str) -> GetWorkerSnapshotSettingsResponseBody:
+        """Read the Worker's snapshot settings; the signing key is never answered, ``hasSigningKey`` reports one."""
+        return cast(GetWorkerSnapshotSettingsResponseBody, self._request(
+            OperationId.GET_WORKER_SNAPSHOT_SETTINGS, path={"workerId": worker_id}))
+
+    def update_snapshot_settings(
+        self,
+        worker_id: str,
+        body: UpdateWorkerSnapshotSettingsRequestBody,
+        *,
+        idempotency_key: str,
+    ) -> UpdateWorkerSnapshotSettingsResponseBody:
+        """Replace the Worker's whole snapshot settings record.
+
+        Every field but ``enabled`` takes its zero value when omitted.
+        ``signingKey`` is write-only: omit it to keep the stored key.
+        """
+        validate_idempotency_key(idempotency_key)
+        return cast(UpdateWorkerSnapshotSettingsResponseBody, self._request(
+            OperationId.UPDATE_WORKER_SNAPSHOT_SETTINGS, body=body, path={"workerId": worker_id},
+            idempotency_key=idempotency_key,
+        ))
 
     def operational_logs(
         self,
@@ -284,7 +353,14 @@ class WorkerClient:
                  query: Mapping[str, Any] | None = None, idempotency_key: str | None = None) -> Any:
         clean_query = {key: value for key, value in (query or {}).items() if value is not None}
         operation = resolve_openapi_operation(operation_id, path, clean_query)
-        return self._executor.request(operation, body=body, idempotency_key=idempotency_key)
+        policy = _OPERATION_CALL_POLICY.get(operation_id)
+        if policy is None:
+            return self._executor.request(operation, body=body, idempotency_key=idempotency_key)
+        # The policy raises the call's timeout; it never lowers a longer configured one.
+        return self._executor.request(
+            operation, body=body, idempotency_key=idempotency_key,
+            timeout=max(self._timeout, policy.timeout), no_retry_statuses=policy.no_retry_statuses,
+        )
 
 
 class AsyncWorkerClient:
@@ -357,6 +433,27 @@ class AsyncWorkerClient:
 
     async def upgrade(self, worker_id: str, *, idempotency_key: str) -> UpgradeWorkerResponseBody:
         return await self._run(self._sync.upgrade, worker_id, idempotency_key=idempotency_key)
+
+    async def snapshot_status(self, worker_id: str) -> GetWorkerSnapshotStatusResponseBody:
+        return await self._run(self._sync.snapshot_status, worker_id)
+
+    async def snapshots(self, worker_id: str) -> ListWorkerSnapshotsResponseBody:
+        return await self._run(self._sync.snapshots, worker_id)
+
+    async def take_snapshot(self, worker_id: str, *, idempotency_key: str) -> CreateWorkerSnapshotResponseBody:
+        return await self._run(self._sync.take_snapshot, worker_id, idempotency_key=idempotency_key)
+
+    async def snapshot_settings(self, worker_id: str) -> GetWorkerSnapshotSettingsResponseBody:
+        return await self._run(self._sync.snapshot_settings, worker_id)
+
+    async def update_snapshot_settings(
+        self,
+        worker_id: str,
+        body: UpdateWorkerSnapshotSettingsRequestBody,
+        *,
+        idempotency_key: str,
+    ) -> UpdateWorkerSnapshotSettingsResponseBody:
+        return await self._run(self._sync.update_snapshot_settings, worker_id, body, idempotency_key=idempotency_key)
 
     async def operational_logs(self, worker_id: str, **query: Any) -> ListWorkerOperationalLogsResponseBody:
         return await self._run(self._sync.operational_logs, worker_id, **query)
