@@ -1643,7 +1643,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `SERVICE_AUTHENTICATION_FAILED`: a connected PostgreSQL service answered the Worker but refused its login: the password is wrong (SQLSTATE `28P01`), or the server does not admit the user from the Worker's address (`28000`, for example no `pg_hba.conf` entry). The service's status becomes `degraded`; give the right password with putTargetServiceConnection, or admit the user on the server, then check again with a new Idempotency-Key. `SERVICE_FILE_NOT_FOUND`: a connected SQLite service's file, or its directory, does not exist on its Worker; the Worker never creates a connected file. The service's status becomes `unreachable`; point the service at the right path with updateTargetService, or create the file on the Worker's host, then check again with a new Idempotency-Key. `SQLITE_READ_ONLY`: a connected SQLite service's file opens but does not accept writes on its Worker: the file, or the directory its journal goes in, is read-only to the Worker. The Worker starts a write and rolls it back, so the file is not changed. The service's status becomes `degraded`; make the file and its directory writable to the Worker and check again. `SERVICE_OPERATION_NOT_SUPPORTED`: the service cannot be checked. Other conflicts on this route also use this status.",
+            "description": "Conflict. `SERVICE_AUTHENTICATION_FAILED`: a connected PostgreSQL service answered the Worker but refused its login: the password is wrong (SQLSTATE `28P01`), or the server does not admit the user from the Worker's address (`28000`, for example no `pg_hba.conf` entry). The service's status becomes `degraded`; give the right password with putTargetServiceConnection, or admit the user on the server, then check again with a new Idempotency-Key. `SERVICE_FILE_NOT_FOUND`: a connected SQLite service's file, or its directory, does not exist on its Worker; the Worker never creates a connected file. The service's status becomes `unreachable`; point the service at the right path with updateTargetService, or create the file on the Worker's host, then check again with a new Idempotency-Key. `SQLITE_READ_ONLY`: a connected SQLite service's file opens but does not accept writes on its Worker: the file, or the directory its journal goes in, is read-only to the Worker. The Worker starts a write and rolls it back, so the file is not changed. The service's status becomes `degraded`; make the file and its directory writable to the Worker and check again. `SERVICE_AUTHENTICATION_FAILED` also answers a web, backend, ZVEC or LadybugDB service whose probe was refused with `401` or `403`: its status becomes `degraded`; give the right credential with putTargetServiceConnection's `http` and check again with a new Idempotency-Key. Such a service's check is one bounded `GET` (10 seconds) from its Worker, with the stored credential: of the service's URL on its port (`collections` under it for ZVEC, `health` for LadybugDB), following redirects only to the same scheme, host and port, verifying TLS with the Worker's system roots. Any other answer below `500` is `200` with `status` `ready` and the answer's `httpStatus`; a `5xx`, a timeout or a failed connection is `503 SERVICE_UNREACHABLE` and the status becomes `unreachable`. `WORKER_UPGRADE_REQUIRED`: the service's Worker cannot check it (a web, backend, ZVEC or LadybugDB service needs `target_http_auth_v1`). `SERVICE_OPERATION_NOT_SUPPORTED`: the service cannot be checked. Other conflicts on this route also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9681,6 +9681,12 @@
           "version": {
             "type": "string"
           },
+          "httpStatus": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599,
+            "description": "For a web, backend, ZVEC or LadybugDB service's check: the HTTP status the service answered the Worker's probe with. Absent for a database."
+          },
           "intentionallyStopped": {
             "type": "boolean"
           },
@@ -9875,14 +9881,95 @@
       "TargetServiceConnectionRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "password"
-        ],
+        "description": "Exactly one of `password`, for a PostgreSQL service, or `http`, for a web, backend, ZVEC or LadybugDB service. The secret is delivered to the service's Worker only, in a sealed configuration operation; it is never stored by the control plane, audited or answered. `http` on a PostgreSQL or SQLite service, or `password` on an HTTP service, is `400 VALIDATION`; so is a body with neither (\"password is required\") or both.",
         "properties": {
           "password": {
             "type": "string",
             "writeOnly": true,
-            "minLength": 1
+            "minLength": 1,
+            "description": "The PostgreSQL user's password (the service's `dbUser`)."
+          },
+          "http": {
+            "$ref": "#/components/schemas/TargetServiceHTTPCredential"
+          }
+        }
+      },
+      "TargetServiceHTTPCredential": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scheme"
+        ],
+        "description": "An HTTP service's credential. `none` clears it, like clearTargetServiceConnection; `basic` takes `username` and `password`; `bearer` takes `token`; `api_key` takes `headerName` and `value`. A field the scheme does not take is refused (`400 VALIDATION`, naming the field, never its value). Sending it needs a Worker that advertises `target_http_auth_v1`: otherwise `409 WORKER_UPGRADE_REQUIRED` with `details.requiredCapability`. The Worker stores it with the same bounded expiry as a password and sends it on the service's check.",
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "enum": [
+              "none",
+              "basic",
+              "bearer",
+              "api_key"
+            ]
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "`basic` only. No `:` and no control characters."
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true,
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "`basic` only. No control characters."
+          },
+          "token": {
+            "type": "string",
+            "writeOnly": true,
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "`bearer` only, sent as `Authorization: Bearer <token>`. No spaces or control characters."
+          },
+          "headerName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$",
+            "description": "`api_key` only: the header the key is sent in, an HTTP token. `Host`, `Content-Length`, `Content-Type`, `Transfer-Encoding`, `Connection`, `Keep-Alive`, `Upgrade`, `TE`, `Trailer`, `Expect`, `Proxy-Authorization`, `Proxy-Connection` and `Cookie` are refused; `Authorization` is allowed, for a custom scheme such as `Token …`."
+          },
+          "value": {
+            "type": "string",
+            "writeOnly": true,
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "`api_key` only. No control characters, and no spaces at its start or end."
+          }
+        }
+      },
+      "TargetServiceHTTPAuth": {
+        "type": "object",
+        "additionalProperties": false,
+        "readOnly": true,
+        "required": [
+          "scheme"
+        ],
+        "description": "The scheme of an HTTP service's credential as putTargetServiceConnection last set it, with the username for `basic` and the header name for `api_key`; never a password, token or value.",
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "enum": [
+              "none",
+              "basic",
+              "bearer",
+              "api_key"
+            ]
+          },
+          "username": {
+            "type": "string"
+          },
+          "headerName": {
+            "type": "string"
           }
         }
       },
@@ -10659,6 +10746,10 @@
           },
           "hasConnectionSecret": {
             "type": "boolean"
+          },
+          "httpAuth": {
+            "$ref": "#/components/schemas/TargetServiceHTTPAuth",
+            "description": "An HTTP service's credential scheme, once putTargetServiceConnection or clearTargetServiceConnection has set it (after a clear, `none`). Absent for a database, and for an HTTP service whose credential was only set in the console, whose own edits do not record it."
           },
           "snapshotCovered": {
             "type": "boolean",

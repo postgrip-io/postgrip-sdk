@@ -6,6 +6,8 @@ import {
   referenceFor,
   type OpenAPIRequestBody,
   type OpenAPIComponents,
+  type OpenAPITargetServiceHTTPAuth,
+  type OpenAPITargetServiceHTTPCredential,
   type GetServiceRepositoryResponseBody,
   type GetServiceEnvironmentResponseBody,
 } from '../../src/service/index.js';
@@ -404,6 +406,34 @@ describe('ServiceClient', () => {
         expectedCollectionVersion: 7,
       }],
     }, { idempotencyKey: 'apply-1' });
+  });
+
+  it('sends a target connection http credential as given', async () => {
+    expectTypeOf<OpenAPIRequestBody<'putTargetServiceConnection'>['password']>()
+      .toEqualTypeOf<string | undefined>();
+    expectTypeOf<NonNullable<OpenAPIRequestBody<'putTargetServiceConnection'>['http']>['scheme']>()
+      .toEqualTypeOf<'none' | 'basic' | 'bearer' | 'api_key'>();
+    expectTypeOf<NonNullable<OpenAPIComponents['ServiceTarget']['httpAuth']>>()
+      .toEqualTypeOf<OpenAPITargetServiceHTTPAuth>();
+    expectTypeOf<OpenAPIComponents['ServiceOperationResponse']['httpStatus']>()
+      .toEqualTypeOf<number | undefined>();
+    const bodies: unknown[] = [];
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(new URL(String(input)).pathname).toBe('/api/v1/services/target/target-1/connection');
+      expect(init?.method).toBe('PUT');
+      const headers = new Headers(init?.headers);
+      expect(headers.get('Idempotency-Key')).toBe('connection-1');
+      expect(headers.get('If-Match')).toBe('"target:3"');
+      bodies.push(JSON.parse(String(init?.body)));
+      return Response.json({ target: { httpAuth: { scheme: 'basic', username: 'reader' } } });
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+    const write = { idempotencyKey: 'connection-1', ifMatch: '"target:3"' };
+    const http: OpenAPITargetServiceHTTPCredential = { scheme: 'basic', username: 'reader', password: 'secret' };
+    const response = await api.administration.targets.putConnection('target-1', { http }, write);
+    expect(response.target.httpAuth).toEqual({ scheme: 'basic', username: 'reader' });
+    await api.administration.targets.putConnection('target-1', { password: 'database-secret' }, write);
+    expect(bodies).toEqual([{ http: { scheme: 'basic', username: 'reader', password: 'secret' } }, { password: 'database-secret' }]);
   });
 
   it('rejects malformed administration fences before fetching', async () => {
