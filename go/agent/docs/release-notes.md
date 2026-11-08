@@ -8,6 +8,26 @@ nav_order: 7
 
 ## Unreleased
 
+- Service contract bundle `33186029…`: `ProjectsClient.RotateToken`
+  (`rotateServiceToken`, `services:admin`) makes a new `pgsvc_` bearer token
+  for a ZVEC, LadybugDB or NodeDB service, stores it as its production
+  environment's secret variable `POSTGRIP_SERVICE_AUTH_TOKEN`, and PostGrip
+  redeploys the environment's latest deployment once the configuration
+  operation has stored it, even if the caller has gone away. It takes an
+  `OpenAPIRotateServiceTokenRequestBody` (an optional `EnvironmentId`) and
+  `WriteOptions`: `IdempotencyKey` is required and validated before any
+  request; `IfMatch`, the token variable's ETag from
+  `ServiceVariablesClient.List`, is optional and is sent only when set.
+  The token is shown once: the `202` answer
+  (`OpenAPIServiceTokenRotationResponse`) sets `Token` only the first time.
+  A replay of the same key answers `Token` nil with `Receipt.Replayed`, and
+  PostGrip keeps no copy, so a lost answer is not recoverable from a retry:
+  rotate again with a new key. `ProjectsClient.TokenRotation`
+  (`getServiceTokenRotation`, `services:config:read`) reads the rotation
+  (`OpenAPIServiceTokenRotation`: `State`, `ConfigurationOperationId`,
+  `DeploymentId`, `ErrorCode`) and never answers the token. The
+  `createManagedTargetService` description now says a resend continues the
+  create within 24 hours.
 - Service contract bundle `9b165921…`: `TargetServicesClient.CreateManaged`
   (`createManagedTargetService`, `services:admin`) creates a worker-managed
   PostgreSQL or SQLite on a Worker from an

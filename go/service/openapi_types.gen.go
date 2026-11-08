@@ -1158,6 +1158,31 @@ type OpenAPIServiceVariableMutationResponse struct {
 	ConfigurationOperationId string                  `json:"configurationOperationId"`
 	Receipt                  OpenAPIOperationReceipt `json:"receipt"`
 }
+type OpenAPIServiceTokenRotateRequest struct {
+	EnvironmentId *string `json:"environmentId,omitempty"`
+}
+type OpenAPIServiceTokenRotation struct {
+	Id                          string     `json:"id"`
+	ServiceId                   string     `json:"serviceId"`
+	EnvironmentId               string     `json:"environmentId"`
+	VariableId                  string     `json:"variableId"`
+	ConfigurationOperationId    string     `json:"configurationOperationId"`
+	ConfigurationOperationState string     `json:"configurationOperationState"`
+	State                       string     `json:"state"`
+	ExpectedLatestDeploymentId  *string    `json:"expectedLatestDeploymentId"`
+	DeploymentId                *string    `json:"deploymentId"`
+	ErrorCode                   *string    `json:"errorCode"`
+	AttemptCount                int64      `json:"attemptCount"`
+	CreatedAt                   time.Time  `json:"createdAt"`
+	UpdatedAt                   time.Time  `json:"updatedAt"`
+	CompletedAt                 *time.Time `json:"completedAt"`
+}
+type OpenAPIServiceTokenRotationResponse struct {
+	Token    *string                     `json:"token"`
+	Rotation OpenAPIServiceTokenRotation `json:"rotation"`
+	Variable OpenAPIServiceVariable      `json:"variable"`
+	Receipt  OpenAPIOperationReceipt     `json:"receipt"`
+}
 type OpenAPIServiceRepositoryMutationResponse struct {
 	Repository               OpenAPIServiceRepository `json:"repository"`
 	Effect                   string                   `json:"effect"`
@@ -2136,6 +2161,8 @@ type OpenAPIGetServiceRuntimeLogSettingsRequestBody = OpenAPINoBody
 type OpenAPIGetServiceRuntimeLogSettingsResponseBody = OpenAPIServiceRuntimeLogStatus
 type OpenAPIGetServiceStatusRequestBody = OpenAPINoBody
 type OpenAPIGetServiceStatusResponseBody = OpenAPIServiceStatus
+type OpenAPIGetServiceTokenRotationRequestBody = OpenAPINoBody
+type OpenAPIGetServiceTokenRotationResponseBody = OpenAPIServiceTokenRotation
 type OpenAPIGetServiceTrafficReportRequestBody = OpenAPINoBody
 type OpenAPIGetServiceTrafficReportResponseBody = OpenAPIServiceTrafficReportFanout
 type OpenAPIGetServiceTrafficStatusRequestBody = OpenAPINoBody
@@ -2234,6 +2261,8 @@ type OpenAPIReviseRecoveryMoveVolumeRequestBody = OpenAPIReviseRecoveryMoveVolum
 type OpenAPIReviseRecoveryMoveVolumeResponseBody = OpenAPIServiceRecoveryMoveRevisionResponse
 type OpenAPIRollbackServiceDeploymentRequestBody = OpenAPINoBody
 type OpenAPIRollbackServiceDeploymentResponseBody = OpenAPIDeploymentOperationResponse
+type OpenAPIRotateServiceTokenRequestBody = OpenAPIServiceTokenRotateRequest
+type OpenAPIRotateServiceTokenResponseBody = OpenAPIServiceTokenRotationResponse
 type OpenAPIStartServiceRuntimeRequestBody = OpenAPIRuntimeOperationRequest
 type OpenAPIStartServiceRuntimeResponseBody = OpenAPIServiceOperationResponse
 type OpenAPIStopServiceRuntimeRequestBody = OpenAPIRuntimeOperationRequest
@@ -2496,6 +2525,9 @@ type ServiceVolumeMutationResponse = OpenAPIServiceVolumeMutationResponse
 type ServiceVolumeBindingMutationResponse = OpenAPIServiceVolumeBindingMutationResponse
 type ServiceDomainMutationResponse = OpenAPIServiceDomainMutationResponse
 type ServiceVariableMutationResponse = OpenAPIServiceVariableMutationResponse
+type ServiceTokenRotateRequest = OpenAPIServiceTokenRotateRequest
+type ServiceTokenRotation = OpenAPIServiceTokenRotation
+type ServiceTokenRotationResponse = OpenAPIServiceTokenRotationResponse
 type ServiceRepositoryMutationResponse = OpenAPIServiceRepositoryMutationResponse
 type ServiceDeletionResponse = OpenAPIServiceDeletionResponse
 type ServiceRuntimeLogMutationResponse = OpenAPIServiceRuntimeLogMutationResponse
@@ -2580,4 +2612,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "5120be17f89162a536c3c0bf8f9cf859862a0187d5c8616d393b4d3fdca7cf12"
+const openAPITypesSpecSHA256 = "3ffe1dba1a0a20681bb8b128b80440382e39773d4f324d54e3326c9642b366d8"

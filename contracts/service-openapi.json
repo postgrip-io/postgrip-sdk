@@ -2410,7 +2410,7 @@
           "Administration"
         ],
         "summary": "Create Managed Target Service",
-        "description": "Creates a worker-managed PostgreSQL or SQLite database on the Worker `workerId`, as the console's **+ Add Service** → **PostgreSQL** or **SQLite** → **Add (worker-managed)** does: the Worker creates a Docker volume from `volumeName` and starts the database's container on it. For `postgresql`, `imageRef` is an image from `listServicePostgreSQLImages` for the Worker's architecture, and the Worker generates the database password, which never leaves it: there is no password to send, and `putTargetServiceConnection` is not needed. The answer comes once the Worker has created the database and, for PostgreSQL, the database answers; the first create on a Worker can take a few minutes while it pulls the image. If the Worker has not answered by then, the answer is `409` `IDEMPOTENCY_IN_PROGRESS` (or `SERVICE_CREATION_PENDING`) and the key is not kept: send the same request with the same Idempotency-Key, which continues the same create and never creates a second database, within 23 hours. Follow it with `getServiceStatus` or `checkService`. Remove it with `detachTargetService` (`dataDisposition`).",
+        "description": "Creates a worker-managed PostgreSQL or SQLite database on the Worker `workerId`, as the console's **+ Add Service** → **PostgreSQL** or **SQLite** → **Add (worker-managed)** does: the Worker creates a Docker volume from `volumeName` and starts the database's container on it. For `postgresql`, `imageRef` is an image from `listServicePostgreSQLImages` for the Worker's architecture, and the Worker generates the database password, which never leaves it: there is no password to send, and `putTargetServiceConnection` is not needed. The answer comes once the Worker has created the database and, for PostgreSQL, the database answers; the first create on a Worker can take a few minutes while it pulls the image. If the Worker has not answered by then, the answer is `409` `IDEMPOTENCY_IN_PROGRESS` (or `SERVICE_CREATION_PENDING`) and the key is not kept: send the same request with the same Idempotency-Key, which continues the same create and never creates a second database, within 24 hours. Follow it with `getServiceStatus` or `checkService`. Remove it with `detachTargetService` (`dataDisposition`).",
         "x-postgrip-sdk-generate": true,
         "x-postgrip-auth-lane": "service-management",
         "x-postgrip-required-scopes": [
@@ -5420,6 +5420,197 @@
         "x-postgrip-retry": "bounded"
       }
     },
+    "/api/v1/services/project/{serviceId}/token/rotate": {
+      "post": {
+        "operationId": "rotateServiceToken",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Rotate a service token",
+        "description": "Makes a new bearer token for a ZVEC, LadybugDB or NodeDB service and stores it as its production environment's secret variable `POSTGRIP_SERVICE_AUTH_TOKEN`, creating the variable, or making it secret, when needed. The token is `pgsvc_` followed by 43 base64url characters, the console's format. Storing it queues one configuration operation for the environment's Worker, `configurationOperationId`, as putServiceVariableValue does. Once that operation has succeeded, PostGrip redeploys the environment's latest deployment, fenced on it, even if the caller has gone away: follow `rotation.state` with getServiceTokenRotation. The old token keeps working until that redeployment is ready. The token is only in this answer. A replay of the same Idempotency-Key answers the same rotation with `token` `null`: PostGrip keeps no copy it can show, so if the first answer was lost, rotate again with a new key. Without `If-Match` the rotation replaces whatever token the environment has; with it, it must be the `etag` of the environment's `POSTGRIP_SERVICE_AUTH_TOKEN` variable, as listServiceVariables answers it.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "description": "Optional: the `etag` of the environment's `POSTGRIP_SERVICE_AUTH_TOKEN` variable, as listServiceVariables answers it. The token is replaced only while the variable still has that ETag.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceTokenRotateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted: the token is stored once the configuration operation succeeds, and the redeploy follows. `token` is set only in this answer; a replay answers `null`.",
+            "headers": {
+              "ETag": {
+                "description": "The token variable's ETag after the rotation.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "`no-store`: the answer carries a credential.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTokenRotationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. `SERVICE_NOT_FOUND`: `serviceId` or `environmentId` is not a UUID, or names no service or environment of the tenant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SERVICE_OPERATION_NOT_SUPPORTED`: the service is not a ZVEC, LadybugDB or NodeDB service, whose runtime reads the token, or `environmentId` names an environment that is not `production`. `SERVICE_ENVIRONMENT_REQUIRED`: without `environmentId`, the service has no production environment or more than one. `SERVICE_STATE_CHANGED`: the environment has no assigned Worker. `WORKER_UPGRADE_REQUIRED` (`details.workerId`, `details.requiredCapability`): the Worker must be upgraded first; this refusal is not stored against the Idempotency-Key. `IDEMPOTENCY_CONFLICT` and `IDEMPOTENCY_IN_PROGRESS` also use this status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition failed. `PRECONDITION_FAILED`: `If-Match` is not the token variable's current `etag` (`details.currentVersion`), or the environment has no `POSTGRIP_SERVICE_AUTH_TOKEN` variable to match (`details.currentVersion` `0`). Nothing changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable. Nothing changed. `AUDIT_UNAVAILABLE`: the rotation could not be recorded for audit. `TOKEN_GENERATION_FAILED`: no random token could be made. `CONFIGURATION_UNAVAILABLE`: the configuration store is unavailable. `IDEMPOTENCY_UNAVAILABLE` with the message that the operation completed but its replay result could not be stored means the rotation ran and its token is lost: rotate again with a new key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/project/{serviceId}/token/rotations/{rotationId}": {
+      "get": {
+        "operationId": "getServiceTokenRotation",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Get a service token rotation",
+        "description": "Reads a rotation that rotateServiceToken started, and how its redeploy went. It never answers the token.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:config:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId"
+          },
+          {
+            "$ref": "#/components/parameters/TokenRotationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceTokenRotation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. `SERVICE_NOT_FOUND`: `serviceId` or `rotationId` is not a UUID, or names no rotation of the tenant's service.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded"
+      }
+    },
     "/api/v1/services/integrations/github/accounts": {
       "get": {
         "operationId": "listServiceGitHubAccounts",
@@ -8368,6 +8559,15 @@
       },
       "VariableId": {
         "name": "variableId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "TokenRotationId": {
+        "name": "rotationId",
         "in": "path",
         "required": true,
         "schema": {
@@ -13724,6 +13924,172 @@
           "configurationOperationId": {
             "type": "string",
             "format": "uuid"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt"
+          }
+        }
+      },
+      "ServiceTokenRotateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "environmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The production environment whose token to rotate. Without it, the service's only production environment."
+          }
+        }
+      },
+      "ServiceTokenRotation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "serviceId",
+          "environmentId",
+          "variableId",
+          "configurationOperationId",
+          "configurationOperationState",
+          "state",
+          "expectedLatestDeploymentId",
+          "deploymentId",
+          "errorCode",
+          "attemptCount",
+          "createdAt",
+          "updatedAt",
+          "completedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "variableId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The environment's `POSTGRIP_SERVICE_AUTH_TOKEN` variable."
+          },
+          "configurationOperationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The configuration operation that stores the token on the Worker; follow it with getServiceConfigurationOperation."
+          },
+          "configurationOperationState": {
+            "type": "string",
+            "description": "That operation's state when the rotation was read."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "configuring",
+              "redeploying",
+              "redeployed",
+              "deployed_since",
+              "not_needed",
+              "replaced",
+              "redeploy_failed",
+              "stopped"
+            ],
+            "description": "`configuring`: the operation has not succeeded yet. `redeploying`: the token is stored and the redeploy is being queued; `errorCode` says why the last attempt waited. `redeployed`: the redeploy was queued as `deploymentId`. `deployed_since`: `deploymentId`, created after the token was stored, already uses it, so nothing was redeployed. `not_needed`: the environment has no deployment yet; its first one uses the token. `replaced`: a later write of the token variable replaced this token, so nothing was redeployed for it. `redeploy_failed`: the redeploy could not be queued (`errorCode`); the token is stored, so redeploy with redeployService once the cause is fixed. `stopped`: the operation ended `blocked`, `abandoned` or `superseded`, so the token may not be stored and nothing is redeployed; rotate again with a new key."
+          },
+          "expectedLatestDeploymentId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The deployment the redeploy is fenced on, once the token is stored: it is redeployed only while it is still the environment's latest."
+          },
+          "deploymentId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The redeployment, or for `deployed_since` the newer deployment that uses the token."
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the redeploy waits or failed: `SERVICE_STATE_CHANGED` (another deployment of the environment is in progress), `REPOSITORY_CREDENTIAL_DELIVERY_PENDING`, `NO_COMPATIBLE_WORKER`, `WORKER_UPGRADE_REQUIRED`, `WRITE_OUTCOME_UNKNOWN`, `AUDIT_UNAVAILABLE` and `SERVICE_DEPLOY_FAILED` are retried for 24 hours after the token was stored; `SECRET_RESUBMISSION_REQUIRED`, `VARIABLES_UNRECONCILED`, `REPOSITORY_CREDENTIAL_UNAVAILABLE`, `GITHUB_INSTALLATION_REQUIRED`, `SERVICE_OPERATION_NOT_SUPPORTED` and `SERVICE_NOT_FOUND` end it at once. The codes are the ones redeployService answers."
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "description": "Redeploy attempts so far."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ServiceTokenRotationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "rotation",
+          "variable",
+          "receipt"
+        ],
+        "properties": {
+          "token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^pgsvc_[A-Za-z0-9_-]{43}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The new bearer token, in the first answer only. `null` in a replay of the same Idempotency-Key: the token was shown once and cannot be shown again."
+          },
+          "rotation": {
+            "$ref": "#/components/schemas/ServiceTokenRotation"
+          },
+          "variable": {
+            "$ref": "#/components/schemas/ServiceVariable"
           },
           "receipt": {
             "$ref": "#/components/schemas/OperationReceipt"

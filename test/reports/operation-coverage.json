@@ -1,5 +1,5 @@
 {
-  "contractBundleDigest": "9b1659218aa56bbbf542bf55d9475c7cf16ae036b531c72c099adc738203d439",
+  "contractBundleDigest": "33186029f5e0ef1b7f6d4c7d1a8ac537828dcea67c8a0520ff273b2add082759",
   "operations": [
     {
       "curl": false,
@@ -1794,6 +1794,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "getServiceTokenRotation",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "getServiceTrafficReport",
       "plane": "service",
@@ -2627,6 +2644,23 @@
         "typescript",
         "python"
       ],
+      "liveTest": "pre-release",
+      "operationId": "rotateServiceToken",
+      "plane": "service",
+      "protocolException": false,
+      "protocolRunner": null,
+      "recordedRunner": "recorded-http",
+      "recordedTested": true,
+      "sdkGenerated": true
+    },
+    {
+      "curl": true,
+      "documented": true,
+      "generatedLanguages": [
+        "go",
+        "typescript",
+        "python"
+      ],
       "liveTest": "nightly",
       "operationId": "startServiceRuntime",
       "plane": "service",
@@ -3291,10 +3325,10 @@
       "recordedTested": 46
     },
     "service": {
-      "curl": 126,
-      "operations": 126,
+      "curl": 128,
+      "operations": 128,
       "protocolExceptions": 0,
-      "recordedTested": 126
+      "recordedTested": 128
     },
     "worker": {
       "curl": 21,
@@ -3305,14 +3339,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "curl": 184,
-    "documented": 193,
+    "curl": 186,
+    "documented": 195,
     "nightlyOwned": 138,
-    "operations": 193,
-    "preReleaseOwned": 53,
+    "operations": 195,
+    "preReleaseOwned": 55,
     "productionSmokeOwned": 2,
     "protocolExceptions": 9,
-    "recordedTested": 193,
-    "sdkGenerated": 193
+    "recordedTested": 195,
+    "sdkGenerated": 195
   }
 }

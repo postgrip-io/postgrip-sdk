@@ -1128,6 +1128,20 @@ func (p OpenAPIRollbackServiceDeploymentHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIRotateServiceTokenHeaders struct {
+	IdempotencyKey string
+	IfMatch        *string
+}
+
+func (p OpenAPIRotateServiceTokenHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	if p.IfMatch != nil {
+		values.Set("If-Match", fmt.Sprint(*p.IfMatch))
+	}
+	return values
+}
+
 type OpenAPIStartServiceRuntimeHeaders struct {
 	IdempotencyKey string
 }
@@ -1619,6 +1633,11 @@ func (c *OpenAPIClient) GetServiceStatus(ctx context.Context, source string, ser
 	err := c.executor.doOpenAPI(ctx, openAPIGetServiceStatus, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) GetServiceTokenRotation(ctx context.Context, serviceId string, rotationId string) (OpenAPIGetServiceTokenRotationResponseBody, error) {
+	var response OpenAPIGetServiceTokenRotationResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIGetServiceTokenRotation, map[string]string{"serviceId": serviceId, "rotationId": rotationId}, nil, nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) GetServiceTrafficReport(ctx context.Context, serviceId string, query OpenAPIGetServiceTrafficReportQuery) (OpenAPIGetServiceTrafficReportResponseBody, error) {
 	var response OpenAPIGetServiceTrafficReportResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIGetServiceTrafficReport, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
@@ -1864,6 +1883,11 @@ func (c *OpenAPIClient) RollbackServiceDeployment(ctx context.Context, serviceId
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRollbackServiceDeployment, map[string]string{"serviceId": serviceId, "deploymentId": deploymentId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) RotateServiceToken(ctx context.Context, serviceId string, headers OpenAPIRotateServiceTokenHeaders, body OpenAPIRotateServiceTokenRequestBody) (OpenAPIRotateServiceTokenResponseBody, error) {
+	var response OpenAPIRotateServiceTokenResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIRotateServiceToken, map[string]string{"serviceId": serviceId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) StartServiceRuntime(ctx context.Context, serviceId string, environmentId string, headers OpenAPIStartServiceRuntimeHeaders, body OpenAPIStartServiceRuntimeRequestBody) (OpenAPIStartServiceRuntimeResponseBody, error) {
 	var response OpenAPIStartServiceRuntimeResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIStartServiceRuntime, map[string]string{"serviceId": serviceId, "environmentId": environmentId}, nil, body, &response)
@@ -1957,6 +1981,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 126
+const OpenAPIClientOperationCount = 128
 
-const openAPIClientSpecSHA256 = "5120be17f89162a536c3c0bf8f9cf859862a0187d5c8616d393b4d3fdca7cf12"
+const openAPIClientSpecSHA256 = "3ffe1dba1a0a20681bb8b128b80440382e39773d4f324d54e3326c9642b366d8"

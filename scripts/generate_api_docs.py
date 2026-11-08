@@ -142,6 +142,8 @@ def sample(document: dict[str, Any], schema: Any, seen: frozenset[str] = frozens
         return "/data"
     if pattern in {"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$", "^[!-~]+$"}:
         return "recorded"
+    if pattern == "^pgsvc_[A-Za-z0-9_-]{43}$":
+        return "pgsvc_" + "recorded".ljust(43, "x")
     return "string".ljust(max(int(schema.get("minLength", 0)), 6), "x")
 
 

@@ -116,6 +116,15 @@ export interface AdministrationWriteOptions extends MutationOptions {
   readonly ifMatch: string;
 }
 
+/**
+ * Fences for `administration.projects.rotateToken`: the Idempotency-Key is
+ * required, and `ifMatch`, the `POSTGRIP_SERVICE_AUTH_TOKEN` variable's ETag
+ * from `administration.variables.list`, is optional.
+ */
+export interface ServiceTokenRotateOptions extends MutationOptions {
+  readonly ifMatch?: string;
+}
+
 export interface CheckServiceOptions extends MutationOptions {
   readonly environmentId?: string;
 }
@@ -202,6 +211,22 @@ export class ServiceClient {
         this.request('getServiceProjectRemovalImpact', { path: { serviceId }, signal: options.signal }),
       delete: (serviceId: string, body: OpenAPIRequestBody<'deleteServiceProject'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('deleteServiceProject', { path: { serviceId }, body, ...administrationWrite(options) }, true),
+      /**
+       * Makes a new bearer token for a ZVEC, LadybugDB or NodeDB service, stores it as its
+       * production environment's secret variable `POSTGRIP_SERVICE_AUTH_TOKEN`, and has
+       * PostGrip redeploy the environment once it is stored; follow `rotation.state` with
+       * `tokenRotation`. The token is shown once: `token` is set only in the first answer. A
+       * replay of the same Idempotency-Key answers `token: null` and PostGrip keeps no copy,
+       * so a lost answer is not recoverable from a retry; rotate again with a new key.
+       * Without `ifMatch` the rotation replaces whatever token the environment has.
+       */
+      rotateToken: (serviceId: string, body: OpenAPIRequestBody<'rotateServiceToken'> = {}, options: ServiceTokenRotateOptions) =>
+        this.administrationMutation('rotateServiceToken', {
+          path: { serviceId }, body, signal: options.signal, idempotencyKey: options.idempotencyKey, ifMatch: options.ifMatch,
+        }, options.ifMatch !== undefined),
+      /** Reads a rotation `rotateToken` started and how its redeploy went. It never answers the token. */
+      tokenRotation: (serviceId: string, rotationId: string, options: RequestOptions = {}) =>
+        this.request('getServiceTokenRotation', { path: { serviceId, rotationId }, signal: options.signal }),
     },
     environments: {
       get: (serviceId: string, environmentId: string, options: RequestOptions = {}) =>

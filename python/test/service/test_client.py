@@ -28,6 +28,8 @@ from postgrip.service.openapi import (
     OpenAPIServiceDNSPlan,
     OpenAPIServiceAutomaticDeploymentWiring,
     OpenAPICreateManagedTargetServiceRequest,
+    OpenAPIServiceTokenRotation,
+    OpenAPIServiceTokenRotationResponse,
     OpenAPICreateServiceEnvironmentRequest,
     OpenAPIPostGripConfigurationEnvironment,
     OpenAPIServiceEnvironmentPlacement,
@@ -499,7 +501,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 108)
+        self.assertEqual(len(exposed), 110)
 
         client.administration.target_services.attach_target_service(
             {
@@ -560,6 +562,59 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(urlparse(listing.full_url).query, "workerId=worker-1")
         self.assertIsNone(listing.get_header("If-match"))
 
+    def test_rotate_service_token_forwards_both_fences_and_shows_the_token_once(self) -> None:
+        self.assertNotIn("token", get_type_hints(OpenAPIServiceTokenRotation))
+        self.assertEqual(get_type_hints(OpenAPIServiceTokenRotationResponse)["token"], str | None)
+        token = "pgsvc_" + "a" * 43
+        rotation = {"id": "rotation-1", "state": "configuring", "configurationOperationId": "operation-1"}
+        variable = {"id": "variable-1", "name": "POSTGRIP_SERVICE_AUTH_TOKEN", "isSecret": True, "hasValue": True}
+        first = {
+            "token": token, "rotation": rotation, "variable": variable,
+            "receipt": {"requestId": "request-1", "auditRecorded": True, "replayed": False},
+        }
+        replay = {**first, "token": None, "receipt": {"requestId": "request-1", "auditRecorded": True, "replayed": True}}
+        read = {
+            **rotation, "serviceId": "project-1", "environmentId": "environment-1", "variableId": "variable-1",
+            "configurationOperationState": "succeeded", "state": "redeployed",
+            "expectedLatestDeploymentId": "deployment-1", "deploymentId": "deployment-2", "errorCode": None,
+            "attemptCount": 1, "createdAt": "2026-11-08T00:00:00Z", "updatedAt": "2026-11-08T00:00:10Z",
+            "completedAt": "2026-11-08T00:00:10Z",
+        }
+        opener = FakeOpener([first, replay, read])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgt_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        projects = client.administration.projects
+
+        rotated = projects.rotate_service_token(
+            "project-1", {"environmentId": "environment-1"},
+            idempotency_key="rotate-1", if_match='"variable:3"',
+        )
+        replayed = projects.rotate_service_token("project-1", {}, idempotency_key="rotate-1")
+        current = projects.get_service_token_rotation("project-1", "rotation-1")
+
+        self.assertEqual(rotated["token"], token)
+        self.assertIsNone(replayed["token"])
+        self.assertTrue(replayed["receipt"]["replayed"])
+        self.assertEqual(current["state"], "redeployed")
+        self.assertEqual(current["deploymentId"], "deployment-2")
+        rotate, resend, reading = opener.requests
+        self.assertEqual(rotate.method, "POST")
+        self.assertEqual(urlparse(rotate.full_url).path, "/api/v1/services/project/project-1/token/rotate")
+        self.assertEqual(rotate.get_header("Idempotency-key"), "rotate-1")
+        self.assertEqual(rotate.get_header("If-match"), '"variable:3"')
+        self.assertEqual(json.loads(rotate.data), {"environmentId": "environment-1"})
+        self.assertEqual(resend.get_header("Idempotency-key"), "rotate-1")
+        self.assertIsNone(resend.get_header("If-match"))
+        self.assertEqual(reading.method, "GET")
+        self.assertEqual(
+            urlparse(reading.full_url).path, "/api/v1/services/project/project-1/token/rotations/rotation-1",
+        )
+        self.assertIsNone(reading.get_header("Idempotency-key"))
+        with self.assertRaises(ValueError):
+            projects.rotate_service_token("project-1", {}, idempotency_key="rotate-2", if_match="")
+        self.assertEqual(len(opener.requests), 3)
+
     def test_put_target_service_connection_sends_the_http_credential_as_given(self) -> None:
         self.assertEqual(OpenAPITargetServiceConnectionRequest.__required_keys__, frozenset())
         self.assertEqual(
@@ -611,7 +666,7 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(response["catalogEtag"], '"service-catalog:7"')
 
     def test_every_administration_facade_executes_through_the_transport(self) -> None:
-        opener = FakeOpener([{} for _ in range(102)])
+        opener = FakeOpener([{} for _ in range(104)])
         client = ServiceClient(
             base_url="https://services.example.test", token="pgt_test-token", opener=opener,
         )  # type: ignore[arg-type]
@@ -639,7 +694,7 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 101)
+        self.assertEqual(len(opener.requests), 103)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
@@ -794,7 +849,7 @@ class ServiceClientTests(unittest.TestCase):
 
     def test_async_administration_facades_execute_through_the_transport(self) -> None:
         async def run() -> None:
-            opener = FakeOpener([{} for _ in range(102)])
+            opener = FakeOpener([{} for _ in range(104)])
             client = AsyncServiceClient(
                 base_url="https://services.example.test", token="pgt_test-token", opener=opener,
             )  # type: ignore[arg-type]
@@ -827,7 +882,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 101)
+            self.assertEqual(len(opener.requests), 103)
 
         asyncio.run(run())
 

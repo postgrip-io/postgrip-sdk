@@ -89,7 +89,7 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "projects": (
         "create_service_project", "update_service_project", "get_service_project_removal_impact",
-        "delete_service_project",
+        "delete_service_project", "rotate_service_token", "get_service_token_rotation",
     ),
     "environments": (
         "get_service_environment", "create_service_environment", "update_service_environment",

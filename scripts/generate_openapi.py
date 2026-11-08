@@ -59,7 +59,7 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     ),
     "Projects": (
         "createServiceProject", "updateServiceProject", "getServiceProjectRemovalImpact",
-        "deleteServiceProject",
+        "deleteServiceProject", "rotateServiceToken", "getServiceTokenRotation",
     ),
     "Environments": (
         "getServiceEnvironment", "createServiceEnvironment", "updateServiceEnvironment",

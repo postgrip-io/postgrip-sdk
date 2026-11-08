@@ -457,6 +457,11 @@
       "lifecycle": [],
       "summary": "Get last-known service and environment status"
     },
+    "getServiceTokenRotation": {
+      "behavior": "Reads a rotation that rotateServiceToken started: its configuration operation and that operation's state, the rotation's state (configuring, redeploying, redeployed, deployed_since, not_needed, replaced, redeploy_failed or stopped), the redeploy's fenced and resulting deployments, and errorCode. It never answers the token.",
+      "lifecycle": [],
+      "summary": "Get a service token rotation"
+    },
     "getServiceVolume": {
       "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/volumes/{volumeRef} behavior.",
       "lifecycle": [],
@@ -867,6 +872,15 @@
         "Use isolated fixtures and clean up recorded resource identifiers."
       ],
       "summary": "Retry Service Configuration Operation"
+    },
+    "rotateServiceToken": {
+      "behavior": "Makes a new pgsvc_ bearer token for a ZVEC, LadybugDB or NodeDB service, stores it as its production environment's secret variable POSTGRIP_SERVICE_AUTH_TOKEN through one configuration operation, and once that succeeds redeploys the environment's latest deployment, fenced on it, server-side. The 202 answer carries the token only the first time: a replay of the same Idempotency-Key answers token null, and PostGrip keeps no copy, so a lost answer is not recoverable by retrying; rotate again with a new key. The old token works until the redeployment is ready.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "If-Match: optional (the token variable's ETag from listServiceVariables).",
+        "Never log or record the token; use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Rotate a service token"
     },
     "rollbackServiceDeployment": {
       "behavior": "Uses the contract-defined POST /api/v1/services/project/{serviceId}/deployments/{deploymentId}/rollback behavior.",

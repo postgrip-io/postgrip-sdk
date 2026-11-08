@@ -294,6 +294,34 @@ func (c ProjectsClient) Delete(ctx context.Context, serviceID string, body OpenA
 	return c.client.OpenAPI().DeleteServiceProject(ctx, serviceID, OpenAPIDeleteServiceProjectHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
 }
 
+// RotateToken makes a new bearer token for a ZVEC, LadybugDB or NodeDB
+// service, stores it as its production environment's secret variable
+// POSTGRIP_SERVICE_AUTH_TOKEN, and has PostGrip redeploy the environment once
+// it is stored; follow Rotation.State with TokenRotation. The token is shown
+// once: Token is set only in the first answer. A replay of the same
+// IdempotencyKey answers Token nil and PostGrip keeps no copy, so a lost answer
+// is not recoverable from a retry; rotate again with a new key. IfMatch is
+// optional: when set, it must be the token variable's ETag from
+// ServiceVariablesClient.List, and an empty IfMatch replaces whatever token the
+// environment has.
+func (c ProjectsClient) RotateToken(ctx context.Context, serviceID string, body OpenAPIRotateServiceTokenRequestBody, options WriteOptions) (OpenAPIRotateServiceTokenResponseBody, error) {
+	if err := options.validate(options.IfMatch != ""); err != nil {
+		return OpenAPIRotateServiceTokenResponseBody{}, err
+	}
+	headers := OpenAPIRotateServiceTokenHeaders{IdempotencyKey: options.IdempotencyKey}
+	if options.IfMatch != "" {
+		ifMatch := options.IfMatch
+		headers.IfMatch = &ifMatch
+	}
+	return c.client.OpenAPI().RotateServiceToken(ctx, serviceID, headers, body)
+}
+
+// TokenRotation reads a rotation RotateToken started and how its redeploy
+// went. It never answers the token.
+func (c ProjectsClient) TokenRotation(ctx context.Context, serviceID, rotationID string) (OpenAPIGetServiceTokenRotationResponseBody, error) {
+	return c.client.OpenAPI().GetServiceTokenRotation(ctx, serviceID, rotationID)
+}
+
 func (c ServiceEnvironmentsClient) Get(ctx context.Context, projectID, environmentID string) (OpenAPIGetServiceEnvironmentResponseBody, error) {
 	return c.client.OpenAPI().GetServiceEnvironment(ctx, projectID, environmentID)
 }

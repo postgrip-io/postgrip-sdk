@@ -64,6 +64,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(projects.Update(ctx, "project-1", OpenAPIUpdateServiceProjectRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(projects.RemovalImpact(ctx, "project-1")))
 	mustServiceResult(t, serviceResultError(projects.Delete(ctx, "project-1", OpenAPIDeleteServiceProjectRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(projects.RotateToken(ctx, "project-1", OpenAPIRotateServiceTokenRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(projects.TokenRotation(ctx, "project-1", "rotation-1")))
 
 	environments := client.EnvironmentAdministration()
 	mustServiceResult(t, serviceResultError(environments.Get(ctx, "project-1", "environment-1")))
@@ -182,8 +184,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(traffic.Trim(ctx, "project-1", OpenAPITrimServiceTrafficQuery{}, mutation)))
 	mustServiceResult(t, serviceResultError(traffic.Flush(ctx, "project-1", OpenAPIFlushServiceTrafficQuery{}, mutation)))
 
-	if calls.Load() != 108 {
-		t.Fatalf("transport calls=%d, want 108", calls.Load())
+	if calls.Load() != 110 {
+		t.Fatalf("transport calls=%d, want 110", calls.Load())
 	}
 }
 
@@ -243,6 +245,70 @@ func TestEnvironmentAndDeploymentPagersPreserveOpaqueCursors(t *testing.T) {
 	deployments := client.ServiceDeployments(ref, OpenAPIListServiceDeploymentsQuery{})
 	if !deployments.Next(context.Background()) || !deployments.Next(context.Background()) || deployments.Next(context.Background()) || deployments.Err() != nil {
 		t.Fatalf("deployment pager err=%v", deployments.Err())
+	}
+}
+
+func TestProjectRotateTokenForwardsBothFencesAndShowsTheTokenOnce(t *testing.T) {
+	t.Parallel()
+	var requests atomic.Int32
+	var replay atomic.Bool
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodGet {
+			if r.URL.Path != "/api/v1/services/project/project-1/token/rotations/rotation-1" || r.Header.Get("Idempotency-Key") != "" || r.Header.Get("If-Match") != "" {
+				t.Errorf("read=%s %s fences=%q %q", r.Method, r.URL.Path, r.Header.Get("Idempotency-Key"), r.Header.Get("If-Match"))
+			}
+			_, _ = fmt.Fprint(w, `{"id":"rotation-1","serviceId":"project-1","environmentId":"environment-1","variableId":"variable-1","configurationOperationId":"operation-1","configurationOperationState":"succeeded","state":"redeployed","expectedLatestDeploymentId":"deployment-1","deploymentId":"deployment-2","errorCode":null,"attemptCount":1,"createdAt":"2026-11-08T00:00:00Z","updatedAt":"2026-11-08T00:00:10Z","completedAt":"2026-11-08T00:00:10Z"}`)
+			return
+		}
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/project/project-1/token/rotate" || r.Header.Get("Idempotency-Key") != "rotate-1" {
+			t.Errorf("request=%s %s key=%q", r.Method, r.URL.Path, r.Header.Get("Idempotency-Key"))
+		}
+		body, _ := io.ReadAll(r.Body)
+		token := `"pgsvc_` + strings.Repeat("a", 43) + `"`
+		if replay.Load() {
+			if r.Header.Get("If-Match") != "" || string(body) != `{}` {
+				t.Errorf("replay fences=%q body=%s", r.Header.Get("If-Match"), body)
+			}
+			token = "null"
+		} else if r.Header.Get("If-Match") != `"variable:3"` || string(body) != `{"environmentId":"environment-1"}` {
+			t.Errorf("If-Match=%q body=%s", r.Header.Get("If-Match"), body)
+		}
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = fmt.Fprintf(w, `{"token":%s,"rotation":{"id":"rotation-1","state":"configuring","configurationOperationId":"operation-1"},"variable":{"id":"variable-1","name":"POSTGRIP_SERVICE_AUTH_TOKEN","isSecret":true,"hasValue":true},"receipt":{"requestId":"request-1","auditRecorded":true,"replayed":%t}}`, token, replay.Load())
+	}), nil)
+	projects := client.Projects()
+	environmentID := "environment-1"
+	first, err := projects.RotateToken(context.Background(), "project-1", OpenAPIRotateServiceTokenRequestBody{EnvironmentId: &environmentID}, WriteOptions{IdempotencyKey: "rotate-1", IfMatch: `"variable:3"`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Token == nil || *first.Token != "pgsvc_"+strings.Repeat("a", 43) || first.Rotation.Id != "rotation-1" || !first.Variable.IsSecret {
+		t.Fatalf("first=%+v", first)
+	}
+	replay.Store(true)
+	replayed, err := projects.RotateToken(context.Background(), "project-1", OpenAPIRotateServiceTokenRequestBody{}, WriteOptions{IdempotencyKey: "rotate-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replayed.Token != nil || !replayed.Receipt.Replayed || replayed.Rotation.Id != "rotation-1" {
+		t.Fatalf("replay=%+v", replayed)
+	}
+	rotation, err := projects.TokenRotation(context.Background(), "project-1", "rotation-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rotation.State != "redeployed" || rotation.DeploymentId == nil || *rotation.DeploymentId != "deployment-2" || rotation.ErrorCode != nil {
+		t.Fatalf("rotation=%+v", rotation)
+	}
+	for _, options := range []WriteOptions{{}, {IdempotencyKey: "rotate-2", IfMatch: "\"variable:3\"\n"}} {
+		if _, err := projects.RotateToken(context.Background(), "project-1", OpenAPIRotateServiceTokenRequestBody{}, options); err == nil {
+			t.Fatalf("RotateToken(%+v) succeeded", options)
+		}
+	}
+	if requests.Load() != 3 {
+		t.Fatalf("requests=%d, want 3", requests.Load())
 	}
 }
 
