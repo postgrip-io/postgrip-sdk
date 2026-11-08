@@ -8,6 +8,12 @@ nav_order: 7
 
 ## Unreleased
 
+- `SandboxClient.WaitUntilRunning` reads a `failed` sandbox at the current
+  generation, as readiness already was and as the TypeScript client does: a
+  `failed` left over from the previous generation, as right after `Start` on a
+  failed sandbox, no longer ends the wait before the agent observes the
+  request.
+
 - Service contract bundle `818e166a…`: `OpenAPIServiceTarget` gains
   `VolumeName` and `ImageRef` (`*string`), which a worker-managed database's
   create set: the volume name, and for PostgreSQL the image. Both are nil for a

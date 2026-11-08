@@ -19,6 +19,7 @@ from ._sandbox_models import (  # noqa: F401 - re-exported public names
     SANDBOX_WORKSPACE_MAX_UPLOAD_BYTES,
     _require_sandbox_id,
     _require_workspace_id,
+    _sandbox_failed,
     sandbox_exec_exit_code,
     sandbox_is_ready,
     sandbox_relay_url,
@@ -185,7 +186,10 @@ class SandboxClient:
         state — "timed out" alone does not say whether the sandbox was still
         scheduling, mid-setup, or never picked up by an agent.
 
-        The agent may still retry a ``failed`` sandbox at the same generation,
+        Readiness and failure are both read at the current generation: a
+        ``failed`` left over from the previous generation, as after ``start`` on
+        a failed sandbox, keeps the wait going until the agent observes the
+        request. The agent may still retry a ``failed`` sandbox at the same generation,
         up to 5 attempts with backoff, so waiting again can succeed. When the
         request itself causes the failure, such as an image that cannot be
         pulled, delete the sandbox and create a corrected one.
@@ -197,7 +201,7 @@ class SandboxClient:
             last = record
             if sandbox_is_ready(record):
                 return record
-            if record.get("observedState") == "failed":
+            if _sandbox_failed(record):
                 detail = (
                     record.get("failureMessage")
                     or record.get("failureCode")

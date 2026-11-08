@@ -143,6 +143,31 @@ func TestWaitUntilRunningFailsFastOnFailure(t *testing.T) {
 	}
 }
 
+// A failed reading from the previous generation, as right after Start on a
+// failed sandbox, is not this request's failure: the wait keeps going.
+func TestWaitUntilRunningIgnoresAFailureFromThePreviousGeneration(t *testing.T) {
+	t.Parallel()
+	var calls int
+	c, _ := sandboxTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if calls == 1 {
+			_, _ = w.Write([]byte(`{"id":"sbx_1","observedState":"failed","failureMessage":"old","generation":3,"observedGeneration":2}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"id":"sbx_1","observedState":"running","generation":3,"observedGeneration":3}`))
+	})
+	got, err := c.Sandbox.WaitUntilRunning(context.Background(), "sbx_1", SandboxWaitOptions{
+		Timeout:      5 * time.Second,
+		PollInterval: time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("WaitUntilRunning: %v", err)
+	}
+	if !got.Ready() || calls != 2 {
+		t.Fatalf("got %+v after %d call(s); the stale failure should have been waited past", got, calls)
+	}
+}
+
 func TestWaitUntilRunningReportsTheLastObservedState(t *testing.T) {
 	t.Parallel()
 	c, _ := sandboxTestClient(t, func(w http.ResponseWriter, r *http.Request) {

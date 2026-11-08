@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `wait_until_running` reads a `failed` sandbox at the current generation, as
+  readiness already was and as the TypeScript client does: a `failed` left
+  over from the previous generation, as right after `start` on a failed
+  sandbox, no longer ends the wait before the agent observes the request.
+
 - Service contract bundle `818e166a…`: the generated `ServiceTarget` type
   gains `volumeName` and `imageRef`, which a worker-managed database's create
   set: the volume name, and for PostgreSQL the image. Both are absent for a

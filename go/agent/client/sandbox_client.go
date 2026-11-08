@@ -103,8 +103,8 @@ func (s *SandboxClient) CreateSession(ctx context.Context, sandboxID string, req
 // agent has not observed yet, so checking only the state can return a sandbox
 // that is about to stop.
 //
-// A sandbox that reaches `failed` returns immediately with its failure
-// message rather than burning the whole timeout. The agent may still retry it
+// A sandbox that reaches `failed` at the current generation returns
+// immediately with its failure message rather than burning the whole timeout. The agent may still retry it
 // at the same generation (up to 5 attempts, see SandboxObservedState), so
 // calling WaitUntilRunning again can succeed. When the request itself causes
 // the failure, such as an image that cannot be pulled, delete the sandbox and
@@ -152,7 +152,10 @@ func (s *SandboxClient) WaitUntilRunning(ctx context.Context, sandboxID string, 
 		if record.Ready() {
 			return record, nil
 		}
-		if record.ObservedState == SandboxObservedFailed {
+		// Failure, like readiness, is read at the current generation: a
+		// `failed` left over from the previous one, as right after Start on a
+		// failed sandbox, does not describe the request just issued.
+		if record.ObservedState == SandboxObservedFailed && record.ObservedGeneration >= record.Generation {
 			msg := record.FailureMessage
 			if msg == "" {
 				msg = string(record.FailureCode)
