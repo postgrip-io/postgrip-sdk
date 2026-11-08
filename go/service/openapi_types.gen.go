@@ -597,6 +597,8 @@ type OpenAPIServiceTarget struct {
 	DbUser              *string                       `json:"dbUser,omitempty"`
 	Ssl                 bool                          `json:"ssl"`
 	Managed             bool                          `json:"managed"`
+	VolumeName          *string                       `json:"volumeName,omitempty"`
+	ImageRef            *string                       `json:"imageRef,omitempty"`
 	HasConnectionSecret bool                          `json:"hasConnectionSecret"`
 	HttpAuth            *OpenAPITargetServiceHTTPAuth `json:"httpAuth,omitempty"`
 	SnapshotCovered     *bool                         `json:"snapshotCovered,omitempty"`
@@ -2612,4 +2614,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "3ffe1dba1a0a20681bb8b128b80440382e39773d4f324d54e3326c9642b366d8"
+const openAPITypesSpecSHA256 = "95872979a1e84bd2915f33ce6c2326aec2e0cf77ba2e474f65e08d619efbe439"
