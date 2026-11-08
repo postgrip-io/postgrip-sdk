@@ -85,6 +85,7 @@ _ADMINISTRATION_OPERATION_GROUPS: dict[str, tuple[str, ...]] = {
     "target_services": (
         "attach_target_service", "update_target_service", "get_target_service_removal_impact",
         "detach_target_service", "put_target_service_connection", "clear_target_service_connection",
+        "create_managed_target_service", "list_service_postgre_sql_images",
     ),
     "projects": (
         "create_service_project", "update_service_project", "get_service_project_removal_impact",

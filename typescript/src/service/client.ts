@@ -178,6 +178,10 @@ export class ServiceClient {
     targets: {
       attach: (body: OpenAPIRequestBody<'attachTargetService'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('attachTargetService', { body, ...administrationWrite(options) }, true),
+      createManaged: (body: OpenAPIRequestBody<'createManagedTargetService'>, options: AdministrationWriteOptions) =>
+        this.administrationMutation('createManagedTargetService', { body, ...administrationWrite(options) }, true),
+      listPostgreSQLImages: (query: OpenAPIQueryParameters<'listServicePostgreSQLImages'> = {}, options: RequestOptions = {}) =>
+        this.request('listServicePostgreSQLImages', { query, signal: options.signal }),
       update: (serviceId: string, body: OpenAPIRequestBody<'updateTargetService'>, options: AdministrationWriteOptions) =>
         this.administrationMutation('updateTargetService', { path: { serviceId }, body, ...administrationWrite(options) }, true),
       removalImpact: (serviceId: string, options: RequestOptions = {}) =>

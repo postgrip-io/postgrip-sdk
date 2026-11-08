@@ -221,6 +221,22 @@ func (c TargetServicesClient) Attach(ctx context.Context, body OpenAPIAttachTarg
 	return c.client.OpenAPI().AttachTargetService(ctx, OpenAPIAttachTargetServiceHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
 }
 
+// CreateManaged creates a worker-managed PostgreSQL or SQLite on a Worker. A
+// 201 means the Worker created the volume and container; the request carries
+// no password. IfMatch is the service catalog's ETag.
+func (c TargetServicesClient) CreateManaged(ctx context.Context, body OpenAPICreateManagedTargetServiceRequestBody, options WriteOptions) (OpenAPICreateManagedTargetServiceResponseBody, error) {
+	if err := options.validate(true); err != nil {
+		return OpenAPICreateManagedTargetServiceResponseBody{}, err
+	}
+	return c.client.OpenAPI().CreateManagedTargetService(ctx, OpenAPICreateManagedTargetServiceHeaders{IdempotencyKey: options.IdempotencyKey, IfMatch: options.IfMatch}, body)
+}
+
+// PostgreSQLImages lists the official PostgreSQL images CreateManaged accepts,
+// only those for the Worker's platform when the query names a WorkerId.
+func (c TargetServicesClient) PostgreSQLImages(ctx context.Context, query OpenAPIListServicePostgreSQLImagesQuery) (OpenAPIListServicePostgreSQLImagesResponseBody, error) {
+	return c.client.OpenAPI().ListServicePostgreSQLImages(ctx, query)
+}
+
 func (c TargetServicesClient) Update(ctx context.Context, serviceID string, body OpenAPIUpdateTargetServiceRequestBody, options WriteOptions) (OpenAPIUpdateTargetServiceResponseBody, error) {
 	if err := options.validate(true); err != nil {
 		return OpenAPIUpdateTargetServiceResponseBody{}, err

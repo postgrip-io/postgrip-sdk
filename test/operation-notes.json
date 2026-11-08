@@ -49,6 +49,15 @@
       ],
       "summary": "Attach Target Service"
     },
+    "createManagedTargetService": {
+      "behavior": "Creates a worker-managed PostgreSQL or SQLite through the console's keyed create: the Worker creates the volume and container and, for PostgreSQL, waits for the database before the 201 answers target, configurationRevision and receipt. The request carries no password; the Worker derives it and keeps it.",
+      "lifecycle": [
+        "Idempotency: required.",
+        "If-Match: required (the service catalog ETag).",
+        "Use isolated fixtures and clean up recorded resource identifiers."
+      ],
+      "summary": "Create Managed Target Service"
+    },
     "backfillSchedule": {
       "behavior": "Enqueues one task per scheduled instant between the requested start and end. A range that would exceed the server's per-request cap is rejected outright rather than silently truncated.",
       "lifecycle": [
@@ -578,6 +587,11 @@
       "behavior": "Uses the contract-defined GET /api/v1/services/{source}/{serviceId}/logs behavior.",
       "lifecycle": [],
       "summary": "List build or runtime logs"
+    },
+    "listServicePostgreSQLImages": {
+      "behavior": "Lists the official PostgreSQL images a managed create accepts; with workerId, only those whose architectures include that Worker's platform.",
+      "lifecycle": [],
+      "summary": "List PostgreSQL images"
     },
     "listServicePromotions": {
       "behavior": "Uses the contract-defined GET /api/v1/services/project/{serviceId}/promotions behavior.",

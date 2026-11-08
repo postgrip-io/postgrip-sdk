@@ -8,6 +8,23 @@ nav_order: 7
 
 ## Unreleased
 
+- Service contract bundle `9b165921…`: `TargetServicesClient.CreateManaged`
+  (`createManagedTargetService`, `services:admin`) creates a worker-managed
+  PostgreSQL or SQLite on a Worker from an
+  `OpenAPICreateManagedTargetServiceRequest` (`Kind`, `WorkerId`, `Name`,
+  `Slug`, `VolumeName`, an optional `AppId`, and for PostgreSQL `ImageRef` with
+  optional `DatabaseName`, `DbUser` and `Port`). It takes `WriteOptions`: the
+  `Idempotency-Key` and the service catalog's ETag as `If-Match` are both
+  required and validated before any request. There is no password field; the
+  Worker derives and keeps it. The `201` answer
+  (`OpenAPICreateManagedTargetServiceResponse`) carries `Target`,
+  `ConfigurationRevision` and `Receipt`: the volume and container exist and
+  there is no configuration operation to wait for. A resend with the same key
+  continues a create that did not finish. `TargetServicesClient.PostgreSQLImages`
+  (`listServicePostgreSQLImages`) answers the official image catalog
+  (`OpenAPIServicePostgreSQLImageCatalog`) `ImageRef` is chosen from, only the
+  images for one Worker's platform when `OpenAPIListServicePostgreSQLImagesQuery`
+  names its `WorkerId`.
 - Service contract bundle `bcc80411…`: an HTTP service (web, backend, ZVEC or
   LadybugDB) takes its credential through `putTargetServiceConnection`.
   `TargetServicesClient.PutConnection` keeps its signature; its body

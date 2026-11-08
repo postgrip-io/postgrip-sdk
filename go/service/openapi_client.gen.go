@@ -316,6 +316,18 @@ func (p OpenAPIListServiceLogsQuery) values() url.Values {
 	return values
 }
 
+type OpenAPIListServicePostgreSQLImagesQuery struct {
+	WorkerId *string
+}
+
+func (p OpenAPIListServicePostgreSQLImagesQuery) values() url.Values {
+	values := url.Values{}
+	if p.WorkerId != nil {
+		values.Set("workerId", fmt.Sprint(*p.WorkerId))
+	}
+	return values
+}
+
 type OpenAPIListServicePromotionsQuery struct {
 	Limit  *int64
 	Cursor *string
@@ -646,6 +658,18 @@ type OpenAPIConfirmRecoveryMoveVariablesHeaders struct {
 }
 
 func (p OpenAPIConfirmRecoveryMoveVariablesHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	values.Set("If-Match", fmt.Sprint(p.IfMatch))
+	return values
+}
+
+type OpenAPICreateManagedTargetServiceHeaders struct {
+	IdempotencyKey string
+	IfMatch        string
+}
+
+func (p OpenAPICreateManagedTargetServiceHeaders) values() http.Header {
 	values := http.Header{}
 	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
 	values.Set("If-Match", fmt.Sprint(p.IfMatch))
@@ -1375,6 +1399,11 @@ func (c *OpenAPIClient) ConfirmRecoveryMoveVariables(ctx context.Context, servic
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIConfirmRecoveryMoveVariables, map[string]string{"serviceId": serviceId, "environmentId": environmentId, "moveId": moveId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CreateManagedTargetService(ctx context.Context, headers OpenAPICreateManagedTargetServiceHeaders, body OpenAPICreateManagedTargetServiceRequestBody) (OpenAPICreateManagedTargetServiceResponseBody, error) {
+	var response OpenAPICreateManagedTargetServiceResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreateManagedTargetService, nil, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) CreatePostGripConfigurationPlan(ctx context.Context, stackKey string, headers OpenAPICreatePostGripConfigurationPlanHeaders, body OpenAPICreatePostGripConfigurationPlanRequestBody) (OpenAPICreatePostGripConfigurationPlanResponseBody, error) {
 	var response OpenAPICreatePostGripConfigurationPlanResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPICreatePostGripConfigurationPlan, map[string]string{"stackKey": stackKey}, nil, body, &response)
@@ -1675,6 +1704,11 @@ func (c *OpenAPIClient) ListServiceLogs(ctx context.Context, source string, serv
 	err := c.executor.doOpenAPI(ctx, openAPIListServiceLogs, map[string]string{"source": source, "serviceId": serviceId}, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) ListServicePostgreSQLImages(ctx context.Context, query OpenAPIListServicePostgreSQLImagesQuery) (OpenAPIListServicePostgreSQLImagesResponseBody, error) {
+	var response OpenAPIListServicePostgreSQLImagesResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIListServicePostgreSQLImages, nil, query.values(), nil, &response)
+	return response, err
+}
 func (c *OpenAPIClient) ListServicePromotions(ctx context.Context, serviceId string, query OpenAPIListServicePromotionsQuery) (OpenAPIListServicePromotionsResponseBody, error) {
 	var response OpenAPIListServicePromotionsResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIListServicePromotions, map[string]string{"serviceId": serviceId}, query.values(), nil, &response)
@@ -1923,6 +1957,6 @@ func (c *OpenAPIClient) VerifyServiceDomain(ctx context.Context, serviceId strin
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 124
+const OpenAPIClientOperationCount = 126
 
-const openAPIClientSpecSHA256 = "5e00de2583b47ec1ca6632b84307ff0529e13ad2f50d481ea2504de98fe5c12e"
+const openAPIClientSpecSHA256 = "5120be17f89162a536c3c0bf8f9cf859862a0187d5c8616d393b4d3fdca7cf12"
