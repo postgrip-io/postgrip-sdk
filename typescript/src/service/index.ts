@@ -22,6 +22,7 @@ export type {
   ServiceReference,
   ServiceRetryConfig,
   ServiceStatusOptions,
+  ServiceTokenRotateOptions,
 } from './client.js';
 export {
   OPENAPI_CLIENT_OPERATION_COUNT,
@@ -368,6 +369,9 @@ export type {
   OpenAPIServiceTargetMetadataRequest,
   OpenAPIServiceTargetMetadataUpdateRequest,
   OpenAPIServiceTargetMutationResponse,
+  OpenAPIServiceTokenRotateRequest,
+  OpenAPIServiceTokenRotation,
+  OpenAPIServiceTokenRotationResponse,
   OpenAPIServiceTrafficBreakdownItem,
   OpenAPIServiceTrafficMaintenanceFanout,
   OpenAPIServiceTrafficMaintenanceResult,

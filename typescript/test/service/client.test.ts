@@ -8,6 +8,8 @@ import {
   type OpenAPIComponents,
   type OpenAPITargetServiceHTTPAuth,
   type OpenAPICreateManagedTargetServiceRequest,
+  type OpenAPIServiceTokenRotation,
+  type OpenAPIServiceTokenRotationResponse,
   type OpenAPIServicePostgreSQLImageCatalog,
   type OpenAPITargetServiceHTTPCredential,
   type GetServiceRepositoryResponseBody,
@@ -353,7 +355,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 109 administration operations and sends concurrency fences', async () => {
+  it('groups all 111 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -365,7 +367,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(108);
+    expect(methodCount).toBe(110);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -481,6 +483,65 @@ describe('ServiceClient', () => {
     expect(requests).toHaveLength(2);
   });
 
+  it('rotates a service token with optional If-Match and shows the token only in the first answer', async () => {
+    expectTypeOf<OpenAPIServiceTokenRotationResponse['token']>().toEqualTypeOf<string | null>();
+    expectTypeOf<OpenAPIServiceTokenRotation>().not.toHaveProperty('token');
+    const token = `pgsvc_${'a'.repeat(43)}`;
+    const requests: { path: string; method?: string; headers: Headers; body?: unknown }[] = [];
+    let rotations = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      requests.push({
+        path: url.pathname, method: init?.method, headers: new Headers(init?.headers),
+        body: init?.body === undefined ? undefined : JSON.parse(String(init.body)),
+      });
+      if (init?.method === 'GET') {
+        return Response.json({
+          id: 'rotation-1', serviceId: 'project-1', environmentId: 'environment-1', variableId: 'variable-1',
+          configurationOperationId: 'operation-1', configurationOperationState: 'succeeded', state: 'redeployed',
+          expectedLatestDeploymentId: 'deployment-1', deploymentId: 'deployment-2', errorCode: null, attemptCount: 1,
+          createdAt: '2026-11-08T00:00:00Z', updatedAt: '2026-11-08T00:00:10Z', completedAt: '2026-11-08T00:00:10Z',
+        });
+      }
+      rotations += 1;
+      const replayed = rotations > 1;
+      return Response.json({
+        token: replayed ? null : token,
+        rotation: { id: 'rotation-1', state: 'configuring', configurationOperationId: 'operation-1' },
+        variable: { id: 'variable-1', name: 'POSTGRIP_SERVICE_AUTH_TOKEN', isSecret: true, hasValue: true },
+        receipt: { requestId: 'request-1', auditRecorded: true, replayed },
+      }, { status: 202 });
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+
+    const first = await api.administration.projects.rotateToken(
+      'project-1', { environmentId: 'environment-1' }, { idempotencyKey: 'rotate-1', ifMatch: '"variable:3"' },
+    );
+    expect(first.token).toBe(token);
+    const replay = await api.administration.projects.rotateToken('project-1', undefined, { idempotencyKey: 'rotate-1' });
+    expect(replay.token).toBeNull();
+    expect(replay.receipt.replayed).toBe(true);
+    const rotation = await api.administration.projects.tokenRotation('project-1', 'rotation-1');
+    expect(rotation.state).toBe('redeployed');
+    expect(rotation.deploymentId).toBe('deployment-2');
+
+    const [rotate, resend, read] = requests;
+    expect(rotate?.path).toBe('/api/v1/services/project/project-1/token/rotate');
+    expect(rotate?.method).toBe('POST');
+    expect(rotate?.headers.get('Idempotency-Key')).toBe('rotate-1');
+    expect(rotate?.headers.get('If-Match')).toBe('"variable:3"');
+    expect(rotate?.body).toEqual({ environmentId: 'environment-1' });
+    expect(resend?.headers.get('Idempotency-Key')).toBe('rotate-1');
+    expect(resend?.headers.get('If-Match')).toBeNull();
+    expect(resend?.body).toEqual({});
+    expect(read?.path).toBe('/api/v1/services/project/project-1/token/rotations/rotation-1');
+    expect(read?.headers.get('Idempotency-Key')).toBeNull();
+
+    expect(() => api.administration.projects.rotateToken('project-1', {}, { idempotencyKey: 'rotate-2', ifMatch: '' })).toThrow(/If-Match/);
+    expect(() => api.administration.projects.rotateToken('project-1', {}, { idempotencyKey: '' })).toThrow();
+    expect(requests).toHaveLength(3);
+  });
+
   it('rejects malformed administration fences before fetching', async () => {
     const fetchImpl = vi.fn() as unknown as typeof globalThis.fetch;
     const api = client(fetchImpl);
@@ -491,7 +552,7 @@ describe('ServiceClient', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('executes all 109 administration facades through the authenticated transport', async () => {
+  it('executes all 111 administration facades through the authenticated transport', async () => {
     let requestCount = 0;
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestCount += 1;
@@ -526,6 +587,8 @@ describe('ServiceClient', () => {
       () => admin.projects.update('project-1', body, write),
       () => admin.projects.removalImpact('project-1'),
       () => admin.projects.delete('project-1', body, write),
+      () => admin.projects.rotateToken('project-1', body, write),
+      () => admin.projects.tokenRotation('project-1', 'rotation-1'),
       () => admin.environments.get('project-1', 'environment-1'),
       () => admin.environments.create('project-1', body, write),
       () => admin.environments.update('project-1', 'environment-1', body, write),
@@ -620,7 +683,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(108);
+    expect(requestCount).toBe(110);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Service contract bundle `33186029…`: `projects.rotate_service_token`
+  (`rotateServiceToken`, `services:admin`) makes a new `pgsvc_` bearer token
+  for a ZVEC, LadybugDB or NodeDB service, stores it as its production
+  environment's secret variable `POSTGRIP_SERVICE_AUTH_TOKEN`, and PostGrip
+  redeploys the environment's latest deployment once the configuration
+  operation has stored it, even if the caller has gone away. The body
+  (`OpenAPIServiceTokenRotateRequest`) takes an optional `environmentId`;
+  `idempotency_key` is required and `if_match`, the token variable's ETag from
+  `variables.list_service_variables`, is optional. The token is shown once:
+  the `202` answer (`OpenAPIServiceTokenRotationResponse`) sets `token` only
+  the first time. A replay of the same key answers `token` `None` with
+  `receipt["replayed"]`, and PostGrip keeps no copy, so a lost answer is not
+  recoverable from a retry: rotate again with a new key.
+  `projects.get_service_token_rotation` (`getServiceTokenRotation`,
+  `services:config:read`) reads the rotation (`OpenAPIServiceTokenRotation`:
+  `state`, `configurationOperationId`, `deploymentId`, `errorCode`) and never
+  answers the token. Both are on `ServiceClient` and `AsyncServiceClient` and
+  in the generated administration protocols. The
+  `createManagedTargetService` description now says a resend continues the
+  create within 24 hours.
 - Service contract bundle `9b165921…`:
   `target_services.create_managed_target_service` (`createManagedTargetService`,
   `services:admin`) creates a worker-managed PostgreSQL or SQLite on a Worker

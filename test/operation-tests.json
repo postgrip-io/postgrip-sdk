@@ -596,6 +596,15 @@
       "plane": "service",
       "protocolException": null
     },
+    "getServiceTokenRotation": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/getServiceTokenRotation.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "getServiceVolume": {
       "cleanup": "none",
       "curlEligible": true,
@@ -1207,6 +1216,15 @@
       "curlEligible": true,
       "fixture": "service/retryServiceConfigurationOperation.json",
       "liveTest": "nightly",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "rotateServiceToken": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/rotateServiceToken.json",
+      "liveTest": "pre-release",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null

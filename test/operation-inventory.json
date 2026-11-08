@@ -1,8 +1,8 @@
 {
-  "contractBundleDigest": "9b1659218aa56bbbf542bf55d9475c7cf16ae036b531c72c099adc738203d439",
+  "contractBundleDigest": "33186029f5e0ef1b7f6d4c7d1a8ac537828dcea67c8a0520ff273b2add082759",
   "contractDigests": {
     "agent": "ff3811f5561777a76363ee2e5a49ba40bcaff6d6fdaf2d834862dd56b5d58f3f",
-    "service": "5120be17f89162a536c3c0bf8f9cf859862a0187d5c8616d393b4d3fdca7cf12",
+    "service": "3ffe1dba1a0a20681bb8b128b80440382e39773d4f324d54e3326c9642b366d8",
     "worker": "40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460"
   },
   "operations": [
@@ -3338,6 +3338,38 @@
       "idempotency": "none",
       "method": "GET",
       "operationClass": "tenant-api",
+      "operationId": "getServiceTokenRotation",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/token/rotations/{rotationId}",
+      "pathParameters": [
+        "serviceId",
+        "rotationId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "services:config:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTokenRotation",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
       "operationId": "getServiceTrafficReport",
       "pagination": "none",
       "path": "/api/v1/services/project/{serviceId}/traffic/report",
@@ -4887,6 +4919,39 @@
         "application/json"
       ],
       "responseSchema": "DeploymentOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "service-management",
+      "idempotency": "required",
+      "method": "POST",
+      "operationClass": "tenant-api",
+      "operationId": "rotateServiceToken",
+      "pagination": "none",
+      "path": "/api/v1/services/project/{serviceId}/token/rotate",
+      "pathParameters": [
+        "serviceId"
+      ],
+      "plane": "service",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "ServiceTokenRotateRequest",
+      "requiredScopes": [
+        [
+          "services:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "ServiceTokenRotationResponse",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null

@@ -177,7 +177,7 @@ cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
 assignments stay as they are. The nightly scenario covers 138 operations and
-the pre-release scenario 53, plus their fixture steps. DNS failover and plan
+the pre-release scenario 55, plus their fixture steps. DNS failover and plan
 rollback left the public API on 2026-10-18 (web
 `docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
 removed one nightly and three pre-release operations. Web's recovery move
@@ -228,6 +228,16 @@ stage organization's token, and one pre-release mutation,
 stage Worker that serves the v2 target lane, with the catalog's ETag as
 `If-Match`, and its cleanup detaches the target with its data removed; both
 scenarios must add their step before their workflows can pass again.
+Web's service token rotation (postgrip-io/postgrip-web#2539,
+`docs/design/service-token-rotation-design-20261108.md`) added two
+pre-release operations, `rotateServiceToken` and `getServiceTokenRotation`.
+The rotation replaces a running ZVEC, LadybugDB or NodeDB service's bearer
+token and redeploys its production environment, so it needs a disposable
+stage service of one of those kinds with a deployment, never a shared one.
+Its token is in the first answer only and must never reach the ledger or the
+report. The read targets the rotation that step recorded, so it follows it in
+the same scenario. The pre-release scenario must add both steps before
+`live-pre-release.yml` can pass again.
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager
