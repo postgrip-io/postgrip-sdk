@@ -364,6 +364,38 @@ type OpenAPIAttachTargetServiceRequest struct {
 	DatabaseName *string                             `json:"databaseName,omitempty"`
 	Metadata     OpenAPIServiceTargetMetadataRequest `json:"metadata"`
 }
+type OpenAPICreateManagedTargetServiceRequest struct {
+	Kind         string  `json:"kind"`
+	WorkerId     string  `json:"workerId"`
+	AppId        *string `json:"appId,omitempty"`
+	Name         string  `json:"name"`
+	Slug         string  `json:"slug"`
+	VolumeName   string  `json:"volumeName"`
+	ImageRef     *string `json:"imageRef,omitempty"`
+	DatabaseName *string `json:"databaseName,omitempty"`
+	DbUser       *string `json:"dbUser,omitempty"`
+	Port         *int64  `json:"port,omitempty"`
+}
+type OpenAPICreateManagedTargetServiceResponse struct {
+	Target                OpenAPIServiceTarget    `json:"target"`
+	ConfigurationRevision int64                   `json:"configurationRevision"`
+	Receipt               OpenAPIOperationReceipt `json:"receipt"`
+}
+type OpenAPIServicePostgreSQLImageCatalog struct {
+	Source    string                          `json:"source"`
+	FetchedAt time.Time                       `json:"fetchedAt"`
+	WorkerId  *string                         `json:"workerId,omitempty"`
+	Images    []OpenAPIServicePostgreSQLImage `json:"images"`
+}
+type OpenAPIServicePostgreSQLImage struct {
+	Image         string   `json:"image"`
+	Version       string   `json:"version"`
+	Major         int64    `json:"major"`
+	Variant       string   `json:"variant"`
+	BaseOs        string   `json:"baseOs"`
+	Architectures []string `json:"architectures"`
+	Prerelease    bool     `json:"prerelease"`
+}
 type OpenAPIUpdateTargetServiceRequest struct {
 	AppId        *string                                    `json:"appId,omitempty"`
 	ClearAppId   *bool                                      `json:"clearAppId,omitempty"`
@@ -2016,6 +2048,8 @@ type OpenAPIClearTargetServiceConnectionRequestBody = OpenAPINoBody
 type OpenAPIClearTargetServiceConnectionResponseBody = OpenAPIServiceTargetMutationResponse
 type OpenAPIConfirmRecoveryMoveVariablesRequestBody = OpenAPINoBody
 type OpenAPIConfirmRecoveryMoveVariablesResponseBody = OpenAPIServiceRecoveryMoveConfirmationResponse
+type OpenAPICreateManagedTargetServiceRequestBody = OpenAPICreateManagedTargetServiceRequest
+type OpenAPICreateManagedTargetServiceResponseBody = OpenAPICreateManagedTargetServiceResponse
 type OpenAPICreatePostGripConfigurationPlanRequestBody = OpenAPICreatePostGripConfigurationPlanRequest
 type OpenAPICreatePostGripConfigurationPlanResponseBody = OpenAPIPostGripConfigurationPlan
 type OpenAPICreateServiceAppRequestBody = OpenAPICreateServiceAppRequest
@@ -2136,6 +2170,8 @@ type OpenAPIListServiceGitHubBranchesRequestBody = OpenAPINoBody
 type OpenAPIListServiceGitHubBranchesResponseBody = []OpenAPIServiceGitHubBranch
 type OpenAPIListServiceLogsRequestBody = OpenAPINoBody
 type OpenAPIListServiceLogsResponseBody = OpenAPILogList
+type OpenAPIListServicePostgreSQLImagesRequestBody = OpenAPINoBody
+type OpenAPIListServicePostgreSQLImagesResponseBody = OpenAPIServicePostgreSQLImageCatalog
 type OpenAPIListServicePromotionsRequestBody = OpenAPINoBody
 type OpenAPIListServicePromotionsResponseBody = OpenAPIDeploymentList
 type OpenAPIListServiceReleaseGroupEventsRequestBody = OpenAPINoBody
@@ -2368,6 +2404,10 @@ type DeploymentOperationResponse = OpenAPIDeploymentOperationResponse
 type ServiceTargetMetadataRequest = OpenAPIServiceTargetMetadataRequest
 type ServiceTargetMetadataUpdateRequest = OpenAPIServiceTargetMetadataUpdateRequest
 type AttachTargetServiceRequest = OpenAPIAttachTargetServiceRequest
+type CreateManagedTargetServiceRequest = OpenAPICreateManagedTargetServiceRequest
+type CreateManagedTargetServiceResponse = OpenAPICreateManagedTargetServiceResponse
+type ServicePostgreSQLImageCatalog = OpenAPIServicePostgreSQLImageCatalog
+type ServicePostgreSQLImage = OpenAPIServicePostgreSQLImage
 type UpdateTargetServiceRequest = OpenAPIUpdateTargetServiceRequest
 type TargetServiceConnectionRequest = OpenAPITargetServiceConnectionRequest
 type TargetServiceHTTPCredential = OpenAPITargetServiceHTTPCredential
@@ -2540,4 +2580,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "5e00de2583b47ec1ca6632b84307ff0529e13ad2f50d481ea2504de98fe5c12e"
+const openAPITypesSpecSHA256 = "5120be17f89162a536c3c0bf8f9cf859862a0187d5c8616d393b4d3fdca7cf12"

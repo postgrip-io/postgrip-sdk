@@ -7,6 +7,8 @@ import {
   type OpenAPIRequestBody,
   type OpenAPIComponents,
   type OpenAPITargetServiceHTTPAuth,
+  type OpenAPICreateManagedTargetServiceRequest,
+  type OpenAPIServicePostgreSQLImageCatalog,
   type OpenAPITargetServiceHTTPCredential,
   type GetServiceRepositoryResponseBody,
   type GetServiceEnvironmentResponseBody,
@@ -351,7 +353,7 @@ describe('ServiceClient', () => {
     expect(index).toBe(expected.length);
   });
 
-  it('groups all 107 administration operations and sends concurrency fences', async () => {
+  it('groups all 109 administration operations and sends concurrency fences', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(new URL(String(input)).pathname).toBe('/api/v1/services/targets');
       expect(init?.method).toBe('POST');
@@ -363,7 +365,7 @@ describe('ServiceClient', () => {
     const api = client(fetchImpl);
     const methodCount = Object.values(api.administration)
       .reduce((count, group) => count + Object.keys(group).length, 0);
-    expect(methodCount).toBe(106);
+    expect(methodCount).toBe(108);
     await api.administration.targets.attach({
       workerId: '11111111-1111-4111-8111-111111111111',
       name: 'database',
@@ -436,6 +438,49 @@ describe('ServiceClient', () => {
     expect(bodies).toEqual([{ http: { scheme: 'basic', username: 'reader', password: 'secret' } }, { password: 'database-secret' }]);
   });
 
+  it('creates a managed target with both fences and lists PostgreSQL images', async () => {
+    expectTypeOf<OpenAPICreateManagedTargetServiceRequest['kind']>().toEqualTypeOf<'postgresql' | 'sqlite'>();
+    expectTypeOf<OpenAPICreateManagedTargetServiceRequest>().not.toHaveProperty('password');
+    const requests: { path: string; search: string; method?: string; headers: Headers; body?: unknown }[] = [];
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      requests.push({
+        path: url.pathname, search: url.search, method: init?.method, headers: new Headers(init?.headers),
+        body: init?.body === undefined ? undefined : JSON.parse(String(init.body)),
+      });
+      if (url.pathname.endsWith('/managed')) {
+        return Response.json({
+          target: { id: 'target-1', managed: true },
+          configurationRevision: 2,
+          receipt: { requestId: 'request-1', auditRecorded: true, replayed: false },
+        }, { status: 201 });
+      }
+      return Response.json({ source: 'official', fetchedAt: '2026-11-08T00:00:00Z', workerId: 'worker-1', images: [{ image: 'postgres:17.6-bookworm' }] });
+    }) as typeof globalThis.fetch;
+    const api = client(fetchImpl);
+    const body: OpenAPICreateManagedTargetServiceRequest = {
+      kind: 'postgresql', workerId: 'worker-1', name: 'db', slug: 'db', volumeName: 'db-data', imageRef: 'postgres:17.6-bookworm',
+    };
+    const created = await api.administration.targets.createManaged(body, { idempotencyKey: 'managed-1', ifMatch: '"service-catalog:4"' });
+    expect(created.target.id).toBe('target-1');
+    expect(created.configurationRevision).toBe(2);
+    const catalog: OpenAPIServicePostgreSQLImageCatalog = await api.administration.targets.listPostgreSQLImages({ workerId: 'worker-1' });
+    expect(catalog.images[0]?.image).toBe('postgres:17.6-bookworm');
+
+    const [create, listing] = requests;
+    expect(create?.path).toBe('/api/v1/services/targets/managed');
+    expect(create?.method).toBe('POST');
+    expect(create?.headers.get('Idempotency-Key')).toBe('managed-1');
+    expect(create?.headers.get('If-Match')).toBe('"service-catalog:4"');
+    expect(create?.body).toEqual(body);
+    expect(listing?.path).toBe('/api/v1/services/postgresql-images');
+    expect(listing?.search).toBe('?workerId=worker-1');
+    expect(listing?.headers.get('If-Match')).toBeNull();
+
+    expect(() => api.administration.targets.createManaged(body, { idempotencyKey: 'managed-1', ifMatch: '' })).toThrow(/If-Match/);
+    expect(requests).toHaveLength(2);
+  });
+
   it('rejects malformed administration fences before fetching', async () => {
     const fetchImpl = vi.fn() as unknown as typeof globalThis.fetch;
     const api = client(fetchImpl);
@@ -446,7 +491,7 @@ describe('ServiceClient', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('executes all 107 administration facades through the authenticated transport', async () => {
+  it('executes all 109 administration facades through the authenticated transport', async () => {
     let requestCount = 0;
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestCount += 1;
@@ -470,6 +515,8 @@ describe('ServiceClient', () => {
       () => admin.apps.update('app-1', body, write),
       () => admin.apps.delete('app-1', write),
       () => admin.targets.attach(body, write),
+      () => admin.targets.createManaged(body, write),
+      () => admin.targets.listPostgreSQLImages(),
       () => admin.targets.update('target-1', body, write),
       () => admin.targets.removalImpact('target-1'),
       () => admin.targets.detach('target-1', body, write),
@@ -573,7 +620,7 @@ describe('ServiceClient', () => {
     ];
 
     for (const invoke of calls) await invoke();
-    expect(requestCount).toBe(106);
+    expect(requestCount).toBe(108);
   });
 
   it('paginates environments and deployments and exercises the scoped facade', async () => {

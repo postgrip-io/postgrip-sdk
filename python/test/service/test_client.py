@@ -27,6 +27,7 @@ from postgrip.service.openapi import (
     OpenAPIServiceDNSCanonicalTarget,
     OpenAPIServiceDNSPlan,
     OpenAPIServiceAutomaticDeploymentWiring,
+    OpenAPICreateManagedTargetServiceRequest,
     OpenAPICreateServiceEnvironmentRequest,
     OpenAPIPostGripConfigurationEnvironment,
     OpenAPIServiceEnvironmentPlacement,
@@ -498,7 +499,7 @@ class ServiceClientTests(unittest.TestCase):
         }
         canonical = {operation.name.lower() for operation in OperationId} - phase_seven
         self.assertEqual(exposed, canonical)
-        self.assertEqual(len(exposed), 106)
+        self.assertEqual(len(exposed), 108)
 
         client.administration.target_services.attach_target_service(
             {
@@ -514,6 +515,50 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(urlparse(request.full_url).path, "/api/v1/services/targets")
         self.assertEqual(request.get_header("Idempotency-key"), "attach-1")
         self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
+
+    def test_create_managed_target_service_sends_both_fences_and_no_password(self) -> None:
+        self.assertNotIn("password", get_type_hints(OpenAPICreateManagedTargetServiceRequest))
+        self.assertEqual(
+            get_type_hints(OpenAPICreateManagedTargetServiceRequest)["kind"],
+            Literal["postgresql", "sqlite"],
+        )
+        created = {
+            "target": {"id": "target-1", "managed": True},
+            "configurationRevision": 2,
+            "receipt": {"requestId": "request-1", "auditRecorded": True, "replayed": False},
+        }
+        catalog = {"source": "official", "fetchedAt": "2026-11-08T00:00:00Z", "images": [{"image": "postgres:17.6-bookworm"}]}
+        opener = FakeOpener([created, catalog])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgt_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        targets = client.administration.target_services
+
+        response = targets.create_managed_target_service(
+            {
+                "kind": "postgresql", "workerId": "worker-1", "name": "db", "slug": "db",
+                "volumeName": "db-data", "imageRef": "postgres:17.6-bookworm",
+            },
+            idempotency_key="managed-1", if_match='"service-catalog:4"',
+        )
+        images = targets.list_service_postgre_sql_images(worker_id="worker-1")
+
+        self.assertEqual(response["target"]["id"], "target-1")
+        self.assertEqual(response["configurationRevision"], 2)
+        self.assertEqual(images["images"][0]["image"], "postgres:17.6-bookworm")
+        create, listing = opener.requests
+        self.assertEqual(create.method, "POST")
+        self.assertEqual(urlparse(create.full_url).path, "/api/v1/services/targets/managed")
+        self.assertEqual(create.get_header("Idempotency-key"), "managed-1")
+        self.assertEqual(create.get_header("If-match"), '"service-catalog:4"')
+        self.assertEqual(json.loads(create.data), {
+            "kind": "postgresql", "workerId": "worker-1", "name": "db", "slug": "db",
+            "volumeName": "db-data", "imageRef": "postgres:17.6-bookworm",
+        })
+        self.assertEqual(listing.method, "GET")
+        self.assertEqual(urlparse(listing.full_url).path, "/api/v1/services/postgresql-images")
+        self.assertEqual(urlparse(listing.full_url).query, "workerId=worker-1")
+        self.assertIsNone(listing.get_header("If-match"))
 
     def test_put_target_service_connection_sends_the_http_credential_as_given(self) -> None:
         self.assertEqual(OpenAPITargetServiceConnectionRequest.__required_keys__, frozenset())
@@ -566,7 +611,7 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(response["catalogEtag"], '"service-catalog:7"')
 
     def test_every_administration_facade_executes_through_the_transport(self) -> None:
-        opener = FakeOpener([{} for _ in range(100)])
+        opener = FakeOpener([{} for _ in range(102)])
         client = ServiceClient(
             base_url="https://services.example.test", token="pgt_test-token", opener=opener,
         )  # type: ignore[arg-type]
@@ -594,7 +639,7 @@ class ServiceClientTests(unittest.TestCase):
                 positional, keywords = self._administration_arguments(method)
                 method(*positional, **keywords)
 
-        self.assertEqual(len(opener.requests), 99)
+        self.assertEqual(len(opener.requests), 101)
         self.assertTrue(all(
             request.get_header("Authorization") == "Bearer pgt_test-token"
             for request in opener.requests
@@ -749,7 +794,7 @@ class ServiceClientTests(unittest.TestCase):
 
     def test_async_administration_facades_execute_through_the_transport(self) -> None:
         async def run() -> None:
-            opener = FakeOpener([{} for _ in range(100)])
+            opener = FakeOpener([{} for _ in range(102)])
             client = AsyncServiceClient(
                 base_url="https://services.example.test", token="pgt_test-token", opener=opener,
             )  # type: ignore[arg-type]
@@ -782,7 +827,7 @@ class ServiceClientTests(unittest.TestCase):
                     positional, keywords = self._administration_arguments(getattr(sync_group, name))
                     await getattr(async_group, name)(*positional, **keywords)
 
-            self.assertEqual(len(opener.requests), 99)
+            self.assertEqual(len(opener.requests), 101)
 
         asyncio.run(run())
 

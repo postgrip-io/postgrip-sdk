@@ -58,6 +58,15 @@
       "plane": "service",
       "protocolException": null
     },
+    "createManagedTargetService": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "service/createManagedTargetService.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
     "backfillSchedule": {
       "cleanup": "reverse-dependency",
       "curlEligible": true,
@@ -803,6 +812,15 @@
       "curlEligible": true,
       "fixture": "service/listServiceLogs.json",
       "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "service",
+      "protocolException": null
+    },
+    "listServicePostgreSQLImages": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "service/listServicePostgreSQLImages.json",
+      "liveTest": "nightly",
       "mockTest": "recorded-http",
       "plane": "service",
       "protocolException": null

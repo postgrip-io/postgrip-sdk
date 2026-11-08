@@ -51,6 +51,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 
 	targets := client.TargetServices()
 	mustServiceResult(t, serviceResultError(targets.Attach(ctx, OpenAPIAttachTargetServiceRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(targets.CreateManaged(ctx, OpenAPICreateManagedTargetServiceRequestBody{}, write)))
+	mustServiceResult(t, serviceResultError(targets.PostgreSQLImages(ctx, OpenAPIListServicePostgreSQLImagesQuery{})))
 	mustServiceResult(t, serviceResultError(targets.Update(ctx, "target-1", OpenAPIUpdateTargetServiceRequestBody{}, write)))
 	mustServiceResult(t, serviceResultError(targets.RemovalImpact(ctx, "target-1")))
 	mustServiceResult(t, serviceResultError(targets.Detach(ctx, "target-1", OpenAPIDetachTargetServiceRequestBody{}, write)))
@@ -180,8 +182,8 @@ func TestEveryAdministrationFacadeExecutesThroughTheTransport(t *testing.T) {
 	mustServiceResult(t, serviceResultError(traffic.Trim(ctx, "project-1", OpenAPITrimServiceTrafficQuery{}, mutation)))
 	mustServiceResult(t, serviceResultError(traffic.Flush(ctx, "project-1", OpenAPIFlushServiceTrafficQuery{}, mutation)))
 
-	if calls.Load() != 106 {
-		t.Fatalf("transport calls=%d, want 106", calls.Load())
+	if calls.Load() != 108 {
+		t.Fatalf("transport calls=%d, want 108", calls.Load())
 	}
 }
 
@@ -241,6 +243,60 @@ func TestEnvironmentAndDeploymentPagersPreserveOpaqueCursors(t *testing.T) {
 	deployments := client.ServiceDeployments(ref, OpenAPIListServiceDeploymentsQuery{})
 	if !deployments.Next(context.Background()) || !deployments.Next(context.Background()) || deployments.Next(context.Background()) || deployments.Err() != nil {
 		t.Fatalf("deployment pager err=%v", deployments.Err())
+	}
+}
+
+func TestTargetServiceCreateManagedSendsBothFencesAndNoPassword(t *testing.T) {
+	t.Parallel()
+	var got atomic.Value
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/targets/managed" {
+			t.Errorf("request=%s %s", r.Method, r.URL.Path)
+		}
+		if r.Header.Get("Idempotency-Key") != "managed-1" || r.Header.Get("If-Match") != `"catalog:4"` {
+			t.Errorf("fences=%q %q", r.Header.Get("Idempotency-Key"), r.Header.Get("If-Match"))
+		}
+		body, _ := io.ReadAll(r.Body)
+		got.Store(string(body))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = fmt.Fprint(w, `{"target":{"id":"target-1","managed":true},"configurationRevision":2,"receipt":{"requestId":"request-1","auditRecorded":true,"replayed":false}}`)
+	}), nil)
+	imageRef := "postgres:17.6-bookworm"
+	response, err := client.TargetServices().CreateManaged(context.Background(), OpenAPICreateManagedTargetServiceRequestBody{
+		Kind: "postgresql", WorkerId: "11111111-1111-4111-8111-111111111111", Name: "db", Slug: "db",
+		VolumeName: "db-data", ImageRef: &imageRef,
+	}, WriteOptions{IdempotencyKey: "managed-1", IfMatch: `"catalog:4"`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body := got.Load(); body != `{"kind":"postgresql","workerId":"11111111-1111-4111-8111-111111111111","name":"db","slug":"db","volumeName":"db-data","imageRef":"postgres:17.6-bookworm"}` {
+		t.Fatalf("body=%v", body)
+	}
+	if response.Target.Id != "target-1" || !response.Target.Managed || response.ConfigurationRevision != 2 || response.Receipt.RequestId != "request-1" {
+		t.Fatalf("response=%+v", response)
+	}
+	if _, err := client.TargetServices().CreateManaged(context.Background(), OpenAPICreateManagedTargetServiceRequestBody{Kind: "sqlite"}, WriteOptions{IdempotencyKey: "managed-1"}); err == nil {
+		t.Fatal("create without If-Match succeeded")
+	}
+}
+
+func TestTargetServicePostgreSQLImagesSendsTheWorker(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v1/services/postgresql-images" || r.URL.Query().Get("workerId") != "worker-1" {
+			t.Errorf("request=%s %s", r.Method, r.URL.String())
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"source":"official","fetchedAt":"2026-11-08T00:00:00Z","workerId":"worker-1","images":[{"image":"postgres:17.6-bookworm","version":"17.6","major":17}]}`)
+	}), nil)
+	workerID := "worker-1"
+	catalog, err := client.TargetServices().PostgreSQLImages(context.Background(), OpenAPIListServicePostgreSQLImagesQuery{WorkerId: &workerID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Images) != 1 || catalog.Images[0].Image != "postgres:17.6-bookworm" || catalog.Images[0].Major != 17 {
+		t.Fatalf("catalog=%+v", catalog)
 	}
 }
 

@@ -55,6 +55,7 @@ SERVICE_ADMINISTRATION_OPERATION_GROUPS = {
     "TargetServices": (
         "attachTargetService", "updateTargetService", "getTargetServiceRemovalImpact",
         "detachTargetService", "putTargetServiceConnection", "clearTargetServiceConnection",
+        "createManagedTargetService", "listServicePostgreSQLImages",
     ),
     "Projects": (
         "createServiceProject", "updateServiceProject", "getServiceProjectRemovalImpact",

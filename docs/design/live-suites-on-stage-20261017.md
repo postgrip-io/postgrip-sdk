@@ -176,8 +176,8 @@ resource can be declared transient: it records its identifier, needs no
 cleanup, and may be consumed by exactly one later protocol step that targets
 it. The ledger reports it as consumed or expired, never as remaining. It doesn't count toward coverage: the counted steps must still equal
 the tier's operations exactly once, so coverage is unchanged. Tier
-assignments stay as they are. The nightly scenario covers 137 operations and
-the pre-release scenario 52, plus their fixture steps. DNS failover and plan
+assignments stay as they are. The nightly scenario covers 138 operations and
+the pre-release scenario 53, plus their fixture steps. DNS failover and plan
 rollback left the public API on 2026-10-18 (web
 `docs/archive/20261018/dns-failover-rollback-removal-20261018.md`), which
 removed one nightly and three pre-release operations. Web's recovery move
@@ -220,6 +220,14 @@ The read needs a Worker the stage organization owns. The removal needs a
 disposable Worker with no managed volumes, which the pre-release scenario must
 create and then remove with the etag of its removal impact as `If-Match`;
 both scenarios must add their step before their workflows can pass again.
+Web's public managed database create (postgrip-io/postgrip-web#2538,
+`docs/design/public-managed-database-create-design-20261108.md`) added one
+nightly read, `listServicePostgreSQLImages`, which needs no fixture beyond the
+stage organization's token, and one pre-release mutation,
+`createManagedTargetService`. The create starts a container and a volume on a
+stage Worker that serves the v2 target lane, with the catalog's ETag as
+`If-Match`, and its cleanup detaches the target with its data removed; both
+scenarios must add their step before their workflows can pass again.
 
 `refreshAgentSession` (pre-release) rotates the Agent session's own tokens.
 It neither targets nor creates a recorded resource, which the fixture manager

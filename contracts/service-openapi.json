@@ -143,7 +143,7 @@
             "description": "Service application created",
             "headers": {
               "Service-Catalog-ETag": {
-                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key carries it too.",
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject`, `attachTargetService` or `createManagedTargetService`). A replay with the same Idempotency-Key carries it too.",
                 "schema": {
                   "type": "string"
                 }
@@ -271,7 +271,7 @@
             "description": "Service application updated",
             "headers": {
               "Service-Catalog-ETag": {
-                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key carries it too.",
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject`, `attachTargetService` or `createManagedTargetService`). A replay with the same Idempotency-Key carries it too.",
                 "schema": {
                   "type": "string"
                 }
@@ -331,7 +331,7 @@
             "description": "Service application deleted and attached services detached",
             "headers": {
               "Service-Catalog-ETag": {
-                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key carries it too.",
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject`, `attachTargetService` or `createManagedTargetService`). A replay with the same Idempotency-Key carries it too.",
                 "schema": {
                   "type": "string"
                 }
@@ -2354,7 +2354,7 @@
             "description": "Successful response",
             "headers": {
               "Service-Catalog-ETag": {
-                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key does not carry it; read the catalog ETag again before the next mutation.",
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject`, `attachTargetService` or `createManagedTargetService`). A replay with the same Idempotency-Key does not carry it; read the catalog ETag again before the next mutation.",
                 "schema": {
                   "type": "string"
                 }
@@ -2400,6 +2400,262 @@
         "x-postgrip-protocol": "http-json",
         "x-postgrip-pagination": "none",
         "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/targets/managed": {
+      "post": {
+        "operationId": "createManagedTargetService",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Create Managed Target Service",
+        "description": "Creates a worker-managed PostgreSQL or SQLite database on the Worker `workerId`, as the console's **+ Add Service** → **PostgreSQL** or **SQLite** → **Add (worker-managed)** does: the Worker creates a Docker volume from `volumeName` and starts the database's container on it. For `postgresql`, `imageRef` is an image from `listServicePostgreSQLImages` for the Worker's architecture, and the Worker generates the database password, which never leaves it: there is no password to send, and `putTargetServiceConnection` is not needed. The answer comes once the Worker has created the database and, for PostgreSQL, the database answers; the first create on a Worker can take a few minutes while it pulls the image. If the Worker has not answered by then, the answer is `409` `IDEMPOTENCY_IN_PROGRESS` (or `SERVICE_CREATION_PENDING`) and the key is not kept: send the same request with the same Idempotency-Key, which continues the same create and never creates a second database, within 23 hours. Follow it with `getServiceStatus` or `checkService`. Remove it with `detachTargetService` (`dataDisposition`).",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The database was created and is running on the Worker.",
+            "headers": {
+              "ETag": {
+                "description": "The service's configuration ETag, as `target.etag`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Service-Catalog-ETag": {
+                "description": "The tenant's service catalog ETag after the create. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject`, `attachTargetService` or `createManagedTargetService`). A replay with the same Idempotency-Key does not carry it; read the catalog ETag again before the next mutation.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateManagedTargetServiceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION`: a field breaks a rule of `CreateManagedTargetServiceRequest`, `imageRef` is not in the catalog or not for the Worker's architecture, or the Worker refused the settings; `message` names the field. `SQLITE_PATH_NOT_ALLOWED`: the Worker refused the SQLite database's path. `INVALID_BODY`: the body is not valid JSON, has a field the call does not accept or a value of the wrong type, or lacks `kind`, `workerId`, `name`, `slug` or `volumeName`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`INSUFFICIENT_SCOPE`: the token lacks `services:admin` (`details.requiredScope`). `FORBIDDEN`: the Worker's own policy refused to create the database; what it had created and the service are removed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: `workerId` is not a Worker of the organization, or it was removed or replaced. `SERVICE_NOT_FOUND`: `appId` is not an application of the organization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. `SERVICE_STATE_CHANGED`: a service with that `slug` already exists. `WORKER_REVOKED`: the Worker is revoked (`details.workerId`). `WORKER_UPGRADE_REQUIRED`: the Worker is too old to create a managed database; upgrade it. When the Worker read finds it (`details.requiredCapability`), this refusal is not kept under the Idempotency-Key, so a retry with the same key runs again; when the create itself finds it, it is kept: send a new key after the upgrade. `MANAGED_POSTGRES_ERROR`, `MANAGED_SQLITE_ERROR`, `TARGET_CONFLICT`, `WORKER_REFUSED`: the Worker could not create the database; what it had created and the service are removed. `TARGET_REMOVED`: the Worker was removed while the database was being created. `SERVICE_CREATION_PENDING`: something was sent to the Worker, which then stopped being live or must be upgraded; the create stays pending (`details.serviceId`, `details.cause`) and the key is not kept: resend with the same key once the Worker is back. `IDEMPOTENCY_IN_PROGRESS`: the create is still running, or the Worker has not answered yet (`Retry-After`); the key is not kept: resend with the same key. `IDEMPOTENCY_CONFLICT`: the key was used with a different request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "`CREATION_RESOURCE_DELETED`: the service was deleted while it was being created, or after; nothing is created again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "`PRECONDITION_FAILED`: `If-Match` is not the service catalog's current ETag (`details.currentVersion`). Read the catalog again (`listServices`, `catalogEtag`) and send a new key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "`PRECONDITION_REQUIRED`: the `If-Match` header is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`IMAGE_CATALOG_UNAVAILABLE`: the official PostgreSQL image catalog could not be read; retry. `WORKER_ERROR`: the Worker gave an answer PostGrip does not know.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManagedTargetServiceRequest"
+              }
+            }
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
+      }
+    },
+    "/api/v1/services/postgresql-images": {
+      "get": {
+        "operationId": "listServicePostgreSQLImages",
+        "tags": [
+          "Administration"
+        ],
+        "summary": "List PostgreSQL images",
+        "description": "Lists the official PostgreSQL images a worker-managed PostgreSQL can run: the catalog the console's **PostgreSQL Version** and **Base OS** fields choose from, read from the Docker official-images list and kept for a while. `createManagedTargetService` accepts an `image` from it. With `workerId`, only the images for that Worker's architecture are listed; a Worker that has not reported its platform gets every image.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "service-management",
+        "x-postgrip-required-scopes": [
+          [
+            "services:read"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workerId",
+            "in": "query",
+            "required": false,
+            "description": "A Worker of the organization: list only the images for its architecture.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The images",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServicePostgreSQLImageCatalog"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION`: `workerId` is not a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: `workerId` is not a Worker of the organization, or it was removed or replaced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`WORKER_REVOKED`: the Worker is revoked (`details.workerId`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`IMAGE_CATALOG_UNAVAILABLE`: the catalog could not be read; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "bounded"
       }
     },
@@ -2777,7 +3033,7 @@
             "description": "Successful response",
             "headers": {
               "Service-Catalog-ETag": {
-                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject` or `attachTargetService`). A replay with the same Idempotency-Key does not carry it; read the catalog ETag again before the next mutation.",
+                "description": "The tenant's service catalog ETag after this change. Send it as `If-Match` on the next catalog-fenced mutation (`createServiceApp`, `createServiceProject`, `attachTargetService` or `createManagedTargetService`). A replay with the same Idempotency-Key does not carry it; read the catalog ETag again before the next mutation.",
                 "schema": {
                   "type": "string"
                 }
@@ -9840,6 +10096,168 @@
           },
           "metadata": {
             "$ref": "#/components/schemas/ServiceTargetMetadataRequest"
+          }
+        }
+      },
+      "CreateManagedTargetServiceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "workerId",
+          "name",
+          "slug",
+          "volumeName"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "postgresql",
+              "sqlite"
+            ],
+            "description": "The database to create."
+          },
+          "workerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The Worker that runs the database. It must be live and serve the target operations of current Workers."
+          },
+          "appId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The application the service belongs to: a ServiceApp id, as listServiceApps lists them. The console calls an application a Project and always sets one."
+          },
+          "name": {
+            "type": "string",
+            "description": "The service's name (the console's **Name**)."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Names the service in URLs: lowercase letters, digits and single hyphens, not starting or ending with a hyphen, and unique among your services. It is used as sent."
+          },
+          "volumeName": {
+            "type": "string",
+            "description": "The console's **Logical Volume Name**: 2 to 128 characters, starting with a letter or digit, then letters, digits, periods, underscores and hyphens. The Worker derives the Docker volume's name from it, the service and the application. It cannot be changed later."
+          },
+          "imageRef": {
+            "type": "string",
+            "description": "`postgresql` only, and required for it: an `image` from `listServicePostgreSQLImages` for the Worker's architecture, such as `postgres:17-trixie`. Not accepted for `sqlite`."
+          },
+          "databaseName": {
+            "type": "string",
+            "description": "`postgresql` only: the database to create (the console's **Database**). Omitted, `app`. A PostgreSQL identifier of at most 63 characters: a letter or underscore, then letters, digits and underscores."
+          },
+          "dbUser": {
+            "type": "string",
+            "description": "`postgresql` only: the user to create, who owns the database (the console's **Username**). Omitted, `postgrip`. The same identifier rule as `databaseName`."
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "`postgresql` only: the port the database listens on inside its container (the console's **Port**). Omitted or `0`, `5432`. Nothing is published on the Worker's host."
+          }
+        }
+      },
+      "CreateManagedTargetServiceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "configurationRevision",
+          "receipt"
+        ],
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/ServiceTarget",
+            "description": "The service as it is after the create, with `managed` set."
+          },
+          "configurationRevision": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The service's configuration version."
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/OperationReceipt",
+            "description": "`replayed` is `true` when the answer is the stored one of an earlier request with the same Idempotency-Key."
+          }
+        }
+      },
+      "ServicePostgreSQLImageCatalog": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "fetchedAt",
+          "images"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Where the catalog was read from."
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was read."
+          },
+          "workerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The Worker the list was filtered for, when `workerId` was given."
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServicePostgreSQLImage"
+            }
+          }
+        }
+      },
+      "ServicePostgreSQLImage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "image",
+          "version",
+          "major",
+          "variant",
+          "baseOs",
+          "architectures",
+          "prerelease"
+        ],
+        "properties": {
+          "image": {
+            "type": "string",
+            "description": "The image to send as `imageRef`, such as `postgres:17-trixie`."
+          },
+          "version": {
+            "type": "string",
+            "description": "The PostgreSQL version of its tag (the console's **PostgreSQL Version**), such as `17` or `17.6`."
+          },
+          "major": {
+            "type": "integer",
+            "description": "The major version."
+          },
+          "variant": {
+            "type": "string",
+            "description": "The base OS part of its tag, such as `trixie` or `alpine3.23`."
+          },
+          "baseOs": {
+            "type": "string",
+            "description": "The base OS as the console's **Base OS** names it."
+          },
+          "architectures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The Docker architectures it is built for, such as `amd64` and `arm64v8`."
+          },
+          "prerelease": {
+            "type": "boolean",
+            "description": "A beta or release candidate, not for data you keep."
           }
         }
       },
