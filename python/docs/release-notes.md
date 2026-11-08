@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `wait_until_running` reads a `failed` sandbox at the current generation, as
+  readiness already was and as the TypeScript client does: a `failed` left
+  over from the previous generation, as right after `start` on a failed
+  sandbox, no longer ends the wait before the agent observes the request.
+
 - Service contract bundle `33186029…`: `projects.rotate_service_token`
   (`rotateServiceToken`, `services:admin`) makes a new `pgsvc_` bearer token
   for a ZVEC, LadybugDB or NodeDB service, stores it as its production

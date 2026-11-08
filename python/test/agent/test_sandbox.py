@@ -116,6 +116,24 @@ class SandboxClientTests(unittest.TestCase):
                 self.client.sandbox.wait_until_running("sbx_1", timeout=30, poll_interval=0.001)
         self.assertIn("setup.sh exited 1", str(ctx.exception))
 
+    # A failed reading from the previous generation, as right after start on a
+    # failed sandbox, is not this request's failure: keep waiting.
+    def test_wait_until_running_ignores_a_failure_from_the_previous_generation(self):
+        responses = [
+            {"id": "sbx_1", "observedState": "failed", "failureMessage": "old", "generation": 3, "observedGeneration": 2},
+            {"id": "sbx_1", "observedState": "running", "generation": 3, "observedGeneration": 3},
+        ]
+
+        def fake_urlopen(request, timeout=None):
+            index = min(len(self.calls), len(responses) - 1)
+            self.calls.append(request)
+            return FakeResponse(responses[index])
+
+        with patch("postgrip.agent._connection.urlopen", fake_urlopen):
+            record = self.client.sandbox.wait_until_running("sbx_1", timeout=30, poll_interval=0.001)
+        self.assertEqual(record["observedState"], "running")
+        self.assertEqual(len(self.calls), 2)
+
     def test_wait_until_running_timeout_names_the_last_state(self):
         payload = {"id": "sbx_1", "observedState": "provisioning", "generation": 1, "observedGeneration": 1}
         with self._patch(payload):

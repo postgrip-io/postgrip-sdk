@@ -76,10 +76,20 @@ def sandbox_is_ready(record: Mapping[str, Any]) -> bool:
     not observed yet, so state alone can describe a sandbox that is about to
     change again.
     """
-    return (
-        record.get("observedState") == "running"
-        and int(record.get("observedGeneration") or 0) >= int(record.get("generation") or 0)
-    )
+    return record.get("observedState") == "running" and _observes_current_generation(record)
+
+
+def _sandbox_failed(record: Mapping[str, Any]) -> bool:
+    """A ``failed`` reading at the current generation.
+
+    A ``failed`` left over from the previous generation does not describe a
+    just-issued start, so it is not a failure of the wait.
+    """
+    return record.get("observedState") == "failed" and _observes_current_generation(record)
+
+
+def _observes_current_generation(record: Mapping[str, Any]) -> bool:
+    return int(record.get("observedGeneration") or 0) >= int(record.get("generation") or 0)
 
 
 def _require_sandbox_id(sandbox_id: str) -> None:

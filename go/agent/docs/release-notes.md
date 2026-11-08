@@ -8,6 +8,12 @@ nav_order: 7
 
 ## Unreleased
 
+- `SandboxClient.WaitUntilRunning` reads a `failed` sandbox at the current
+  generation, as readiness already was and as the TypeScript client does: a
+  `failed` left over from the previous generation, as right after `Start` on a
+  failed sandbox, no longer ends the wait before the agent observes the
+  request.
+
 - Service contract bundle `33186029…`: `ProjectsClient.RotateToken`
   (`rotateServiceToken`, `services:admin`) makes a new `pgsvc_` bearer token
   for a ZVEC, LadybugDB or NodeDB service, stores it as its production
