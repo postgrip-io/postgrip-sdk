@@ -9879,6 +9879,9 @@
         }
       },
       "TargetServiceConnectionRequest": {
+        "example": {
+          "password": "string"
+        },
         "type": "object",
         "additionalProperties": false,
         "description": "Exactly one of `password`, for a PostgreSQL service, or `http`, for a web, backend, ZVEC or LadybugDB service. The secret is delivered to the service's Worker only, in a sealed configuration operation; it is never stored by the control plane, audited or answered. `http` on a PostgreSQL or SQLite service, or `password` on an HTTP service, is `400 VALIDATION`; so is a body with neither (\"password is required\") or both.",

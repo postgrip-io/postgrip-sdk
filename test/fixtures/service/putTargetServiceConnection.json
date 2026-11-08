@@ -3,9 +3,6 @@
   "plane": "service",
   "request": {
     "body": {
-      "http": {
-        "scheme": "none"
-      },
       "password": "string"
     },
     "headers": {

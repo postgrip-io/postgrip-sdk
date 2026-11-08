@@ -8,7 +8,7 @@ nav_order: 7
 
 ## Unreleased
 
-- Service contract bundle `30423932…`: an HTTP service (web, backend, ZVEC or
+- Service contract bundle `bcc80411…`: an HTTP service (web, backend, ZVEC or
   LadybugDB) takes its credential through `putTargetServiceConnection`.
   `TargetServicesClient.PutConnection` keeps its signature; its body
   (`OpenAPITargetServiceConnectionRequest`) carries exactly one of `Password`
