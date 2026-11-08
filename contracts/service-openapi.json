@@ -2902,7 +2902,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `TARGET_CREATION_PENDING`: a keyed creation of the target (the console's `POST /api/targets` with an `Idempotency-Key`) is still pending, so its connection can't be set yet. Nothing is changed or queued, and the refusal is not stored against the Idempotency-Key: retry with the same key once the creation settles. `WORKER_UPGRADE_REQUIRED`: the target's Worker does not advertise a capability the change needs (`details.workerId`, `details.requiredCapability`); this refusal is not stored against the key either. Other conflicts, such as `SERVICE_STATE_CHANGED`, also use this status.",
+            "description": "Conflict. `TARGET_CREATION_PENDING`: a keyed creation of the target (the console's `POST /api/targets` with an `Idempotency-Key`) is still pending, so its connection can't be set yet. Nothing is changed or queued, and the refusal is not stored against the Idempotency-Key: retry with the same key once the creation settles. `MANAGED_DATABASE_CONNECTION`: the service is a worker-managed database, whose password its Worker generates and keeps, so its connection can't be set; nothing is changed or queued. `WORKER_UPGRADE_REQUIRED`: the target's Worker does not advertise a capability the change needs (`details.workerId`, `details.requiredCapability`); this refusal is not stored against the key either. Other conflicts, such as `SERVICE_STATE_CHANGED`, also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2977,7 +2977,7 @@
             }
           },
           "409": {
-            "description": "Conflict. `TARGET_CREATION_PENDING`: a keyed creation of the target (the console's `POST /api/targets` with an `Idempotency-Key`) is still pending, so its connection can't be cleared yet. Nothing is changed or queued, and the refusal is not stored against the Idempotency-Key: retry with the same key once the creation settles. `WORKER_UPGRADE_REQUIRED`: the target's Worker does not advertise a capability the change needs (`details.workerId`, `details.requiredCapability`); this refusal is not stored against the key either. Other conflicts, such as `SERVICE_STATE_CHANGED`, also use this status.",
+            "description": "Conflict. `TARGET_CREATION_PENDING`: a keyed creation of the target (the console's `POST /api/targets` with an `Idempotency-Key`) is still pending, so its connection can't be cleared yet. Nothing is changed or queued, and the refusal is not stored against the Idempotency-Key: retry with the same key once the creation settles. `MANAGED_DATABASE_CONNECTION`: the service is a worker-managed database, whose password its Worker generates and keeps, so its connection can't be cleared; nothing is changed or queued. `WORKER_UPGRADE_REQUIRED`: the target's Worker does not advertise a capability the change needs (`details.workerId`, `details.requiredCapability`); this refusal is not stored against the key either. Other conflicts, such as `SERVICE_STATE_CHANGED`, also use this status.",
             "content": {
               "application/json": {
                 "schema": {
@@ -9833,7 +9833,7 @@
           },
           "errorCode": {
             "type": "string",
-            "description": "Set when `status` is `failed`, and one of a closed set: `BUILD_FAILED` when the build failed (the image build, or a static site's dependency install, build command or missing output directory); `IMAGE_PULL_FAILED` when the Worker could not pull the image the service runs; `HEALTHCHECK_FAILED` when the new container did not accept connections on its port in time, or failed its browser check; `REQUIRED_SECRET_MISSING` when the application could not start because a secret it requires is not set on the environment; `WORKER_LOST` when the Worker stopped reporting on the deployment before it finished, because its lease expired or it reported no progress for 30 minutes; `DEPLOYMENT_QUEUE_TIMEOUT` when the deployment stayed `queued` for 30 minutes without its Worker taking it, for example because the Worker was offline or busy; and `DEPLOYMENT_FAILED` for any other failure, a failure an older Worker reported, and a deployment that failed before these codes existed. The build log (listServiceLogs with `kind=build`) says why. A failed deployment is not retried: fix the cause, or bring the Worker back, and deploy again. Clients should treat a code they do not know as `DEPLOYMENT_FAILED`."
+            "description": "Set when `status` is `failed`, and one of a closed set: `BUILD_FAILED` when the build failed (the image build, or a static site's dependency install, build command or missing output directory); `IMAGE_PULL_FAILED` when the Worker could not pull the image the service runs; `HEALTHCHECK_FAILED` when the new container did not accept connections on its port in time, or failed its browser check; `REQUIRED_SECRET_MISSING` when the application could not start because a secret it requires is not set on the environment; `WORKER_LOST` when the Worker stopped reporting on the deployment before it finished, because its lease expired, it reported no progress for 30 minutes, or it was removed; `DEPLOYMENT_QUEUE_TIMEOUT` when the deployment stayed `queued` for 30 minutes without its Worker taking it, for example because the Worker was offline or busy; and `DEPLOYMENT_FAILED` for any other failure, a failure an older Worker reported, and a deployment that failed before these codes existed. The build log (listServiceLogs with `kind=build`) says why. A failed deployment is not retried: fix the cause, or bring the Worker back, and deploy again. Clients should treat a code they do not know as `DEPLOYMENT_FAILED`."
           },
           "errorMessage": {
             "type": "string",
@@ -11364,6 +11364,16 @@
           },
           "managed": {
             "type": "boolean"
+          },
+          "volumeName": {
+            "type": "string",
+            "readOnly": true,
+            "description": "A worker-managed PostgreSQL or SQLite's **Logical Volume Name**, as set when it was created. Absent for a connected service."
+          },
+          "imageRef": {
+            "type": "string",
+            "readOnly": true,
+            "description": "A worker-managed PostgreSQL's image, such as `postgres:17-trixie`, as set when it was created. Absent otherwise."
           },
           "hasConnectionSecret": {
             "type": "boolean"

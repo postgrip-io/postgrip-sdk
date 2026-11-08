@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Service contract bundle `818e166a…`: the generated `ServiceTarget` type
+  gains `volumeName` and `imageRef`, which a worker-managed database's create
+  set: the volume name, and for PostgreSQL the image. Both are absent for a
+  connected service. `putTargetServiceConnection` and
+  `clearTargetServiceConnection` refuse a worker-managed database with `409
+  MANAGED_DATABASE_CONNECTION`: its Worker generates and keeps the password.
+  The `WORKER_LOST` deployment `errorCode` also covers a removed Worker.
+
 - Service contract bundle `33186029…`: `projects.rotate_service_token`
   (`rotateServiceToken`, `services:admin`) makes a new `pgsvc_` bearer token
   for a ZVEC, LadybugDB or NodeDB service, stores it as its production

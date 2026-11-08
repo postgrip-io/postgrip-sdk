@@ -8,8 +8,8 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = '3ffe1dba1a0a20681bb8b128b80440382e39773d4f324d54e3326c9642b366d8'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '33186029f5e0ef1b7f6d4c7d1a8ac537828dcea67c8a0520ff273b2add082759'
+OPENAPI_SPEC_SHA256 = '95872979a1e84bd2915f33ce6c2326aec2e0cf77ba2e474f65e08d619efbe439'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = '818e166aba4309c9b6a85896fb312bbb286e72c819f84b31cb3bf2e97202c916'
 OPENAPI_OPERATION_COUNT = 128
 OPENAPI_CLIENT_OPERATION_COUNT = 128
 
@@ -797,6 +797,8 @@ class _SchemaServiceTargetOptional(TypedDict, total=False):
     serverType: str
     kind: str
     dbUser: str
+    volumeName: str
+    imageRef: str
     httpAuth: _SchemaTargetServiceHTTPAuth
     snapshotCovered: bool
 
