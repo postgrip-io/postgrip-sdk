@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -240,5 +241,44 @@ func TestEnvironmentAndDeploymentPagersPreserveOpaqueCursors(t *testing.T) {
 	deployments := client.ServiceDeployments(ref, OpenAPIListServiceDeploymentsQuery{})
 	if !deployments.Next(context.Background()) || !deployments.Next(context.Background()) || deployments.Next(context.Background()) || deployments.Err() != nil {
 		t.Fatalf("deployment pager err=%v", deployments.Err())
+	}
+}
+
+func TestTargetServicePutConnectionSendsTheHTTPCredentialAsGiven(t *testing.T) {
+	t.Parallel()
+	var got atomic.Value
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut || r.URL.Path != "/api/v1/services/target/target-1/connection" {
+			t.Errorf("request=%s %s", r.Method, r.URL.Path)
+		}
+		if r.Header.Get("Idempotency-Key") != "connection-1" || r.Header.Get("If-Match") != `"target:3"` {
+			t.Errorf("fences=%q %q", r.Header.Get("Idempotency-Key"), r.Header.Get("If-Match"))
+		}
+		body, _ := io.ReadAll(r.Body)
+		got.Store(string(body))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprint(w, `{"target":{"httpAuth":{"scheme":"api_key","headerName":"X-API-Key"}}}`)
+	}), nil)
+	headerName, value := "X-API-Key", "key-value"
+	response, err := client.TargetServices().PutConnection(context.Background(), "target-1", OpenAPIPutTargetServiceConnectionRequestBody{
+		Http: &TargetServiceHTTPCredential{Scheme: "api_key", HeaderName: &headerName, Value: &value},
+	}, WriteOptions{IdempotencyKey: "connection-1", IfMatch: `"target:3"`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body := got.Load(); body != `{"http":{"scheme":"api_key","headerName":"X-API-Key","value":"key-value"}}` {
+		t.Fatalf("body=%v", body)
+	}
+	auth := response.Target.HttpAuth
+	if auth == nil || auth.Scheme != "api_key" || auth.HeaderName == nil || *auth.HeaderName != "X-API-Key" || auth.Username != nil {
+		t.Fatalf("httpAuth=%+v", auth)
+	}
+
+	password := "secret"
+	if _, err := client.TargetServices().PutConnection(context.Background(), "target-1", OpenAPIPutTargetServiceConnectionRequestBody{Password: &password}, WriteOptions{IdempotencyKey: "connection-1", IfMatch: `"target:3"`}); err != nil {
+		t.Fatal(err)
+	}
+	if body := got.Load(); body != `{"password":"secret"}` {
+		t.Fatalf("password body=%v", body)
 	}
 }

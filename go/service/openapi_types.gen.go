@@ -326,6 +326,7 @@ type OpenAPIServiceOperationResponse struct {
 	LatencyMs            *int64                  `json:"latencyMs,omitempty"`
 	Engine               *string                 `json:"engine,omitempty"`
 	Version              *string                 `json:"version,omitempty"`
+	HttpStatus           *int64                  `json:"httpStatus,omitempty"`
 	IntentionallyStopped *bool                   `json:"intentionallyStopped,omitempty"`
 	EnvironmentId        *string                 `json:"environmentId,omitempty"`
 	DeploymentId         *string                 `json:"deploymentId,omitempty"`
@@ -374,7 +375,21 @@ type OpenAPIUpdateTargetServiceRequest struct {
 	Metadata     *OpenAPIServiceTargetMetadataUpdateRequest `json:"metadata,omitempty"`
 }
 type OpenAPITargetServiceConnectionRequest struct {
-	Password string `json:"password"`
+	Password *string                             `json:"password,omitempty"`
+	Http     *OpenAPITargetServiceHTTPCredential `json:"http,omitempty"`
+}
+type OpenAPITargetServiceHTTPCredential struct {
+	Scheme     string  `json:"scheme"`
+	Username   *string `json:"username,omitempty"`
+	Password   *string `json:"password,omitempty"`
+	Token      *string `json:"token,omitempty"`
+	HeaderName *string `json:"headerName,omitempty"`
+	Value      *string `json:"value,omitempty"`
+}
+type OpenAPITargetServiceHTTPAuth struct {
+	Scheme     string  `json:"scheme"`
+	Username   *string `json:"username,omitempty"`
+	HeaderName *string `json:"headerName,omitempty"`
 }
 type OpenAPIServiceRepositoryWriteRequest struct {
 	Provider        string  `json:"provider"`
@@ -536,26 +551,27 @@ type OpenAPIServiceRuntimeLogSettingsRequest struct {
 	RetentionDays int64 `json:"retentionDays"`
 }
 type OpenAPIServiceTarget struct {
-	Id                  string    `json:"id"`
-	Ref                 string    `json:"ref"`
-	AppId               *string   `json:"appId,omitempty"`
-	WorkerId            string    `json:"workerId"`
-	Name                string    `json:"name"`
-	Slug                string    `json:"slug"`
-	Host                string    `json:"host"`
-	Port                int64     `json:"port"`
-	DatabaseName        string    `json:"databaseName"`
-	ServerType          *string   `json:"serverType,omitempty"`
-	Kind                *string   `json:"kind,omitempty"`
-	DbUser              *string   `json:"dbUser,omitempty"`
-	Ssl                 bool      `json:"ssl"`
-	Managed             bool      `json:"managed"`
-	HasConnectionSecret bool      `json:"hasConnectionSecret"`
-	SnapshotCovered     *bool     `json:"snapshotCovered,omitempty"`
-	Version             int64     `json:"version"`
-	CreatedAt           time.Time `json:"createdAt"`
-	UpdatedAt           time.Time `json:"updatedAt"`
-	Etag                string    `json:"etag"`
+	Id                  string                        `json:"id"`
+	Ref                 string                        `json:"ref"`
+	AppId               *string                       `json:"appId,omitempty"`
+	WorkerId            string                        `json:"workerId"`
+	Name                string                        `json:"name"`
+	Slug                string                        `json:"slug"`
+	Host                string                        `json:"host"`
+	Port                int64                         `json:"port"`
+	DatabaseName        string                        `json:"databaseName"`
+	ServerType          *string                       `json:"serverType,omitempty"`
+	Kind                *string                       `json:"kind,omitempty"`
+	DbUser              *string                       `json:"dbUser,omitempty"`
+	Ssl                 bool                          `json:"ssl"`
+	Managed             bool                          `json:"managed"`
+	HasConnectionSecret bool                          `json:"hasConnectionSecret"`
+	HttpAuth            *OpenAPITargetServiceHTTPAuth `json:"httpAuth,omitempty"`
+	SnapshotCovered     *bool                         `json:"snapshotCovered,omitempty"`
+	Version             int64                         `json:"version"`
+	CreatedAt           time.Time                     `json:"createdAt"`
+	UpdatedAt           time.Time                     `json:"updatedAt"`
+	Etag                string                        `json:"etag"`
 }
 type OpenAPIGitHubRepositoryPermission struct {
 	Contents string `json:"contents"`
@@ -2354,6 +2370,8 @@ type ServiceTargetMetadataUpdateRequest = OpenAPIServiceTargetMetadataUpdateRequ
 type AttachTargetServiceRequest = OpenAPIAttachTargetServiceRequest
 type UpdateTargetServiceRequest = OpenAPIUpdateTargetServiceRequest
 type TargetServiceConnectionRequest = OpenAPITargetServiceConnectionRequest
+type TargetServiceHTTPCredential = OpenAPITargetServiceHTTPCredential
+type TargetServiceHTTPAuth = OpenAPITargetServiceHTTPAuth
 type ServiceRepositoryWriteRequest = OpenAPIServiceRepositoryWriteRequest
 type CreateServiceProjectRequest = OpenAPICreateServiceProjectRequest
 type UpdateServiceProjectRequest = OpenAPIUpdateServiceProjectRequest
@@ -2522,4 +2540,4 @@ type ServiceTrafficReportFanout = OpenAPIServiceTrafficReportFanout
 type ServiceTrafficSettingsFanout = OpenAPIServiceTrafficSettingsFanout
 type ServiceTrafficMaintenanceFanout = OpenAPIServiceTrafficMaintenanceFanout
 
-const openAPITypesSpecSHA256 = "116db6f15a5be0cd37a921f7f9b3c127521a5a8a2e864a3f4d6a5d4659aaf653"
+const openAPITypesSpecSHA256 = "5e00de2583b47ec1ca6632b84307ff0529e13ad2f50d481ea2504de98fe5c12e"

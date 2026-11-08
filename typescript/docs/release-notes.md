@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Service contract bundle `bcc80411…`: an HTTP service (web, backend, ZVEC or
+  LadybugDB) takes its credential through `putTargetServiceConnection`.
+  `administration.targets.putConnection` keeps its signature; its body
+  (`OpenAPITargetServiceConnectionRequest`) carries exactly one of `password`
+  (PostgreSQL), now optional, or the new `http`
+  (`OpenAPITargetServiceHTTPCredential`: `scheme` one of `none`, `basic`,
+  `bearer` or `api_key`, with `username` and `password`, `token`, or
+  `headerName` and `value`; `none` clears it). Sending `http` needs a Worker
+  with `target_http_auth_v1`, otherwise `409 WORKER_UPGRADE_REQUIRED`.
+  `ServiceTarget` gains `httpAuth` (`OpenAPITargetServiceHTTPAuth`: `scheme`,
+  with `username` for `basic` and `headerName` for `api_key`, never a
+  secret). `checkService` probes an HTTP service with one `GET` from its
+  Worker: the answer gains `httpStatus`, and a `401` or `403` is
+  `409 SERVICE_AUTHENTICATION_FAILED`. The service entry exports
+  `OpenAPITargetServiceHTTPCredential` and `OpenAPITargetServiceHTTPAuth`.
 - Service contract bundle `5dba38d5…`: a failed deployment's `errorCode` is one
   of a closed set: `BUILD_FAILED`, `IMAGE_PULL_FAILED`, `HEALTHCHECK_FAILED`,
   `REQUIRED_SECRET_MISSING`, `WORKER_LOST`, `DEPLOYMENT_QUEUE_TIMEOUT`, or

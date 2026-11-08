@@ -400,6 +400,8 @@ export type {
   OpenAPIServiceWebhookDispatchEvent,
   OpenAPIServiceWorker,
   OpenAPITargetServiceConnectionRequest,
+  OpenAPITargetServiceHTTPAuth,
+  OpenAPITargetServiceHTTPCredential,
   OpenAPITransport,
   OpenAPIUpdateServiceAppRequest,
   OpenAPIUpdateServiceDomainRequest,

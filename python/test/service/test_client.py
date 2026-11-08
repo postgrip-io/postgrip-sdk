@@ -30,6 +30,10 @@ from postgrip.service.openapi import (
     OpenAPICreateServiceEnvironmentRequest,
     OpenAPIPostGripConfigurationEnvironment,
     OpenAPIServiceEnvironmentPlacement,
+    OpenAPIServiceOperationResponse,
+    OpenAPIServiceTarget,
+    OpenAPITargetServiceConnectionRequest,
+    OpenAPITargetServiceHTTPCredential,
     OperationId,
 )
 
@@ -510,6 +514,41 @@ class ServiceClientTests(unittest.TestCase):
         self.assertEqual(urlparse(request.full_url).path, "/api/v1/services/targets")
         self.assertEqual(request.get_header("Idempotency-key"), "attach-1")
         self.assertEqual(request.get_header("If-match"), '"service-catalog:4"')
+
+    def test_put_target_service_connection_sends_the_http_credential_as_given(self) -> None:
+        self.assertEqual(OpenAPITargetServiceConnectionRequest.__required_keys__, frozenset())
+        self.assertEqual(
+            get_type_hints(OpenAPITargetServiceHTTPCredential)["scheme"],
+            Literal["none", "basic", "bearer", "api_key"],
+        )
+        self.assertIn("httpAuth", get_type_hints(OpenAPIServiceTarget))
+        self.assertIn("httpStatus", get_type_hints(OpenAPIServiceOperationResponse))
+        answer = {"target": {"httpAuth": {"scheme": "bearer"}}}
+        opener = FakeOpener([answer, answer])
+        client = ServiceClient(
+            base_url="https://services.example.test", token="pgt_test-token", opener=opener,
+        )  # type: ignore[arg-type]
+        targets = client.administration.target_services
+
+        response = targets.put_target_service_connection(
+            "target-1", {"http": {"scheme": "bearer", "token": "token-value"}},
+            idempotency_key="connection-1", if_match='"target:3"',
+        )
+        targets.put_target_service_connection(
+            "target-1", {"password": "database-secret"},
+            idempotency_key="connection-1", if_match='"target:3"',
+        )
+
+        self.assertEqual(response["target"]["httpAuth"], {"scheme": "bearer"})
+        for request in opener.requests:
+            self.assertEqual(request.method, "PUT")
+            self.assertEqual(urlparse(request.full_url).path, "/api/v1/services/target/target-1/connection")
+            self.assertEqual(request.get_header("Idempotency-key"), "connection-1")
+            self.assertEqual(request.get_header("If-match"), '"target:3"')
+        self.assertEqual(
+            [json.loads(request.data) for request in opener.requests],
+            [{"http": {"scheme": "bearer", "token": "token-value"}}, {"password": "database-secret"}],
+        )
 
     def test_apps_list_exposes_catalog_fence(self) -> None:
         opener = FakeOpener([{

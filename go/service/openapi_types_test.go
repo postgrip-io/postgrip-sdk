@@ -197,3 +197,14 @@ func TestPostGripConfigurationEnvironmentSupportsAutomaticPlacement(t *testing.T
 		t.Fatalf("portless declarative environment emitted containerPort: %s", encoded)
 	}
 }
+
+func TestServiceCheckAnswerDecodesHTTPStatus(t *testing.T) {
+	var answer OpenAPIServiceOperationResponse
+	if err := json.Unmarshal([]byte(`{"status":"ready","engine":"zvec","latencyMs":12,"httpStatus":404}`), &answer); err != nil || answer.HttpStatus == nil || *answer.HttpStatus != 404 {
+		t.Fatalf("httpStatus=%v err=%v", answer.HttpStatus, err)
+	}
+	var database OpenAPIServiceOperationResponse
+	if err := json.Unmarshal([]byte(`{"status":"ready","engine":"postgresql"}`), &database); err != nil || database.HttpStatus != nil {
+		t.Fatalf("database httpStatus=%v err=%v", database.HttpStatus, err)
+	}
+}
