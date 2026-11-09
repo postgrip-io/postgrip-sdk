@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: sdk-release
-      url: https://github.com/postgrip-io/postgrip-sdks/releases
+      url: https://github.com/postgrip-io/postgrip-sdk/releases
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

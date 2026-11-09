@@ -28,8 +28,17 @@ jobs:
     timeout-minutes: 690
     environment: sdk-live-nightly
     steps:
+      - name: Check out web's stage actions
+        uses: actions/checkout@v4
+        with:
+          repository: postgrip-io/postgrip-web
+          ref: 475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+          ssh-key: ${{ secrets.POSTGRIP_WEB_READ_KEY }}
+          persist-credentials: false
+          path: .postgrip-web
+          sparse-checkout: .github/actions/stage-lease
       - name: Acquire the stage lease
-        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        uses: ./.postgrip-web/.github/actions/stage-lease
         with:
           verb: acquire
           run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -72,15 +81,23 @@ jobs:
       POSTGRIP_LIVE_REPOSITORY_CREDENTIAL: ${{ secrets.POSTGRIP_LIVE_REPOSITORY_CREDENTIAL }}
       POSTGRIP_LIVE_SANDBOX_IMAGE: ${{ vars.POSTGRIP_LIVE_SANDBOX_IMAGE }}
     steps:
+      - uses: actions/checkout@v4
+      - name: Check out web's stage actions
+        uses: actions/checkout@v4
+        with:
+          repository: postgrip-io/postgrip-web
+          ref: 475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+          ssh-key: ${{ secrets.POSTGRIP_WEB_READ_KEY }}
+          persist-credentials: false
+          path: .postgrip-web
       - name: Start the stage lease
-        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        uses: ./.postgrip-web/.github/actions/stage-lease
         with:
           verb: start
           run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
           target: ${{ vars.STAGE_LEASE_TARGET }}
           ssh-key: ${{ secrets.STAGE_LEASE_SSH_KEY }}
           known-hosts: ${{ secrets.STAGE_LEASE_KNOWN_HOSTS }}
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -91,11 +108,11 @@ jobs:
           python -m pip install "python/dist/postgrip-"*.whl "websockets>=13"
       - name: Verify fixture-manager safety invariants
         run: python3 scripts/test_live_api.py --self-test
-      # Web's disposable-agent action, pinned by commit (design D2): a sandbox
-      # Agent on this runner, plus a headless scenario identity.
+      # Web's disposable-agent action, from the web checkout above (design D2):
+      # a sandbox Agent on this runner, plus a headless scenario identity.
       - name: Provide the disposable Agent
         id: agent
-        uses: postgrip-io/postgrip-web/.github/actions/disposable-agent@475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+        uses: ./.postgrip-web/.github/actions/disposable-agent
         with:
           verb: up
           run-id: ${{ env.POSTGRIP_LIVE_AGENT_RUN }}
@@ -114,7 +131,7 @@ jobs:
           --ledger test/reports/live-nightly-ledger.json
       - name: Remove the disposable Agent
         if: always()
-        uses: postgrip-io/postgrip-web/.github/actions/disposable-agent@475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+        uses: ./.postgrip-web/.github/actions/disposable-agent
         with:
           verb: down
           run-id: ${{ env.POSTGRIP_LIVE_AGENT_RUN }}
@@ -154,15 +171,24 @@ jobs:
       POSTGRIP_GITHUB_TEST_TOKEN: ${{ secrets.POSTGRIP_GITHUB_TEST_TOKEN }}
       POSTGRIP_GITHUB_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_GITHUB_LIVE_DISPOSABLE }}
     steps:
+      - uses: actions/checkout@v4
+      - name: Check out web's stage actions
+        uses: actions/checkout@v4
+        with:
+          repository: postgrip-io/postgrip-web
+          ref: 475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+          ssh-key: ${{ secrets.POSTGRIP_WEB_READ_KEY }}
+          persist-credentials: false
+          path: .postgrip-web
+          sparse-checkout: .github/actions/stage-lease
       - name: Start the stage lease
-        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        uses: ./.postgrip-web/.github/actions/stage-lease
         with:
           verb: start
           run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
           target: ${{ vars.STAGE_LEASE_TARGET }}
           ssh-key: ${{ secrets.STAGE_LEASE_SSH_KEY }}
           known-hosts: ${{ secrets.STAGE_LEASE_KNOWN_HOSTS }}
-      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -199,8 +225,17 @@ jobs:
       POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN: ${{ vars.POSTGRIP_CONFIRM_DISPOSABLE_DOMAIN }}
       POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE: ${{ vars.POSTGRIP_SERVICE_DOMAIN_LIVE_DISPOSABLE }}
     steps:
+      - name: Check out web's stage actions
+        uses: actions/checkout@v4
+        with:
+          repository: postgrip-io/postgrip-web
+          ref: 475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+          ssh-key: ${{ secrets.POSTGRIP_WEB_READ_KEY }}
+          persist-credentials: false
+          path: .postgrip-web
+          sparse-checkout: .github/actions/stage-lease
       - name: Start the stage lease
-        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        uses: ./.postgrip-web/.github/actions/stage-lease
         with:
           verb: start
           run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -239,8 +274,17 @@ jobs:
     timeout-minutes: 30
     environment: sdk-live-nightly
     steps:
+      - name: Check out web's stage actions
+        uses: actions/checkout@v4
+        with:
+          repository: postgrip-io/postgrip-web
+          ref: 475427b09f4a864c5d58ac1d4ad070a24f5e9b8a
+          ssh-key: ${{ secrets.POSTGRIP_WEB_READ_KEY }}
+          persist-credentials: false
+          path: .postgrip-web
+          sparse-checkout: .github/actions/stage-lease
       - name: Release the stage lease
-        uses: postgrip-io/postgrip-web/.github/actions/stage-lease@7736cf5a1ddfcc5f32241e913bf1e2623c21a22f
+        uses: ./.postgrip-web/.github/actions/stage-lease
         with:
           verb: release
           run-id: ${{ github.repository_id }}-${{ github.run_id }}-${{ github.run_attempt }}

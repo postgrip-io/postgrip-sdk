@@ -51,8 +51,14 @@ succeeded.
   predecessor's whole hold: its 6-hour claim, its capped active hold and its
   reset. The lease steps call web's
   `.github/actions/stage-lease`, pinned by commit, so the lease protocol has
-  one owner. That needs `postgrip-web`'s Actions access set to
-  allow repositories in the organization.
+  one owner. A public repository can't call a private repository's action, so
+  each job checks web out at that commit into `.postgrip-web` (only the
+  action's directory where the job needs nothing else) and calls the action by
+  its local path. The checkout reads web with a read-only deploy key, the
+  `POSTGRIP_WEB_READ_KEY` secret of both live environments, and keeps no
+  credentials (`persist-credentials: false`). One commit,
+  `475427b09f4a864c5d58ac1d4ad070a24f5e9b8a`, pins both web actions; its
+  `stage-lease` is the same as the earlier `7736cf5a1` pin.
 - Jobs default to `shell: bash` (`-eo pipefail`), so a failing script before
   `| tee` fails its step.
 - No human approval may wait while the lease is held. The live environments
@@ -81,7 +87,8 @@ logs or chat:
   stage maintenance lease and captured into the stage baseline, and the
   stage's reset validation checks it on its planes.
 - Each run provides its own Agents through web's `disposable-agent` action,
-  pinned by commit
+  pinned by commit and reached through the same web checkout as the lease
+  steps (D1). It builds the Agent from that checkout's source
   ([web design](https://github.com/postgrip-io/postgrip-web/blob/main/docs/design/stage-disposable-agent-action-design-20261018.md)).
   Stage keeps no long-lived Agent, whose local state a reset would leave
   behind the restored database.
