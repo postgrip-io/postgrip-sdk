@@ -81,8 +81,27 @@ A GitHub App installation token may replace it later; the context names
 don't change.
 
 A status is only as trustworthy as the set of writers. People with write
-access to this repository can also set these contexts, so the gate (D4) and
-web's evidence (D5) also verify the linked run.
+access to this repository can also set these contexts, and could point one
+commit's status at a genuine run that tested another commit. So the run
+records the commit it tested where only the run can write it: the job that
+resolves the SDK commit uploads an empty artifact named
+`sdk-commit-<sha>`. Each run has exactly one. A consumer accepts a status
+only after checking the linked run itself, including that marker, as
+[accepting a run](#accepting-a-run) describes.
+
+#### Accepting a run
+
+A run proves that SDK commit `C` passed tier `T` when all of these hold:
+
+1. the `postgrip-sdk-live/T` status on `C` is `success`, and its
+   `target_url` is `https://github.com/postgrip-io/postgrip-sdk-live/actions/runs/<id>`;
+2. run `<id>` is in `postgrip-io/postgrip-sdk-live`, its path is
+   `.github/workflows/live-T.yml`, and it completed with conclusion `success`;
+3. its artifacts include exactly one named `sdk-commit-<sha>`, and `<sha>` is
+   `C`.
+
+The marker's name comes from the same job output that every checkout uses,
+and only the private repository's `main` can change that wiring.
 
 ### D4. Publishing waits for a passing pre-release status
 
@@ -93,11 +112,14 @@ with a `pre-release-live` job on a GitHub-hosted runner. It runs in a new
 `postgrip-io/postgrip-sdk-live` only. The job:
 
 1. reads `postgrip-sdk-live/pre-release` for `github.sha`;
-2. if it is `success`, and its `target_url` names a successful
-   `live-pre-release.yml` run in `postgrip-io/postgrip-sdk-live`, passes;
+2. if the run it links is accepted for `github.sha` (D3,
+   [accepting a run](#accepting-a-run)), passes;
 3. if it is absent or `failure`, dispatches `live-pre-release.yml` with
    `sdk-sha: github.sha`;
 4. waits for the status to settle, then applies step 2's check to the result.
+
+A pre-release run that finds an accepted run for its own `sdk-sha` exits
+without taking the lease.
 
 The three publishing workflows start together on one tag. The private
 workflow's concurrency group is per `sdk-sha`, without cancellation, so at
@@ -111,11 +133,11 @@ suite run.
 ### D5. Web's release evidence follows the status
 
 Web's `sdk-nightly` and `sdk-pre-release` evidence reads the status on the
-SDK commit, follows its `target_url`, and checks that run as it checks its
-own: repository `postgrip-io/postgrip-sdk-live`, the expected workflow path,
-a successful conclusion, the required jobs and artifacts. The run's
-`head_sha` is the private repository's commit, so the SDK commit is checked
-through the status instead. That change is web's, in its own pull request.
+SDK commit and accepts the linked run as D3's
+[accepting a run](#accepting-a-run) describes, then checks the required jobs
+and artifacts as today. The run's `head_sha` is the private repository's
+commit, so the `sdk-commit-<sha>` marker replaces the `head_sha`
+comparison. That change is web's, in its own pull request.
 
 ## Slices
 
@@ -136,7 +158,9 @@ web can't use SDK evidence from the private repository.
 
 - Fine-grained tokens expire. Expiry fails the gate or the status update
   loudly, and the fix is rotation; a GitHub App would remove expiry.
-- Statuses can be set by anyone with write access here (D3); D4 and D5 check
-  the linked run, not only the state.
+- Statuses can be set by anyone with write access here (D3); consumers
+  accept only a linked run whose marker names the same commit. Anyone who
+  can change the private repository's `main` can change what it tests, as
+  anyone who can change this repository's workflows could before.
 - The production smoke stays in this repository: it runs on a GitHub-hosted
   runner and uses no private action.
