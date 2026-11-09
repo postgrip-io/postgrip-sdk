@@ -1,5 +1,11 @@
 # Live suites on the stage environment
 
+Since 2026-11-09 these suites run from the private `postgrip-sdk-live`
+repository, because this repository is public: see
+[live suites from a private repository](live-suites-private-repository-20261109.md).
+The decisions below still apply there, except where that design changes
+the repository, environment location and release gate.
+
 ## Problem
 
 The SDK's `live-nightly.yml` and `live-pre-release.yml` have no environment
