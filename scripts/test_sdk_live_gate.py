@@ -59,6 +59,11 @@ def run(conclusion: str | None = "success", path: str = ".github/workflows/live-
     return {"path": path, "status": "completed" if conclusion else "in_progress", "conclusion": conclusion}
 
 
+def pending(run_id: int = 7, **extra) -> dict:
+    """A pending status whose linked run is still in progress."""
+    return {"status": status("pending", run_id), "run": {str(run_id): run(None)}, **extra}
+
+
 def marker(sha: str) -> dict:
     return {"name": f"sdk-commit-{sha}"}
 
@@ -82,12 +87,12 @@ class GateTests(unittest.TestCase):
         self.assertEqual(github.dispatches, [])
 
     def test_no_status_dispatches_once_and_waits_for_the_accepted_run(self) -> None:
-        github = FakeGitHub([{}, {"status": status("pending", 9), "runs": [suite_run("in_progress")]}, accepted(9)])
+        github = FakeGitHub([{}, pending(9, runs=[suite_run("in_progress")]), accepted(9)])
         self.assertEqual(run_gate(github), RUN.format(9))
         self.assertEqual(github.dispatches, [{"ref": "main", "inputs": {"sdk-sha": SHA}}])
 
     def test_an_in_progress_run_is_awaited_without_a_second_dispatch(self) -> None:
-        github = FakeGitHub([{"status": status("pending")}, {"status": status("pending")}, accepted()])
+        github = FakeGitHub([pending(), pending(), accepted()])
         self.assertEqual(run_gate(github), RUN.format(7))
         self.assertEqual(github.dispatches, [])
 
@@ -113,7 +118,7 @@ class GateTests(unittest.TestCase):
                 self.assertEqual(len(github.dispatches), 1)
 
     def test_fails_once_every_dispatched_run_finished_without_acceptance(self) -> None:
-        github = FakeGitHub([{}, {"status": status("pending", 5), "runs": [suite_run("in_progress")]},
+        github = FakeGitHub([{}, pending(5, runs=[suite_run("in_progress")]),
                              {"status": status("failure", 5), "runs": [suite_run("completed")]}])
         with self.assertRaisesRegex(GateError, "finished without an accepted run"):
             run_gate(github)
@@ -129,14 +134,27 @@ class GateTests(unittest.TestCase):
         self.assertEqual(run_gate(github), RUN.format(7))
 
     def test_an_awaited_run_that_fails_fails_the_gate(self) -> None:
-        github = FakeGitHub([{"status": status("pending")}, {"status": status("failure")}])
+        github = FakeGitHub([pending(), {"status": status("failure")}])
         with self.assertRaisesRegex(GateError, "ended failure"):
             run_gate(github)
 
     def test_gives_up_at_the_deadline(self) -> None:
-        github = FakeGitHub([{"status": status("pending")}])
+        github = FakeGitHub([pending()])
         with self.assertRaisesRegex(GateError, "before the deadline"):
             run_gate(github, minutes=3)
+
+    def test_a_stale_pending_status_dispatches_a_replacement(self) -> None:
+        # The linked run ended (here cancelled, or deleted) without its final status.
+        for stale in [{"status": status("pending"), "run": {"7": run("cancelled")}}, {"status": status("pending")}]:
+            with self.subTest(stale=stale):
+                github = FakeGitHub([stale, accepted(8)])
+                self.assertEqual(run_gate(github), RUN.format(8))
+                self.assertEqual(len(github.dispatches), 1)
+
+    def test_an_awaited_run_that_stops_without_reporting_is_replaced(self) -> None:
+        github = FakeGitHub([pending(), {"status": status("pending"), "run": {"7": run("cancelled")}}, accepted(8)])
+        self.assertEqual(run_gate(github), RUN.format(8))
+        self.assertEqual(len(github.dispatches), 1)
 
     def test_rejects_a_malformed_commit(self) -> None:
         with self.assertRaisesRegex(GateError, "40-character"):

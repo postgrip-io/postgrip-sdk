@@ -77,6 +77,9 @@ class Evidence:
     accepted: bool
     run_url: str = ""
     updated_at: str = ""
+    # For a pending status: its linked run exists here and hasn't completed.
+    # A run that ended without reporting leaves a stale `pending` behind.
+    active: bool = False
 
 
 def evidence(api: Api, sha: str) -> Evidence:
@@ -87,10 +90,14 @@ def evidence(api: Api, sha: str) -> Evidence:
     url = status.get("target_url") or ""
     found = Evidence(status.get("state", "error"), False, url, status.get("updated_at", ""))
     match = RUN_URL.fullmatch(url)
-    if found.state != "success" or not match:
+    if found.state not in ("success", "pending") or not match:
         return found
     run_path = f"/repos/{LIVE}/actions/runs/{match.group(1)}"
     run = api("GET", run_path, "SDK_LIVE_DISPATCH_TOKEN", None)
+    if found.state == "pending":
+        found.active = bool(run) and run.get("path") == f".github/workflows/{WORKFLOW}" \
+            and run.get("status") != "completed"
+        return found
     if not run or run.get("path") != f".github/workflows/{WORKFLOW}" or run.get("status") != "completed" \
             or run.get("conclusion") != "success":
         return found
@@ -121,12 +128,18 @@ def gate(api: Api, sha: str, deadline: float, now: Callable[[], float] = time.ti
     if first.accepted:
         return first.run_url
     since = None
-    if first.state != "pending":
-        since = dt.datetime.fromtimestamp(now(), dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    def start(reason: str) -> str:
+        # Taken before dispatching, so the dispatched run is never older than it.
+        started = dt.datetime.fromtimestamp(now(), dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         dispatch(api, sha)
-        print(f"No accepted pre-release run for {sha[:12]} ({first.state}); dispatched {WORKFLOW}.", flush=True)
-    else:
+        print(f"No accepted pre-release run for {sha[:12]} ({reason}); dispatched {WORKFLOW}.", flush=True)
+        return started
+
+    if first.active:
         print(f"A pre-release run for {sha[:12]} is in progress: {first.run_url}", flush=True)
+    else:
+        since = start(first.state if first.state != "pending" else "stale pending status")
     while True:
         sleep(interval)
         current = evidence(api, sha)
@@ -134,9 +147,12 @@ def gate(api: Api, sha: str, deadline: float, now: Callable[[], float] = time.ti
             return current.run_url
         if since is not None:
             runs = runs_since(api, sha, since)
-            if runs and all(run.get("status") == "completed" for run in runs) and current.state != "pending":
+            if runs and all(run.get("status") == "completed" for run in runs) and not current.active:
                 raise GateError(f"the pre-release suite finished without an accepted run for {sha}: "
                                 + ", ".join(run.get("html_url", "") for run in runs))
+        elif current.state == "pending" and not current.active:
+            # The awaited run ended without reporting; start a replacement.
+            since = start("the awaited run ended without reporting")
         elif current.state not in ("pending", "success"):
             raise GateError(f"the in-progress pre-release run ended {current.state}: {current.run_url}")
         if now() >= deadline:
