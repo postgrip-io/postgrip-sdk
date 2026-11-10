@@ -30,6 +30,8 @@ jobs:
           fetch-depth: 2
       - name: Test CI selection and aggregate gate
         run: python3 -m unittest discover -s scripts -p test_ci_policy.py
+      - name: Test the stage pre-release publishing gate
+        run: python3 -m unittest discover -s scripts -p test_sdk_live_gate.py
       - name: Select validation from the tested PR merge
         id: select
         env:

@@ -85,14 +85,16 @@ the SDK still has tag-based action references, some unbounded jobs and CI concur
 that cancels superseded `main` runs. These are explicit CI gaps, not documentation
 claims that web's enforcement already exists here. Changing them requires a
 separate workflow design and validation. Web's six light/eight heavy self-hosted
-runner pool is not the runner configuration of these SDK workflows, except the
-live suites. `live-nightly.yml` and `live-pre-release.yml` run on web's
-`mediumworx` group under web's stage lease. `live`, `github-adoption` and
-`service-domain` run in parallel once `acquire-stage` holds the lease, and
-`release-stage` runs after all of them. `bash` (`pipefail`) is the default shell
-([design](../design/live-suites-on-stage-20261017.md)). To retry one, use
-**Re-run all jobs**. "Re-run failed jobs" skips `acquire-stage`, so the new
-attempt doesn't hold the lease, and its `start` refuses to touch stage.
+runner pool is not the runner configuration of these SDK workflows. No workflow
+here runs on self-hosted runners: the stage suites (`live-nightly.yml` and
+`live-pre-release.yml`) run from the private `postgrip-io/postgrip-sdk-live`
+on web's `mediumworx` group under web's stage lease, testing a commit of this
+repository ([design](../design/live-suites-private-repository-20261109.md)).
+Publishing waits for them through `live-pre-release-gate.yml`, whose decision
+logic `scripts/test_sdk_live_gate.py` tests against a scripted API. To retry a
+stage run, use **Re-run all jobs** in the private repository: "Re-run failed
+jobs" skips `acquire-stage`, so the new attempt doesn't hold the lease, and its
+`start` refuses to touch stage.
 
 ## Historical decisions
 
