@@ -154,6 +154,16 @@ comparison. That change is web's, in its own pull request.
 Until slice 4 merges, no SDK release can pass its gate. Until slice 3 merges,
 web can't use SDK evidence from the private repository.
 
+Status (2026-11-10): slice 2 is postgrip-io/postgrip-sdk-live#1, slice 3 is
+postgrip-io/postgrip-web#2561, and slice 4 is the pull request that adds
+`live-pre-release-gate.yml` and `scripts/sdk_live_gate.py`. The gate stops at
+340 minutes so it fails inside the hosted runner's 360-minute bound, and it
+fails early once every suite run it dispatched for the commit has finished
+without an accepted one (including a run that failed before it could report).
+The operator steps remain: the private environments' secrets, the two
+fine-grained tokens, deleting this repository's two environments after the
+first passing private nightly, and slice 5.
+
 ## Open gaps
 
 - Fine-grained tokens expire. Expiry fails the gate or the status update

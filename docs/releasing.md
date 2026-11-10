@@ -21,13 +21,22 @@ linked server contract/common-token change is deployed before approving a
 publishing job. The npm and PyPI jobs use trusted publishing; no long-lived
 registry token belongs in this repository.
 
-Every publishing workflow also calls the reusable pre-release live suite
-before its artifact job. Configure the protected `sdk-live-pre-release`
-environment with isolated plane URLs, one combined management token,
-host-injected Agent credentials, disposable fixture values, and the compressed
-scenario secret described in [Live integration tiers](live-testing.md). The
-scheduled `sdk-live-nightly` environment uses the same fixture-manager format.
-Neither environment may point at production.
+Every publishing workflow passes `live-pre-release-gate.yml` before its
+artifact job. The gate waits for an accepted `postgrip-sdk-live/pre-release`
+run of the tagged commit and, when there is none, dispatches
+`live-pre-release.yml` in the private `postgrip-io/postgrip-sdk-live` with that
+commit ([design](design/live-suites-private-repository-20261109.md), D3 and
+D4). The three publishing workflows share one run per commit. The gate runs in
+the `sdk-release-gate` environment, restricted to release tags, which holds
+`SDK_LIVE_DISPATCH_TOKEN`: a fine-grained token with **Actions: write** on
+`postgrip-io/postgrip-sdk-live` only. If the suite waits longer than the gate's
+340 minutes for the stage lease, the gate fails; re-run it to keep waiting
+without starting a second suite run.
+
+The stage environments, `sdk-live-nightly` and `sdk-live-pre-release`, live in
+the private repository, with the isolated plane URLs, one combined management
+token, disposable fixture values and the compressed scenario secret described
+in [Live integration tiers](live-testing.md). Neither may point at production.
 
 The optional Service domain verification job reads its fixture only after the
 protected environment is loaded. Configure `POSTGRIP_SERVICE_DISPOSABLE_DOMAIN_ID`,

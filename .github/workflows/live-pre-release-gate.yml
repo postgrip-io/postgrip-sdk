@@ -1,0 +1,34 @@
+name: Stage pre-release gate
+
+# The stage suites run in the private postgrip-io/postgrip-sdk-live, because a
+# public repository can't use web's stage actions or the stage runners
+# (docs/design/live-suites-private-repository-20261109.md, D4). This gate
+# passes once that repository reports an accepted pre-release run of this
+# commit, dispatching one when none exists.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  statuses: read
+
+jobs:
+  pre-release-live:
+    runs-on: ubuntu-latest
+    # GitHub's bound for hosted runners; the script stops at 340 minutes, so a
+    # long lease wait fails cleanly and a re-run resumes waiting (design D4).
+    timeout-minutes: 360
+    environment: sdk-release-gate
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Wait for an accepted stage pre-release run of this commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SDK_LIVE_DISPATCH_TOKEN: ${{ secrets.SDK_LIVE_DISPATCH_TOKEN }}
+        run: python3 scripts/sdk_live_gate.py "$GITHUB_SHA"

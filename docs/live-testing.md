@@ -18,6 +18,14 @@ live tier. Environment-specific scenarios are protected because they contain
 deployment fixture details, but their schema and runner are versioned in this
 repository.
 
+The nightly and pre-release tiers run on the stage environment from the
+private `postgrip-io/postgrip-sdk-live`, because a public repository can't use
+web's stage actions or runners. Each run checks out this repository at the
+commit under test and runs its scripts, then reports the result on that commit
+as the `postgrip-sdk-live/nightly` or `postgrip-sdk-live/pre-release` status,
+linking the run ([design](design/live-suites-private-repository-20261109.md)).
+The production smoke stays here, on a GitHub-hosted runner.
+
 The fixture manager owns resource registration, destructive-operation consent,
 cleanup and reporting of remaining resources. Failed cleanup stays visible;
 a configured live tier is not proof of a successful live run.
