@@ -491,9 +491,6 @@ func (w *workflowContext) ContinueAsNew(opts workflow.ContinueAsNewOptions) erro
 	if opts.TaskQueue == "" {
 		opts.TaskQueue = w.queue
 	}
-	if opts.WorkflowID == "" {
-		opts.WorkflowID = w.workflowID
-	}
 	return &workflow.ContinueAsNewSentinel{Options: opts}
 }
 

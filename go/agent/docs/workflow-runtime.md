@@ -106,7 +106,7 @@ This means: **`Receive` doesn't actually wait for new signals during a single wo
 
 ## ContinueAsNew
 
-Long-running workflows accumulate history. Eventually that history gets big enough to make replay slow and history-fetch round-trips expensive. The fix is `ContinueAsNew`: end the current run and atomically schedule a new run with a fresh history.
+Long-running workflows accumulate history. Eventually that history gets big enough to make replay slow and history-fetch round-trips expensive. The fix is `ContinueAsNew`: enqueue a new run with a fresh history, then end the current run.
 
 ```go
 func LongRunner(ctx workflow.Context, args []any) (any, error) {
@@ -128,7 +128,7 @@ func LongRunner(ctx workflow.Context, args []any) (any, error) {
 }
 ```
 
-`ContinueAsNew` is modeled as an error sentinel internally so workflow code can `return` it directly. The worker recognizes the sentinel and tells the runtime service to schedule the new run instead of marking the current one failed. Customer workflow bodies return `nil, ctx.ContinueAsNew(...)`.
+`ContinueAsNew` is modeled as an error sentinel internally so workflow code can `return` it directly. The worker recognizes the sentinel, enqueues the successor with the supplied arguments, then completes the old task with a reference to the new task. An omitted workflow ID selects a stable successor ID derived from the current task ID; the workflow type and queue default to the current values. These are two requests, not an atomic transaction: the successor can start before the old completion is persisted. Failed requests leave the old task for lease expiry and redelivery. A stable enqueue idempotency key reuses the successor within the server’s 24-hour idempotency window; this is not an indefinite deduplication guarantee. Customer workflow bodies return `nil, ctx.ContinueAsNew(...)`.
 
 ## Cancellation
 

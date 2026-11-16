@@ -244,19 +244,13 @@ func (w *Worker) handleTask(ctx context.Context, task *client.Task) {
 		if errors.Is(err, errWorkflowAlreadyBlocked) {
 			return
 		}
-		// ContinueAsNew is a control-flow signal, not a real error: the
-		// runtime service interprets the result.continue_as_new field as
-		// "schedule the next run". Translate before failing.
+		// ContinueAsNew schedules the successor before recording completion.
 		var canSentinel *workflow.ContinueAsNewSentinel
 		if errors.As(err, &canSentinel) {
-			result.ContinueAsNew = &client.ContinueAsNewResult{
-				WorkflowID:   canSentinel.Options.WorkflowID,
-				WorkflowType: canSentinel.Options.WorkflowType,
-				TaskQueue:    canSentinel.Options.TaskQueue,
-				TaskID:       task.ID,
-			}
-			if _, completeErr := w.opts.Connection.CompleteTask(taskCtx, task.ID, w.opts.AgentID, *result); completeErr != nil {
-				logger.Warn("complete (continue-as-new) failed", "error", completeErr)
+			if continueErr := w.continueWorkflow(taskCtx, task, canSentinel.Options, result); continueErr != nil {
+				// Lease expiry redelivers the task. A stable enqueue key lets
+				// redelivery reuse a successor whose completion request failed.
+				logger.Warn("continue-as-new failed; awaiting redelivery", "error", continueErr)
 			}
 			return
 		}

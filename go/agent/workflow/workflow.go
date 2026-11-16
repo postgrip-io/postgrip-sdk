@@ -85,8 +85,9 @@ type ChildWorkflowOptions struct {
 
 // ContinueAsNewOptions captures the new workflow shape when a workflow opts
 // to restart with a fresh history. Returning ContinueAsNew(...) from a
-// workflow body completes the current run and atomically schedules the next
-// one.
+// workflow body enqueues the next run, then completes the current run. These
+// are separate requests, not an atomic transaction. An empty WorkflowID selects
+// a stable successor ID derived from the current task ID.
 type ContinueAsNewOptions struct {
 	WorkflowID           string
 	WorkflowType         string
