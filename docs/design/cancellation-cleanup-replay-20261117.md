@@ -1,7 +1,7 @@
 # Cancellation cleanup replay in TypeScript and Python
 
 Implements SDK issue #152. Status: implemented; local and managed-stage validation recorded in
-[test evidence](../../test/live/cancellation-cleanup-20261117.md).
+[test evidence](https://github.com/postgrip-io/postgrip-sdk/blob/f743e01bb9923d5d1e216c79ff31f80a97b4fae3/test/live/cancellation-cleanup-20261117.md).
 
 ## Problem and scope
 
