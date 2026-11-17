@@ -162,3 +162,14 @@ Updates are like signals but synchronous from the client's perspective. The
 worker replays completed update events before invoking the current handler, so
 captured workflow state is reconstructed consistently before the caller receives
 the result.
+
+## Activity timeout options
+
+A positive `ActivityOptions.StartToCloseMs` takes precedence over
+`LeaseTimeoutSeconds` and rounds up to whole seconds for the activity task lease.
+If it is zero, the explicit lease setting or server default remains in effect.
+This matches the TypeScript/Python start-to-close option mapping. The current
+server renews the lease on heartbeats; this option does not impose a hard
+wall-clock execution deadline while the activity keeps heartbeating.
+`HeartbeatTimeoutMs` is reserved and does not configure a separate heartbeat
+deadline. Activity heartbeats and milestones still record progress.
