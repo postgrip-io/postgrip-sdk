@@ -123,6 +123,7 @@ export type {
 
 export type {
   OpenAPIUpdateWorkerRequest,
+  OpenAPIWorkerMaintenanceWindowInput,
   UpdateWorkerRequestBody,
   UpdateWorkerResponseBody,
 } from './generated/openapi.js';

@@ -3,7 +3,13 @@
   "plane": "worker",
   "request": {
     "body": {
-      "name": "string"
+      "maintenanceWindow": {
+        "durationMinutes": 30,
+        "enabled": true,
+        "startMinute": 60,
+        "timezone": "UTC"
+      },
+      "name": "production-worker"
     },
     "headers": {
       "Idempotency-Key": "recorded-updateWorker"
