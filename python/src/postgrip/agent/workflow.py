@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Generic, TypeVar, overload
 
 from ._events import milestone_event
-from .errors import CancelledFailure
+from .errors import CancelledFailure  # noqa: F401 - retain the existing module-level import
 
 F = TypeVar("F", bound=Callable[..., Any])
 C = TypeVar("C", bound=type)
@@ -145,7 +145,6 @@ def now() -> datetime:
 async def sleep(delay: float | int | timedelta) -> None:
     runtime = _current_runtime()
     duration_ms = _duration_ms(delay)
-    _throw_if_scoped_cancelled(runtime)
     await runtime.sleep(duration_ms, _current_scope())
 
 
@@ -153,7 +152,6 @@ async def condition(predicate: Callable[[], bool], timeout: float | int | timede
     runtime = _current_runtime()
     if predicate():
         return True
-    _throw_if_scoped_cancelled(runtime)
     timeout_ms = None if timeout is None else _duration_ms(timeout)
     return await runtime.condition(predicate, timeout_ms, _current_scope())
 
@@ -180,7 +178,6 @@ async def milestone(
 async def execute_activity(activity: Callable[..., R] | str, *args: Any, **options: Any) -> R:
     runtime = _current_runtime()
     activity_type = activity if isinstance(activity, str) else str(getattr(activity, "_postgrip_activity_name", activity.__name__))
-    _throw_if_scoped_cancelled(runtime)
     return await runtime.execute_activity(activity_type, list(args), {**options, "cancellation_scope": _current_scope()})
 
 
@@ -201,7 +198,6 @@ async def execute_child(workflow: Callable[..., R] | str, *args: Any, **options:
     if not workflow_type:
         raise ValueError("child workflow type is required")
     child_args = list(options.pop("args", list(args)))
-    _throw_if_scoped_cancelled(runtime)
     return await runtime.execute_child(workflow_type, child_args, {**options, "cancellation_scope": _current_scope()})
 
 
@@ -306,11 +302,6 @@ def _current_scopes() -> list[CancellationScopeType]:
 def _current_scope() -> CancellationScopeType:
     scopes = _current_scopes()
     return scopes[-1] if scopes else "cancellable"
-
-
-def _throw_if_scoped_cancelled(runtime: _WorkflowRuntime) -> None:
-    if _current_scope() != "non_cancellable" and runtime.cancellation_requested():
-        raise CancelledFailure("workflow cancellation requested")
 
 
 def _duration_ms(value: float | int | timedelta) -> int:

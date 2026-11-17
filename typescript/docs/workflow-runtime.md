@@ -177,7 +177,35 @@ const count = await handle.executeUpdate('replace_messages', ['a', 'b']);
 
 ## Cancellation
 
-When the runtime service receives a cancellation request, the next replay sees the corresponding history event. `sleep`, proxy-activity calls, `executeChild`, and `condition` all check for cancellation before scheduling new commands and throw `CancelledFailure` if requested.
+Cancellation is observed at the executing workflow's command position in durable
+history. Commands recorded before the first cancellation request are matched in
+order; after the last such command is consumed, it raises `CancelledFailure`
+instead of returning a result or suspending. This includes a timer whose firing
+is already recorded. A request before any command raises before scheduling it.
+`sleep`, proxy-activity calls, `executeChild` and waiting `condition` calls use
+this rule; `cancellationRequested()` reports the same positional visibility.
+
+For cancellation cleanup, guard the `finally` block and explicitly shield its
+activity from cancellation:
+
+```ts
+try {
+  await sleep(86_400_000);
+} finally {
+  if (cancellationRequested()) {
+    await CancellationScope.nonCancellable(() => auditCancellation());
+  }
+}
+```
+
+Import these workflow helpers from `@postgrip/sdk/agent` and register
+`auditCancellation` as an activity. Cleanup may suspend and replay on another
+Agent. When it finishes, the original cancellation propagates. Ordinary
+suspension also unwinds `finally`, so keep the guard; unconditional cleanup can
+run while a workflow is merely waiting. Non-cancellable scope suppresses
+cancellation, not determinism validation. Activities still require idempotency
+under at-least-once delivery. Query replay remains read-only and stops at the
+cancellation boundary; it does not execute cleanup.
 
 To cancel from the client side: `await handle.cancel('reason')`.
 

@@ -157,7 +157,34 @@ count = await handle.execute_update("replace_messages", ["a", "b"])
 
 ## Cancellation
 
-When the runtime service receives a cancellation request, the next replay sees the corresponding history event. `workflow.execute_activity`, `workflow.sleep`, `workflow.execute_child`, and `workflow.condition` all check for cancellation before scheduling new commands and raise `CancelledFailure` if requested.
+Cancellation is observed at the executing workflow's command position in durable
+history. Commands recorded before the first cancellation request are matched in
+order; after the last such command is consumed, it raises `CancelledFailure`
+instead of returning a result or suspending. This includes a timer whose firing
+is already recorded. A request before any command raises before scheduling it.
+`execute_activity`, `sleep`, `execute_child` and waiting `condition` calls use
+this rule; `workflow.cancellation_requested()` reports the same positional visibility.
+
+For cancellation cleanup, guard the `finally` block and explicitly shield its
+activity from cancellation:
+
+```python
+try:
+    await workflow.sleep(timedelta(days=1))
+finally:
+    if workflow.cancellation_requested():
+        async def cleanup():
+            await workflow.execute_activity("audit_cancellation")
+        await workflow.CancellationScope.non_cancellable(cleanup)
+```
+
+Register `audit_cancellation` as an activity. Cleanup may suspend and replay on
+another Agent. When it finishes, the original cancellation propagates. Ordinary
+suspension also unwinds `finally`, so keep the guard; unconditional cleanup can
+run while a workflow is merely waiting. Non-cancellable scope suppresses
+cancellation, not determinism validation. Activities still require idempotency
+under at-least-once delivery. Query replay remains read-only and stops at the
+cancellation boundary; it does not execute cleanup.
 
 To cancel from the client side: `await handle.cancel("reason")`.
 

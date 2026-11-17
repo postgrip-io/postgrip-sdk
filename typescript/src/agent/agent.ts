@@ -430,6 +430,7 @@ export class Agent {
   ): Promise<unknown> {
     this.throwIfCancelled(replay, options.cancellationScope);
     const scheduled = replayCommand(() => replay.nextActivity(name));
+    this.throwIfCancelled(replay, options.cancellationScope);
     if (scheduled?.task_id) {
       const task = await this.connection.getTask<ActivityInvocationPayload>(scheduled.task_id);
       if (task.state === 'succeeded') return task.result?.value;
@@ -471,6 +472,7 @@ export class Agent {
   ): Promise<void> {
     this.throwIfCancelled(replay, cancellationScope);
     const started = replayCommand(() => replay.nextTimer(durationMs));
+    this.throwIfCancelled(replay, cancellationScope);
     if (started?.task_id) {
       if (replay.isTimerFired(started)) return;
       throw new WorkflowBlocked('waiting for timer');
@@ -503,6 +505,7 @@ export class Agent {
   ): Promise<unknown> {
     this.throwIfCancelled(replay, options.cancellationScope);
     const started = replayCommand(() => replay.nextChild(workflowType));
+    this.throwIfCancelled(replay, options.cancellationScope);
     if (started) {
       const childWorkflowId = childWorkflowIdFromEvent(started);
       if (!childWorkflowId) {
@@ -602,6 +605,7 @@ export class Agent {
   private async replayActivityForQuery(replay: WorkflowReplay, name: string): Promise<unknown> {
     if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
     const scheduled = replayCommand(() => replay.nextActivity(name));
+    if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
     if (!scheduled?.task_id) {
       throw new WorkflowQueryReady();
     }
@@ -622,6 +626,7 @@ export class Agent {
   private async replayTimerForQuery(replay: WorkflowReplay, durationMs: number): Promise<void> {
     if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
     const started = replayCommand(() => replay.nextTimer(durationMs));
+    if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
     if (!started?.task_id || !replay.isTimerFired(started)) {
       throw new WorkflowQueryReady('waiting for timer');
     }
@@ -630,6 +635,7 @@ export class Agent {
   private async replayChildForQuery(replay: WorkflowReplay, name: string): Promise<unknown> {
     if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
     const started = replayCommand(() => replay.nextChild(name));
+    if (replay.isCancellationRequested()) throw new WorkflowQueryReady('workflow cancelled');
     if (!started) {
       throw new WorkflowQueryReady();
     }

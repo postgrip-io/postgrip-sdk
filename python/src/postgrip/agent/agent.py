@@ -289,6 +289,7 @@ class Agent:
     async def _execute_activity_command(self, workflow_task: dict[str, Any], replay: WorkflowReplay, name: str, args: list[Any], options: dict[str, Any]) -> Any:
         self._throw_if_cancelled(replay, options.get("cancellation_scope"))
         scheduled = _replay_command(lambda: replay.next_activity(name))
+        self._throw_if_cancelled(replay, options.get("cancellation_scope"))
         if scheduled and scheduled.get("task_id"):
             task = await asyncio.to_thread(self.connection.get_task, scheduled["task_id"])
             if task["state"] == "succeeded":
@@ -327,6 +328,7 @@ class Agent:
     async def _execute_timer_command(self, workflow_task: dict[str, Any], replay: WorkflowReplay, duration_ms: int, cancellation_scope: str = "cancellable") -> None:
         self._throw_if_cancelled(replay, cancellation_scope)
         started = _replay_command(lambda: replay.next_timer(duration_ms))
+        self._throw_if_cancelled(replay, cancellation_scope)
         if started and started.get("task_id"):
             if replay.is_timer_fired(started):
                 return
@@ -350,6 +352,7 @@ class Agent:
     async def _execute_child_command(self, workflow_task: dict[str, Any], replay: WorkflowReplay, workflow_type: str, args: list[Any], options: dict[str, Any]) -> Any:
         self._throw_if_cancelled(replay, options.get("cancellation_scope"))
         started = _replay_command(lambda: replay.next_child(workflow_type))
+        self._throw_if_cancelled(replay, options.get("cancellation_scope"))
         if started:
             child_workflow_id = _child_workflow_id_from_event(started)
             if not child_workflow_id:
@@ -395,6 +398,8 @@ class Agent:
         if replay.is_cancellation_requested():
             raise WorkflowQueryReady("workflow cancelled")
         scheduled = _replay_command(lambda: replay.next_activity(name))
+        if replay.is_cancellation_requested():
+            raise WorkflowQueryReady("workflow cancelled")
         if not scheduled or not scheduled.get("task_id"):
             raise WorkflowQueryReady()
         task = await asyncio.to_thread(self.connection.get_task, scheduled["task_id"])
@@ -412,6 +417,8 @@ class Agent:
         if replay.is_cancellation_requested():
             raise WorkflowQueryReady("workflow cancelled")
         started = _replay_command(lambda: replay.next_timer(duration_ms))
+        if replay.is_cancellation_requested():
+            raise WorkflowQueryReady("workflow cancelled")
         if not started or not started.get("task_id") or not replay.is_timer_fired(started):
             raise WorkflowQueryReady("waiting for timer")
 
@@ -419,6 +426,8 @@ class Agent:
         if replay.is_cancellation_requested():
             raise WorkflowQueryReady("workflow cancelled")
         started = _replay_command(lambda: replay.next_child(name))
+        if replay.is_cancellation_requested():
+            raise WorkflowQueryReady("workflow cancelled")
         if not started:
             raise WorkflowQueryReady()
         child_workflow_id = _child_workflow_id_from_event(started)
