@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	OpenAPISpecSHA256           = "40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460"
-	OpenAPIContractBundleSHA256 = "818e166aba4309c9b6a85896fb312bbb286e72c819f84b31cb3bf2e97202c916"
-	OpenAPIOperationCount       = 21
+	OpenAPISpecSHA256           = "b3b9e5a6e2d36466fa3ea7070204be74e13a242a48d1668c49955f94fab1e409"
+	OpenAPIContractBundleSHA256 = "e05a31a1a8648663c2cc10b11a1dfd7c229c7faef6a885395bf4900852842bbc"
+	OpenAPIOperationCount       = 22
 )
 
 type openAPIOperationID string
@@ -37,6 +37,7 @@ const (
 	openAPIPlaceWorkerInMaintenance     openAPIOperationID = "placeWorkerInMaintenance"
 	openAPIRemoveWorker                 openAPIOperationID = "removeWorker"
 	openAPIResumeWorkerFromMaintenance  openAPIOperationID = "resumeWorkerFromMaintenance"
+	openAPIUpdateWorker                 openAPIOperationID = "updateWorker"
 	openAPIUpdateWorkerSnapshotSettings openAPIOperationID = "updateWorkerSnapshotSettings"
 	openAPIUpgradeWorker                openAPIOperationID = "upgradeWorker"
 	openAPIWorkerOrchestratorHealth     openAPIOperationID = "workerOrchestratorHealth"
@@ -64,6 +65,7 @@ var openAPIOperationTable = map[openAPIOperationID]transport.Operation{
 	openAPIPlaceWorkerInMaintenance:     {ID: "placeWorkerInMaintenance", Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPIRemoveWorker:                 {ID: "removeWorker", Method: "DELETE", Path: "/api/v1/workers/{workerId}", AuthLane: "worker-management", Safety: "destructive", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "RemoveWorkerResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key", "If-Match"}},
 	openAPIResumeWorkerFromMaintenance:  {ID: "resumeWorkerFromMaintenance", Method: "POST", Path: "/api/v1/workers/{workerId}/maintenance/resume", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "WorkerOperationResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
+	openAPIUpdateWorker:                 {ID: "updateWorker", Method: "PUT", Path: "/api/v1/workers/{workerId}", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateWorkerRequest", ResponseSchema: "Worker", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPIUpdateWorkerSnapshotSettings: {ID: "updateWorkerSnapshotSettings", Method: "PUT", Path: "/api/v1/workers/{workerId}/snapshot/settings", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "UpdateWorkerSnapshotSettingsRequest", ResponseSchema: "UpdateWorkerSnapshotSettingsResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPIUpgradeWorker:                {ID: "upgradeWorker", Method: "POST", Path: "/api/v1/workers/{workerId}/upgrade", AuthLane: "worker-management", Safety: "mutation", Idempotency: "required", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "UpgradeWorkerResponse", PathParameters: []string{"workerId"}, HeaderParameters: []string{"Idempotency-Key"}},
 	openAPIWorkerOrchestratorHealth:     {ID: "workerOrchestratorHealth", Method: "GET", Path: "/health", AuthLane: "public", Safety: "read-only", Idempotency: "none", Pagination: "none", Retry: "bounded", Signing: "", StreamingRequest: false, WebSocket: false, RequestSchema: "", ResponseSchema: "HealthResponse", PathParameters: []string{}, HeaderParameters: []string{}},

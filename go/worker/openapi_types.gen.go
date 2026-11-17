@@ -316,6 +316,11 @@ type OpenAPIStorageDestination struct {
 type OpenAPIStorageDestinationList struct {
 	Items []OpenAPIStorageDestination `json:"items"`
 }
+type OpenAPIUpdateWorkerRequest struct {
+	Name              string                    `json:"name"`
+	Host              *string                   `json:"host,omitempty"`
+	MaintenanceWindow *OpenAPIMaintenanceWindow `json:"maintenanceWindow,omitempty"`
+}
 type OpenAPICheckWorkerRequestBody = OpenAPINoBody
 type OpenAPICheckWorkerResponseBody = OpenAPICheckWorkerResponse
 type OpenAPICreateWorkerRequestBody = OpenAPICreateWorkerRequest
@@ -352,6 +357,8 @@ type OpenAPIRemoveWorkerRequestBody = OpenAPINoBody
 type OpenAPIRemoveWorkerResponseBody = OpenAPIRemoveWorkerResponse
 type OpenAPIResumeWorkerFromMaintenanceRequestBody = OpenAPINoBody
 type OpenAPIResumeWorkerFromMaintenanceResponseBody = OpenAPIWorkerOperationResponse
+type OpenAPIUpdateWorkerRequestBody = OpenAPIUpdateWorkerRequest
+type OpenAPIUpdateWorkerResponseBody = OpenAPIWorker
 type OpenAPIUpdateWorkerSnapshotSettingsRequestBody = OpenAPIUpdateWorkerSnapshotSettingsRequest
 type OpenAPIUpdateWorkerSnapshotSettingsResponseBody = OpenAPIUpdateWorkerSnapshotSettingsResponse
 type OpenAPIUpgradeWorkerRequestBody = OpenAPINoBody
@@ -412,5 +419,6 @@ type UpdateWorkerSnapshotSettingsRequest = OpenAPIUpdateWorkerSnapshotSettingsRe
 type UpdateWorkerSnapshotSettingsResponse = OpenAPIUpdateWorkerSnapshotSettingsResponse
 type StorageDestination = OpenAPIStorageDestination
 type StorageDestinationList = OpenAPIStorageDestinationList
+type UpdateWorkerRequest = OpenAPIUpdateWorkerRequest
 
-const openAPITypesSpecSHA256 = "40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460"
+const openAPITypesSpecSHA256 = "b3b9e5a6e2d36466fa3ea7070204be74e13a242a48d1668c49955f94fab1e409"

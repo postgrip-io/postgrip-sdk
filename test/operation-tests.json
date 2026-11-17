@@ -1790,6 +1790,78 @@
       "mockTest": "recorded-http",
       "plane": "worker",
       "protocolException": null
+    },
+    "createAgentEnrollmentKey": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/createAgentEnrollmentKey.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "deleteAgent": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/deleteAgent.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "enrollAgent": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/enrollAgent.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "getAgent": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/getAgent.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "listAgents": {
+      "cleanup": "none",
+      "curlEligible": true,
+      "fixture": "agent/listAgents.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "updateAgent": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/updateAgent.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "updateSandbox": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "agent/updateSandbox.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "agent",
+      "protocolException": null
+    },
+    "updateWorker": {
+      "cleanup": "reverse-dependency",
+      "curlEligible": true,
+      "fixture": "worker/updateWorker.json",
+      "liveTest": "pre-release",
+      "mockTest": "recorded-http",
+      "plane": "worker",
+      "protocolException": null
     }
   },
   "schemaVersion": 1

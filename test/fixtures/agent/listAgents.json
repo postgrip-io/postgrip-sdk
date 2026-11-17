@@ -1,0 +1,37 @@
+{
+  "operationId": "listAgents",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": [
+      {
+        "createdAt": "2026-01-01T00:00:00Z",
+        "helperMaintenanceMode": true,
+        "helperTrustState": "string",
+        "id": "string",
+        "logLevel": "string",
+        "maintenanceWindow": {
+          "durationMinutes": 1,
+          "startMinute": 1,
+          "timezone": "string"
+        },
+        "status": "string",
+        "tenantId": "string",
+        "trustState": "string",
+        "updatedAt": "2026-01-01T00:00:00Z"
+      }
+    ],
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_listAgents"
+    },
+    "status": 200
+  },
+  "schemaVersion": 1
+}

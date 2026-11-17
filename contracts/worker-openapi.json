@@ -333,6 +333,65 @@
         "x-postgrip-pagination": "none",
         "x-postgrip-idempotency": "required",
         "x-postgrip-retry": "bounded"
+      },
+      "put": {
+        "operationId": "updateWorker",
+        "tags": [
+          "Workers"
+        ],
+        "summary": "Update a worker\u2019s settings",
+        "description": "Requires workers:admin. Replaces the name; omitted host and maintenanceWindow preserve their stored values. An empty host clears it. Host changes retain origin validation and are refused with 409 CANONICAL_DNS_ACTIVE while canonical DNS depends on that origin. Removed Workers and Workers belonging to another organization answer 404 NOT_FOUND. Unknown fields are rejected. The committed Worker is returned, with its current trust state; an unavailable trust read reports unknown without undoing the update. The token actor is audited and Idempotency-Key retries replay the completed answer.",
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "worker-management",
+        "x-postgrip-required-scopes": [
+          [
+            "workers:admin"
+          ]
+        ],
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated Worker",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Worker"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "required",
+        "x-postgrip-retry": "bounded"
       }
     },
     "/api/v1/workers/{workerId}/removal-impact": {
@@ -2940,6 +2999,27 @@
               "updatedAt": "2026-11-03T08:00:00Z"
             }
           ]
+        }
+      },
+      "UpdateWorkerRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "host": {
+            "type": "string",
+            "description": "Omit to preserve the current host; empty string clears it."
+          },
+          "maintenanceWindow": {
+            "$ref": "#/components/schemas/MaintenanceWindow"
+          }
         }
       }
     }

@@ -1344,6 +1344,62 @@
       "behavior": "Lists the organization's storage destinations, ordered by name and not paged; a destination's `id` is the `storageDestinationId` that `updateWorkerSnapshotSettings` takes. The answer holds no credential: the access key and secret stay on the Workers that use the destination, and which Workers hold them is not answered. No Worker is contacted.",
       "lifecycle": [],
       "summary": "List storage destinations"
+    },
+    "createAgentEnrollmentKey": {
+      "behavior": "Requires agent:admin. Generate a strong random enrollmentKey locally, register it, and supply it only to the host being enrolled. The answer never returns the key. A key admits one enrollment. Optional agentId and replacesKeyHash must be supplied together for administrator recovery of an existing, non-removed Agent.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "Register an Agent enrollment key"
+    },
+    "deleteAgent": {
+      "behavior": "Requires agent:admin. Revokes the Agent\u2019s sessions and requests runtime shutdown through the existing removal lifecycle; later enrollment cannot restore a removed Agent. Worker resources have a separate lifecycle.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "Remove an Agent"
+    },
+    "enrollAgent": {
+      "behavior": "Consumes the one-time enrollmentKey in the request and creates the Agent and its initial runtime session. The enrollment key is the credential, so no management bearer is sent. Generate the Ed25519 signing key on the host and send only signaturePublicKey. A used key is refused, and removed Agents cannot be restored by enrollment. Keep returned session credentials on that host.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "Create an Agent by enrolling its host"
+    },
+    "getAgent": {
+      "behavior": "Returns a registered Agent in the token\u2019s organization. Removed or foreign Agents answer 404.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "Read an Agent"
+    },
+    "listAgents": {
+      "behavior": "Returns the organization\u2019s visible Agents. Removed Agents are omitted. Requires agent:read.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "List registered Agents"
+    },
+    "updateAgent": {
+      "behavior": "Requires agent:admin. Updates name, logLevel and maintenanceWindow; omitted fields preserve current settings. Uses the existing Agent configuration lifecycle. Does not change trust, placement or signing identity.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "Update Agent configuration"
+    },
+    "updateSandbox": {
+      "behavior": "Updates name, labels or expiresAt. Omitted fields preserve stored values; at least one field is required. Labels replace user labels while preserving reserved Agent placement metadata; specifying postgrip.io/agent-id is refused. Names retain the create rules and tenant uniqueness. Expiration must be in the future and at most 24 hours after creation; expired or deleting/deleted sandboxes answer 404. Runtime identity, generation, image, resource limits and network policy stay unchanged.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "Update sandbox metadata"
+    },
+    "updateWorker": {
+      "behavior": "Requires workers:admin. Replaces the name; omitted host and maintenanceWindow preserve their stored values. An empty host clears it. Host changes retain origin validation and are refused with 409 CANONICAL_DNS_ACTIVE while canonical DNS depends on that origin. Removed Workers and Workers belonging to another organization answer 404 NOT_FOUND. Unknown fields are rejected. The committed Worker is returned, with its current trust state; an unavailable trust read reports unknown without undoing the update. The token actor is audited and Idempotency-Key retries replay the completed answer.",
+      "lifecycle": [
+        "Use disposable tenant resources and restore settings or remove created resources after verification."
+      ],
+      "summary": "Update a worker\u2019s settings"
     }
   },
   "schemaVersion": 1

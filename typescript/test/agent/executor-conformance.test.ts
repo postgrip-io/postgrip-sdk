@@ -104,7 +104,7 @@ describe('Agent executor conformance', () => {
   const executed = operations.filter((operation) => !operation.adapterOnly);
 
   it('covers every Agent operation; the upload and WebSocket stay with their adapters', () => {
-    expect(operations).toHaveLength(46);
+    expect(operations).toHaveLength(53);
     expect(operations.filter((operation) => operation.adapterOnly).map((operation) => operation.id).sort())
       .toEqual(['connectSandboxSession', 'uploadWorkspace']);
   });
@@ -157,8 +157,8 @@ describe('Agent executor conformance', () => {
     });
   }
 
-  it('retries exactly the 18 bounded reads when enabled', () => {
-    expect(executed.filter((operation) => operation.retry === 'bounded' && operation.safety === 'read-only')).toHaveLength(18);
+  it('retries exactly the 20 bounded reads when enabled', () => {
+    expect(executed.filter((operation) => operation.retry === 'bounded' && operation.safety === 'read-only')).toHaveLength(20);
   });
 
   it('keeps retries disabled by default', async () => {

@@ -1,0 +1,21 @@
+{
+  "operationId": "deleteAgent",
+  "plane": "agent",
+  "request": {
+    "body": null,
+    "headers": {},
+    "pathParameters": {
+      "agentId": "string"
+    },
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": null,
+    "headers": {
+      "X-Request-Id": "req_deleteAgent"
+    },
+    "status": 204
+  },
+  "schemaVersion": 1
+}

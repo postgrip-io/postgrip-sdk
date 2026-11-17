@@ -16,6 +16,9 @@
       "name": "System"
     },
     {
+      "name": "Agents"
+    },
+    {
       "name": "Namespaces"
     },
     {
@@ -2416,6 +2419,60 @@
         "x-postgrip-pagination": "none",
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "none"
+      },
+      "patch": {
+        "operationId": "updateSandbox",
+        "summary": "Update sandbox metadata",
+        "tags": [
+          "Sandboxes"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "management",
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update sandbox metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sandbox"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-required-scopes": [
+          [
+            "agent:operate"
+          ]
+        ],
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "none",
+        "description": "Updates name, labels or expiresAt. Omitted fields preserve stored values; at least one field is required. Labels replace user labels while preserving reserved Agent placement metadata; specifying postgrip.io/agent-id is refused. Names retain the create rules and tenant uniqueness. Expiration must be in the future and at most 24 hours after creation; expired or deleting/deleted sandboxes answer 404. Runtime identity, generation, image, resource limits and network policy stay unchanged.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SandboxUpdateRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/sandboxes/{sandboxId}/start": {
@@ -2836,6 +2893,299 @@
         "x-postgrip-idempotency": "none",
         "x-postgrip-retry": "none"
       }
+    },
+    "/api/v1/agents": {
+      "get": {
+        "operationId": "listAgents",
+        "summary": "List registered Agents",
+        "tags": [
+          "Agents"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "management",
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List registered Agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AgentInventoryRecord"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-required-scopes": [
+          [
+            "agent:read"
+          ]
+        ],
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded",
+        "description": "Returns the organization\u2019s visible Agents. Removed Agents are omitted. Requires agent:read."
+      }
+    },
+    "/api/v1/agents/{agentId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/AgentId"
+        }
+      ],
+      "get": {
+        "operationId": "getAgent",
+        "summary": "Read an Agent",
+        "tags": [
+          "Agents"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "management",
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read an Agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInventoryRecord"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-required-scopes": [
+          [
+            "agent:read"
+          ]
+        ],
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "read-only",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "bounded",
+        "description": "Returns a registered Agent in the token\u2019s organization. Removed or foreign Agents answer 404."
+      },
+      "put": {
+        "operationId": "updateAgent",
+        "summary": "Update Agent configuration",
+        "tags": [
+          "Agents"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "management",
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Update Agent configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentInventoryRecord"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-required-scopes": [
+          [
+            "agent:admin"
+          ]
+        ],
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "none",
+        "description": "Requires agent:admin. Updates name, logLevel and maintenanceWindow; omitted fields preserve current settings. Uses the existing Agent configuration lifecycle. Does not change trust, placement or signing identity.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgentConfigurationRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAgent",
+        "summary": "Remove an Agent",
+        "tags": [
+          "Agents"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "management",
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Remove an Agent"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-required-scopes": [
+          [
+            "agent:admin"
+          ]
+        ],
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "destructive",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "none",
+        "description": "Requires agent:admin. Revokes the Agent\u2019s sessions and requests runtime shutdown through the existing removal lifecycle; later enrollment cannot restore a removed Agent. Worker resources have a separate lifecycle."
+      }
+    },
+    "/api/v1/enrollment-keys": {
+      "post": {
+        "operationId": "createAgentEnrollmentKey",
+        "summary": "Register an Agent enrollment key",
+        "tags": [
+          "Agents"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "management",
+        "security": [
+          {
+            "postgripToken": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Register an Agent enrollment key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentEnrollmentKeyReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-required-scopes": [
+          [
+            "agent:admin"
+          ]
+        ],
+        "x-postgrip-operation-class": "tenant-api",
+        "x-postgrip-accepted-credentials": [
+          "postgrip-token"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "none",
+        "description": "Requires agent:admin. Generate a strong random enrollmentKey locally, register it, and supply it only to the host being enrolled. The answer never returns the key. A key admits one enrollment. Optional agentId and replacesKeyHash must be supplied together for administrator recovery of an existing, non-removed Agent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentEnrollmentKeyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agent/enroll": {
+      "post": {
+        "operationId": "enrollAgent",
+        "summary": "Create an Agent by enrolling its host",
+        "tags": [
+          "Agents"
+        ],
+        "x-postgrip-sdk-generate": true,
+        "x-postgrip-auth-lane": "public",
+        "responses": {
+          "201": {
+            "description": "Create an Agent by enrolling its host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "x-postgrip-operation-class": "agent-runtime",
+        "x-postgrip-accepted-credentials": [
+          "agent-enrollment-key"
+        ],
+        "x-postgrip-safety": "mutation",
+        "x-postgrip-protocol": "http-json",
+        "x-postgrip-pagination": "none",
+        "x-postgrip-idempotency": "none",
+        "x-postgrip-retry": "none",
+        "description": "Consumes the one-time enrollmentKey in the request and creates the Agent and its initial runtime session. The enrollment key is the credential, so no management bearer is sent. Generate the Ed25519 signing key on the host and send only signaturePublicKey. A used key is refused, and removed Agents cannot be restored by enrollment. Keep returned session credentials on that host.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentEnrollmentRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2994,6 +3344,14 @@
           "pattern": "^[!-~]+$"
         },
         "example": "ci-run-4512-report"
+      },
+      "AgentId": {
+        "name": "agentId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
       }
     },
     "responses": {
@@ -4838,6 +5196,320 @@
           "details": {
             "type": "object",
             "additionalProperties": {}
+          }
+        }
+      },
+      "AgentHostMaintenanceWindow": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "startMinute": {
+            "type": "integer"
+          },
+          "durationMinutes": {
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "startMinute",
+          "durationMinutes",
+          "timezone"
+        ]
+      },
+      "AgentHostMaintenanceWindowInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "startMinute": {
+            "type": "integer"
+          },
+          "durationMinutes": {
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "startMinute",
+          "durationMinutes",
+          "timezone"
+        ]
+      },
+      "AgentInventoryRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trustState": {
+            "type": "string"
+          },
+          "trustReason": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "enrollmentKeyHash": {
+            "type": "string"
+          },
+          "signaturePublicKey": {
+            "type": "string"
+          },
+          "lastAttestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attestationExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "trustedArtifactDigest": {
+            "type": "string"
+          },
+          "trustedImageDigest": {
+            "type": "string"
+          },
+          "trustedSigner": {
+            "type": "string"
+          },
+          "trustedProvenanceDigest": {
+            "type": "string"
+          },
+          "helperTrustState": {
+            "type": "string"
+          },
+          "helperTrustReason": {
+            "type": "string"
+          },
+          "helperLastAttestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "helperAttestationExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "helperTrustedArtifactDigest": {
+            "type": "string"
+          },
+          "helperTrustedImageDigest": {
+            "type": "string"
+          },
+          "helperTrustedSigner": {
+            "type": "string"
+          },
+          "helperTrustedProvenanceDigest": {
+            "type": "string"
+          },
+          "helperMaintenanceMode": {
+            "type": "boolean"
+          },
+          "namespaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "queues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maintenanceWindow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentHostMaintenanceWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "logLevel": {
+            "type": "string"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "enrolledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "removedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isolationTiers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "status",
+          "trustState",
+          "helperTrustState",
+          "helperMaintenanceMode",
+          "maintenanceWindow",
+          "logLevel",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateAgentConfigurationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "maintenanceWindow": {
+            "$ref": "#/components/schemas/AgentHostMaintenanceWindowInput"
+          },
+          "logLevel": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentEnrollmentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enrollmentKey": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "namespaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "queues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "signaturePublicKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "enrollmentKey"
+        ]
+      },
+      "AgentEnrollmentKeyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enrollmentKey"
+        ],
+        "properties": {
+          "enrollmentKey": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          },
+          "replacesKeyHash": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentEnrollmentKeyReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenantId",
+          "label"
+        ],
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "agentId": {
+            "type": "string"
+          }
+        }
+      },
+      "SandboxUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$"
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "x-postgrip-presence-aware": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

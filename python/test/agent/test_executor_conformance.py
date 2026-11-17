@@ -83,11 +83,11 @@ def call(client: Connection, operation: dict[str, object]) -> object:
 class AgentExecutorConformanceTests(unittest.TestCase):
     def test_covers_every_agent_operation_and_leaves_adapters_alone(self) -> None:
         operations = contract_operations()
-        self.assertEqual(len(operations), 46)
+        self.assertEqual(len(operations), 53)
         self.assertEqual(sorted(o["id"].value for o in operations if o["adapter"]),  # type: ignore[union-attr]
                          ["connectSandboxSession", "uploadWorkspace"])
         executed = [o for o in operations if not o["adapter"]]
-        self.assertEqual(len([o for o in executed if o["retry"] == "bounded" and o["safety"] == "read-only"]), 18)
+        self.assertEqual(len([o for o in executed if o["retry"] == "bounded" and o["safety"] == "read-only"]), 20)
         self.assertEqual(len([o for o in executed if o["signing"]]), 5)
 
     def test_each_operation_follows_its_lane_signing_and_retry_annotations(self) -> None:

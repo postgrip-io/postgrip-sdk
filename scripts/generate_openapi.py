@@ -434,7 +434,8 @@ def go_schema_type(
     if schema_type == "object" or "properties" in schema or "additionalProperties" in schema:
         additional = schema.get("additionalProperties")
         if isinstance(additional, dict):
-            return f"map[string]{go_schema_type(additional, schemas=schemas)}"
+            value = f"map[string]{go_schema_type(additional, schemas=schemas)}"
+            return f"*{value}" if optional and schema.get("x-postgrip-presence-aware") else value
         if schema.get("properties"):
             fields = go_struct_fields(schema, schemas)
             return f"struct {{\n{fields}\n}}"

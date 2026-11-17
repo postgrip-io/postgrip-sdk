@@ -4,6 +4,7 @@ package client
 
 import (
 	protocol "github.com/postgrip-io/postgrip-agent-sdks/go/protocol"
+	"time"
 )
 
 // These public models provide a complete, generated low-level wire surface.
@@ -104,6 +105,87 @@ type OpenAPIErrorResponse struct {
 	RequestId string         `json:"requestId"`
 	Details   map[string]any `json:"details,omitempty"`
 }
+type OpenAPIAgentHostMaintenanceWindow struct {
+	StartMinute     int64  `json:"startMinute"`
+	DurationMinutes int64  `json:"durationMinutes"`
+	Timezone        string `json:"timezone"`
+}
+type OpenAPIAgentHostMaintenanceWindowInput struct {
+	Enabled         bool   `json:"enabled"`
+	StartMinute     int64  `json:"startMinute"`
+	DurationMinutes int64  `json:"durationMinutes"`
+	Timezone        string `json:"timezone"`
+}
+type OpenAPIAgentInventoryRecord struct {
+	Id                            string                             `json:"id"`
+	TenantId                      string                             `json:"tenantId"`
+	Name                          *string                            `json:"name,omitempty"`
+	Host                          *string                            `json:"host,omitempty"`
+	Status                        string                             `json:"status"`
+	TrustState                    string                             `json:"trustState"`
+	TrustReason                   *string                            `json:"trustReason,omitempty"`
+	Version                       *int64                             `json:"version,omitempty"`
+	EnrollmentKeyHash             *string                            `json:"enrollmentKeyHash,omitempty"`
+	SignaturePublicKey            *string                            `json:"signaturePublicKey,omitempty"`
+	LastAttestedAt                *time.Time                         `json:"lastAttestedAt,omitempty"`
+	AttestationExpiresAt          *time.Time                         `json:"attestationExpiresAt,omitempty"`
+	TrustedArtifactDigest         *string                            `json:"trustedArtifactDigest,omitempty"`
+	TrustedImageDigest            *string                            `json:"trustedImageDigest,omitempty"`
+	TrustedSigner                 *string                            `json:"trustedSigner,omitempty"`
+	TrustedProvenanceDigest       *string                            `json:"trustedProvenanceDigest,omitempty"`
+	HelperTrustState              string                             `json:"helperTrustState"`
+	HelperTrustReason             *string                            `json:"helperTrustReason,omitempty"`
+	HelperLastAttestedAt          *time.Time                         `json:"helperLastAttestedAt,omitempty"`
+	HelperAttestationExpiresAt    *time.Time                         `json:"helperAttestationExpiresAt,omitempty"`
+	HelperTrustedArtifactDigest   *string                            `json:"helperTrustedArtifactDigest,omitempty"`
+	HelperTrustedImageDigest      *string                            `json:"helperTrustedImageDigest,omitempty"`
+	HelperTrustedSigner           *string                            `json:"helperTrustedSigner,omitempty"`
+	HelperTrustedProvenanceDigest *string                            `json:"helperTrustedProvenanceDigest,omitempty"`
+	HelperMaintenanceMode         bool                               `json:"helperMaintenanceMode"`
+	Namespaces                    []string                           `json:"namespaces,omitempty"`
+	Queues                        []string                           `json:"queues,omitempty"`
+	MaintenanceWindow             *OpenAPIAgentHostMaintenanceWindow `json:"maintenanceWindow"`
+	LogLevel                      string                             `json:"logLevel"`
+	LastSeenAt                    *time.Time                         `json:"lastSeenAt,omitempty"`
+	EnrolledAt                    *time.Time                         `json:"enrolledAt,omitempty"`
+	RevokedAt                     *time.Time                         `json:"revokedAt,omitempty"`
+	RemovedAt                     *time.Time                         `json:"removedAt,omitempty"`
+	CreatedAt                     time.Time                          `json:"createdAt"`
+	UpdatedAt                     time.Time                          `json:"updatedAt"`
+	IsolationTiers                []string                           `json:"isolationTiers,omitempty"`
+}
+type OpenAPIUpdateAgentConfigurationRequest struct {
+	Name              *string                                 `json:"name,omitempty"`
+	MaintenanceWindow *OpenAPIAgentHostMaintenanceWindowInput `json:"maintenanceWindow,omitempty"`
+	LogLevel          *string                                 `json:"logLevel,omitempty"`
+}
+type OpenAPIAgentEnrollmentRequest struct {
+	EnrollmentKey      string   `json:"enrollmentKey"`
+	AgentId            *string  `json:"agentId,omitempty"`
+	TenantId           *string  `json:"tenantId,omitempty"`
+	Name               *string  `json:"name,omitempty"`
+	Host               *string  `json:"host,omitempty"`
+	Version            *int64   `json:"version,omitempty"`
+	Namespaces         []string `json:"namespaces,omitempty"`
+	Queues             []string `json:"queues,omitempty"`
+	SignaturePublicKey *string  `json:"signaturePublicKey,omitempty"`
+}
+type OpenAPIAgentEnrollmentKeyRequest struct {
+	EnrollmentKey   string  `json:"enrollmentKey"`
+	Label           *string `json:"label,omitempty"`
+	AgentId         *string `json:"agentId,omitempty"`
+	ReplacesKeyHash *string `json:"replacesKeyHash,omitempty"`
+}
+type OpenAPIAgentEnrollmentKeyReceipt struct {
+	TenantId string  `json:"tenantId"`
+	Label    string  `json:"label"`
+	AgentId  *string `json:"agentId,omitempty"`
+}
+type OpenAPISandboxUpdateRequest struct {
+	Name      *string            `json:"name,omitempty"`
+	Labels    *map[string]string `json:"labels,omitempty"`
+	ExpiresAt *time.Time         `json:"expiresAt,omitempty"`
+}
 type OpenAPIAppendAgentTaskEventRequestBody = OpenAPIAppendTaskEventRequest
 type OpenAPIAppendAgentTaskEventResponseBody = OpenAPITaskEvent
 type OpenAPIBackfillScheduleRequestBody = OpenAPIBackfillScheduleRequest
@@ -120,6 +202,8 @@ type OpenAPIConnectSandboxSessionRequestBody = OpenAPINoBody
 type OpenAPIConnectSandboxSessionResponseBody = OpenAPINoBody
 type OpenAPICountWorkflowsRequestBody = OpenAPINoBody
 type OpenAPICountWorkflowsResponseBody = OpenAPIWorkflowCountResponse
+type OpenAPICreateAgentEnrollmentKeyRequestBody = OpenAPIAgentEnrollmentKeyRequest
+type OpenAPICreateAgentEnrollmentKeyResponseBody = OpenAPIAgentEnrollmentKeyReceipt
 type OpenAPICreateNamespaceRequestBody = OpenAPICreateNamespaceRequest
 type OpenAPICreateNamespaceResponseBody = OpenAPINamespace
 type OpenAPICreateSandboxRequestBody = OpenAPISandboxCreateRequest
@@ -128,6 +212,8 @@ type OpenAPICreateSandboxSessionRequestBody = OpenAPICreateSandboxSessionRequest
 type OpenAPICreateSandboxSessionResponseBody = OpenAPICreateSandboxSessionResponse
 type OpenAPICreateScheduleRequestBody = OpenAPICreateScheduleRequest
 type OpenAPICreateScheduleResponseBody = OpenAPISchedule
+type OpenAPIDeleteAgentRequestBody = OpenAPINoBody
+type OpenAPIDeleteAgentResponseBody = OpenAPINoBody
 type OpenAPIDeleteSandboxRequestBody = OpenAPINoBody
 type OpenAPIDeleteSandboxResponseBody = OpenAPISandbox
 type OpenAPIDeleteScheduleRequestBody = OpenAPINoBody
@@ -136,8 +222,12 @@ type OpenAPIDeleteWorkspaceRequestBody = OpenAPINoBody
 type OpenAPIDeleteWorkspaceResponseBody = OpenAPINoBody
 type OpenAPIEnqueueTaskRequestBody = OpenAPIEnqueueTaskRequest
 type OpenAPIEnqueueTaskResponseBody = OpenAPITask
+type OpenAPIEnrollAgentRequestBody = OpenAPIAgentEnrollmentRequest
+type OpenAPIEnrollAgentResponseBody = OpenAPIAgentSessionResponse
 type OpenAPIFailAgentTaskRequestBody = OpenAPIFailTaskRequest
 type OpenAPIFailAgentTaskResponseBody = OpenAPITask
+type OpenAPIGetAgentRequestBody = OpenAPINoBody
+type OpenAPIGetAgentResponseBody = OpenAPIAgentInventoryRecord
 type OpenAPIGetSandboxRequestBody = OpenAPINoBody
 type OpenAPIGetSandboxResponseBody = OpenAPISandbox
 type OpenAPIGetScheduleRequestBody = OpenAPINoBody
@@ -152,6 +242,8 @@ type OpenAPIHealthRequestBody = OpenAPINoBody
 type OpenAPIHealthResponseBody = OpenAPIHealthResponse
 type OpenAPIHeartbeatAgentTaskRequestBody = OpenAPIHeartbeatTaskRequest
 type OpenAPIHeartbeatAgentTaskResponseBody = OpenAPITask
+type OpenAPIListAgentsRequestBody = OpenAPINoBody
+type OpenAPIListAgentsResponseBody = []OpenAPIAgentInventoryRecord
 type OpenAPIListNamespacesRequestBody = OpenAPINoBody
 type OpenAPIListNamespacesResponseBody = []OpenAPINamespace
 type OpenAPIListSandboxesRequestBody = OpenAPINoBody
@@ -192,6 +284,10 @@ type OpenAPITriggerScheduleRequestBody = OpenAPITriggerScheduleRequest
 type OpenAPITriggerScheduleResponseBody = OpenAPITriggerScheduleResponse
 type OpenAPIUnpauseScheduleRequestBody = OpenAPIUnpauseScheduleRequest
 type OpenAPIUnpauseScheduleResponseBody = OpenAPISchedule
+type OpenAPIUpdateAgentRequestBody = OpenAPIUpdateAgentConfigurationRequest
+type OpenAPIUpdateAgentResponseBody = OpenAPIAgentInventoryRecord
+type OpenAPIUpdateSandboxRequestBody = OpenAPISandboxUpdateRequest
+type OpenAPIUpdateSandboxResponseBody = OpenAPISandbox
 type OpenAPIUpdateScheduleRequestBody = OpenAPIUpdateScheduleRequest
 type OpenAPIUpdateScheduleResponseBody = OpenAPISchedule
 type OpenAPIUploadWorkspaceRequestBody = []byte
@@ -330,5 +426,13 @@ type CreateSandboxSessionRequest = protocol.CreateSandboxSessionRequest
 type CreateSandboxSessionResponse = protocol.CreateSandboxSessionResponse
 type SandboxWorkspace = protocol.SandboxWorkspace
 type SandboxWorkspaceListResponse = protocol.SandboxWorkspaceListResponse
+type AgentHostMaintenanceWindow = OpenAPIAgentHostMaintenanceWindow
+type AgentHostMaintenanceWindowInput = OpenAPIAgentHostMaintenanceWindowInput
+type AgentInventoryRecord = OpenAPIAgentInventoryRecord
+type UpdateAgentConfigurationRequest = OpenAPIUpdateAgentConfigurationRequest
+type AgentEnrollmentRequest = OpenAPIAgentEnrollmentRequest
+type AgentEnrollmentKeyRequest = OpenAPIAgentEnrollmentKeyRequest
+type AgentEnrollmentKeyReceipt = OpenAPIAgentEnrollmentKeyReceipt
+type SandboxUpdateRequest = OpenAPISandboxUpdateRequest
 
-const openAPITypesSpecSHA256 = "ff3811f5561777a76363ee2e5a49ba40bcaff6d6fdaf2d834862dd56b5d58f3f"
+const openAPITypesSpecSHA256 = "24a728168d4329800c56fbd2230a94dcf06a76d92455906cf34f68a671b9465c"

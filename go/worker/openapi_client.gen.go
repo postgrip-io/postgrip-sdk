@@ -217,6 +217,16 @@ func (p OpenAPIResumeWorkerFromMaintenanceHeaders) values() http.Header {
 	return values
 }
 
+type OpenAPIUpdateWorkerHeaders struct {
+	IdempotencyKey string
+}
+
+func (p OpenAPIUpdateWorkerHeaders) values() http.Header {
+	values := http.Header{}
+	values.Set("Idempotency-Key", fmt.Sprint(p.IdempotencyKey))
+	return values
+}
+
 type OpenAPIUpdateWorkerSnapshotSettingsHeaders struct {
 	IdempotencyKey string
 }
@@ -327,6 +337,11 @@ func (c *OpenAPIClient) ResumeWorkerFromMaintenance(ctx context.Context, workerI
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIResumeWorkerFromMaintenance, map[string]string{"workerId": workerId}, nil, nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) UpdateWorker(ctx context.Context, workerId string, headers OpenAPIUpdateWorkerHeaders, body OpenAPIUpdateWorkerRequestBody) (OpenAPIUpdateWorkerResponseBody, error) {
+	var response OpenAPIUpdateWorkerResponseBody
+	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateWorker, map[string]string{"workerId": workerId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) UpdateWorkerSnapshotSettings(ctx context.Context, workerId string, headers OpenAPIUpdateWorkerSnapshotSettingsHeaders, body OpenAPIUpdateWorkerSnapshotSettingsRequestBody) (OpenAPIUpdateWorkerSnapshotSettingsResponseBody, error) {
 	var response OpenAPIUpdateWorkerSnapshotSettingsResponseBody
 	err := c.executor.doOpenAPI(withOpenAPIHeaders(ctx, headers.values()), openAPIUpdateWorkerSnapshotSettings, map[string]string{"workerId": workerId}, nil, body, &response)
@@ -345,6 +360,6 @@ func (c *OpenAPIClient) WorkerOrchestratorHealth(ctx context.Context) (OpenAPIWo
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 21
+const OpenAPIClientOperationCount = 22
 
-const openAPIClientSpecSHA256 = "40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460"
+const openAPIClientSpecSHA256 = "b3b9e5a6e2d36466fa3ea7070204be74e13a242a48d1668c49955f94fab1e409"

@@ -120,3 +120,9 @@ export type {
   WorkerOrchestratorHealthRequestBody,
   WorkerOrchestratorHealthResponseBody,
 } from './generated/openapi.js';
+
+export type {
+  OpenAPIUpdateWorkerRequest,
+  UpdateWorkerRequestBody,
+  UpdateWorkerResponseBody,
+} from './generated/openapi.js';

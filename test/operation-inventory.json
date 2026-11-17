@@ -1,9 +1,9 @@
 {
-  "contractBundleDigest": "818e166aba4309c9b6a85896fb312bbb286e72c819f84b31cb3bf2e97202c916",
+  "contractBundleDigest": "e05a31a1a8648663c2cc10b11a1dfd7c229c7faef6a885395bf4900852842bbc",
   "contractDigests": {
-    "agent": "ff3811f5561777a76363ee2e5a49ba40bcaff6d6fdaf2d834862dd56b5d58f3f",
+    "agent": "24a728168d4329800c56fbd2230a94dcf06a76d92455906cf34f68a671b9465c",
     "service": "95872979a1e84bd2915f33ce6c2326aec2e0cf77ba2e474f65e08d619efbe439",
-    "worker": "40a51d3084dc368881b163637b025f45bb412f6d3525d3caf2842dbda1706460"
+    "worker": "b3b9e5a6e2d36466fa3ea7070204be74e13a242a48d1668c49955f94fab1e409"
   },
   "operations": [
     {
@@ -263,6 +263,37 @@
       "idempotency": "none",
       "method": "POST",
       "operationClass": "tenant-api",
+      "operationId": "createAgentEnrollmentKey",
+      "pagination": "none",
+      "path": "/api/v1/enrollment-keys",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "AgentEnrollmentKeyRequest",
+      "requiredScopes": [
+        [
+          "agent:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "AgentEnrollmentKeyReceipt",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "tenant-api",
       "operationId": "createNamespace",
       "pagination": "none",
       "path": "/api/v1/namespaces",
@@ -379,6 +410,37 @@
       "responseSchema": "Schedule",
       "retry": "none",
       "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "DELETE",
+      "operationClass": "tenant-api",
+      "operationId": "deleteAgent",
+      "pagination": "none",
+      "path": "/api/v1/agents/{agentId}",
+      "pathParameters": [
+        "agentId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": null,
+      "retry": "none",
+      "safety": "destructive",
       "signing": null
     },
     {
@@ -508,6 +570,33 @@
     },
     {
       "acceptedCredentials": [
+        "agent-enrollment-key"
+      ],
+      "authLane": "public",
+      "idempotency": "none",
+      "method": "POST",
+      "operationClass": "agent-runtime",
+      "operationId": "enrollAgent",
+      "pagination": "none",
+      "path": "/api/v1/agent/enroll",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "AgentEnrollmentRequest",
+      "requiredScopes": [],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "AgentSessionResponse",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
         "agent-session"
       ],
       "authLane": "agent",
@@ -534,6 +623,37 @@
       "retry": "none",
       "safety": "mutation",
       "signing": "agent-task-v1"
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "getAgent",
+      "pagination": "none",
+      "path": "/api/v1/agents/{agentId}",
+      "pathParameters": [
+        "agentId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "AgentInventoryRecord",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
     },
     {
       "acceptedCredentials": [
@@ -743,6 +863,35 @@
       "retry": "none",
       "safety": "mutation",
       "signing": "agent-task-v1"
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "GET",
+      "operationClass": "tenant-api",
+      "operationId": "listAgents",
+      "pagination": "none",
+      "path": "/api/v1/agents",
+      "pathParameters": [],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [],
+      "requestSchema": null,
+      "requiredScopes": [
+        [
+          "agent:read"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "inline",
+      "retry": "bounded",
+      "safety": "read-only",
+      "signing": null
     },
     {
       "acceptedCredentials": [
@@ -1354,6 +1503,72 @@
         "application/json"
       ],
       "responseSchema": "Schedule",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "updateAgent",
+      "pagination": "none",
+      "path": "/api/v1/agents/{agentId}",
+      "pathParameters": [
+        "agentId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateAgentConfigurationRequest",
+      "requiredScopes": [
+        [
+          "agent:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "AgentInventoryRecord",
+      "retry": "none",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "management",
+      "idempotency": "none",
+      "method": "PATCH",
+      "operationClass": "tenant-api",
+      "operationId": "updateSandbox",
+      "pagination": "none",
+      "path": "/api/v1/sandboxes/{sandboxId}",
+      "pathParameters": [
+        "sandboxId"
+      ],
+      "plane": "agent",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "SandboxUpdateRequest",
+      "requiredScopes": [
+        [
+          "agent:operate"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Sandbox",
       "retry": "none",
       "safety": "mutation",
       "signing": null
@@ -6102,6 +6317,39 @@
         "application/json"
       ],
       "responseSchema": "WorkerOperationResponse",
+      "retry": "bounded",
+      "safety": "mutation",
+      "signing": null
+    },
+    {
+      "acceptedCredentials": [
+        "postgrip-token"
+      ],
+      "authLane": "worker-management",
+      "idempotency": "required",
+      "method": "PUT",
+      "operationClass": "tenant-api",
+      "operationId": "updateWorker",
+      "pagination": "none",
+      "path": "/api/v1/workers/{workerId}",
+      "pathParameters": [
+        "workerId"
+      ],
+      "plane": "worker",
+      "protocol": "http-json",
+      "requestContentTypes": [
+        "application/json"
+      ],
+      "requestSchema": "UpdateWorkerRequest",
+      "requiredScopes": [
+        [
+          "workers:admin"
+        ]
+      ],
+      "responseContentTypes": [
+        "application/json"
+      ],
+      "responseSchema": "Worker",
       "retry": "bounded",
       "safety": "mutation",
       "signing": null

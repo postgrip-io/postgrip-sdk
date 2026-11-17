@@ -18,6 +18,11 @@ single token may receive scopes across all three planes. Applications that
 need a smaller blast radius should issue multiple tokens and construct
 separate root clients.
 
+Agent host enrollment-key registration, configuration and removal require
+`agent:admin`, which includes every other Agent scope. Ordinary `agent:operate`
+does not grant host administration. The enrollment operation itself uses its
+one-time key in the request body and sends no management bearer.
+
 ## Runtime credentials are different
 
 A host PostGrip Agent launches managed workflow runtimes with short-lived

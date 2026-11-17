@@ -1,0 +1,25 @@
+{
+  "operationId": "createAgentEnrollmentKey",
+  "plane": "agent",
+  "request": {
+    "body": {
+      "enrollmentKey": "string"
+    },
+    "headers": {},
+    "pathParameters": {},
+    "query": {},
+    "streamBodyBase64": null
+  },
+  "response": {
+    "body": {
+      "label": "string",
+      "tenantId": "string"
+    },
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Request-Id": "req_createAgentEnrollmentKey"
+    },
+    "status": 201
+  },
+  "schemaVersion": 1
+}
