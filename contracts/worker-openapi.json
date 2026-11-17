@@ -3018,7 +3018,47 @@
             "description": "Omit to preserve the current host; empty string clears it."
           },
           "maintenanceWindow": {
-            "$ref": "#/components/schemas/MaintenanceWindow"
+            "$ref": "#/components/schemas/WorkerMaintenanceWindowInput"
+          }
+        },
+        "example": {
+          "name": "production-worker",
+          "maintenanceWindow": {
+            "enabled": true,
+            "startMinute": 60,
+            "durationMinutes": 30,
+            "timezone": "UTC"
+          }
+        }
+      },
+      "WorkerMaintenanceWindowInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "description": "Set enabled to true to configure the schedule; durationMinutes is then required. startMinute defaults to midnight and timezone defaults to UTC. Set enabled to false to remove the schedule. Omit maintenanceWindow from the Worker update to preserve it.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "startMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1439,
+            "default": 0,
+            "example": 60
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440,
+            "example": 30
+          },
+          "timezone": {
+            "type": "string",
+            "example": "UTC"
           }
         }
       }

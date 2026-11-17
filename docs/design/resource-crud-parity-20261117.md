@@ -12,6 +12,10 @@ host Agent; the PostGrip Agent host retains signing keys and runtime sessions.
 Machine administration requires the explicit `agent:admin` grant, while
 ordinary Agent workload permissions remain unchanged.
 
+Worker maintenance-window writes use a request-specific model with required
+`enabled`. `true` configures the schedule; `false` clears it; omitting the entire
+window preserves it. A Go transport regression covers both values.
+
 Preserve omitted/null fields, Worker idempotency keys, deletion preconditions,
 and current Go module/import names. Add explicit TypeScript exports for new
 generated names. Exercise observable HTTP requests in all three languages and

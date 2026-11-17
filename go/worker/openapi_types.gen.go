@@ -317,9 +317,15 @@ type OpenAPIStorageDestinationList struct {
 	Items []OpenAPIStorageDestination `json:"items"`
 }
 type OpenAPIUpdateWorkerRequest struct {
-	Name              string                    `json:"name"`
-	Host              *string                   `json:"host,omitempty"`
-	MaintenanceWindow *OpenAPIMaintenanceWindow `json:"maintenanceWindow,omitempty"`
+	Name              string                               `json:"name"`
+	Host              *string                              `json:"host,omitempty"`
+	MaintenanceWindow *OpenAPIWorkerMaintenanceWindowInput `json:"maintenanceWindow,omitempty"`
+}
+type OpenAPIWorkerMaintenanceWindowInput struct {
+	Enabled         bool    `json:"enabled"`
+	StartMinute     *int64  `json:"startMinute,omitempty"`
+	DurationMinutes *int64  `json:"durationMinutes,omitempty"`
+	Timezone        *string `json:"timezone,omitempty"`
 }
 type OpenAPICheckWorkerRequestBody = OpenAPINoBody
 type OpenAPICheckWorkerResponseBody = OpenAPICheckWorkerResponse
@@ -420,5 +426,6 @@ type UpdateWorkerSnapshotSettingsResponse = OpenAPIUpdateWorkerSnapshotSettingsR
 type StorageDestination = OpenAPIStorageDestination
 type StorageDestinationList = OpenAPIStorageDestinationList
 type UpdateWorkerRequest = OpenAPIUpdateWorkerRequest
+type WorkerMaintenanceWindowInput = OpenAPIWorkerMaintenanceWindowInput
 
-const openAPITypesSpecSHA256 = "b3b9e5a6e2d36466fa3ea7070204be74e13a242a48d1668c49955f94fab1e409"
+const openAPITypesSpecSHA256 = "67aceecf2ecd2efc22dba857f51fecfb2992e49d0d47dbbd08f695e6298326f2"

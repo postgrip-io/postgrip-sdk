@@ -441,6 +441,7 @@
       "OpenAPIWorker",
       "OpenAPIWorkerBootstrapExpiry",
       "OpenAPIWorkerList",
+      "OpenAPIWorkerMaintenanceWindowInput",
       "OpenAPIWorkerOperationResponse",
       "OpenAPIWorkerRemovalCleanup",
       "OpenAPIWorkerRemovalImpact",
