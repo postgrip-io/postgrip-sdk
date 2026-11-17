@@ -61,6 +61,13 @@ class GoStructNullabilityTest(unittest.TestCase):
         self.assertIn('Label *OpenAPIName `json:"label,omitempty"`', fields)
         self.assertIn('Described *OpenAPIName `json:"described,omitempty"`', fields)
 
+    def test_optional_map_presence_preserves_an_explicit_empty_object(self) -> None:
+        fields = go_struct_fields({"type": "object", "properties": {
+            "labels": {"type": "object", "additionalProperties": {"type": "string"},
+                       "x-postgrip-presence-aware": True},
+        }}, SCHEMAS)
+        self.assertIn('Labels *map[string]string `json:"labels,omitempty"`', fields)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -412,6 +412,11 @@ func (c *OpenAPIClient) CountWorkflows(ctx context.Context, query OpenAPICountWo
 	err := c.executor.doOpenAPI(ctx, openAPICountWorkflows, nil, query.values(), nil, &response)
 	return response, err
 }
+func (c *OpenAPIClient) CreateAgentEnrollmentKey(ctx context.Context, body OpenAPICreateAgentEnrollmentKeyRequestBody) (OpenAPICreateAgentEnrollmentKeyResponseBody, error) {
+	var response OpenAPICreateAgentEnrollmentKeyResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPICreateAgentEnrollmentKey, nil, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) CreateNamespace(ctx context.Context, body OpenAPICreateNamespaceRequestBody) (OpenAPICreateNamespaceResponseBody, error) {
 	var response OpenAPICreateNamespaceResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPICreateNamespace, nil, nil, body, &response)
@@ -432,6 +437,9 @@ func (c *OpenAPIClient) CreateSchedule(ctx context.Context, body OpenAPICreateSc
 	err := c.executor.doOpenAPI(ctx, openAPICreateSchedule, nil, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) DeleteAgent(ctx context.Context, agentId string) error {
+	return c.executor.doOpenAPI(ctx, openAPIDeleteAgent, map[string]string{"agentId": agentId}, nil, nil, nil)
+}
 func (c *OpenAPIClient) DeleteSandbox(ctx context.Context, sandboxId string) (OpenAPIDeleteSandboxResponseBody, error) {
 	var response OpenAPIDeleteSandboxResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIDeleteSandbox, map[string]string{"sandboxId": sandboxId}, nil, nil, &response)
@@ -450,9 +458,19 @@ func (c *OpenAPIClient) EnqueueTask(ctx context.Context, body OpenAPIEnqueueTask
 	err := c.executor.doOpenAPI(ctx, openAPIEnqueueTask, nil, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) EnrollAgent(ctx context.Context, body OpenAPIEnrollAgentRequestBody) (OpenAPIEnrollAgentResponseBody, error) {
+	var response OpenAPIEnrollAgentResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIEnrollAgent, nil, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) FailAgentTask(ctx context.Context, taskId string, query OpenAPIFailAgentTaskQuery, body OpenAPIFailAgentTaskRequestBody) (OpenAPIFailAgentTaskResponseBody, error) {
 	var response OpenAPIFailAgentTaskResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIFailAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
+	return response, err
+}
+func (c *OpenAPIClient) GetAgent(ctx context.Context, agentId string) (OpenAPIGetAgentResponseBody, error) {
+	var response OpenAPIGetAgentResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIGetAgent, map[string]string{"agentId": agentId}, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) GetSandbox(ctx context.Context, sandboxId string) (OpenAPIGetSandboxResponseBody, error) {
@@ -488,6 +506,11 @@ func (c *OpenAPIClient) Health(ctx context.Context) (OpenAPIHealthResponseBody, 
 func (c *OpenAPIClient) HeartbeatAgentTask(ctx context.Context, taskId string, query OpenAPIHeartbeatAgentTaskQuery, body OpenAPIHeartbeatAgentTaskRequestBody) (OpenAPIHeartbeatAgentTaskResponseBody, error) {
 	var response OpenAPIHeartbeatAgentTaskResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIHeartbeatAgentTask, map[string]string{"taskId": taskId}, query.values(), body, &response)
+	return response, err
+}
+func (c *OpenAPIClient) ListAgents(ctx context.Context) (OpenAPIListAgentsResponseBody, error) {
+	var response OpenAPIListAgentsResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIListAgents, nil, nil, nil, &response)
 	return response, err
 }
 func (c *OpenAPIClient) ListNamespaces(ctx context.Context) (OpenAPIListNamespacesResponseBody, error) {
@@ -590,6 +613,16 @@ func (c *OpenAPIClient) UnpauseSchedule(ctx context.Context, scheduleId string, 
 	err := c.executor.doOpenAPI(ctx, openAPIUnpauseSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
 	return response, err
 }
+func (c *OpenAPIClient) UpdateAgent(ctx context.Context, agentId string, body OpenAPIUpdateAgentRequestBody) (OpenAPIUpdateAgentResponseBody, error) {
+	var response OpenAPIUpdateAgentResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIUpdateAgent, map[string]string{"agentId": agentId}, nil, body, &response)
+	return response, err
+}
+func (c *OpenAPIClient) UpdateSandbox(ctx context.Context, sandboxId string, body OpenAPIUpdateSandboxRequestBody) (OpenAPIUpdateSandboxResponseBody, error) {
+	var response OpenAPIUpdateSandboxResponseBody
+	err := c.executor.doOpenAPI(ctx, openAPIUpdateSandbox, map[string]string{"sandboxId": sandboxId}, nil, body, &response)
+	return response, err
+}
 func (c *OpenAPIClient) UpdateSchedule(ctx context.Context, scheduleId string, body OpenAPIUpdateScheduleRequestBody) (OpenAPIUpdateScheduleResponseBody, error) {
 	var response OpenAPIUpdateScheduleResponseBody
 	err := c.executor.doOpenAPI(ctx, openAPIUpdateSchedule, map[string]string{"scheduleId": scheduleId}, nil, body, &response)
@@ -598,6 +631,6 @@ func (c *OpenAPIClient) UpdateSchedule(ctx context.Context, scheduleId string, b
 
 // OpenAPIClientOperationCount excludes the streaming upload and WebSocket
 // connection operations, which use Connection's custom adapters.
-const OpenAPIClientOperationCount = 44
+const OpenAPIClientOperationCount = 51
 
-const openAPIClientSpecSHA256 = "ff3811f5561777a76363ee2e5a49ba40bcaff6d6fdaf2d834862dd56b5d58f3f"
+const openAPIClientSpecSHA256 = "24a728168d4329800c56fbd2230a94dcf06a76d92455906cf34f68a671b9465c"

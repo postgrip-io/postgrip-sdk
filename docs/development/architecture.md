@@ -134,7 +134,9 @@ to a delegated runtime or public refresh endpoint.
 
 Agent clients submit or inspect tasks, workflows and schedules. A host-launched
 managed runtime owns polling, leases, refresh, signing and workflow/activity
-execution. SDKs do not enroll standalone host agents. Worker management is a
+execution. The generated low-level enrollment API can register a host using its
+one-time enrollment key; SDK managed runtimes do not install or launch standalone
+host Agents. Worker management is a
 separate namespace; an Agent polling worker is not a Worker-management client.
 
 Go's `agent/workflow.Context` is the customer interface; its implementation

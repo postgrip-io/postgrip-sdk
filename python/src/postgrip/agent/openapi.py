@@ -8,10 +8,10 @@ import re
 from typing import Any, Literal, Mapping, Protocol, Sequence, TypeAlias, TypedDict, cast
 from urllib.parse import quote, urlencode
 
-OPENAPI_SPEC_SHA256 = 'ff3811f5561777a76363ee2e5a49ba40bcaff6d6fdaf2d834862dd56b5d58f3f'
-OPENAPI_CONTRACT_BUNDLE_SHA256 = '818e166aba4309c9b6a85896fb312bbb286e72c819f84b31cb3bf2e97202c916'
-OPENAPI_OPERATION_COUNT = 46
-OPENAPI_CLIENT_OPERATION_COUNT = 44
+OPENAPI_SPEC_SHA256 = '24a728168d4329800c56fbd2230a94dcf06a76d92455906cf34f68a671b9465c'
+OPENAPI_CONTRACT_BUNDLE_SHA256 = 'e05a31a1a8648663c2cc10b11a1dfd7c229c7faef6a885395bf4900852842bbc'
+OPENAPI_OPERATION_COUNT = 53
+OPENAPI_CLIENT_OPERATION_COUNT = 51
 CONNECT_SANDBOX_SESSION_PATH_SESSION_ID = 'sessionId'
 CONNECT_SANDBOX_SESSION_QUERY_TICKET = 'ticket'
 UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REPOSITORY = 'X-PostGrip-Repository'
@@ -27,15 +27,19 @@ class OperationId(str, Enum):
     COMPLETE_AGENT_TASK = 'completeAgentTask'
     CONNECT_SANDBOX_SESSION = 'connectSandboxSession'
     COUNT_WORKFLOWS = 'countWorkflows'
+    CREATE_AGENT_ENROLLMENT_KEY = 'createAgentEnrollmentKey'
     CREATE_NAMESPACE = 'createNamespace'
     CREATE_SANDBOX = 'createSandbox'
     CREATE_SANDBOX_SESSION = 'createSandboxSession'
     CREATE_SCHEDULE = 'createSchedule'
+    DELETE_AGENT = 'deleteAgent'
     DELETE_SANDBOX = 'deleteSandbox'
     DELETE_SCHEDULE = 'deleteSchedule'
     DELETE_WORKSPACE = 'deleteWorkspace'
     ENQUEUE_TASK = 'enqueueTask'
+    ENROLL_AGENT = 'enrollAgent'
     FAIL_AGENT_TASK = 'failAgentTask'
+    GET_AGENT = 'getAgent'
     GET_SANDBOX = 'getSandbox'
     GET_SCHEDULE = 'getSchedule'
     GET_TASK = 'getTask'
@@ -43,6 +47,7 @@ class OperationId(str, Enum):
     GET_WORKSPACE = 'getWorkspace'
     HEALTH = 'health'
     HEARTBEAT_AGENT_TASK = 'heartbeatAgentTask'
+    LIST_AGENTS = 'listAgents'
     LIST_NAMESPACES = 'listNamespaces'
     LIST_SANDBOXES = 'listSandboxes'
     LIST_SCHEDULES = 'listSchedules'
@@ -63,6 +68,8 @@ class OperationId(str, Enum):
     TERMINATE_WORKFLOW = 'terminateWorkflow'
     TRIGGER_SCHEDULE = 'triggerSchedule'
     UNPAUSE_SCHEDULE = 'unpauseSchedule'
+    UPDATE_AGENT = 'updateAgent'
+    UPDATE_SANDBOX = 'updateSandbox'
     UPDATE_SCHEDULE = 'updateSchedule'
     UPLOAD_WORKSPACE = 'uploadWorkspace'
 
@@ -593,6 +600,101 @@ class _SchemaErrorResponse(_SchemaErrorResponseOptional):
     message: str
     requestId: str
 
+class _SchemaAgentHostMaintenanceWindow(TypedDict):
+    startMinute: int
+    durationMinutes: int
+    timezone: str
+
+class _SchemaAgentHostMaintenanceWindowInput(TypedDict):
+    enabled: bool
+    startMinute: int
+    durationMinutes: int
+    timezone: str
+
+class _SchemaAgentInventoryRecordOptional(TypedDict, total=False):
+    name: str
+    host: str
+    trustReason: str
+    version: int
+    enrollmentKeyHash: str
+    signaturePublicKey: str
+    lastAttestedAt: str
+    attestationExpiresAt: str
+    trustedArtifactDigest: str
+    trustedImageDigest: str
+    trustedSigner: str
+    trustedProvenanceDigest: str
+    helperTrustReason: str
+    helperLastAttestedAt: str
+    helperAttestationExpiresAt: str
+    helperTrustedArtifactDigest: str
+    helperTrustedImageDigest: str
+    helperTrustedSigner: str
+    helperTrustedProvenanceDigest: str
+    namespaces: list[str]
+    queues: list[str]
+    lastSeenAt: str
+    enrolledAt: str
+    revokedAt: str
+    removedAt: str
+    isolationTiers: list[str]
+
+class _SchemaAgentInventoryRecord(_SchemaAgentInventoryRecordOptional):
+    id: str
+    tenantId: str
+    status: str
+    trustState: str
+    helperTrustState: str
+    helperMaintenanceMode: bool
+    maintenanceWindow: _SchemaAgentHostMaintenanceWindow | None
+    logLevel: str
+    createdAt: str
+    updatedAt: str
+
+class _SchemaUpdateAgentConfigurationRequestOptional(TypedDict, total=False):
+    name: str
+    maintenanceWindow: _SchemaAgentHostMaintenanceWindowInput
+    logLevel: str
+
+class _SchemaUpdateAgentConfigurationRequest(_SchemaUpdateAgentConfigurationRequestOptional):
+    pass
+
+class _SchemaAgentEnrollmentRequestOptional(TypedDict, total=False):
+    agentId: str
+    tenantId: str
+    name: str
+    host: str
+    version: int
+    namespaces: list[str]
+    queues: list[str]
+    signaturePublicKey: str
+
+class _SchemaAgentEnrollmentRequest(_SchemaAgentEnrollmentRequestOptional):
+    enrollmentKey: str
+
+class _SchemaAgentEnrollmentKeyRequestOptional(TypedDict, total=False):
+    label: str
+    agentId: str
+    replacesKeyHash: str
+
+class _SchemaAgentEnrollmentKeyRequest(_SchemaAgentEnrollmentKeyRequestOptional):
+    enrollmentKey: str
+
+class _SchemaAgentEnrollmentKeyReceiptOptional(TypedDict, total=False):
+    agentId: str
+
+class _SchemaAgentEnrollmentKeyReceipt(_SchemaAgentEnrollmentKeyReceiptOptional):
+    tenantId: str
+    label: str
+
+class _SchemaSandboxUpdateRequestOptional(TypedDict, total=False):
+    name: str
+    labels: dict[str, str]
+    expiresAt: str
+
+class _SchemaSandboxUpdateRequest(_SchemaSandboxUpdateRequestOptional):
+    pass
+
 OpenAPIJsonValue: TypeAlias = _SchemaJsonValue
 OpenAPIHealthResponse: TypeAlias = _SchemaHealthResponse
 OpenAPIReadyResponse: TypeAlias = _SchemaReadyResponse
@@ -664,6 +766,14 @@ OpenAPICreateSandboxSessionResponse: TypeAlias = _SchemaCreateSandboxSessionResp
 OpenAPISandboxWorkspace: TypeAlias = _SchemaSandboxWorkspace
 OpenAPISandboxWorkspaceListResponse: TypeAlias = _SchemaSandboxWorkspaceListResponse
 OpenAPIErrorResponse: TypeAlias = _SchemaErrorResponse
+OpenAPIAgentHostMaintenanceWindow: TypeAlias = _SchemaAgentHostMaintenanceWindow
+OpenAPIAgentHostMaintenanceWindowInput: TypeAlias = _SchemaAgentHostMaintenanceWindowInput
+OpenAPIAgentInventoryRecord: TypeAlias = _SchemaAgentInventoryRecord
+OpenAPIUpdateAgentConfigurationRequest: TypeAlias = _SchemaUpdateAgentConfigurationRequest
+OpenAPIAgentEnrollmentRequest: TypeAlias = _SchemaAgentEnrollmentRequest
+OpenAPIAgentEnrollmentKeyRequest: TypeAlias = _SchemaAgentEnrollmentKeyRequest
+OpenAPIAgentEnrollmentKeyReceipt: TypeAlias = _SchemaAgentEnrollmentKeyReceipt
+OpenAPISandboxUpdateRequest: TypeAlias = _SchemaSandboxUpdateRequest
 
 AppendAgentTaskEventRequestBody: TypeAlias = _SchemaAppendTaskEventRequest
 AppendAgentTaskEventResponseBody: TypeAlias = _SchemaTaskEvent
@@ -681,6 +791,8 @@ ConnectSandboxSessionRequestBody: TypeAlias = None
 ConnectSandboxSessionResponseBody: TypeAlias = None
 CountWorkflowsRequestBody: TypeAlias = None
 CountWorkflowsResponseBody: TypeAlias = _SchemaWorkflowCountResponse
+CreateAgentEnrollmentKeyRequestBody: TypeAlias = _SchemaAgentEnrollmentKeyRequest
+CreateAgentEnrollmentKeyResponseBody: TypeAlias = _SchemaAgentEnrollmentKeyReceipt
 CreateNamespaceRequestBody: TypeAlias = _SchemaCreateNamespaceRequest
 CreateNamespaceResponseBody: TypeAlias = _SchemaNamespace
 CreateSandboxRequestBody: TypeAlias = _SchemaSandboxCreateRequest
@@ -689,6 +801,8 @@ CreateSandboxSessionRequestBody: TypeAlias = _SchemaCreateSandboxSessionRequest
 CreateSandboxSessionResponseBody: TypeAlias = _SchemaCreateSandboxSessionResponse
 CreateScheduleRequestBody: TypeAlias = _SchemaCreateScheduleRequest
 CreateScheduleResponseBody: TypeAlias = _SchemaSchedule
+DeleteAgentRequestBody: TypeAlias = None
+DeleteAgentResponseBody: TypeAlias = None
 DeleteSandboxRequestBody: TypeAlias = None
 DeleteSandboxResponseBody: TypeAlias = _SchemaSandbox
 DeleteScheduleRequestBody: TypeAlias = None
@@ -697,8 +811,12 @@ DeleteWorkspaceRequestBody: TypeAlias = None
 DeleteWorkspaceResponseBody: TypeAlias = None
 EnqueueTaskRequestBody: TypeAlias = _SchemaEnqueueTaskRequest
 EnqueueTaskResponseBody: TypeAlias = _SchemaTask
+EnrollAgentRequestBody: TypeAlias = _SchemaAgentEnrollmentRequest
+EnrollAgentResponseBody: TypeAlias = _SchemaAgentSessionResponse
 FailAgentTaskRequestBody: TypeAlias = _SchemaFailTaskRequest
 FailAgentTaskResponseBody: TypeAlias = _SchemaTask
+GetAgentRequestBody: TypeAlias = None
+GetAgentResponseBody: TypeAlias = _SchemaAgentInventoryRecord
 GetSandboxRequestBody: TypeAlias = None
 GetSandboxResponseBody: TypeAlias = _SchemaSandbox
 GetScheduleRequestBody: TypeAlias = None
@@ -713,6 +831,8 @@ HealthRequestBody: TypeAlias = None
 HealthResponseBody: TypeAlias = _SchemaHealthResponse
 HeartbeatAgentTaskRequestBody: TypeAlias = _SchemaHeartbeatTaskRequest
 HeartbeatAgentTaskResponseBody: TypeAlias = _SchemaTask
+ListAgentsRequestBody: TypeAlias = None
+ListAgentsResponseBody: TypeAlias = list[_SchemaAgentInventoryRecord]
 ListNamespacesRequestBody: TypeAlias = None
 ListNamespacesResponseBody: TypeAlias = list[_SchemaNamespace]
 ListSandboxesRequestBody: TypeAlias = None
@@ -753,6 +873,10 @@ TriggerScheduleRequestBody: TypeAlias = _SchemaTriggerScheduleRequest
 TriggerScheduleResponseBody: TypeAlias = _SchemaTriggerScheduleResponse
 UnpauseScheduleRequestBody: TypeAlias = _SchemaUnpauseScheduleRequest
 UnpauseScheduleResponseBody: TypeAlias = _SchemaSchedule
+UpdateAgentRequestBody: TypeAlias = _SchemaUpdateAgentConfigurationRequest
+UpdateAgentResponseBody: TypeAlias = _SchemaAgentInventoryRecord
+UpdateSandboxRequestBody: TypeAlias = _SchemaSandboxUpdateRequest
+UpdateSandboxResponseBody: TypeAlias = _SchemaSandbox
 UpdateScheduleRequestBody: TypeAlias = _SchemaUpdateScheduleRequest
 UpdateScheduleResponseBody: TypeAlias = _SchemaSchedule
 UploadWorkspaceRequestBody: TypeAlias = bytes
@@ -767,15 +891,19 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.COMPLETE_AGENT_TASK: (CompleteAgentTaskRequestBody, CompleteAgentTaskResponseBody),
     OperationId.CONNECT_SANDBOX_SESSION: (ConnectSandboxSessionRequestBody, ConnectSandboxSessionResponseBody),
     OperationId.COUNT_WORKFLOWS: (CountWorkflowsRequestBody, CountWorkflowsResponseBody),
+    OperationId.CREATE_AGENT_ENROLLMENT_KEY: (CreateAgentEnrollmentKeyRequestBody, CreateAgentEnrollmentKeyResponseBody),
     OperationId.CREATE_NAMESPACE: (CreateNamespaceRequestBody, CreateNamespaceResponseBody),
     OperationId.CREATE_SANDBOX: (CreateSandboxRequestBody, CreateSandboxResponseBody),
     OperationId.CREATE_SANDBOX_SESSION: (CreateSandboxSessionRequestBody, CreateSandboxSessionResponseBody),
     OperationId.CREATE_SCHEDULE: (CreateScheduleRequestBody, CreateScheduleResponseBody),
+    OperationId.DELETE_AGENT: (DeleteAgentRequestBody, DeleteAgentResponseBody),
     OperationId.DELETE_SANDBOX: (DeleteSandboxRequestBody, DeleteSandboxResponseBody),
     OperationId.DELETE_SCHEDULE: (DeleteScheduleRequestBody, DeleteScheduleResponseBody),
     OperationId.DELETE_WORKSPACE: (DeleteWorkspaceRequestBody, DeleteWorkspaceResponseBody),
     OperationId.ENQUEUE_TASK: (EnqueueTaskRequestBody, EnqueueTaskResponseBody),
+    OperationId.ENROLL_AGENT: (EnrollAgentRequestBody, EnrollAgentResponseBody),
     OperationId.FAIL_AGENT_TASK: (FailAgentTaskRequestBody, FailAgentTaskResponseBody),
+    OperationId.GET_AGENT: (GetAgentRequestBody, GetAgentResponseBody),
     OperationId.GET_SANDBOX: (GetSandboxRequestBody, GetSandboxResponseBody),
     OperationId.GET_SCHEDULE: (GetScheduleRequestBody, GetScheduleResponseBody),
     OperationId.GET_TASK: (GetTaskRequestBody, GetTaskResponseBody),
@@ -783,6 +911,7 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.GET_WORKSPACE: (GetWorkspaceRequestBody, GetWorkspaceResponseBody),
     OperationId.HEALTH: (HealthRequestBody, HealthResponseBody),
     OperationId.HEARTBEAT_AGENT_TASK: (HeartbeatAgentTaskRequestBody, HeartbeatAgentTaskResponseBody),
+    OperationId.LIST_AGENTS: (ListAgentsRequestBody, ListAgentsResponseBody),
     OperationId.LIST_NAMESPACES: (ListNamespacesRequestBody, ListNamespacesResponseBody),
     OperationId.LIST_SANDBOXES: (ListSandboxesRequestBody, ListSandboxesResponseBody),
     OperationId.LIST_SCHEDULES: (ListSchedulesRequestBody, ListSchedulesResponseBody),
@@ -803,6 +932,8 @@ OPENAPI_OPERATION_TYPES: dict[OperationId, tuple[object, object]] = {
     OperationId.TERMINATE_WORKFLOW: (TerminateWorkflowRequestBody, TerminateWorkflowResponseBody),
     OperationId.TRIGGER_SCHEDULE: (TriggerScheduleRequestBody, TriggerScheduleResponseBody),
     OperationId.UNPAUSE_SCHEDULE: (UnpauseScheduleRequestBody, UnpauseScheduleResponseBody),
+    OperationId.UPDATE_AGENT: (UpdateAgentRequestBody, UpdateAgentResponseBody),
+    OperationId.UPDATE_SANDBOX: (UpdateSandboxRequestBody, UpdateSandboxResponseBody),
     OperationId.UPDATE_SCHEDULE: (UpdateScheduleRequestBody, UpdateScheduleResponseBody),
     OperationId.UPLOAD_WORKSPACE: (UploadWorkspaceRequestBody, UploadWorkspaceResponseBody),
 }
@@ -854,15 +985,19 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.COMPLETE_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/complete', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'CompleteTaskRequest', 'Task', ('taskId',), 'none', 'none', ()),
     OperationId.CONNECT_SANDBOX_SESSION: OpenAPIOperation('GET', '/api/v1/sandbox-sessions/{sessionId}/connect', 'management', 'protocol', 'none', '', False, True, '', '', ('sessionId',), 'none', 'none', ()),
     OperationId.COUNT_WORKFLOWS: OpenAPIOperation('GET', '/api/v1/workflows/count', 'either', 'read-only', 'bounded', '', False, False, '', 'WorkflowCountResponse', (), 'none', 'none', ()),
+    OperationId.CREATE_AGENT_ENROLLMENT_KEY: OpenAPIOperation('POST', '/api/v1/enrollment-keys', 'management', 'mutation', 'none', '', False, False, 'AgentEnrollmentKeyRequest', 'AgentEnrollmentKeyReceipt', (), 'none', 'none', ()),
     OperationId.CREATE_NAMESPACE: OpenAPIOperation('POST', '/api/v1/namespaces', 'management', 'mutation', 'none', '', False, False, 'CreateNamespaceRequest', 'Namespace', (), 'none', 'none', ()),
     OperationId.CREATE_SANDBOX: OpenAPIOperation('POST', '/api/v1/sandboxes', 'management', 'mutation', 'none', '', False, False, 'SandboxCreateRequest', 'Sandbox', (), 'none', 'none', ()),
     OperationId.CREATE_SANDBOX_SESSION: OpenAPIOperation('POST', '/api/v1/sandboxes/{sandboxId}/sessions', 'management', 'mutation', 'none', '', False, False, 'CreateSandboxSessionRequest', 'CreateSandboxSessionResponse', ('sandboxId',), 'none', 'none', ()),
     OperationId.CREATE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules', 'management', 'mutation', 'none', '', False, False, 'CreateScheduleRequest', 'Schedule', (), 'none', 'none', ()),
+    OperationId.DELETE_AGENT: OpenAPIOperation('DELETE', '/api/v1/agents/{agentId}', 'management', 'destructive', 'none', '', False, False, '', '', ('agentId',), 'none', 'none', ()),
     OperationId.DELETE_SANDBOX: OpenAPIOperation('DELETE', '/api/v1/sandboxes/{sandboxId}', 'management', 'destructive', 'none', '', False, False, '', 'Sandbox', ('sandboxId',), 'none', 'none', ()),
     OperationId.DELETE_SCHEDULE: OpenAPIOperation('DELETE', '/api/v1/schedules/{scheduleId}', 'management', 'destructive', 'none', '', False, False, '', 'Schedule', ('scheduleId',), 'none', 'none', ()),
     OperationId.DELETE_WORKSPACE: OpenAPIOperation('DELETE', '/api/v1/workspaces/{workspaceId}', 'management', 'destructive', 'none', '', False, False, '', '', ('workspaceId',), 'none', 'none', ()),
     OperationId.ENQUEUE_TASK: OpenAPIOperation('POST', '/api/v1/tasks', 'either', 'mutation', 'bounded', '', False, False, 'EnqueueTaskRequest', 'Task', (), 'optional', 'none', ('Idempotency-Key',)),
+    OperationId.ENROLL_AGENT: OpenAPIOperation('POST', '/api/v1/agent/enroll', 'public', 'mutation', 'none', '', False, False, 'AgentEnrollmentRequest', 'AgentSessionResponse', (), 'none', 'none', ()),
     OperationId.FAIL_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/fail', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'FailTaskRequest', 'Task', ('taskId',), 'none', 'none', ()),
+    OperationId.GET_AGENT: OpenAPIOperation('GET', '/api/v1/agents/{agentId}', 'management', 'read-only', 'bounded', '', False, False, '', 'AgentInventoryRecord', ('agentId',), 'none', 'none', ()),
     OperationId.GET_SANDBOX: OpenAPIOperation('GET', '/api/v1/sandboxes/{sandboxId}', 'management', 'read-only', 'bounded', '', False, False, '', 'Sandbox', ('sandboxId',), 'none', 'none', ()),
     OperationId.GET_SCHEDULE: OpenAPIOperation('GET', '/api/v1/schedules/{scheduleId}', 'management', 'read-only', 'bounded', '', False, False, '', 'Schedule', ('scheduleId',), 'none', 'none', ()),
     OperationId.GET_TASK: OpenAPIOperation('GET', '/api/v1/tasks/{taskId}', 'either', 'read-only', 'bounded', '', False, False, '', 'Task', ('taskId',), 'none', 'none', ()),
@@ -870,6 +1005,7 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.GET_WORKSPACE: OpenAPIOperation('GET', '/api/v1/workspaces/{workspaceId}', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxWorkspace', ('workspaceId',), 'none', 'none', ()),
     OperationId.HEALTH: OpenAPIOperation('GET', '/healthz', 'public', 'read-only', 'bounded', '', False, False, '', 'HealthResponse', (), 'none', 'none', ()),
     OperationId.HEARTBEAT_AGENT_TASK: OpenAPIOperation('POST', '/api/v1/agent/tasks/{taskId}/heartbeat', 'agent', 'mutation', 'none', 'agent-task-v1', False, False, 'HeartbeatTaskRequest', 'Task', ('taskId',), 'none', 'none', ()),
+    OperationId.LIST_AGENTS: OpenAPIOperation('GET', '/api/v1/agents', 'management', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
     OperationId.LIST_NAMESPACES: OpenAPIOperation('GET', '/api/v1/namespaces', 'either', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
     OperationId.LIST_SANDBOXES: OpenAPIOperation('GET', '/api/v1/sandboxes', 'management', 'read-only', 'bounded', '', False, False, '', 'SandboxListResponse', (), 'none', 'none', ()),
     OperationId.LIST_SCHEDULES: OpenAPIOperation('GET', '/api/v1/schedules', 'management', 'read-only', 'bounded', '', False, False, '', 'inline', (), 'none', 'none', ()),
@@ -890,6 +1026,8 @@ _OPERATION_TABLE: dict[OperationId, OpenAPIOperation] = {
     OperationId.TERMINATE_WORKFLOW: OpenAPIOperation('POST', '/api/v1/workflows/{workflowId}/terminate', 'either', 'destructive', 'none', '', False, False, 'TerminateWorkflowRequest', 'WorkflowHistoryEvent', ('workflowId',), 'none', 'none', ()),
     OperationId.TRIGGER_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/trigger', 'management', 'mutation', 'none', '', False, False, 'TriggerScheduleRequest', 'TriggerScheduleResponse', ('scheduleId',), 'none', 'none', ()),
     OperationId.UNPAUSE_SCHEDULE: OpenAPIOperation('POST', '/api/v1/schedules/{scheduleId}/unpause', 'management', 'mutation', 'none', '', False, False, 'UnpauseScheduleRequest', 'Schedule', ('scheduleId',), 'none', 'none', ()),
+    OperationId.UPDATE_AGENT: OpenAPIOperation('PUT', '/api/v1/agents/{agentId}', 'management', 'mutation', 'none', '', False, False, 'UpdateAgentConfigurationRequest', 'AgentInventoryRecord', ('agentId',), 'none', 'none', ()),
+    OperationId.UPDATE_SANDBOX: OpenAPIOperation('PATCH', '/api/v1/sandboxes/{sandboxId}', 'management', 'mutation', 'none', '', False, False, 'SandboxUpdateRequest', 'Sandbox', ('sandboxId',), 'none', 'none', ()),
     OperationId.UPDATE_SCHEDULE: OpenAPIOperation('PATCH', '/api/v1/schedules/{scheduleId}', 'management', 'mutation', 'none', '', False, False, 'UpdateScheduleRequest', 'Schedule', ('scheduleId',), 'none', 'none', ()),
     OperationId.UPLOAD_WORKSPACE: OpenAPIOperation('POST', '/api/v1/workspaces', 'management', 'mutation', 'none', '', True, False, 'inline', 'SandboxWorkspace', (), 'none', 'none', ('X-PostGrip-Repository', 'X-PostGrip-Revision')),
 }
@@ -974,6 +1112,9 @@ class OpenAPIClient:
         if search: _query.update({f'search.{key}': value for key, value in search.items()})
         return cast(CountWorkflowsResponseBody, self._transport(OperationId.COUNT_WORKFLOWS, query=_query))
 
+    def create_agent_enrollment_key(self, body: CreateAgentEnrollmentKeyRequestBody) -> CreateAgentEnrollmentKeyResponseBody:
+        return cast(CreateAgentEnrollmentKeyResponseBody, self._transport(OperationId.CREATE_AGENT_ENROLLMENT_KEY, body))
+
     def create_namespace(self, body: CreateNamespaceRequestBody) -> CreateNamespaceResponseBody:
         return cast(CreateNamespaceResponseBody, self._transport(OperationId.CREATE_NAMESPACE, body))
 
@@ -985,6 +1126,9 @@ class OpenAPIClient:
 
     def create_schedule(self, body: CreateScheduleRequestBody) -> CreateScheduleResponseBody:
         return cast(CreateScheduleResponseBody, self._transport(OperationId.CREATE_SCHEDULE, body))
+
+    def delete_agent(self, agent_id: str) -> DeleteAgentResponseBody:
+        return cast(DeleteAgentResponseBody, self._transport(OperationId.DELETE_AGENT, path_parameters={'agentId': agent_id}))
 
     def delete_sandbox(self, sandbox_id: str) -> DeleteSandboxResponseBody:
         return cast(DeleteSandboxResponseBody, self._transport(OperationId.DELETE_SANDBOX, path_parameters={'sandboxId': sandbox_id}))
@@ -1000,10 +1144,16 @@ class OpenAPIClient:
         if idempotency_key is not None: _headers['Idempotency-Key'] = str(idempotency_key)
         return cast(EnqueueTaskResponseBody, self._transport(OperationId.ENQUEUE_TASK, body, headers=_headers))
 
+    def enroll_agent(self, body: EnrollAgentRequestBody) -> EnrollAgentResponseBody:
+        return cast(EnrollAgentResponseBody, self._transport(OperationId.ENROLL_AGENT, body))
+
     def fail_agent_task(self, task_id: str, body: FailAgentTaskRequestBody, *, agent_id: str | None = None) -> FailAgentTaskResponseBody:
         _query: dict[str, Any] = {}
         if agent_id is not None: _query['agent_id'] = agent_id
         return cast(FailAgentTaskResponseBody, self._transport(OperationId.FAIL_AGENT_TASK, body, path_parameters={'taskId': task_id}, query=_query))
+
+    def get_agent(self, agent_id: str) -> GetAgentResponseBody:
+        return cast(GetAgentResponseBody, self._transport(OperationId.GET_AGENT, path_parameters={'agentId': agent_id}))
 
     def get_sandbox(self, sandbox_id: str) -> GetSandboxResponseBody:
         return cast(GetSandboxResponseBody, self._transport(OperationId.GET_SANDBOX, path_parameters={'sandboxId': sandbox_id}))
@@ -1027,6 +1177,9 @@ class OpenAPIClient:
         _query: dict[str, Any] = {}
         if agent_id is not None: _query['agent_id'] = agent_id
         return cast(HeartbeatAgentTaskResponseBody, self._transport(OperationId.HEARTBEAT_AGENT_TASK, body, path_parameters={'taskId': task_id}, query=_query))
+
+    def list_agents(self) -> ListAgentsResponseBody:
+        return cast(ListAgentsResponseBody, self._transport(OperationId.LIST_AGENTS))
 
     def list_namespaces(self) -> ListNamespacesResponseBody:
         return cast(ListNamespacesResponseBody, self._transport(OperationId.LIST_NAMESPACES))
@@ -1141,6 +1294,12 @@ class OpenAPIClient:
     def unpause_schedule(self, schedule_id: str, body: UnpauseScheduleRequestBody) -> UnpauseScheduleResponseBody:
         return cast(UnpauseScheduleResponseBody, self._transport(OperationId.UNPAUSE_SCHEDULE, body, path_parameters={'scheduleId': schedule_id}))
 
+    def update_agent(self, agent_id: str, body: UpdateAgentRequestBody) -> UpdateAgentResponseBody:
+        return cast(UpdateAgentResponseBody, self._transport(OperationId.UPDATE_AGENT, body, path_parameters={'agentId': agent_id}))
+
+    def update_sandbox(self, sandbox_id: str, body: UpdateSandboxRequestBody) -> UpdateSandboxResponseBody:
+        return cast(UpdateSandboxResponseBody, self._transport(OperationId.UPDATE_SANDBOX, body, path_parameters={'sandboxId': sandbox_id}))
+
     def update_schedule(self, schedule_id: str, body: UpdateScheduleRequestBody) -> UpdateScheduleResponseBody:
         return cast(UpdateScheduleResponseBody, self._transport(OperationId.UPDATE_SCHEDULE, body, path_parameters={'scheduleId': schedule_id}))
 
@@ -1204,4 +1363,4 @@ def resolve_openapi_operation(
     )
 
 
-__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'CONNECT_SANDBOX_SESSION_PATH_SESSION_ID', 'CONNECT_SANDBOX_SESSION_QUERY_TICKET', 'UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REPOSITORY', 'UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REVISION', 'OpenAPIJsonValue', 'OpenAPIHealthResponse', 'OpenAPIReadyResponse', 'OpenAPITaskState', 'OpenAPITaskEventKind', 'OpenAPIAgentPollDirectiveType', 'OpenAPIAgentPollDirectiveSubject', 'OpenAPIWorkflowState', 'OpenAPIWorkflowIdReusePolicy', 'OpenAPIScheduleState', 'OpenAPIScheduleOverlapPolicy', 'OpenAPIScheduleMissedRunPolicy', 'OpenAPISandboxBackend', 'OpenAPISandboxDesiredState', 'OpenAPISandboxObservedState', 'OpenAPISandboxSessionKind', 'OpenAPINamespace', 'OpenAPICreateNamespaceRequest', 'OpenAPIEnqueueTaskRequest', 'OpenAPITask', 'OpenAPITaskResult', 'OpenAPIFailureInfo', 'OpenAPIContinueAsNewResult', 'OpenAPITaskEventInput', 'OpenAPITaskEvent', 'OpenAPITaskEventBatchResponse', 'OpenAPITaskEventPage', 'OpenAPIRetryPolicy', 'OpenAPIScheduleCalendarSpec', 'OpenAPIScheduleSpec', 'OpenAPIScheduleAction', 'OpenAPISchedule', 'OpenAPICreateScheduleRequest', 'OpenAPIUpdateScheduleRequest', 'OpenAPIPauseScheduleRequest', 'OpenAPIUnpauseScheduleRequest', 'OpenAPITriggerScheduleRequest', 'OpenAPITriggerScheduleResponse', 'OpenAPIBackfillScheduleRequest', 'OpenAPIBackfillScheduleResponse', 'OpenAPIWorkflowExecution', 'OpenAPIWorkflowHistoryEvent', 'OpenAPIWorkflowHistoryPage', 'OpenAPIWorkflowCountResponse', 'OpenAPISignalWorkflowRequest', 'OpenAPISignalWithStartWorkflowRequest', 'OpenAPISignalWithStartWorkflowResponse', 'OpenAPICancelWorkflowRequest', 'OpenAPICancelTaskRequest', 'OpenAPITerminateWorkflowRequest', 'OpenAPIAgentPollDirective', 'OpenAPIPollTaskResponse', 'OpenAPIHeartbeatTaskRequest', 'OpenAPIAppendTaskEventRequest', 'OpenAPICompleteTaskRequest', 'OpenAPIBlockTaskRequest', 'OpenAPIFailTaskRequest', 'OpenAPIRefreshAgentSessionRequest', 'OpenAPIAgentSessionResponse', 'OpenAPISandboxResourceLimits', 'OpenAPISandboxPortMapping', 'OpenAPISandboxNetworkPolicy', 'OpenAPISandboxNetworkPolicyInput', 'OpenAPISandbox', 'OpenAPISandboxCreateRequest', 'OpenAPISandboxListResponse', 'OpenAPICreateSandboxSessionRequest', 'OpenAPICreateSandboxSessionResponse', 'OpenAPISandboxWorkspace', 'OpenAPISandboxWorkspaceListResponse', 'OpenAPIErrorResponse', 'AppendAgentTaskEventRequestBody', 'AppendAgentTaskEventResponseBody', 'BackfillScheduleRequestBody', 'BackfillScheduleResponseBody', 'BlockAgentTaskRequestBody', 'BlockAgentTaskResponseBody', 'CancelTaskRequestBody', 'CancelTaskResponseBody', 'CancelWorkflowRequestBody', 'CancelWorkflowResponseBody', 'CompleteAgentTaskRequestBody', 'CompleteAgentTaskResponseBody', 'ConnectSandboxSessionRequestBody', 'ConnectSandboxSessionResponseBody', 'CountWorkflowsRequestBody', 'CountWorkflowsResponseBody', 'CreateNamespaceRequestBody', 'CreateNamespaceResponseBody', 'CreateSandboxRequestBody', 'CreateSandboxResponseBody', 'CreateSandboxSessionRequestBody', 'CreateSandboxSessionResponseBody', 'CreateScheduleRequestBody', 'CreateScheduleResponseBody', 'DeleteSandboxRequestBody', 'DeleteSandboxResponseBody', 'DeleteScheduleRequestBody', 'DeleteScheduleResponseBody', 'DeleteWorkspaceRequestBody', 'DeleteWorkspaceResponseBody', 'EnqueueTaskRequestBody', 'EnqueueTaskResponseBody', 'FailAgentTaskRequestBody', 'FailAgentTaskResponseBody', 'GetSandboxRequestBody', 'GetSandboxResponseBody', 'GetScheduleRequestBody', 'GetScheduleResponseBody', 'GetTaskRequestBody', 'GetTaskResponseBody', 'GetWorkflowRequestBody', 'GetWorkflowResponseBody', 'GetWorkspaceRequestBody', 'GetWorkspaceResponseBody', 'HealthRequestBody', 'HealthResponseBody', 'HeartbeatAgentTaskRequestBody', 'HeartbeatAgentTaskResponseBody', 'ListNamespacesRequestBody', 'ListNamespacesResponseBody', 'ListSandboxesRequestBody', 'ListSandboxesResponseBody', 'ListSchedulesRequestBody', 'ListSchedulesResponseBody', 'ListTaskEventsRequestBody', 'ListTaskEventsResponseBody', 'ListTaskEventsBatchRequestBody', 'ListTaskEventsBatchResponseBody', 'ListTasksRequestBody', 'ListTasksResponseBody', 'ListWorkflowHistoryRequestBody', 'ListWorkflowHistoryResponseBody', 'ListWorkflowsRequestBody', 'ListWorkflowsResponseBody', 'ListWorkspacesRequestBody', 'ListWorkspacesResponseBody', 'PauseScheduleRequestBody', 'PauseScheduleResponseBody', 'PollAgentTaskRequestBody', 'PollAgentTaskResponseBody', 'ReadyRequestBody', 'ReadyResponseBody', 'RefreshAgentSessionRequestBody', 'RefreshAgentSessionResponseBody', 'SignalWithStartWorkflowRequestBody', 'SignalWithStartWorkflowResponseBody', 'SignalWorkflowRequestBody', 'SignalWorkflowResponseBody', 'StartSandboxRequestBody', 'StartSandboxResponseBody', 'StopSandboxRequestBody', 'StopSandboxResponseBody', 'TerminateWorkflowRequestBody', 'TerminateWorkflowResponseBody', 'TriggerScheduleRequestBody', 'TriggerScheduleResponseBody', 'UnpauseScheduleRequestBody', 'UnpauseScheduleResponseBody', 'UpdateScheduleRequestBody', 'UpdateScheduleResponseBody', 'UploadWorkspaceRequestBody', 'UploadWorkspaceResponseBody']
+__all__ = ['OPENAPI_SPEC_SHA256', 'OPENAPI_CONTRACT_BUNDLE_SHA256', 'OPENAPI_OPERATION_COUNT', 'OPENAPI_CLIENT_OPERATION_COUNT', 'OPENAPI_OPERATION_TYPES', 'OperationId', 'OpenAPIClient', 'OpenAPIOperation', 'ResolvedOpenAPIOperation', 'openapi_auth_lane_for_request', 'resolve_openapi_operation', 'CONNECT_SANDBOX_SESSION_PATH_SESSION_ID', 'CONNECT_SANDBOX_SESSION_QUERY_TICKET', 'UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REPOSITORY', 'UPLOAD_WORKSPACE_HEADER_X_POST_GRIP_REVISION', 'OpenAPIJsonValue', 'OpenAPIHealthResponse', 'OpenAPIReadyResponse', 'OpenAPITaskState', 'OpenAPITaskEventKind', 'OpenAPIAgentPollDirectiveType', 'OpenAPIAgentPollDirectiveSubject', 'OpenAPIWorkflowState', 'OpenAPIWorkflowIdReusePolicy', 'OpenAPIScheduleState', 'OpenAPIScheduleOverlapPolicy', 'OpenAPIScheduleMissedRunPolicy', 'OpenAPISandboxBackend', 'OpenAPISandboxDesiredState', 'OpenAPISandboxObservedState', 'OpenAPISandboxSessionKind', 'OpenAPINamespace', 'OpenAPICreateNamespaceRequest', 'OpenAPIEnqueueTaskRequest', 'OpenAPITask', 'OpenAPITaskResult', 'OpenAPIFailureInfo', 'OpenAPIContinueAsNewResult', 'OpenAPITaskEventInput', 'OpenAPITaskEvent', 'OpenAPITaskEventBatchResponse', 'OpenAPITaskEventPage', 'OpenAPIRetryPolicy', 'OpenAPIScheduleCalendarSpec', 'OpenAPIScheduleSpec', 'OpenAPIScheduleAction', 'OpenAPISchedule', 'OpenAPICreateScheduleRequest', 'OpenAPIUpdateScheduleRequest', 'OpenAPIPauseScheduleRequest', 'OpenAPIUnpauseScheduleRequest', 'OpenAPITriggerScheduleRequest', 'OpenAPITriggerScheduleResponse', 'OpenAPIBackfillScheduleRequest', 'OpenAPIBackfillScheduleResponse', 'OpenAPIWorkflowExecution', 'OpenAPIWorkflowHistoryEvent', 'OpenAPIWorkflowHistoryPage', 'OpenAPIWorkflowCountResponse', 'OpenAPISignalWorkflowRequest', 'OpenAPISignalWithStartWorkflowRequest', 'OpenAPISignalWithStartWorkflowResponse', 'OpenAPICancelWorkflowRequest', 'OpenAPICancelTaskRequest', 'OpenAPITerminateWorkflowRequest', 'OpenAPIAgentPollDirective', 'OpenAPIPollTaskResponse', 'OpenAPIHeartbeatTaskRequest', 'OpenAPIAppendTaskEventRequest', 'OpenAPICompleteTaskRequest', 'OpenAPIBlockTaskRequest', 'OpenAPIFailTaskRequest', 'OpenAPIRefreshAgentSessionRequest', 'OpenAPIAgentSessionResponse', 'OpenAPISandboxResourceLimits', 'OpenAPISandboxPortMapping', 'OpenAPISandboxNetworkPolicy', 'OpenAPISandboxNetworkPolicyInput', 'OpenAPISandbox', 'OpenAPISandboxCreateRequest', 'OpenAPISandboxListResponse', 'OpenAPICreateSandboxSessionRequest', 'OpenAPICreateSandboxSessionResponse', 'OpenAPISandboxWorkspace', 'OpenAPISandboxWorkspaceListResponse', 'OpenAPIErrorResponse', 'OpenAPIAgentHostMaintenanceWindow', 'OpenAPIAgentHostMaintenanceWindowInput', 'OpenAPIAgentInventoryRecord', 'OpenAPIUpdateAgentConfigurationRequest', 'OpenAPIAgentEnrollmentRequest', 'OpenAPIAgentEnrollmentKeyRequest', 'OpenAPIAgentEnrollmentKeyReceipt', 'OpenAPISandboxUpdateRequest', 'AppendAgentTaskEventRequestBody', 'AppendAgentTaskEventResponseBody', 'BackfillScheduleRequestBody', 'BackfillScheduleResponseBody', 'BlockAgentTaskRequestBody', 'BlockAgentTaskResponseBody', 'CancelTaskRequestBody', 'CancelTaskResponseBody', 'CancelWorkflowRequestBody', 'CancelWorkflowResponseBody', 'CompleteAgentTaskRequestBody', 'CompleteAgentTaskResponseBody', 'ConnectSandboxSessionRequestBody', 'ConnectSandboxSessionResponseBody', 'CountWorkflowsRequestBody', 'CountWorkflowsResponseBody', 'CreateAgentEnrollmentKeyRequestBody', 'CreateAgentEnrollmentKeyResponseBody', 'CreateNamespaceRequestBody', 'CreateNamespaceResponseBody', 'CreateSandboxRequestBody', 'CreateSandboxResponseBody', 'CreateSandboxSessionRequestBody', 'CreateSandboxSessionResponseBody', 'CreateScheduleRequestBody', 'CreateScheduleResponseBody', 'DeleteAgentRequestBody', 'DeleteAgentResponseBody', 'DeleteSandboxRequestBody', 'DeleteSandboxResponseBody', 'DeleteScheduleRequestBody', 'DeleteScheduleResponseBody', 'DeleteWorkspaceRequestBody', 'DeleteWorkspaceResponseBody', 'EnqueueTaskRequestBody', 'EnqueueTaskResponseBody', 'EnrollAgentRequestBody', 'EnrollAgentResponseBody', 'FailAgentTaskRequestBody', 'FailAgentTaskResponseBody', 'GetAgentRequestBody', 'GetAgentResponseBody', 'GetSandboxRequestBody', 'GetSandboxResponseBody', 'GetScheduleRequestBody', 'GetScheduleResponseBody', 'GetTaskRequestBody', 'GetTaskResponseBody', 'GetWorkflowRequestBody', 'GetWorkflowResponseBody', 'GetWorkspaceRequestBody', 'GetWorkspaceResponseBody', 'HealthRequestBody', 'HealthResponseBody', 'HeartbeatAgentTaskRequestBody', 'HeartbeatAgentTaskResponseBody', 'ListAgentsRequestBody', 'ListAgentsResponseBody', 'ListNamespacesRequestBody', 'ListNamespacesResponseBody', 'ListSandboxesRequestBody', 'ListSandboxesResponseBody', 'ListSchedulesRequestBody', 'ListSchedulesResponseBody', 'ListTaskEventsRequestBody', 'ListTaskEventsResponseBody', 'ListTaskEventsBatchRequestBody', 'ListTaskEventsBatchResponseBody', 'ListTasksRequestBody', 'ListTasksResponseBody', 'ListWorkflowHistoryRequestBody', 'ListWorkflowHistoryResponseBody', 'ListWorkflowsRequestBody', 'ListWorkflowsResponseBody', 'ListWorkspacesRequestBody', 'ListWorkspacesResponseBody', 'PauseScheduleRequestBody', 'PauseScheduleResponseBody', 'PollAgentTaskRequestBody', 'PollAgentTaskResponseBody', 'ReadyRequestBody', 'ReadyResponseBody', 'RefreshAgentSessionRequestBody', 'RefreshAgentSessionResponseBody', 'SignalWithStartWorkflowRequestBody', 'SignalWithStartWorkflowResponseBody', 'SignalWorkflowRequestBody', 'SignalWorkflowResponseBody', 'StartSandboxRequestBody', 'StartSandboxResponseBody', 'StopSandboxRequestBody', 'StopSandboxResponseBody', 'TerminateWorkflowRequestBody', 'TerminateWorkflowResponseBody', 'TriggerScheduleRequestBody', 'TriggerScheduleResponseBody', 'UnpauseScheduleRequestBody', 'UnpauseScheduleResponseBody', 'UpdateAgentRequestBody', 'UpdateAgentResponseBody', 'UpdateSandboxRequestBody', 'UpdateSandboxResponseBody', 'UpdateScheduleRequestBody', 'UpdateScheduleResponseBody', 'UploadWorkspaceRequestBody', 'UploadWorkspaceResponseBody']

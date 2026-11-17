@@ -325,3 +325,28 @@ export type {
   SandboxWebSocketConnectOptions,
   SandboxWebSocketFactory,
 } from './sandbox.js';
+
+export type {
+  CreateAgentEnrollmentKeyRequestBody,
+  CreateAgentEnrollmentKeyResponseBody,
+  DeleteAgentRequestBody,
+  DeleteAgentResponseBody,
+  EnrollAgentRequestBody,
+  EnrollAgentResponseBody,
+  GetAgentRequestBody,
+  GetAgentResponseBody,
+  ListAgentsRequestBody,
+  ListAgentsResponseBody,
+  OpenAPIAgentEnrollmentKeyReceipt,
+  OpenAPIAgentEnrollmentKeyRequest,
+  OpenAPIAgentEnrollmentRequest,
+  OpenAPIAgentHostMaintenanceWindow,
+  OpenAPIAgentHostMaintenanceWindowInput,
+  OpenAPIAgentInventoryRecord,
+  OpenAPISandboxUpdateRequest,
+  OpenAPIUpdateAgentConfigurationRequest,
+  UpdateAgentRequestBody,
+  UpdateAgentResponseBody,
+  UpdateSandboxRequestBody,
+  UpdateSandboxResponseBody,
+} from './generated/openapi.js';
