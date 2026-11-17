@@ -65,10 +65,15 @@ type MilestoneOptions struct {
 type ActivityOptions struct {
 	TaskQueue           string
 	LeaseTimeoutSeconds int
-	StartToCloseMs      int
-	HeartbeatTimeoutMs  int
-	Retry               *RetryPolicy
-	CancellationType    CancellationType
+	// StartToCloseMs, when positive, overrides LeaseTimeoutSeconds and is rounded
+	// up to whole seconds for the renewable activity lease. This is not a hard
+	// wall-clock execution deadline while heartbeats renew the lease.
+	StartToCloseMs int
+	// HeartbeatTimeoutMs is reserved; the current runtime does not enforce a
+	// separate heartbeat deadline. Heartbeat progress still records normally.
+	HeartbeatTimeoutMs int
+	Retry              *RetryPolicy
+	CancellationType   CancellationType
 }
 
 // ChildWorkflowOptions configures a child workflow invocation.

@@ -266,6 +266,12 @@ func (w *workflowContext) ExecuteActivity(activityType string, args []any, targe
 			taskQueue = opts.TaskQueue
 		}
 		leaseTimeout = opts.LeaseTimeoutSeconds
+		if opts.StartToCloseMs > 0 {
+			leaseTimeout = opts.StartToCloseMs / 1000
+			if opts.StartToCloseMs%1000 != 0 {
+				leaseTimeout++
+			}
+		}
 		retry = opts.Retry
 	}
 	payload := map[string]any{
