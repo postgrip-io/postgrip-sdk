@@ -76,6 +76,7 @@ export class WorkflowReplay {
   private readonly signals: WorkflowHistoryEvent[];
   private readonly completedUpdates: WorkflowHistoryEvent[];
   private readonly cancellation: WorkflowHistoryEvent | undefined;
+  private readonly cancellationIndex: number;
   /** The executing update task, or undefined while the body runs. */
   private owner: string | undefined;
   private ownerLive = false;
@@ -104,7 +105,8 @@ export class WorkflowReplay {
     });
     this.signals = history.filter((event) => event.type === 'WorkflowSignaled');
     this.completedUpdates = history.filter((event) => event.type === 'WorkflowUpdateCompleted');
-    this.cancellation = history.find((event) => event.type === 'WorkflowCancellationRequested');
+    this.cancellationIndex = history.findIndex((event) => event.type === 'WorkflowCancellationRequested');
+    this.cancellation = history[this.cancellationIndex];
     this.history = history;
   }
 
@@ -278,7 +280,17 @@ export class WorkflowReplay {
   }
 
   isCancellationRequested(): boolean {
-    return this.cancellation != null;
+    if (this.cancellationIndex < 0) return false;
+    // A completed owner cannot observe a request made after it returned.
+    if (this.owner !== undefined && !this.ownerLive) {
+      const terminal = this.history.findIndex((event) => event.task_id === this.owner && UPDATE_TERMINAL_TYPES.has(event.type));
+      if (terminal >= 0 && terminal < this.cancellationIndex) return false;
+    }
+    const cursor = this.current();
+    const next = cursor.events[cursor.next];
+    // Never skip a recorded command to enter cancellation cleanup. In particular,
+    // post-cancellation cleanup commands must not hide an already-visible request.
+    return next === undefined || next.index > this.cancellationIndex;
   }
 
   cancellationReason(): string {

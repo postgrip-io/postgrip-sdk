@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 import { milestoneEvent } from './_events.js';
-import { ApplicationFailure, CancelledFailure } from './errors.js';
+import { ApplicationFailure } from './errors.js';
 import type {
   ActivityFunction,
   ActivityOptions,
@@ -81,7 +81,6 @@ export async function milestone(name: string, options: WorkflowMilestoneOptions 
 export function sleep(ms: number): Promise<void> {
   const runtime = workflowRuntimeStorage.getStore();
   if (runtime) {
-    throwIfScopedCancellationRequested(runtime);
     return runtime.sleep(ms, currentCancellationScope());
   }
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -90,7 +89,6 @@ export function sleep(ms: number): Promise<void> {
 export function condition(predicate: () => boolean, timeoutMs?: number): Promise<boolean> {
   const runtime = currentRuntime();
   if (predicate()) return Promise.resolve(true);
-  throwIfScopedCancellationRequested(runtime);
   return runtime.condition(predicate, timeoutMs, currentCancellationScope());
 }
 
@@ -118,7 +116,6 @@ export async function executeChild<WF extends WorkflowFunction>(
   }
   const runtime = currentRuntime();
   const args = options.args ?? ([] as unknown as Parameters<WF>);
-  throwIfScopedCancellationRequested(runtime);
   return await runtime.executeChild(workflowType, args, { ...options, cancellationScope: currentCancellationScope() }) as Awaited<ReturnType<WF>>;
 }
 
@@ -205,7 +202,6 @@ export class ContinueAsNewCommand extends Error {
 
 async function executeActivity(name: string, args: unknown[], options: ActivityOptions): Promise<unknown> {
   const runtime = currentRuntime();
-  throwIfScopedCancellationRequested(runtime);
   // Dispatch before awaiting the progress event: the runtime takes this
   // command's replay and scheduling position synchronously, so concurrent
   // calls keep call order regardless of how fast each event request returns.
@@ -241,12 +237,6 @@ function currentCancellationScope(): CancellationScopeType {
 function currentCancellationScopeStack(): CancellationScopeType[] {
   const runtime = workflowRuntimeStorage.getStore();
   return runtime?.cancellationScopes ?? fallbackCancellationScopeStack;
-}
-
-function throwIfScopedCancellationRequested(runtime: WorkflowRuntime): void {
-  if (currentCancellationScope() !== 'non_cancellable' && runtime.cancellationRequested()) {
-    throw new CancelledFailure('workflow cancellation requested');
-  }
 }
 
 function currentRuntime(): WorkflowRuntime {

@@ -96,7 +96,8 @@ class WorkflowReplay:
         self._owner_live = False
         self.signals = [event for event in history if event.get("type") == "WorkflowSignaled"]
         self.completed_updates = [event for event in history if event.get("type") == "WorkflowUpdateCompleted"]
-        self.cancellation = next((event for event in history if event.get("type") == "WorkflowCancellationRequested"), None)
+        self._cancellation_index = next((index for index, event in enumerate(history) if event.get("type") == "WorkflowCancellationRequested"), -1)
+        self.cancellation = history[self._cancellation_index] if self._cancellation_index >= 0 else None
         # The first determinism error raised; a caught one still fails the task.
         self.determinism_error: DeterminismError | None = None
 
@@ -226,7 +227,18 @@ class WorkflowReplay:
         ]
 
     def is_cancellation_requested(self) -> bool:
-        return self.cancellation is not None
+        if self._cancellation_index < 0:
+            return False
+        # A completed owner cannot observe a request made after it returned.
+        if self._owner is not None and not self._owner_live:
+            terminal = next((index for index, event in enumerate(self.history)
+                             if event.get("task_id") == self._owner and event.get("type") in _UPDATE_TERMINAL_TYPES), -1)
+            if 0 <= terminal < self._cancellation_index:
+                return False
+        cursor = self._current()
+        # Match pre-cancellation commands before entering cleanup; recorded
+        # cleanup commands after cancellation must not hide that request.
+        return cursor.next >= len(cursor.events) or cursor.events[cursor.next][0] > self._cancellation_index
 
     def cancellation_reason(self) -> str:
         reason = (self.cancellation.get("attributes") or {}).get("reason") if self.cancellation else None
