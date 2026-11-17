@@ -10,7 +10,8 @@ async function ExpiringWorkflow(withPreparation = false, waitFor = 'timer'): Pro
   setHandler(status, () => true);
   try {
     if (withPreparation) await prepare();
-    if (waitFor === 'activity') await work();
+    if (waitFor === 'parallel') await Promise.all([sleep(86_400_000), sleep(86_400_001)]);
+    else if (waitFor === 'activity') await work();
     else if (waitFor === 'child') await executeChild('Child');
     else await sleep(86_400_000);
     return 'expired';
@@ -48,9 +49,10 @@ async function dispatch(c: ReturnType<typeof connection>, t = task(), workflow =
 describe('cancellation cleanup replay', () => {
   beforeEach(() => vi.stubEnv('POSTGRIP_AGENT_MANAGED_RUNTIME', 'true'));
   afterEach(() => vi.unstubAllEnvs());
-  for (const position of ['activity', 'child', 'before timer', 'pending timer', 'timer fired before cancel', 'timer fired after cancel', 'after preparation'] as const) {
+  for (const position of ['parallel', 'activity', 'child', 'before timer', 'pending timer', 'timer fired before cancel', 'timer fired after cancel', 'after preparation'] as const) {
     it(`survives cleanup suspension/restart: ${position}`, async () => {
-      const history = position === 'activity' ? [event('ActivityTaskScheduled', 'work-task', { activity_type: 'work' }), cancel()]
+      const history = position === 'parallel' ? [timer(), event('TimerStarted', 'timer-2', { duration_ms: 86_400_001 }), cancel()]
+        : position === 'activity' ? [event('ActivityTaskScheduled', 'work-task', { activity_type: 'work' }), cancel()]
         : position === 'child' ? [event('ChildWorkflowExecutionStarted', 'child-task', { workflow_type: 'Child' }), cancel()]
         : position === 'before timer' ? [cancel()]
         : position === 'timer fired before cancel' ? [timer(), event('TimerFired', 'timer-1'), cancel()]

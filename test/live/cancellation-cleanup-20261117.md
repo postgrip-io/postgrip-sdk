@@ -87,3 +87,33 @@ mkdocs build --strict --site-dir /tmp/sdk152-docs
 This is an SDK source fix, not a registry release. The production web guide's
 older pinned SDK and workaround remain valid until coordinated source-pin and
 documentation updates. Previously failed workflows are not reopened by this fix.
+
+## Validated review finding: concurrent timers
+
+Codex review on PR #153 identified that Promise.all/asyncio.gather could surface
+an earlier timer's WorkflowBlocked even though its sibling had observed
+cancellation. Both Agent-dispatch regressions reproduced this: after the cleanup
+activity completed, the workflow remained blocked instead of failing cancelled.
+
+The follow-up preserves each suspension's cancellation scope and resolves a
+cancellable suspension against cancellation after draining commands. Pending
+non-cancellable cleanup remains blocked; once cleanup completes, cancellation
+wins over the earlier cancellable suspension. Sticky determinism checks remain
+first. Full suites passed: TypeScript 786 tests, Python 263 with the one existing
+environment-gated server smoke skip.
+
+Under a second lease `sdk-152-20261117-r2`, the managed fixtures repeated both
+single-timer and concurrent-timer scenarios in both languages:
+
+| Language | Concurrent timers | Runtime task | Workflow run | Cleanup activity |
+| --- | --- | --- | --- | --- |
+| typescript | no | `636b78e951a658bd1a210a38aa7f0766` | `30494f83da9396ef81b855907fd878bf` | `ae8ccd60fbc977970c6cf40a16ee375c` |
+| typescript | yes | `636b78e951a658bd1a210a38aa7f0766` | `1647df9a31f922d3467d1754494ae512` | `3a8d451af6dc74383b4aeb9c7111e81a` |
+| python | no | `1bf00726d17e1ee5a07c1e87f3cbd854` | `b7642d8451d2d2b4ef4498a40018b7af` | `173f16bec7c66e0dd94f6155487124f6` |
+| python | yes | `1bf00726d17e1ee5a07c1e87f3cbd854` | `7822ec6b90ef3a38be7ce47cf442b5e1` | `589e2c8c4cb818165f470113b7415421` |
+
+All four workflows ran exactly one successful cleanup activity and then ended
+with the supplied CancelledFailure; both outer runtime tasks exited 0. The
+concurrent cases recorded both TimerStarted events before cancellation. No
+workflow stayed blocked after cleanup or reported success. Fixture commands
+and cleanup procedure are unchanged from above.

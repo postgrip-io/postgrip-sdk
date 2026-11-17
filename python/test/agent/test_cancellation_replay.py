@@ -17,7 +17,9 @@ class ExpiringWorkflow:
         try:
             if with_preparation:
                 await workflow.execute_activity("prepare")
-            if wait_for == "activity":
+            if wait_for == "parallel":
+                await asyncio.gather(workflow.sleep(timedelta(days=1)), workflow.sleep(timedelta(days=1, milliseconds=1)))
+            elif wait_for == "activity":
                 await workflow.execute_activity("work")
             elif wait_for == "child":
                 await workflow.execute_child("Child")
@@ -62,6 +64,7 @@ class CancellationReplayTests(unittest.TestCase):
 
     def test_cleanup_survives_suspension_and_restart(self):
         cases = {
+            "parallel": [timer(), event("TimerStarted", "timer-2", duration_ms=86_400_001), cancel()],
             "activity": [event("ActivityTaskScheduled", "work-task", activity_type="work"), cancel()],
             "child": [event("ChildWorkflowExecutionStarted", "child-task", workflow_type="Child"), cancel()],
             "before timer": [cancel()],
@@ -75,7 +78,7 @@ class CancellationReplayTests(unittest.TestCase):
                 c = FakeConnection()
                 c.histories["run-1"] = history
                 c.tasks["prepare-task"] = {"id": "prepare-task", "state": "succeeded", "result": {"value": None}}
-                t = task([name == "after preparation", name if name in ("activity", "child") else "timer"])
+                t = task([name == "after preparation", name if name in ("parallel", "activity", "child") else "timer"])
                 self.dispatch(c, t)
                 self.assertEqual(c.failed, [])
                 self.assertEqual(c.completed, [])

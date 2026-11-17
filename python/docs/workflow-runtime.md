@@ -181,8 +181,9 @@ finally:
 Register `audit_cancellation` as an activity. Cleanup may suspend and replay on
 another Agent. When it finishes, the original cancellation propagates. Ordinary
 suspension also unwinds `finally`, so keep the guard; unconditional cleanup can
-run while a workflow is merely waiting. Non-cancellable scope suppresses
-cancellation, not determinism validation. Activities still require idempotency
+run while a workflow is merely waiting. If concurrent commands suspend and observe cancellation together, cancellation
+wins after their commands are drained, while pending shielded cleanup still
+blocks. Non-cancellable scope suppresses cancellation, not determinism validation. Activities still require idempotency
 under at-least-once delivery. Query replay remains read-only and stops at the
 cancellation boundary; it does not execute cleanup.
 

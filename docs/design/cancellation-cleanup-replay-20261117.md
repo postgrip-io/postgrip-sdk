@@ -33,6 +33,14 @@ change Go behavior, HTTP contracts, cancellation propagation policy or releases.
   position and read-only query behavior. The scoped cancellation accessor uses
   the same positional visibility, so finally cleanup is not entered on an
   ordinary suspension before that boundary.
+- After draining commands, cancellation also takes precedence over a
+  cancellable suspension returned by Promise.all/asyncio.gather: an earlier
+  sibling can suspend before another consumes the final pre-cancellation
+  command. Suspension exceptions carry their originating scope. A suspension
+  from non-cancellable cleanup must remain blocked, so this resolution cannot
+  terminate the workflow before cleanup completes. Sticky determinism errors
+  retain highest precedence. This uses recorded position and scope, not a
+  timing delay or scheduling heuristic.
 - Non-cancellable scope suppresses the cancellation checks, not command
   matching. Its newly scheduled cleanup can suspend, then replay on a fresh
   Agent with the original timer consumed at the same boundary. After cleanup

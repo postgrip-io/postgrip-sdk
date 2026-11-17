@@ -22,9 +22,12 @@ async def audit_cancellation(identifier: str) -> str:
 @workflow.defn(name="CancellationCleanup")
 class CancellationCleanup:
     @workflow.run
-    async def run(self, identifier: str) -> str:
+    async def run(self, identifier: str, parallel=False) -> str:
         try:
-            await workflow.sleep(timedelta(days=1))
+            if parallel:
+                await asyncio.gather(workflow.sleep(timedelta(days=1)), workflow.sleep(timedelta(days=1, milliseconds=1)))
+            else:
+                await workflow.sleep(timedelta(days=1))
             return "expired"
         finally:
             if workflow.cancellation_requested():
@@ -46,12 +49,12 @@ async def main():
             await asyncio.sleep(0.25)
         raise RuntimeError("live cancellation check timed out")
 
-    async def scenario():
+    async def scenario(parallel):
         identifier = "sdk152-python-" + str(uuid.uuid4())
-        handle = await Client(connection).start_workflow("CancellationCleanup", identifier,
+        handle = await Client(connection).start_workflow("CancellationCleanup", identifier, parallel,
             id=identifier, task_queue=os.environ["POSTGRIP_AGENT_TASK_QUEUE"], workflow_run_timeout=timedelta(minutes=3))
         try:
-            await until(handle.history, lambda h: any(e["type"] == "TimerStarted" for e in h))
+            await until(handle.history, lambda h: sum(e["type"] == "TimerStarted" for e in h) == (2 if parallel else 1))
             execution = await asyncio.to_thread(connection.get_workflow, handle.run_id or identifier)
             async def read_task():
                 return await asyncio.to_thread(connection.get_task, execution["task_id"])
@@ -66,14 +69,18 @@ async def main():
             cleanup = await asyncio.to_thread(connection.get_task, cleanups[0]["task_id"])
             assert cleanup["state"] == "succeeded"
             assert cleanup["result"]["value"] == "audit:" + identifier
-            print(json.dumps({"language": "python", "workflowId": identifier, "runId": handle.run_id, "cleanup": cleanup["id"], "cleanupResult": cleanup["result"]["value"], "failure": task["result"]["failure"], "historyTypes": [e["type"] for e in history]}), flush=True)
+            print(json.dumps({"language": "python", "parallel": parallel, "workflowId": identifier, "runId": handle.run_id, "cleanup": cleanup["id"], "cleanupResult": cleanup["result"]["value"], "failure": task["result"]["failure"], "historyTypes": [e["type"] for e in history]}), flush=True)
         finally:
             execution = await asyncio.to_thread(connection.get_workflow, handle.run_id or identifier)
             task = await asyncio.to_thread(connection.get_task, execution["task_id"])
             if task["state"] not in ("failed", "succeeded"):
                 await handle.terminate("SDK #152 fixture cleanup")
 
-    await agent.run_until(scenario())
+    async def scenarios():
+        for parallel in (False, True):
+            await scenario(parallel)
+
+    await agent.run_until(scenarios())
 
 
 if __name__ == "__main__":

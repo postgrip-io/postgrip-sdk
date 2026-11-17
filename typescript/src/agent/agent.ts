@@ -267,7 +267,13 @@ export class Agent {
           // The recorded determinism error takes precedence below.
         }
       }
-      const err = replay?.determinismError ? determinismViolation(replay.determinismError.message) : thrown;
+      let err = replay?.determinismError ? determinismViolation(replay.determinismError.message) : thrown;
+      // Promise.all may surface an earlier cancellable suspension while a
+      // sibling consumes the final pre-cancellation command. Resolve that race
+      // after command drain, but keep shielded cleanup suspended until it ends.
+      if (err instanceof WorkflowBlocked && err.cancellationScope !== 'non_cancellable' && replay?.isCancellationRequested()) {
+        err = new CancelledFailure(replay.cancellationReason());
+      }
       if (err instanceof WorkflowBlocked) {
         await this.connection.blockTask(task.id, this.identity, err.message).catch(ignoreTerminalTaskMutation);
         return;
@@ -443,7 +449,7 @@ export class Agent {
         }
         throw ApplicationFailure.create({ message: task.error ?? 'activity failed', type: 'ActivityFailure' });
       }
-      throw new WorkflowBlocked(`waiting for activity ${name}`);
+      throw new WorkflowBlocked(`waiting for activity ${name}`, options.cancellationScope);
     }
     await this.scheduleInOrder(replay, () => this.connection.enqueueTask<ActivityInvocationPayload>({
       type: `activity:${name}`,
@@ -461,7 +467,7 @@ export class Agent {
       },
       lease_timeout_seconds: options.startToCloseTimeoutMs ? Math.ceil(options.startToCloseTimeoutMs / 1000) : undefined,
     }));
-    throw new WorkflowBlocked(`scheduled activity ${name}`);
+    throw new WorkflowBlocked(`scheduled activity ${name}`, options.cancellationScope);
   }
 
   private async executeTimerCommand(
@@ -475,7 +481,7 @@ export class Agent {
     this.throwIfCancelled(replay, cancellationScope);
     if (started?.task_id) {
       if (replay.isTimerFired(started)) return;
-      throw new WorkflowBlocked('waiting for timer');
+      throw new WorkflowBlocked('waiting for timer', cancellationScope);
     }
     const normalizedDurationMs = Math.max(0, Math.round(durationMs));
     const timerId = crypto.randomUUID();
@@ -493,7 +499,7 @@ export class Agent {
         fireAt,
       },
     }));
-    throw new WorkflowBlocked(`scheduled timer for ${normalizedDurationMs}ms`);
+    throw new WorkflowBlocked(`scheduled timer for ${normalizedDurationMs}ms`, cancellationScope);
   }
 
   private async executeChildWorkflowCommand(
@@ -516,7 +522,7 @@ export class Agent {
       if (child.state === 'failed') {
         throw ApplicationFailure.create({ message: child.error ?? 'child workflow failed', type: 'ChildWorkflowFailure' });
       }
-      throw new WorkflowBlocked(`waiting for child workflow ${workflowType}`);
+      throw new WorkflowBlocked(`waiting for child workflow ${workflowType}`, options.cancellationScope);
     }
     const childWorkflowId = options.workflowId ?? crypto.randomUUID();
     await this.scheduleInOrder(replay, () => this.connection.enqueueTask<WorkflowPayload>({
@@ -537,7 +543,7 @@ export class Agent {
       },
       lease_timeout_seconds: options.leaseTimeoutSeconds,
     }));
-    throw new WorkflowBlocked(`scheduled child workflow ${workflowType}`);
+    throw new WorkflowBlocked(`scheduled child workflow ${workflowType}`, options.cancellationScope);
   }
 
   private async executeConditionCommand(
@@ -550,7 +556,7 @@ export class Agent {
     this.throwIfCancelled(replay, cancellationScope);
     if (predicate()) return true;
     if (timeoutMs == null) {
-      throw new WorkflowBlocked('waiting for condition');
+      throw new WorkflowBlocked('waiting for condition', cancellationScope);
     }
     await this.executeTimerCommand(workflowTask, replay, timeoutMs, cancellationScope);
     return predicate();
@@ -755,7 +761,7 @@ export class Agent {
 
 }
 class WorkflowBlocked extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly cancellationScope: 'cancellable' | 'non_cancellable' = 'cancellable') {
     super(message);
     this.name = 'WorkflowBlocked';
   }
